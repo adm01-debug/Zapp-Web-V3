@@ -9,1137 +9,6 @@ export type Json =
 export type Database = {
   evo: {
     Tables: {
-      _backup_comercial03_20260811: {
-        Row: {
-          audio_meme_id: string | null
-          caption: string | null
-          category: string | null
-          contact_id: string | null
-          content: string | null
-          conversation_id: string | null
-          created_at: string | null
-          deleted_at: string | null
-          direction: string | null
-          edited_at: string | null
-          error_code: string | null
-          error_reason: string | null
-          follow_up_at: string | null
-          follow_up_done: boolean | null
-          from_me: boolean | null
-          id: string
-          instance_name: string | null
-          is_important: boolean | null
-          is_read: boolean | null
-          is_starred: boolean | null
-          link_preview: Json | null
-          media_bucket: string | null
-          media_filename: string | null
-          media_meta: Json | null
-          media_mimetype: string | null
-          media_path: string | null
-          media_sha256: string | null
-          media_size: number | null
-          media_status: string | null
-          media_type: string | null
-          media_url: string | null
-          message_id: string | null
-          message_type: string | null
-          notes: string | null
-          payload: Json | null
-          push_name: string | null
-          quoted_message_id: string | null
-          raw_data: Json | null
-          remote_jid: string | null
-          reply_to_id: string | null
-          retry_attempt: number | null
-          retry_total: number | null
-          sent_by_bot: boolean | null
-          sentiment: string | null
-          status: string | null
-          status_at: string | null
-          sticker_id: string | null
-          tags: string[] | null
-          template_name: string | null
-          transcription: string | null
-          transcription_status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          audio_meme_id?: string | null
-          caption?: string | null
-          category?: string | null
-          contact_id?: string | null
-          content?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          direction?: string | null
-          edited_at?: string | null
-          error_code?: string | null
-          error_reason?: string | null
-          follow_up_at?: string | null
-          follow_up_done?: boolean | null
-          from_me?: boolean | null
-          id: string
-          instance_name?: string | null
-          is_important?: boolean | null
-          is_read?: boolean | null
-          is_starred?: boolean | null
-          link_preview?: Json | null
-          media_bucket?: string | null
-          media_filename?: string | null
-          media_meta?: Json | null
-          media_mimetype?: string | null
-          media_path?: string | null
-          media_sha256?: string | null
-          media_size?: number | null
-          media_status?: string | null
-          media_type?: string | null
-          media_url?: string | null
-          message_id?: string | null
-          message_type?: string | null
-          notes?: string | null
-          payload?: Json | null
-          push_name?: string | null
-          quoted_message_id?: string | null
-          raw_data?: Json | null
-          remote_jid?: string | null
-          reply_to_id?: string | null
-          retry_attempt?: number | null
-          retry_total?: number | null
-          sent_by_bot?: boolean | null
-          sentiment?: string | null
-          status?: string | null
-          status_at?: string | null
-          sticker_id?: string | null
-          tags?: string[] | null
-          template_name?: string | null
-          transcription?: string | null
-          transcription_status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          audio_meme_id?: string | null
-          caption?: string | null
-          category?: string | null
-          contact_id?: string | null
-          content?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          direction?: string | null
-          edited_at?: string | null
-          error_code?: string | null
-          error_reason?: string | null
-          follow_up_at?: string | null
-          follow_up_done?: boolean | null
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string | null
-          is_important?: boolean | null
-          is_read?: boolean | null
-          is_starred?: boolean | null
-          link_preview?: Json | null
-          media_bucket?: string | null
-          media_filename?: string | null
-          media_meta?: Json | null
-          media_mimetype?: string | null
-          media_path?: string | null
-          media_sha256?: string | null
-          media_size?: number | null
-          media_status?: string | null
-          media_type?: string | null
-          media_url?: string | null
-          message_id?: string | null
-          message_type?: string | null
-          notes?: string | null
-          payload?: Json | null
-          push_name?: string | null
-          quoted_message_id?: string | null
-          raw_data?: Json | null
-          remote_jid?: string | null
-          reply_to_id?: string | null
-          retry_attempt?: number | null
-          retry_total?: number | null
-          sent_by_bot?: boolean | null
-          sentiment?: string | null
-          status?: string | null
-          status_at?: string | null
-          sticker_id?: string | null
-          tags?: string[] | null
-          template_name?: string | null
-          transcription?: string | null
-          transcription_status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      _backup_contact_identity_test_20260811: {
-        Row: {
-          confidence: string | null
-          first_seen: string | null
-          id: string
-          instance_name: string | null
-          last_seen: string | null
-          lid_jid: string | null
-          phone_number: string | null
-          pn_jid: string | null
-          raw_signal: Json | null
-          source: string | null
-        }
-        Insert: {
-          confidence?: string | null
-          first_seen?: string | null
-          id: string
-          instance_name?: string | null
-          last_seen?: string | null
-          lid_jid?: string | null
-          phone_number?: string | null
-          pn_jid?: string | null
-          raw_signal?: Json | null
-          source?: string | null
-        }
-        Update: {
-          confidence?: string | null
-          first_seen?: string | null
-          id?: string
-          instance_name?: string | null
-          last_seen?: string | null
-          lid_jid?: string | null
-          phone_number?: string | null
-          pn_jid?: string | null
-          raw_signal?: Json | null
-          source?: string | null
-        }
-        Relationships: []
-      }
-      _backup_contacts_lidphone_20260811: {
-        Row: {
-          created_at: string | null
-          id: string
-          instance_name: string | null
-          phone_number: string | null
-          push_name: string | null
-          raw_phone_jid: string | null
-          remote_jid: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id: string
-          instance_name?: string | null
-          phone_number?: string | null
-          push_name?: string | null
-          raw_phone_jid?: string | null
-          remote_jid?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          instance_name?: string | null
-          phone_number?: string | null
-          push_name?: string | null
-          raw_phone_jid?: string | null
-          remote_jid?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      _backup_exf07_orphan_candidates: {
-        Row: {
-          bucket_id: string | null
-          instance_name: string | null
-          message_id: string
-          message_type: string | null
-          mimetype: string | null
-          object_created_at: string | null
-          object_name: string | null
-          remote_jid: string | null
-          size_bytes: number | null
-        }
-        Insert: {
-          bucket_id?: string | null
-          instance_name?: string | null
-          message_id: string
-          message_type?: string | null
-          mimetype?: string | null
-          object_created_at?: string | null
-          object_name?: string | null
-          remote_jid?: string | null
-          size_bytes?: number | null
-        }
-        Update: {
-          bucket_id?: string | null
-          instance_name?: string | null
-          message_id?: string
-          message_type?: string | null
-          mimetype?: string | null
-          object_created_at?: string | null
-          object_name?: string | null
-          remote_jid?: string | null
-          size_bytes?: number | null
-        }
-        Relationships: []
-      }
-      _backup_exf07_ready_truncated: {
-        Row: {
-          base64_data: string | null
-          caption: string | null
-          created_at: string | null
-          duration_seconds: number | null
-          file_name: string | null
-          file_sha256: string | null
-          file_size: number | null
-          height: number | null
-          id: string
-          instance_name: string | null
-          is_animated: boolean | null
-          media_status: string | null
-          media_type: string | null
-          message_id: string | null
-          mime_type: string | null
-          remote_jid: string | null
-          storage_bucket: string | null
-          storage_path: string | null
-          storage_path_clean: string | null
-          storage_url: string | null
-          thumbnail_base64: string | null
-          width: number | null
-        }
-        Insert: {
-          base64_data?: string | null
-          caption?: string | null
-          created_at?: string | null
-          duration_seconds?: number | null
-          file_name?: string | null
-          file_sha256?: string | null
-          file_size?: number | null
-          height?: number | null
-          id: string
-          instance_name?: string | null
-          is_animated?: boolean | null
-          media_status?: string | null
-          media_type?: string | null
-          message_id?: string | null
-          mime_type?: string | null
-          remote_jid?: string | null
-          storage_bucket?: string | null
-          storage_path?: string | null
-          storage_path_clean?: string | null
-          storage_url?: string | null
-          thumbnail_base64?: string | null
-          width?: number | null
-        }
-        Update: {
-          base64_data?: string | null
-          caption?: string | null
-          created_at?: string | null
-          duration_seconds?: number | null
-          file_name?: string | null
-          file_sha256?: string | null
-          file_size?: number | null
-          height?: number | null
-          id?: string
-          instance_name?: string | null
-          is_animated?: boolean | null
-          media_status?: string | null
-          media_type?: string | null
-          message_id?: string | null
-          mime_type?: string | null
-          remote_jid?: string | null
-          storage_bucket?: string | null
-          storage_path?: string | null
-          storage_path_clean?: string | null
-          storage_url?: string | null
-          thumbnail_base64?: string | null
-          width?: number | null
-        }
-        Relationships: []
-      }
-      _backup_fn_migrate: {
-        Row: {
-          _row_id: number
-          prosrc: string | null
-        }
-        Insert: {
-          _row_id?: number
-          prosrc?: string | null
-        }
-        Update: {
-          _row_id?: number
-          prosrc?: string | null
-        }
-        Relationships: []
-      }
-      _backup_fn_rpc_complete_media_download: {
-        Row: {
-          _row_id: number
-          args: string | null
-          proname: unknown
-          prosrc: string | null
-        }
-        Insert: {
-          _row_id?: number
-          args?: string | null
-          proname?: unknown
-          prosrc?: string | null
-        }
-        Update: {
-          _row_id?: number
-          args?: string | null
-          proname?: unknown
-          prosrc?: string | null
-        }
-        Relationships: []
-      }
-      _backup_gaps_20260810_category: {
-        Row: {
-          category: string | null
-          id: string
-        }
-        Insert: {
-          category?: string | null
-          id: string
-        }
-        Update: {
-          category?: string | null
-          id?: string
-        }
-        Relationships: []
-      }
-      _backup_gaps_20260810_e32: {
-        Row: {
-          edited_at: string | null
-          id: string
-          message_id: string | null
-        }
-        Insert: {
-          edited_at?: string | null
-          id: string
-          message_id?: string | null
-        }
-        Update: {
-          edited_at?: string | null
-          id?: string
-          message_id?: string | null
-        }
-        Relationships: []
-      }
-      _backup_gaps_20260810_e34: {
-        Row: {
-          id: string
-          link_preview: Json | null
-        }
-        Insert: {
-          id: string
-          link_preview?: Json | null
-        }
-        Update: {
-          id?: string
-          link_preview?: Json | null
-        }
-        Relationships: []
-      }
-      _backup_gaps_20260810_e35: {
-        Row: {
-          id: string
-          media_url: string | null
-          sticker_id: string | null
-        }
-        Insert: {
-          id: string
-          media_url?: string | null
-          sticker_id?: string | null
-        }
-        Update: {
-          id?: string
-          media_url?: string | null
-          sticker_id?: string | null
-        }
-        Relationships: []
-      }
-      _backup_gaps_20260810_fsize: {
-        Row: {
-          file_size: number | null
-          id: string
-          storage_bucket: string | null
-          storage_path_clean: string | null
-        }
-        Insert: {
-          file_size?: number | null
-          id: string
-          storage_bucket?: string | null
-          storage_path_clean?: string | null
-        }
-        Update: {
-          file_size?: number | null
-          id?: string
-          storage_bucket?: string | null
-          storage_path_clean?: string | null
-        }
-        Relationships: []
-      }
-      _backup_gaps_20260810_lid: {
-        Row: {
-          id: string
-          remote_jid: string | null
-        }
-        Insert: {
-          id: string
-          remote_jid?: string | null
-        }
-        Update: {
-          id?: string
-          remote_jid?: string | null
-        }
-        Relationships: []
-      }
-      _backup_gaps_20260810_sha: {
-        Row: {
-          file_sha256: string | null
-          id: string
-          message_id: string | null
-        }
-        Insert: {
-          file_sha256?: string | null
-          id: string
-          message_id?: string | null
-        }
-        Update: {
-          file_sha256?: string | null
-          id?: string
-          message_id?: string | null
-        }
-        Relationships: []
-      }
-      _backup_gaps_20260811_fakejid: {
-        Row: {
-          contact_id: string | null
-          conversation_id: string | null
-          created_at: string | null
-          id: string
-          instance_name: string | null
-          message_id: string | null
-          remote_jid: string | null
-          remote_jid_original: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          id: string
-          instance_name?: string | null
-          message_id?: string | null
-          remote_jid?: string | null
-          remote_jid_original?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          id?: string
-          instance_name?: string | null
-          message_id?: string | null
-          remote_jid?: string | null
-          remote_jid_original?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      _backup_links_r2_20260810: {
-        Row: {
-          base64_data: string | null
-          caption: string | null
-          created_at: string | null
-          duration_seconds: number | null
-          file_name: string | null
-          file_sha256: string | null
-          file_size: number | null
-          height: number | null
-          id: string
-          instance_name: string | null
-          is_animated: boolean | null
-          media_status: string | null
-          media_type: string | null
-          message_id: string | null
-          mime_type: string | null
-          remote_jid: string | null
-          storage_bucket: string | null
-          storage_path: string | null
-          storage_path_clean: string | null
-          storage_url: string | null
-          thumbnail_base64: string | null
-          width: number | null
-        }
-        Insert: {
-          base64_data?: string | null
-          caption?: string | null
-          created_at?: string | null
-          duration_seconds?: number | null
-          file_name?: string | null
-          file_sha256?: string | null
-          file_size?: number | null
-          height?: number | null
-          id: string
-          instance_name?: string | null
-          is_animated?: boolean | null
-          media_status?: string | null
-          media_type?: string | null
-          message_id?: string | null
-          mime_type?: string | null
-          remote_jid?: string | null
-          storage_bucket?: string | null
-          storage_path?: string | null
-          storage_path_clean?: string | null
-          storage_url?: string | null
-          thumbnail_base64?: string | null
-          width?: number | null
-        }
-        Update: {
-          base64_data?: string | null
-          caption?: string | null
-          created_at?: string | null
-          duration_seconds?: number | null
-          file_name?: string | null
-          file_sha256?: string | null
-          file_size?: number | null
-          height?: number | null
-          id?: string
-          instance_name?: string | null
-          is_animated?: boolean | null
-          media_status?: string | null
-          media_type?: string | null
-          message_id?: string | null
-          mime_type?: string | null
-          remote_jid?: string | null
-          storage_bucket?: string | null
-          storage_path?: string | null
-          storage_path_clean?: string | null
-          storage_url?: string | null
-          thumbnail_base64?: string | null
-          width?: number | null
-        }
-        Relationships: []
-      }
-      _backup_orphan_calls_20260811: {
-        Row: {
-          call_id: string | null
-          call_status: string | null
-          call_type: string | null
-          contact_id: string | null
-          created_at: string | null
-          direction: string | null
-          duration_seconds: number | null
-          ended_at: string | null
-          id: string
-          instance_name: string | null
-          missed_callback_sent: boolean | null
-          raw_data: Json | null
-          remote_jid: string | null
-          started_at: string | null
-        }
-        Insert: {
-          call_id?: string | null
-          call_status?: string | null
-          call_type?: string | null
-          contact_id?: string | null
-          created_at?: string | null
-          direction?: string | null
-          duration_seconds?: number | null
-          ended_at?: string | null
-          id: string
-          instance_name?: string | null
-          missed_callback_sent?: boolean | null
-          raw_data?: Json | null
-          remote_jid?: string | null
-          started_at?: string | null
-        }
-        Update: {
-          call_id?: string | null
-          call_status?: string | null
-          call_type?: string | null
-          contact_id?: string | null
-          created_at?: string | null
-          direction?: string | null
-          duration_seconds?: number | null
-          ended_at?: string | null
-          id?: string
-          instance_name?: string | null
-          missed_callback_sent?: boolean | null
-          raw_data?: Json | null
-          remote_jid?: string | null
-          started_at?: string | null
-        }
-        Relationships: []
-      }
-      _backup_orphan_deals_20260811: {
-        Row: {
-          actual_close_date: string | null
-          assigned_to: string | null
-          closed_at: string | null
-          contact_id: string | null
-          conversation_id: string | null
-          cost: number | null
-          created_at: string | null
-          deal_number: number | null
-          deleted_at: string | null
-          description: string | null
-          discount_percent: number | null
-          expected_close_date: string | null
-          id: string
-          instance_name: string | null
-          lost: boolean | null
-          lost_notes: string | null
-          lost_reason: string | null
-          metadata: Json | null
-          notes: string | null
-          probability: number | null
-          products: Json | null
-          profit: number | null
-          source: string | null
-          stage: string | null
-          stage_changed_at: string | null
-          tags: string[] | null
-          title: string | null
-          updated_at: string | null
-          value: number | null
-          weighted_value: number | null
-          won: boolean | null
-        }
-        Insert: {
-          actual_close_date?: string | null
-          assigned_to?: string | null
-          closed_at?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          cost?: number | null
-          created_at?: string | null
-          deal_number?: number | null
-          deleted_at?: string | null
-          description?: string | null
-          discount_percent?: number | null
-          expected_close_date?: string | null
-          id: string
-          instance_name?: string | null
-          lost?: boolean | null
-          lost_notes?: string | null
-          lost_reason?: string | null
-          metadata?: Json | null
-          notes?: string | null
-          probability?: number | null
-          products?: Json | null
-          profit?: number | null
-          source?: string | null
-          stage?: string | null
-          stage_changed_at?: string | null
-          tags?: string[] | null
-          title?: string | null
-          updated_at?: string | null
-          value?: number | null
-          weighted_value?: number | null
-          won?: boolean | null
-        }
-        Update: {
-          actual_close_date?: string | null
-          assigned_to?: string | null
-          closed_at?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          cost?: number | null
-          created_at?: string | null
-          deal_number?: number | null
-          deleted_at?: string | null
-          description?: string | null
-          discount_percent?: number | null
-          expected_close_date?: string | null
-          id?: string
-          instance_name?: string | null
-          lost?: boolean | null
-          lost_notes?: string | null
-          lost_reason?: string | null
-          metadata?: Json | null
-          notes?: string | null
-          probability?: number | null
-          products?: Json | null
-          profit?: number | null
-          source?: string | null
-          stage?: string | null
-          stage_changed_at?: string | null
-          tags?: string[] | null
-          title?: string | null
-          updated_at?: string | null
-          value?: number | null
-          weighted_value?: number | null
-          won?: boolean | null
-        }
-        Relationships: []
-      }
-      _backup_orphan_mdq_20260811: {
-        Row: {
-          created_at: string | null
-          direct_path: string | null
-          download_url: string | null
-          error_message: string | null
-          file_length: number | null
-          id: number
-          instance_name: string | null
-          jitter_ms: number | null
-          locked_at: string | null
-          max_retries: number | null
-          media_key: string | null
-          media_status_target: string | null
-          media_type: string | null
-          message_id: string | null
-          message_uuid: string | null
-          mimetype: string | null
-          next_retry_at: string | null
-          priority: number | null
-          processed_at: string | null
-          remote_jid: string | null
-          retry_count: number | null
-          scan_result: string | null
-          scan_status: string | null
-          scanned_at: string | null
-          status: string | null
-          storage_path: string | null
-          worker_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          direct_path?: string | null
-          download_url?: string | null
-          error_message?: string | null
-          file_length?: number | null
-          id: number
-          instance_name?: string | null
-          jitter_ms?: number | null
-          locked_at?: string | null
-          max_retries?: number | null
-          media_key?: string | null
-          media_status_target?: string | null
-          media_type?: string | null
-          message_id?: string | null
-          message_uuid?: string | null
-          mimetype?: string | null
-          next_retry_at?: string | null
-          priority?: number | null
-          processed_at?: string | null
-          remote_jid?: string | null
-          retry_count?: number | null
-          scan_result?: string | null
-          scan_status?: string | null
-          scanned_at?: string | null
-          status?: string | null
-          storage_path?: string | null
-          worker_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          direct_path?: string | null
-          download_url?: string | null
-          error_message?: string | null
-          file_length?: number | null
-          id?: number
-          instance_name?: string | null
-          jitter_ms?: number | null
-          locked_at?: string | null
-          max_retries?: number | null
-          media_key?: string | null
-          media_status_target?: string | null
-          media_type?: string | null
-          message_id?: string | null
-          message_uuid?: string | null
-          mimetype?: string | null
-          next_retry_at?: string | null
-          priority?: number | null
-          processed_at?: string | null
-          remote_jid?: string | null
-          retry_count?: number | null
-          scan_result?: string | null
-          scan_status?: string | null
-          scanned_at?: string | null
-          status?: string | null
-          storage_path?: string | null
-          worker_id?: string | null
-        }
-        Relationships: []
-      }
-      _backup_orphan_notifs_20260811: {
-        Row: {
-          alert_id: string | null
-          channels_sent: string[] | null
-          contact_id: string | null
-          conversation_id: string | null
-          created_at: string | null
-          deal_id: string | null
-          id: string
-          message: string | null
-          metadata: Json | null
-          notification_type: string | null
-          priority: string | null
-          read_at: string | null
-          read_by: string | null
-          status: string | null
-          title: string | null
-        }
-        Insert: {
-          alert_id?: string | null
-          channels_sent?: string[] | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          deal_id?: string | null
-          id: string
-          message?: string | null
-          metadata?: Json | null
-          notification_type?: string | null
-          priority?: string | null
-          read_at?: string | null
-          read_by?: string | null
-          status?: string | null
-          title?: string | null
-        }
-        Update: {
-          alert_id?: string | null
-          channels_sent?: string[] | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          deal_id?: string | null
-          id?: string
-          message?: string | null
-          metadata?: Json | null
-          notification_type?: string | null
-          priority?: string | null
-          read_at?: string | null
-          read_by?: string | null
-          status?: string | null
-          title?: string | null
-        }
-        Relationships: []
-      }
-      _backup_orphan_reactions_20260811: {
-        Row: {
-          created_at: string | null
-          emoji: string | null
-          from_me: boolean | null
-          id: string
-          instance_name: string | null
-          message_id: string | null
-          push_name: string | null
-          reacted_at: string | null
-          remote_jid: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          emoji?: string | null
-          from_me?: boolean | null
-          id: string
-          instance_name?: string | null
-          message_id?: string | null
-          push_name?: string | null
-          reacted_at?: string | null
-          remote_jid?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          emoji?: string | null
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string | null
-          message_id?: string | null
-          push_name?: string | null
-          reacted_at?: string | null
-          remote_jid?: string | null
-        }
-        Relationships: []
-      }
-      _backup_orphan_tasks_20260811: {
-        Row: {
-          assigned_by: string | null
-          assigned_to: string | null
-          completed_at: string | null
-          completed_by: string | null
-          contact_id: string | null
-          conversation_id: string | null
-          created_at: string | null
-          deal_id: string | null
-          deleted_at: string | null
-          description: string | null
-          due_date: string | null
-          due_time: string | null
-          id: string
-          is_recurring: boolean | null
-          metadata: Json | null
-          notes: string | null
-          parent_task_id: string | null
-          priority: string | null
-          recurrence_end: string | null
-          recurrence_rule: string | null
-          reminder_at: string | null
-          status: string | null
-          tags: string[] | null
-          task_type: string | null
-          title: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          assigned_by?: string | null
-          assigned_to?: string | null
-          completed_at?: string | null
-          completed_by?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          deal_id?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          due_date?: string | null
-          due_time?: string | null
-          id: string
-          is_recurring?: boolean | null
-          metadata?: Json | null
-          notes?: string | null
-          parent_task_id?: string | null
-          priority?: string | null
-          recurrence_end?: string | null
-          recurrence_rule?: string | null
-          reminder_at?: string | null
-          status?: string | null
-          tags?: string[] | null
-          task_type?: string | null
-          title?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          assigned_by?: string | null
-          assigned_to?: string | null
-          completed_at?: string | null
-          completed_by?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          deal_id?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          due_date?: string | null
-          due_time?: string | null
-          id?: string
-          is_recurring?: boolean | null
-          metadata?: Json | null
-          notes?: string | null
-          parent_task_id?: string | null
-          priority?: string | null
-          recurrence_end?: string | null
-          recurrence_rule?: string | null
-          reminder_at?: string | null
-          status?: string | null
-          tags?: string[] | null
-          task_type?: string | null
-          title?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      _backup_policies_20260810: {
-        Row: {
-          _row_id: number
-          cmd: string | null
-          permissive: string | null
-          policyname: unknown
-          qual: string | null
-          roles: unknown[] | null
-          schemaname: unknown
-          tablename: unknown
-          with_check: string | null
-        }
-        Insert: {
-          _row_id?: number
-          cmd?: string | null
-          permissive?: string | null
-          policyname?: unknown
-          qual?: string | null
-          roles?: unknown[] | null
-          schemaname?: unknown
-          tablename?: unknown
-          with_check?: string | null
-        }
-        Update: {
-          _row_id?: number
-          cmd?: string | null
-          permissive?: string | null
-          policyname?: unknown
-          qual?: string | null
-          roles?: unknown[] | null
-          schemaname?: unknown
-          tablename?: unknown
-          with_check?: string | null
-        }
-        Relationships: []
-      }
-      _backup_w05_media_url: {
-        Row: {
-          backed_at: string | null
-          id: string
-          media_status: string | null
-          media_url: string | null
-          message_id: string | null
-        }
-        Insert: {
-          backed_at?: string | null
-          id: string
-          media_status?: string | null
-          media_url?: string | null
-          message_id?: string | null
-        }
-        Update: {
-          backed_at?: string | null
-          id?: string
-          media_status?: string | null
-          media_url?: string | null
-          message_id?: string | null
-        }
-        Relationships: []
-      }
-      _media_url_backup: {
-        Row: {
-          _row_id: number
-          backed_up_at: string | null
-          bucket: string | null
-          created_at: string | null
-          original_url: string | null
-          path: string | null
-          r2_url: string | null
-          row_id: string | null
-          source_table: string | null
-        }
-        Insert: {
-          _row_id?: never
-          backed_up_at?: string | null
-          bucket?: string | null
-          created_at?: string | null
-          original_url?: string | null
-          path?: string | null
-          r2_url?: string | null
-          row_id?: string | null
-          source_table?: string | null
-        }
-        Update: {
-          _row_id?: never
-          backed_up_at?: string | null
-          bucket?: string | null
-          created_at?: string | null
-          original_url?: string | null
-          path?: string | null
-          r2_url?: string | null
-          row_id?: string | null
-          source_table?: string | null
-        }
-        Relationships: []
-      }
       _secure_config: {
         Row: {
           created_at: string | null
@@ -1353,7 +222,79 @@ export type Database = {
         }
         Relationships: []
       }
+      _snap_pre_upgrade_lid_maps_50_50_20260812: {
+        Row: {
+          _row_id: number
+          confidence: string | null
+          created_at: string | null
+          instance_name: string | null
+          lid_jid: string | null
+          phone_jid: string | null
+          phone_number: string | null
+          source: string | null
+        }
+        Insert: {
+          _row_id?: number
+          confidence?: string | null
+          created_at?: string | null
+          instance_name?: string | null
+          lid_jid?: string | null
+          phone_jid?: string | null
+          phone_number?: string | null
+          source?: string | null
+        }
+        Update: {
+          _row_id?: number
+          confidence?: string | null
+          created_at?: string | null
+          instance_name?: string | null
+          lid_jid?: string | null
+          phone_jid?: string | null
+          phone_number?: string | null
+          source?: string | null
+        }
+        Relationships: []
+      }
       _snap_pre_upgrade_lid_phone_map_20260811: {
+        Row: {
+          _row_id: number
+          confidence: string | null
+          created_at: string | null
+          instance_name: string | null
+          lid_jid: string | null
+          phone_jid: string | null
+          phone_number: string | null
+          raw_signal: Json | null
+          source: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          _row_id?: number
+          confidence?: string | null
+          created_at?: string | null
+          instance_name?: string | null
+          lid_jid?: string | null
+          phone_jid?: string | null
+          phone_number?: string | null
+          raw_signal?: Json | null
+          source?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          _row_id?: number
+          confidence?: string | null
+          created_at?: string | null
+          instance_name?: string | null
+          lid_jid?: string | null
+          phone_jid?: string | null
+          phone_number?: string | null
+          raw_signal?: Json | null
+          source?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      _snap_pre_upgrade_t22n_stable_20260812: {
         Row: {
           _row_id: number
           confidence: string | null
@@ -1518,6 +459,7 @@ export type Database = {
       e2e_probe_results: {
         Row: {
           alert_aberto: boolean
+          checks_detail: Json | null
           edited_total: number
           fail_reason: string | null
           id: number
@@ -1536,6 +478,7 @@ export type Database = {
         }
         Insert: {
           alert_aberto?: boolean
+          checks_detail?: Json | null
           edited_total?: number
           fail_reason?: string | null
           id?: number
@@ -1554,6 +497,7 @@ export type Database = {
         }
         Update: {
           alert_aberto?: boolean
+          checks_detail?: Json | null
           edited_total?: number
           fail_reason?: string | null
           id?: number
@@ -1608,201 +552,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_alerts: {
-        Row: {
-          acknowledged: boolean | null
-          acknowledged_at: string | null
-          acknowledged_by: string | null
-          alert_type: string
-          contact_id: string | null
-          created_at: string | null
-          description: string | null
-          escalated_at: string | null
-          id: string
-          message: string | null
-          notified_at: string | null
-          payload: Json | null
-          remote_jid: string | null
-          resolved: boolean | null
-          resolved_at: string | null
-          resolved_by: string | null
-          severity: string
-          title: string | null
-        }
-        Insert: {
-          acknowledged?: boolean | null
-          acknowledged_at?: string | null
-          acknowledged_by?: string | null
-          alert_type: string
-          contact_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          escalated_at?: string | null
-          id?: string
-          message?: string | null
-          notified_at?: string | null
-          payload?: Json | null
-          remote_jid?: string | null
-          resolved?: boolean | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          severity: string
-          title?: string | null
-        }
-        Update: {
-          acknowledged?: boolean | null
-          acknowledged_at?: string | null
-          acknowledged_by?: string | null
-          alert_type?: string
-          contact_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          escalated_at?: string | null
-          id?: string
-          message?: string | null
-          notified_at?: string | null
-          payload?: Json | null
-          remote_jid?: string | null
-          resolved?: boolean | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          severity?: string
-          title?: string | null
-        }
-        Relationships: []
-      }
-      evolution_api_consumers: {
-        Row: {
-          api_key_secret_ref: string | null
-          consumer_type: string
-          created_at: string
-          criticality: string
-          description: string | null
-          endpoints_called: string[] | null
-          id: string
-          last_verified_at: string | null
-          name: string
-          notes: string | null
-          rotation_needed: boolean
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          api_key_secret_ref?: string | null
-          consumer_type: string
-          created_at?: string
-          criticality?: string
-          description?: string | null
-          endpoints_called?: string[] | null
-          id: string
-          last_verified_at?: string | null
-          name: string
-          notes?: string | null
-          rotation_needed?: boolean
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          api_key_secret_ref?: string | null
-          consumer_type?: string
-          created_at?: string
-          criticality?: string
-          description?: string | null
-          endpoints_called?: string[] | null
-          id?: string
-          last_verified_at?: string | null
-          name?: string
-          notes?: string | null
-          rotation_needed?: boolean
-          status?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      evolution_audit_log: {
-        Row: {
-          action: string
-          changes: Json | null
-          created_at: string | null
-          entity_id: string | null
-          entity_type: string
-          id: string
-          ip_address: string | null
-          metadata: Json | null
-          new_values: Json | null
-          old_values: Json | null
-          performed_by: string
-          performed_by_type: string | null
-          session_id: string | null
-          user_agent: string | null
-        }
-        Insert: {
-          action: string
-          changes?: Json | null
-          created_at?: string | null
-          entity_id?: string | null
-          entity_type: string
-          id?: string
-          ip_address?: string | null
-          metadata?: Json | null
-          new_values?: Json | null
-          old_values?: Json | null
-          performed_by?: string
-          performed_by_type?: string | null
-          session_id?: string | null
-          user_agent?: string | null
-        }
-        Update: {
-          action?: string
-          changes?: Json | null
-          created_at?: string | null
-          entity_id?: string | null
-          entity_type?: string
-          id?: string
-          ip_address?: string | null
-          metadata?: Json | null
-          new_values?: Json | null
-          old_values?: Json | null
-          performed_by?: string
-          performed_by_type?: string | null
-          session_id?: string | null
-          user_agent?: string | null
-        }
-        Relationships: []
-      }
-      evolution_automation_logs: {
-        Row: {
-          action_result: Json | null
-          automation_id: string | null
-          contact_id: string | null
-          error_message: string | null
-          executed_at: string | null
-          id: string
-          status: string | null
-          trigger_data: Json | null
-        }
-        Insert: {
-          action_result?: Json | null
-          automation_id?: string | null
-          contact_id?: string | null
-          error_message?: string | null
-          executed_at?: string | null
-          id?: string
-          status?: string | null
-          trigger_data?: Json | null
-        }
-        Update: {
-          action_result?: Json | null
-          automation_id?: string | null
-          contact_id?: string | null
-          error_message?: string | null
-          executed_at?: string | null
-          id?: string
-          status?: string | null
-          trigger_data?: Json | null
-        }
-        Relationships: []
-      }
       evolution_backfill_audit: {
         Row: {
           batch_id: string | null
@@ -1842,51 +591,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_bitrix_queue: {
-        Row: {
-          attempts: number | null
-          created_at: string | null
-          entity_type: string
-          id: string
-          last_error: string | null
-          local_id: string
-          max_attempts: number | null
-          next_attempt_at: string | null
-          operation: string
-          payload: Json
-          processed_at: string | null
-          status: string | null
-        }
-        Insert: {
-          attempts?: number | null
-          created_at?: string | null
-          entity_type: string
-          id?: string
-          last_error?: string | null
-          local_id: string
-          max_attempts?: number | null
-          next_attempt_at?: string | null
-          operation: string
-          payload: Json
-          processed_at?: string | null
-          status?: string | null
-        }
-        Update: {
-          attempts?: number | null
-          created_at?: string | null
-          entity_type?: string
-          id?: string
-          last_error?: string | null
-          local_id?: string
-          max_attempts?: number | null
-          next_attempt_at?: string | null
-          operation?: string
-          payload?: Json
-          processed_at?: string | null
-          status?: string | null
-        }
-        Relationships: []
-      }
       evolution_bootstrap_log: {
         Row: {
           created_at: string | null
@@ -1923,152 +627,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_burnin_tracker: {
-        Row: {
-          burn_in_passed: boolean
-          burn_in_start: string
-          id: number
-          last_reset_reason: string | null
-          updated_at: string
-        }
-        Insert: {
-          burn_in_passed?: boolean
-          burn_in_start?: string
-          id?: number
-          last_reset_reason?: string | null
-          updated_at?: string
-        }
-        Update: {
-          burn_in_passed?: boolean
-          burn_in_start?: string
-          id?: number
-          last_reset_reason?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      evolution_business_hours: {
-        Row: {
-          close_time: string
-          created_at: string | null
-          day_of_week: number
-          id: string
-          is_closed: boolean | null
-          open_time: string
-          timezone: string | null
-        }
-        Insert: {
-          close_time: string
-          created_at?: string | null
-          day_of_week: number
-          id?: string
-          is_closed?: boolean | null
-          open_time: string
-          timezone?: string | null
-        }
-        Update: {
-          close_time?: string
-          created_at?: string | null
-          day_of_week?: number
-          id?: string
-          is_closed?: boolean | null
-          open_time?: string
-          timezone?: string | null
-        }
-        Relationships: []
-      }
-      evolution_calls: {
-        Row: {
-          call_id: string
-          call_status: string
-          call_type: string
-          contact_id: string | null
-          created_at: string | null
-          direction: string
-          duration_seconds: number | null
-          ended_at: string | null
-          id: string
-          instance_name: string | null
-          missed_callback_sent: boolean | null
-          raw_data: Json | null
-          remote_jid: string
-          started_at: string | null
-        }
-        Insert: {
-          call_id: string
-          call_status: string
-          call_type: string
-          contact_id?: string | null
-          created_at?: string | null
-          direction: string
-          duration_seconds?: number | null
-          ended_at?: string | null
-          id?: string
-          instance_name?: string | null
-          missed_callback_sent?: boolean | null
-          raw_data?: Json | null
-          remote_jid: string
-          started_at?: string | null
-        }
-        Update: {
-          call_id?: string
-          call_status?: string
-          call_type?: string
-          contact_id?: string | null
-          created_at?: string | null
-          direction?: string
-          duration_seconds?: number | null
-          ended_at?: string | null
-          id?: string
-          instance_name?: string | null
-          missed_callback_sent?: boolean | null
-          raw_data?: Json | null
-          remote_jid?: string
-          started_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_calls_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      evolution_chatbot_responses: {
-        Row: {
-          created_at: string | null
-          feedback: string | null
-          id: string
-          model_used: string
-          remote_jid: string
-          response_text: string
-          response_time_ms: number | null
-          tokens_used: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          feedback?: string | null
-          id?: string
-          model_used?: string
-          remote_jid: string
-          response_text: string
-          response_time_ms?: number | null
-          tokens_used?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          feedback?: string | null
-          id?: string
-          model_used?: string
-          remote_jid?: string
-          response_text?: string
-          response_time_ms?: number | null
-          tokens_used?: number | null
-        }
-        Relationships: []
-      }
       evolution_connection_history: {
         Row: {
           created_at: string | null
@@ -2096,36 +654,6 @@ export type Database = {
           metadata?: Json | null
           previous_state?: string | null
           state?: string
-        }
-        Relationships: []
-      }
-      evolution_contact_rate_limits: {
-        Row: {
-          created_at: string | null
-          id: string
-          is_rate_limited: boolean | null
-          message_count: number | null
-          remote_jid: string
-          updated_at: string | null
-          window_start: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          is_rate_limited?: boolean | null
-          message_count?: number | null
-          remote_jid: string
-          updated_at?: string | null
-          window_start?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          is_rate_limited?: boolean | null
-          message_count?: number | null
-          remote_jid?: string
-          updated_at?: string | null
-          window_start?: string | null
         }
         Relationships: []
       }
@@ -2965,508 +1493,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_daily_metrics: {
-        Row: {
-          active_contacts: number | null
-          automations_triggered: number | null
-          avg_messages_per_contact: number | null
-          avg_resolution_time_seconds: number | null
-          avg_response_time_seconds: number | null
-          calculated_at: string | null
-          conversations_opened: number | null
-          conversations_resolved: number | null
-          deal_win_rate: number | null
-          deals_created: number | null
-          deals_lost: number | null
-          deals_won: number | null
-          followups_sent: number | null
-          id: string
-          lead_to_deal_rate: number | null
-          messages_received: number | null
-          messages_sent: number | null
-          metric_date: string
-          new_contacts: number | null
-          pipeline_value: number | null
-          revenue: number | null
-          total_contacts: number | null
-        }
-        Insert: {
-          active_contacts?: number | null
-          automations_triggered?: number | null
-          avg_messages_per_contact?: number | null
-          avg_resolution_time_seconds?: number | null
-          avg_response_time_seconds?: number | null
-          calculated_at?: string | null
-          conversations_opened?: number | null
-          conversations_resolved?: number | null
-          deal_win_rate?: number | null
-          deals_created?: number | null
-          deals_lost?: number | null
-          deals_won?: number | null
-          followups_sent?: number | null
-          id?: string
-          lead_to_deal_rate?: number | null
-          messages_received?: number | null
-          messages_sent?: number | null
-          metric_date: string
-          new_contacts?: number | null
-          pipeline_value?: number | null
-          revenue?: number | null
-          total_contacts?: number | null
-        }
-        Update: {
-          active_contacts?: number | null
-          automations_triggered?: number | null
-          avg_messages_per_contact?: number | null
-          avg_resolution_time_seconds?: number | null
-          avg_response_time_seconds?: number | null
-          calculated_at?: string | null
-          conversations_opened?: number | null
-          conversations_resolved?: number | null
-          deal_win_rate?: number | null
-          deals_created?: number | null
-          deals_lost?: number | null
-          deals_won?: number | null
-          followups_sent?: number | null
-          id?: string
-          lead_to_deal_rate?: number | null
-          messages_received?: number | null
-          messages_sent?: number | null
-          metric_date?: string
-          new_contacts?: number | null
-          pipeline_value?: number | null
-          revenue?: number | null
-          total_contacts?: number | null
-        }
-        Relationships: []
-      }
-      evolution_deals: {
-        Row: {
-          actual_close_date: string | null
-          assigned_to: string | null
-          closed_at: string | null
-          contact_id: string | null
-          conversation_id: string | null
-          cost: number | null
-          created_at: string | null
-          deal_number: number
-          deleted_at: string | null
-          description: string | null
-          discount_percent: number | null
-          expected_close_date: string | null
-          id: string
-          instance_name: string | null
-          lost: boolean | null
-          lost_notes: string | null
-          lost_reason: string | null
-          metadata: Json | null
-          notes: string | null
-          probability: number | null
-          products: Json | null
-          profit: number | null
-          source: string | null
-          stage: string | null
-          stage_changed_at: string | null
-          tags: string[] | null
-          title: string
-          updated_at: string | null
-          value: number | null
-          weighted_value: number | null
-          won: boolean | null
-        }
-        Insert: {
-          actual_close_date?: string | null
-          assigned_to?: string | null
-          closed_at?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          cost?: number | null
-          created_at?: string | null
-          deal_number?: number
-          deleted_at?: string | null
-          description?: string | null
-          discount_percent?: number | null
-          expected_close_date?: string | null
-          id?: string
-          instance_name?: string | null
-          lost?: boolean | null
-          lost_notes?: string | null
-          lost_reason?: string | null
-          metadata?: Json | null
-          notes?: string | null
-          probability?: number | null
-          products?: Json | null
-          profit?: number | null
-          source?: string | null
-          stage?: string | null
-          stage_changed_at?: string | null
-          tags?: string[] | null
-          title: string
-          updated_at?: string | null
-          value?: number | null
-          weighted_value?: number | null
-          won?: boolean | null
-        }
-        Update: {
-          actual_close_date?: string | null
-          assigned_to?: string | null
-          closed_at?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          cost?: number | null
-          created_at?: string | null
-          deal_number?: number
-          deleted_at?: string | null
-          description?: string | null
-          discount_percent?: number | null
-          expected_close_date?: string | null
-          id?: string
-          instance_name?: string | null
-          lost?: boolean | null
-          lost_notes?: string | null
-          lost_reason?: string | null
-          metadata?: Json | null
-          notes?: string | null
-          probability?: number | null
-          products?: Json | null
-          profit?: number | null
-          source?: string | null
-          stage?: string | null
-          stage_changed_at?: string | null
-          tags?: string[] | null
-          title?: string
-          updated_at?: string | null
-          value?: number | null
-          weighted_value?: number | null
-          won?: boolean | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_deals_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      evolution_fallback_events: {
-        Row: {
-          action: string | null
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          id: string
-          instance: string | null
-          instance_name: string | null
-          payload: Json | null
-          ts: string | null
-        }
-        Insert: {
-          action?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          id?: string
-          instance?: string | null
-          instance_name?: string | null
-          payload?: Json | null
-          ts?: string | null
-        }
-        Update: {
-          action?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          id?: string
-          instance?: string | null
-          instance_name?: string | null
-          payload?: Json | null
-          ts?: string | null
-        }
-        Relationships: []
-      }
-      evolution_followup_rules: {
-        Row: {
-          conditions: Json | null
-          created_at: string | null
-          delay_hours: number | null
-          description: string | null
-          id: string
-          is_active: boolean | null
-          name: string
-          run_count: number | null
-          sequence_group: string | null
-          sequence_order: number | null
-          template_id: string | null
-          trigger_config: Json
-          trigger_type: string
-          updated_at: string | null
-        }
-        Insert: {
-          conditions?: Json | null
-          created_at?: string | null
-          delay_hours?: number | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          name: string
-          run_count?: number | null
-          sequence_group?: string | null
-          sequence_order?: number | null
-          template_id?: string | null
-          trigger_config?: Json
-          trigger_type: string
-          updated_at?: string | null
-        }
-        Update: {
-          conditions?: Json | null
-          created_at?: string | null
-          delay_hours?: number | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          name?: string
-          run_count?: number | null
-          sequence_group?: string | null
-          sequence_order?: number | null
-          template_id?: string | null
-          trigger_config?: Json
-          trigger_type?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_followups: {
-        Row: {
-          attempts: number | null
-          contact_id: string | null
-          conversation_id: string | null
-          created_at: string | null
-          created_by: string | null
-          custom_message: string | null
-          deal_id: string | null
-          error_message: string | null
-          followup_type: string
-          id: string
-          instance_name: string | null
-          max_attempts: number | null
-          metadata: Json | null
-          response_at: string | null
-          scheduled_at: string
-          sent_at: string | null
-          status: string | null
-          template_id: string | null
-          triggered_at: string | null
-        }
-        Insert: {
-          attempts?: number | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          custom_message?: string | null
-          deal_id?: string | null
-          error_message?: string | null
-          followup_type: string
-          id?: string
-          instance_name?: string | null
-          max_attempts?: number | null
-          metadata?: Json | null
-          response_at?: string | null
-          scheduled_at: string
-          sent_at?: string | null
-          status?: string | null
-          template_id?: string | null
-          triggered_at?: string | null
-        }
-        Update: {
-          attempts?: number | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          custom_message?: string | null
-          deal_id?: string | null
-          error_message?: string | null
-          followup_type?: string
-          id?: string
-          instance_name?: string | null
-          max_attempts?: number | null
-          metadata?: Json | null
-          response_at?: string | null
-          scheduled_at?: string
-          sent_at?: string | null
-          status?: string | null
-          template_id?: string | null
-          triggered_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_followups_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      evolution_group_messages: {
-        Row: {
-          content: string | null
-          created_at: string | null
-          group_id: string | null
-          id: string
-          is_from_admin: boolean | null
-          media_url: string | null
-          mentions: string[] | null
-          message_id: string
-          message_type: string | null
-          quoted_message_id: string | null
-          sender_jid: string
-          sender_name: string | null
-        }
-        Insert: {
-          content?: string | null
-          created_at?: string | null
-          group_id?: string | null
-          id?: string
-          is_from_admin?: boolean | null
-          media_url?: string | null
-          mentions?: string[] | null
-          message_id: string
-          message_type?: string | null
-          quoted_message_id?: string | null
-          sender_jid: string
-          sender_name?: string | null
-        }
-        Update: {
-          content?: string | null
-          created_at?: string | null
-          group_id?: string | null
-          id?: string
-          is_from_admin?: boolean | null
-          media_url?: string | null
-          mentions?: string[] | null
-          message_id?: string
-          message_type?: string | null
-          quoted_message_id?: string | null
-          sender_jid?: string
-          sender_name?: string | null
-        }
-        Relationships: []
-      }
-      evolution_group_participants: {
-        Row: {
-          contact_id: string | null
-          group_id: string | null
-          id: string
-          is_active: boolean | null
-          joined_at: string | null
-          left_at: string | null
-          participant_jid: string
-          role: string | null
-        }
-        Insert: {
-          contact_id?: string | null
-          group_id?: string | null
-          id?: string
-          is_active?: boolean | null
-          joined_at?: string | null
-          left_at?: string | null
-          participant_jid: string
-          role?: string | null
-        }
-        Update: {
-          contact_id?: string | null
-          group_id?: string | null
-          id?: string
-          is_active?: boolean | null
-          joined_at?: string | null
-          left_at?: string | null
-          participant_jid?: string
-          role?: string | null
-        }
-        Relationships: []
-      }
-      evolution_group_rules: {
-        Row: {
-          action_type: string
-          action_value: string | null
-          created_at: string | null
-          execution_count: number | null
-          group_id: string | null
-          id: string
-          is_active: boolean | null
-          last_executed_at: string | null
-          rule_type: string
-          trigger_value: string | null
-        }
-        Insert: {
-          action_type: string
-          action_value?: string | null
-          created_at?: string | null
-          execution_count?: number | null
-          group_id?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_executed_at?: string | null
-          rule_type: string
-          trigger_value?: string | null
-        }
-        Update: {
-          action_type?: string
-          action_value?: string | null
-          created_at?: string | null
-          execution_count?: number | null
-          group_id?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_executed_at?: string | null
-          rule_type?: string
-          trigger_value?: string | null
-        }
-        Relationships: []
-      }
-      evolution_groups: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          description: string | null
-          group_id: string
-          id: string
-          instance_name: string
-          name: string | null
-          participant_count: number
-          updated_at: string
-          whatsapp_connection_id: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          description?: string | null
-          group_id: string
-          id?: string
-          instance_name?: string
-          name?: string | null
-          participant_count?: number
-          updated_at?: string
-          whatsapp_connection_id?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          description?: string | null
-          group_id?: string
-          id?: string
-          instance_name?: string
-          name?: string | null
-          participant_count?: number
-          updated_at?: string
-          whatsapp_connection_id?: string | null
-        }
-        Relationships: []
-      }
       evolution_guardian_heartbeat: {
         Row: {
           cycles_since_last: number | null
@@ -3488,695 +1514,6 @@ export type Database = {
           heartbeat_at?: string
           id?: string
           service_name?: string
-        }
-        Relationships: []
-      }
-      evolution_health_logs: {
-        Row: {
-          connection_id: string | null
-          created_at: string | null
-          endpoint_tested: string | null
-          error_count: number | null
-          error_message: string | null
-          http_status_code: number | null
-          id: string
-          instance_name: string
-          metadata: Json | null
-          online_instances: number | null
-          performed_at: string
-          response_time_ms: number | null
-          status: string
-          success_count: number | null
-          total_instances: number | null
-        }
-        Insert: {
-          connection_id?: string | null
-          created_at?: string | null
-          endpoint_tested?: string | null
-          error_count?: number | null
-          error_message?: string | null
-          http_status_code?: number | null
-          id?: string
-          instance_name: string
-          metadata?: Json | null
-          online_instances?: number | null
-          performed_at?: string
-          response_time_ms?: number | null
-          status?: string
-          success_count?: number | null
-          total_instances?: number | null
-        }
-        Update: {
-          connection_id?: string | null
-          created_at?: string | null
-          endpoint_tested?: string | null
-          error_count?: number | null
-          error_message?: string | null
-          http_status_code?: number | null
-          id?: string
-          instance_name?: string
-          metadata?: Json | null
-          online_instances?: number | null
-          performed_at?: string
-          response_time_ms?: number | null
-          status?: string
-          success_count?: number | null
-          total_instances?: number | null
-        }
-        Relationships: []
-      }
-      evolution_holidays: {
-        Row: {
-          auto_reply_message: string | null
-          close_time: string | null
-          created_at: string | null
-          date: string
-          id: string
-          is_half_day: boolean | null
-          name: string
-        }
-        Insert: {
-          auto_reply_message?: string | null
-          close_time?: string | null
-          created_at?: string | null
-          date: string
-          id?: string
-          is_half_day?: boolean | null
-          name: string
-        }
-        Update: {
-          auto_reply_message?: string | null
-          close_time?: string | null
-          created_at?: string | null
-          date?: string
-          id?: string
-          is_half_day?: boolean | null
-          name?: string
-        }
-        Relationships: []
-      }
-      evolution_incident_runbook: {
-        Row: {
-          category: string
-          created_at: string
-          escalation: string | null
-          estimated_minutes: number | null
-          id: string
-          last_drilled_at: string | null
-          severity: string
-          steps: Json
-          success_criteria: string[]
-          title: string
-          triggers: string[]
-          updated_at: string
-        }
-        Insert: {
-          category: string
-          created_at?: string
-          escalation?: string | null
-          estimated_minutes?: number | null
-          id: string
-          last_drilled_at?: string | null
-          severity: string
-          steps: Json
-          success_criteria: string[]
-          title: string
-          triggers: string[]
-          updated_at?: string
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          escalation?: string | null
-          estimated_minutes?: number | null
-          id?: string
-          last_drilled_at?: string | null
-          severity?: string
-          steps?: Json
-          success_criteria?: string[]
-          title?: string
-          triggers?: string[]
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      evolution_instance_credentials: {
-        Row: {
-          api_key: string
-          api_url: string
-          connection_id: string | null
-          created_at: string
-          department: string | null
-          display_name: string | null
-          health_status: string
-          id: string
-          instance_name: string
-          instance_token: string | null
-          is_active: boolean
-          last_health_check: string | null
-          notes: string | null
-          online_instances: number | null
-          total_instances: number | null
-          updated_at: string
-          vault_secret_id: string | null
-          webhook_url: string | null
-        }
-        Insert: {
-          api_key: string
-          api_url?: string
-          connection_id?: string | null
-          created_at?: string
-          department?: string | null
-          display_name?: string | null
-          health_status?: string
-          id?: string
-          instance_name: string
-          instance_token?: string | null
-          is_active?: boolean
-          last_health_check?: string | null
-          notes?: string | null
-          online_instances?: number | null
-          total_instances?: number | null
-          updated_at?: string
-          vault_secret_id?: string | null
-          webhook_url?: string | null
-        }
-        Update: {
-          api_key?: string
-          api_url?: string
-          connection_id?: string | null
-          created_at?: string
-          department?: string | null
-          display_name?: string | null
-          health_status?: string
-          id?: string
-          instance_name?: string
-          instance_token?: string | null
-          is_active?: boolean
-          last_health_check?: string | null
-          notes?: string | null
-          online_instances?: number | null
-          total_instances?: number | null
-          updated_at?: string
-          vault_secret_id?: string | null
-          webhook_url?: string | null
-        }
-        Relationships: []
-      }
-      evolution_ip_blocklist: {
-        Row: {
-          auto_blocked: boolean
-          created_at: string
-          first_seen: string
-          hit_count: number
-          ip_address: string
-          last_seen: string
-          reason: string
-          unblocked_at: string | null
-          updated_at: string
-        }
-        Insert: {
-          auto_blocked?: boolean
-          created_at?: string
-          first_seen: string
-          hit_count?: number
-          ip_address: string
-          last_seen: string
-          reason: string
-          unblocked_at?: string | null
-          updated_at?: string
-        }
-        Update: {
-          auto_blocked?: boolean
-          created_at?: string
-          first_seen?: string
-          hit_count?: number
-          ip_address?: string
-          last_seen?: string
-          reason?: string
-          unblocked_at?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      evolution_keyword_automations: {
-        Row: {
-          cooldown_minutes: number | null
-          created_at: string | null
-          hit_count: number | null
-          id: string
-          is_active: boolean | null
-          is_case_sensitive: boolean | null
-          keyword: string
-          last_triggered_at: string | null
-          match_type: string | null
-          media_url: string | null
-          menu_options: Json | null
-          only_first_message: boolean | null
-          only_outside_hours: boolean | null
-          priority: number | null
-          response_text: string | null
-          response_type: string | null
-          template_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          cooldown_minutes?: number | null
-          created_at?: string | null
-          hit_count?: number | null
-          id?: string
-          is_active?: boolean | null
-          is_case_sensitive?: boolean | null
-          keyword: string
-          last_triggered_at?: string | null
-          match_type?: string | null
-          media_url?: string | null
-          menu_options?: Json | null
-          only_first_message?: boolean | null
-          only_outside_hours?: boolean | null
-          priority?: number | null
-          response_text?: string | null
-          response_type?: string | null
-          template_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          cooldown_minutes?: number | null
-          created_at?: string | null
-          hit_count?: number | null
-          id?: string
-          is_active?: boolean | null
-          is_case_sensitive?: boolean | null
-          keyword?: string
-          last_triggered_at?: string | null
-          match_type?: string | null
-          media_url?: string | null
-          menu_options?: Json | null
-          only_first_message?: boolean | null
-          only_outside_hours?: boolean | null
-          priority?: number | null
-          response_text?: string | null
-          response_type?: string | null
-          template_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_label_associations: {
-        Row: {
-          associated_at: string | null
-          contact_id: string | null
-          conversation_id: string | null
-          id: string
-          is_active: boolean | null
-          label_id: string | null
-          remote_jid: string
-          removed_at: string | null
-        }
-        Insert: {
-          associated_at?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          id?: string
-          is_active?: boolean | null
-          label_id?: string | null
-          remote_jid: string
-          removed_at?: string | null
-        }
-        Update: {
-          associated_at?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          id?: string
-          is_active?: boolean | null
-          label_id?: string | null
-          remote_jid?: string
-          removed_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_labels: {
-        Row: {
-          color: string | null
-          color_hex: string | null
-          created_at: string | null
-          id: string
-          instance_name: string | null
-          is_active: boolean | null
-          label_id: string
-          name: string
-          predefined_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          color?: string | null
-          color_hex?: string | null
-          created_at?: string | null
-          id?: string
-          instance_name?: string | null
-          is_active?: boolean | null
-          label_id: string
-          name: string
-          predefined_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          color?: string | null
-          color_hex?: string | null
-          created_at?: string | null
-          id?: string
-          instance_name?: string | null
-          is_active?: boolean | null
-          label_id?: string
-          name?: string
-          predefined_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_logpatch_audit: {
-        Row: {
-          boot_at: string | null
-          booted_at: string
-          container_id: string
-          evolution_version: string | null
-          force_update: number | null
-          id: string
-          image_digest: string | null
-          instance_name: string
-          logpatch_detail: Json
-          logpatch_status: string
-          notes: string | null
-          patch_mode: string
-          patch_version: string | null
-          patched_size_bytes: number | null
-          t1_ok: boolean | null
-          t2_ok: boolean | null
-          t3_ok: boolean | null
-          t4_ok: boolean | null
-          t5_ok: boolean | null
-          verified_at: string | null
-        }
-        Insert: {
-          boot_at?: string | null
-          booted_at?: string
-          container_id?: string
-          evolution_version?: string | null
-          force_update?: number | null
-          id?: string
-          image_digest?: string | null
-          instance_name?: string
-          logpatch_detail?: Json
-          logpatch_status?: string
-          notes?: string | null
-          patch_mode?: string
-          patch_version?: string | null
-          patched_size_bytes?: number | null
-          t1_ok?: boolean | null
-          t2_ok?: boolean | null
-          t3_ok?: boolean | null
-          t4_ok?: boolean | null
-          t5_ok?: boolean | null
-          verified_at?: string | null
-        }
-        Update: {
-          boot_at?: string | null
-          booted_at?: string
-          container_id?: string
-          evolution_version?: string | null
-          force_update?: number | null
-          id?: string
-          image_digest?: string | null
-          instance_name?: string
-          logpatch_detail?: Json
-          logpatch_status?: string
-          notes?: string | null
-          patch_mode?: string
-          patch_version?: string | null
-          patched_size_bytes?: number | null
-          t1_ok?: boolean | null
-          t2_ok?: boolean | null
-          t3_ok?: boolean | null
-          t4_ok?: boolean | null
-          t5_ok?: boolean | null
-          verified_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_media: {
-        Row: {
-          base64_data: string | null
-          caption: string | null
-          created_at: string | null
-          duration_seconds: number | null
-          file_name: string | null
-          file_sha256: string | null
-          file_size: number | null
-          height: number | null
-          id: string
-          instance_name: string
-          is_animated: boolean | null
-          media_status: string | null
-          media_type: string
-          message_id: string
-          mime_type: string | null
-          remote_jid: string
-          storage_bucket: string | null
-          storage_path: string | null
-          storage_path_clean: string | null
-          storage_url: string | null
-          thumbnail_base64: string | null
-          width: number | null
-        }
-        Insert: {
-          base64_data?: string | null
-          caption?: string | null
-          created_at?: string | null
-          duration_seconds?: number | null
-          file_name?: string | null
-          file_sha256?: string | null
-          file_size?: number | null
-          height?: number | null
-          id?: string
-          instance_name?: string
-          is_animated?: boolean | null
-          media_status?: string | null
-          media_type: string
-          message_id: string
-          mime_type?: string | null
-          remote_jid: string
-          storage_bucket?: string | null
-          storage_path?: string | null
-          storage_path_clean?: string | null
-          storage_url?: string | null
-          thumbnail_base64?: string | null
-          width?: number | null
-        }
-        Update: {
-          base64_data?: string | null
-          caption?: string | null
-          created_at?: string | null
-          duration_seconds?: number | null
-          file_name?: string | null
-          file_sha256?: string | null
-          file_size?: number | null
-          height?: number | null
-          id?: string
-          instance_name?: string
-          is_animated?: boolean | null
-          media_status?: string | null
-          media_type?: string
-          message_id?: string
-          mime_type?: string | null
-          remote_jid?: string
-          storage_bucket?: string | null
-          storage_path?: string | null
-          storage_path_clean?: string | null
-          storage_url?: string | null
-          thumbnail_base64?: string | null
-          width?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_media_message"
-            columns: ["message_id", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "active_messages"
-            referencedColumns: ["message_id", "instance_name"]
-          },
-          {
-            foreignKeyName: "fk_media_message"
-            columns: ["message_id", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "evolution_messages"
-            referencedColumns: ["message_id", "instance_name"]
-          },
-          {
-            foreignKeyName: "fk_media_message"
-            columns: ["message_id", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "evolution_messages_v2"
-            referencedColumns: ["message_id", "instance_name"]
-          },
-          {
-            foreignKeyName: "fk_media_message"
-            columns: ["message_id", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "v_messages_unified"
-            referencedColumns: ["message_id", "instance_name"]
-          },
-        ]
-      }
-      evolution_message_queue: {
-        Row: {
-          attempts: number | null
-          contact_id: string | null
-          content: string | null
-          created_at: string | null
-          created_by: string | null
-          delivered_at: string | null
-          error_message: string | null
-          id: string
-          instance_name: string | null
-          max_attempts: number | null
-          media_filename: string | null
-          media_url: string | null
-          message_type: string | null
-          metadata: Json | null
-          priority: number | null
-          read_at: string | null
-          remote_jid: string
-          scheduled_at: string | null
-          sent_at: string | null
-          source: string | null
-          source_id: string | null
-          status: string | null
-          template_id: string | null
-          template_vars: Json | null
-          whatsapp_message_id: string | null
-        }
-        Insert: {
-          attempts?: number | null
-          contact_id?: string | null
-          content?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          delivered_at?: string | null
-          error_message?: string | null
-          id?: string
-          instance_name?: string | null
-          max_attempts?: number | null
-          media_filename?: string | null
-          media_url?: string | null
-          message_type?: string | null
-          metadata?: Json | null
-          priority?: number | null
-          read_at?: string | null
-          remote_jid: string
-          scheduled_at?: string | null
-          sent_at?: string | null
-          source?: string | null
-          source_id?: string | null
-          status?: string | null
-          template_id?: string | null
-          template_vars?: Json | null
-          whatsapp_message_id?: string | null
-        }
-        Update: {
-          attempts?: number | null
-          contact_id?: string | null
-          content?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          delivered_at?: string | null
-          error_message?: string | null
-          id?: string
-          instance_name?: string | null
-          max_attempts?: number | null
-          media_filename?: string | null
-          media_url?: string | null
-          message_type?: string | null
-          metadata?: Json | null
-          priority?: number | null
-          read_at?: string | null
-          remote_jid?: string
-          scheduled_at?: string | null
-          sent_at?: string | null
-          source?: string | null
-          source_id?: string | null
-          status?: string | null
-          template_id?: string | null
-          template_vars?: Json | null
-          whatsapp_message_id?: string | null
-        }
-        Relationships: []
-      }
-      evolution_message_templates: {
-        Row: {
-          approval_status: string | null
-          approved_at: string | null
-          buttons: Json | null
-          category: string
-          content: string
-          created_at: string | null
-          created_by: string | null
-          footer_text: string | null
-          header_content: string | null
-          header_type: string | null
-          id: string
-          instance_name: string | null
-          is_active: boolean | null
-          language: string | null
-          last_used_at: string | null
-          name: string
-          rejection_reason: string | null
-          updated_at: string | null
-          usage_count: number | null
-          variables: Json | null
-        }
-        Insert: {
-          approval_status?: string | null
-          approved_at?: string | null
-          buttons?: Json | null
-          category?: string
-          content: string
-          created_at?: string | null
-          created_by?: string | null
-          footer_text?: string | null
-          header_content?: string | null
-          header_type?: string | null
-          id?: string
-          instance_name?: string | null
-          is_active?: boolean | null
-          language?: string | null
-          last_used_at?: string | null
-          name: string
-          rejection_reason?: string | null
-          updated_at?: string | null
-          usage_count?: number | null
-          variables?: Json | null
-        }
-        Update: {
-          approval_status?: string | null
-          approved_at?: string | null
-          buttons?: Json | null
-          category?: string
-          content?: string
-          created_at?: string | null
-          created_by?: string | null
-          footer_text?: string | null
-          header_content?: string | null
-          header_type?: string | null
-          id?: string
-          instance_name?: string | null
-          is_active?: boolean | null
-          language?: string | null
-          last_used_at?: string | null
-          name?: string
-          rejection_reason?: string | null
-          updated_at?: string | null
-          usage_count?: number | null
-          variables?: Json | null
         }
         Relationships: []
       }
@@ -4699,609 +2036,6 @@ export type Database = {
           transcription_status?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_msgs_wpp2_reply_to"
-            columns: ["reply_to_id", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "active_messages"
-            referencedColumns: ["id", "instance_name"]
-          },
-          {
-            foreignKeyName: "fk_msgs_wpp2_reply_to"
-            columns: ["reply_to_id", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "evolution_messages"
-            referencedColumns: ["id", "instance_name"]
-          },
-          {
-            foreignKeyName: "fk_msgs_wpp2_reply_to"
-            columns: ["reply_to_id", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "evolution_messages_v2"
-            referencedColumns: ["id", "instance_name"]
-          },
-          {
-            foreignKeyName: "fk_msgs_wpp2_reply_to"
-            columns: ["reply_to_id", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "v_messages_unified"
-            referencedColumns: ["id", "instance_name"]
-          },
-        ]
-      }
-      evolution_messages_wpp2_archive: {
-        Row: {
-          audio_meme_id: string | null
-          caption: string | null
-          category: string | null
-          contact_id: string | null
-          content: string | null
-          conversation_id: string | null
-          created_at: string
-          deleted_at: string | null
-          direction: string | null
-          edited_at: string | null
-          follow_up_at: string | null
-          follow_up_done: boolean | null
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          is_important: boolean | null
-          is_read: boolean
-          is_starred: boolean | null
-          link_preview: Json | null
-          media_bucket: string | null
-          media_filename: string | null
-          media_meta: Json | null
-          media_mimetype: string | null
-          media_path: string | null
-          media_sha256: string | null
-          media_size: number | null
-          media_status: string | null
-          media_type: string | null
-          media_url: string | null
-          message_id: string | null
-          message_type: string
-          notes: string | null
-          payload: Json | null
-          push_name: string | null
-          quoted_message_id: string | null
-          raw_data: Json | null
-          remote_jid: string
-          reply_to_id: string | null
-          sent_by_bot: boolean | null
-          sentiment: string | null
-          status: string | null
-          status_at: string | null
-          sticker_id: string | null
-          tags: string[] | null
-          template_name: string | null
-          transcription: string | null
-          transcription_status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          audio_meme_id?: string | null
-          caption?: string | null
-          category?: string | null
-          contact_id?: string | null
-          content?: string | null
-          conversation_id?: string | null
-          created_at?: string
-          deleted_at?: string | null
-          direction?: string | null
-          edited_at?: string | null
-          follow_up_at?: string | null
-          follow_up_done?: boolean | null
-          from_me?: boolean | null
-          id?: string
-          instance_name: string
-          is_important?: boolean | null
-          is_read?: boolean
-          is_starred?: boolean | null
-          link_preview?: Json | null
-          media_bucket?: string | null
-          media_filename?: string | null
-          media_meta?: Json | null
-          media_mimetype?: string | null
-          media_path?: string | null
-          media_sha256?: string | null
-          media_size?: number | null
-          media_status?: string | null
-          media_type?: string | null
-          media_url?: string | null
-          message_id?: string | null
-          message_type?: string
-          notes?: string | null
-          payload?: Json | null
-          push_name?: string | null
-          quoted_message_id?: string | null
-          raw_data?: Json | null
-          remote_jid: string
-          reply_to_id?: string | null
-          sent_by_bot?: boolean | null
-          sentiment?: string | null
-          status?: string | null
-          status_at?: string | null
-          sticker_id?: string | null
-          tags?: string[] | null
-          template_name?: string | null
-          transcription?: string | null
-          transcription_status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          audio_meme_id?: string | null
-          caption?: string | null
-          category?: string | null
-          contact_id?: string | null
-          content?: string | null
-          conversation_id?: string | null
-          created_at?: string
-          deleted_at?: string | null
-          direction?: string | null
-          edited_at?: string | null
-          follow_up_at?: string | null
-          follow_up_done?: boolean | null
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          is_important?: boolean | null
-          is_read?: boolean
-          is_starred?: boolean | null
-          link_preview?: Json | null
-          media_bucket?: string | null
-          media_filename?: string | null
-          media_meta?: Json | null
-          media_mimetype?: string | null
-          media_path?: string | null
-          media_sha256?: string | null
-          media_size?: number | null
-          media_status?: string | null
-          media_type?: string | null
-          media_url?: string | null
-          message_id?: string | null
-          message_type?: string
-          notes?: string | null
-          payload?: Json | null
-          push_name?: string | null
-          quoted_message_id?: string | null
-          raw_data?: Json | null
-          remote_jid?: string
-          reply_to_id?: string | null
-          sent_by_bot?: boolean | null
-          sentiment?: string | null
-          status?: string | null
-          status_at?: string | null
-          sticker_id?: string | null
-          tags?: string[] | null
-          template_name?: string | null
-          transcription?: string | null
-          transcription_status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_mirror_batches: {
-        Row: {
-          batch_seq: number
-          bytes_gz: number | null
-          consumed_at: string | null
-          consumed_status: string | null
-          consumer_error: string | null
-          created_at: string
-          id: number
-          metrics: Json | null
-          row_count: number | null
-          run_id: string | null
-          s3_bucket: string
-          s3_key: string
-        }
-        Insert: {
-          batch_seq: number
-          bytes_gz?: number | null
-          consumed_at?: string | null
-          consumed_status?: string | null
-          consumer_error?: string | null
-          created_at?: string
-          id?: number
-          metrics?: Json | null
-          row_count?: number | null
-          run_id?: string | null
-          s3_bucket?: string
-          s3_key: string
-        }
-        Update: {
-          batch_seq?: number
-          bytes_gz?: number | null
-          consumed_at?: string | null
-          consumed_status?: string | null
-          consumer_error?: string | null
-          created_at?: string
-          id?: number
-          metrics?: Json | null
-          row_count?: number | null
-          run_id?: string | null
-          s3_bucket?: string
-          s3_key?: string
-        }
-        Relationships: []
-      }
-      evolution_mirror_checkpoints: {
-        Row: {
-          checkpoint_key: string
-          id: number
-          last_message_id: string | null
-          last_synced_at: string
-          total_synced: number | null
-          updated_at: string
-        }
-        Insert: {
-          checkpoint_key: string
-          id?: number
-          last_message_id?: string | null
-          last_synced_at: string
-          total_synced?: number | null
-          updated_at?: string
-        }
-        Update: {
-          checkpoint_key?: string
-          id?: number
-          last_message_id?: string | null
-          last_synced_at?: string
-          total_synced?: number | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      evolution_mirror_media_queue: {
-        Row: {
-          created_at: string
-          downloaded_at: string | null
-          file_length: number | null
-          id: number
-          last_error: string | null
-          media_key: string | null
-          media_type: string
-          media_url_source: string | null
-          message_id: string
-          mimetype: string | null
-          minio_path: string | null
-          retry_count: number | null
-          status: string
-          transcription: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          downloaded_at?: string | null
-          file_length?: number | null
-          id?: number
-          last_error?: string | null
-          media_key?: string | null
-          media_type: string
-          media_url_source?: string | null
-          message_id: string
-          mimetype?: string | null
-          minio_path?: string | null
-          retry_count?: number | null
-          status?: string
-          transcription?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          downloaded_at?: string | null
-          file_length?: number | null
-          id?: number
-          last_error?: string | null
-          media_key?: string | null
-          media_type?: string
-          media_url_source?: string | null
-          message_id?: string
-          mimetype?: string | null
-          minio_path?: string | null
-          retry_count?: number | null
-          status?: string
-          transcription?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      evolution_mirror_runs: {
-        Row: {
-          chunks_processed: number | null
-          completed_at: string | null
-          created_at: string
-          duration_seconds: number | null
-          error_message: string | null
-          id: string
-          messages_errored: number | null
-          messages_exported: number | null
-          messages_inserted: number | null
-          messages_skipped: number | null
-          metadata: Json | null
-          run_type: string
-          since_timestamp: string | null
-          started_at: string
-          status: string
-          until_timestamp: string | null
-        }
-        Insert: {
-          chunks_processed?: number | null
-          completed_at?: string | null
-          created_at?: string
-          duration_seconds?: number | null
-          error_message?: string | null
-          id?: string
-          messages_errored?: number | null
-          messages_exported?: number | null
-          messages_inserted?: number | null
-          messages_skipped?: number | null
-          metadata?: Json | null
-          run_type: string
-          since_timestamp?: string | null
-          started_at?: string
-          status: string
-          until_timestamp?: string | null
-        }
-        Update: {
-          chunks_processed?: number | null
-          completed_at?: string | null
-          created_at?: string
-          duration_seconds?: number | null
-          error_message?: string | null
-          id?: string
-          messages_errored?: number | null
-          messages_exported?: number | null
-          messages_inserted?: number | null
-          messages_skipped?: number | null
-          metadata?: Json | null
-          run_type?: string
-          since_timestamp?: string | null
-          started_at?: string
-          status?: string
-          until_timestamp?: string | null
-        }
-        Relationships: []
-      }
-      evolution_monthly_audit_log: {
-        Row: {
-          audit_month: string
-          created_at: string
-          id: number
-          report: Json
-        }
-        Insert: {
-          audit_month: string
-          created_at?: string
-          id?: number
-          report: Json
-        }
-        Update: {
-          audit_month?: string
-          created_at?: string
-          id?: number
-          report?: Json
-        }
-        Relationships: []
-      }
-      evolution_notification_config: {
-        Row: {
-          api_token: string | null
-          channel: string
-          chat_id: string | null
-          created_at: string | null
-          email_addresses: string[] | null
-          enabled: boolean | null
-          id: string
-          notify_on: string[] | null
-          notify_on_days: number[] | null
-          notify_on_hours: string | null
-          priority_filter: string[] | null
-          slack_webhook: string | null
-          updated_at: string | null
-          webhook_url: string | null
-        }
-        Insert: {
-          api_token?: string | null
-          channel: string
-          chat_id?: string | null
-          created_at?: string | null
-          email_addresses?: string[] | null
-          enabled?: boolean | null
-          id?: string
-          notify_on?: string[] | null
-          notify_on_days?: number[] | null
-          notify_on_hours?: string | null
-          priority_filter?: string[] | null
-          slack_webhook?: string | null
-          updated_at?: string | null
-          webhook_url?: string | null
-        }
-        Update: {
-          api_token?: string | null
-          channel?: string
-          chat_id?: string | null
-          created_at?: string | null
-          email_addresses?: string[] | null
-          enabled?: boolean | null
-          id?: string
-          notify_on?: string[] | null
-          notify_on_days?: number[] | null
-          notify_on_hours?: string | null
-          priority_filter?: string[] | null
-          slack_webhook?: string | null
-          updated_at?: string | null
-          webhook_url?: string | null
-        }
-        Relationships: []
-      }
-      evolution_notification_log: {
-        Row: {
-          alert_id: string | null
-          channel: string
-          created_at: string | null
-          error_message: string | null
-          id: string
-          message: string
-          sent_at: string | null
-          status: string | null
-        }
-        Insert: {
-          alert_id?: string | null
-          channel: string
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          message: string
-          sent_at?: string | null
-          status?: string | null
-        }
-        Update: {
-          alert_id?: string | null
-          channel?: string
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          message?: string
-          sent_at?: string | null
-          status?: string | null
-        }
-        Relationships: []
-      }
-      evolution_notification_outbox: {
-        Row: {
-          attempt_count: number
-          channel: string
-          created_at: string
-          id: number
-          last_attempt_at: string | null
-          last_error: string | null
-          notification_id: string
-          payload: Json | null
-          status: string
-        }
-        Insert: {
-          attempt_count?: number
-          channel: string
-          created_at?: string
-          id?: never
-          last_attempt_at?: string | null
-          last_error?: string | null
-          notification_id: string
-          payload?: Json | null
-          status?: string
-        }
-        Update: {
-          attempt_count?: number
-          channel?: string
-          created_at?: string
-          id?: never
-          last_attempt_at?: string | null
-          last_error?: string | null
-          notification_id?: string
-          payload?: Json | null
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "evolution_notification_outbox_notification_id_fkey"
-            columns: ["notification_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_notifications"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      evolution_notifications: {
-        Row: {
-          alert_id: string | null
-          channels_sent: string[] | null
-          contact_id: string | null
-          conversation_id: string | null
-          created_at: string | null
-          deal_id: string | null
-          id: string
-          message: string
-          metadata: Json | null
-          notification_type: string
-          priority: string | null
-          read_at: string | null
-          read_by: string | null
-          status: string | null
-          title: string
-        }
-        Insert: {
-          alert_id?: string | null
-          channels_sent?: string[] | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          deal_id?: string | null
-          id?: string
-          message: string
-          metadata?: Json | null
-          notification_type: string
-          priority?: string | null
-          read_at?: string | null
-          read_by?: string | null
-          status?: string | null
-          title: string
-        }
-        Update: {
-          alert_id?: string | null
-          channels_sent?: string[] | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          deal_id?: string | null
-          id?: string
-          message?: string
-          metadata?: Json | null
-          notification_type?: string
-          priority?: string | null
-          read_at?: string | null
-          read_by?: string | null
-          status?: string | null
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_notifications_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      evolution_performance_metrics: {
-        Row: {
-          created_at: string | null
-          id: string
-          metadata: Json | null
-          metric_date: string
-          metric_type: string
-          metric_value: number
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          metadata?: Json | null
-          metric_date?: string
-          metric_type: string
-          metric_value: number
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          metadata?: Json | null
-          metric_date?: string
-          metric_type?: string
-          metric_value?: number
-        }
         Relationships: []
       }
       evolution_pipeline_health_log: {
@@ -5320,13 +2054,7 @@ export type Database = {
           id: string
           instance_name: string | null
           notes: string | null
-          pipeline_status:
-            | "healthy"
-            | "warning"
-            | "degraded_webhook"
-            | "degraded_sender"
-            | "critical_alerts"
-            | "critical"
+          pipeline_status: Database["public"]["Enums"]["evolution_pipeline_status"]
           probe_latency_ms: number | null
           probe_status: string | null
           queue_failed_24h: number | null
@@ -5354,13 +2082,7 @@ export type Database = {
           id?: string
           instance_name?: string | null
           notes?: string | null
-          pipeline_status:
-            | "healthy"
-            | "warning"
-            | "degraded_webhook"
-            | "degraded_sender"
-            | "critical_alerts"
-            | "critical"
+          pipeline_status: Database["public"]["Enums"]["evolution_pipeline_status"]
           probe_latency_ms?: number | null
           probe_status?: string | null
           queue_failed_24h?: number | null
@@ -5388,13 +2110,7 @@ export type Database = {
           id?: string
           instance_name?: string | null
           notes?: string | null
-          pipeline_status?:
-            | "healthy"
-            | "warning"
-            | "degraded_webhook"
-            | "degraded_sender"
-            | "critical_alerts"
-            | "critical"
+          pipeline_status?: Database["public"]["Enums"]["evolution_pipeline_status"]
           probe_latency_ms?: number | null
           probe_status?: string | null
           queue_failed_24h?: number | null
@@ -5436,39 +2152,6 @@ export type Database = {
           pipeline_id?: string | null
           reason?: string | null
           to_stage?: string | null
-        }
-        Relationships: []
-      }
-      evolution_quick_replies: {
-        Row: {
-          category: string | null
-          content: string
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          shortcut: string
-          title: string
-          use_count: number | null
-        }
-        Insert: {
-          category?: string | null
-          content: string
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          shortcut: string
-          title: string
-          use_count?: number | null
-        }
-        Update: {
-          category?: string | null
-          content?: string
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          shortcut?: string
-          title?: string
-          use_count?: number | null
         }
         Relationships: []
       }
@@ -5592,119 +2275,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_reactions: {
-        Row: {
-          created_at: string | null
-          emoji: string
-          from_me: boolean | null
-          id: string
-          instance_name: string
-          message_id: string
-          push_name: string | null
-          reacted_at: string | null
-          remote_jid: string
-        }
-        Insert: {
-          created_at?: string | null
-          emoji: string
-          from_me?: boolean | null
-          id?: string
-          instance_name: string
-          message_id: string
-          push_name?: string | null
-          reacted_at?: string | null
-          remote_jid: string
-        }
-        Update: {
-          created_at?: string | null
-          emoji?: string
-          from_me?: boolean | null
-          id?: string
-          instance_name?: string
-          message_id?: string
-          push_name?: string | null
-          reacted_at?: string | null
-          remote_jid?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_reactions_message"
-            columns: ["message_id", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "active_messages"
-            referencedColumns: ["message_id", "instance_name"]
-          },
-          {
-            foreignKeyName: "fk_reactions_message"
-            columns: ["message_id", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "evolution_messages"
-            referencedColumns: ["message_id", "instance_name"]
-          },
-          {
-            foreignKeyName: "fk_reactions_message"
-            columns: ["message_id", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "evolution_messages_v2"
-            referencedColumns: ["message_id", "instance_name"]
-          },
-          {
-            foreignKeyName: "fk_reactions_message"
-            columns: ["message_id", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "v_messages_unified"
-            referencedColumns: ["message_id", "instance_name"]
-          },
-        ]
-      }
-      evolution_realtime_events: {
-        Row: {
-          body: string | null
-          created_at: string | null
-          data: Json | null
-          entity_id: string | null
-          entity_type: string
-          event_type: string
-          id: string
-          priority: string | null
-          read: boolean | null
-          read_at: string | null
-          remote_jid: string | null
-          target_users: string[] | null
-          title: string
-        }
-        Insert: {
-          body?: string | null
-          created_at?: string | null
-          data?: Json | null
-          entity_id?: string | null
-          entity_type: string
-          event_type: string
-          id?: string
-          priority?: string | null
-          read?: boolean | null
-          read_at?: string | null
-          remote_jid?: string | null
-          target_users?: string[] | null
-          title: string
-        }
-        Update: {
-          body?: string | null
-          created_at?: string | null
-          data?: Json | null
-          entity_id?: string | null
-          entity_type?: string
-          event_type?: string
-          id?: string
-          priority?: string | null
-          read?: boolean | null
-          read_at?: string | null
-          remote_jid?: string | null
-          target_users?: string[] | null
-          title?: string
-        }
-        Relationships: []
-      }
       evolution_reconcile_health_log: {
         Row: {
           checked_at: string
@@ -5810,660 +2380,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_retry_metrics: {
-        Row: {
-          action: string
-          attempt_count: number
-          created_at: string | null
-          final_http_status: number | null
-          final_status: string
-          id: string
-          idempotency_key: string | null
-          instance_name: string | null
-          method: string
-          retry_reasons: Json
-          total_duration_ms: number | null
-        }
-        Insert: {
-          action: string
-          attempt_count: number
-          created_at?: string | null
-          final_http_status?: number | null
-          final_status: string
-          id?: string
-          idempotency_key?: string | null
-          instance_name?: string | null
-          method: string
-          retry_reasons?: Json
-          total_duration_ms?: number | null
-        }
-        Update: {
-          action?: string
-          attempt_count?: number
-          created_at?: string | null
-          final_http_status?: number | null
-          final_status?: string
-          id?: string
-          idempotency_key?: string | null
-          instance_name?: string | null
-          method?: string
-          retry_reasons?: Json
-          total_duration_ms?: number | null
-        }
-        Relationships: []
-      }
-      evolution_sales_pipeline: {
-        Row: {
-          assigned_to: string | null
-          created_at: string | null
-          current_stage: string
-          id: string
-          last_message_at: string | null
-          metadata: Json | null
-          notes: string | null
-          previous_stage: string | null
-          push_name: string | null
-          remote_jid: string
-          stage_changed_at: string | null
-          total_messages: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          assigned_to?: string | null
-          created_at?: string | null
-          current_stage?: string
-          id?: string
-          last_message_at?: string | null
-          metadata?: Json | null
-          notes?: string | null
-          previous_stage?: string | null
-          push_name?: string | null
-          remote_jid: string
-          stage_changed_at?: string | null
-          total_messages?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          assigned_to?: string | null
-          created_at?: string | null
-          current_stage?: string
-          id?: string
-          last_message_at?: string | null
-          metadata?: Json | null
-          notes?: string | null
-          previous_stage?: string | null
-          push_name?: string | null
-          remote_jid?: string
-          stage_changed_at?: string | null
-          total_messages?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_scheduled_messages: {
-        Row: {
-          contact_id: string | null
-          content: string
-          created_at: string | null
-          created_by: string | null
-          error_message: string | null
-          id: string
-          instance_name: string | null
-          media_url: string | null
-          scheduled_at: string
-          sent_at: string | null
-          status: string | null
-          template_id: string | null
-        }
-        Insert: {
-          contact_id?: string | null
-          content: string
-          created_at?: string | null
-          created_by?: string | null
-          error_message?: string | null
-          id?: string
-          instance_name?: string | null
-          media_url?: string | null
-          scheduled_at: string
-          sent_at?: string | null
-          status?: string | null
-          template_id?: string | null
-        }
-        Update: {
-          contact_id?: string | null
-          content?: string
-          created_at?: string | null
-          created_by?: string | null
-          error_message?: string | null
-          id?: string
-          instance_name?: string | null
-          media_url?: string | null
-          scheduled_at?: string
-          sent_at?: string | null
-          status?: string | null
-          template_id?: string | null
-        }
-        Relationships: []
-      }
-      evolution_send_idempotency: {
-        Row: {
-          created_at: string | null
-          expires_at: string
-          external_message_id: string | null
-          http_status: number
-          idem_key: string
-          instance_name: string
-          path: string
-          response: Json
-        }
-        Insert: {
-          created_at?: string | null
-          expires_at: string
-          external_message_id?: string | null
-          http_status: number
-          idem_key: string
-          instance_name: string
-          path: string
-          response?: Json
-        }
-        Update: {
-          created_at?: string | null
-          expires_at?: string
-          external_message_id?: string | null
-          http_status?: number
-          idem_key?: string
-          instance_name?: string
-          path?: string
-          response?: Json
-        }
-        Relationships: []
-      }
-      evolution_sentiment_analysis: {
-        Row: {
-          analyzed_at: string | null
-          contact_id: string | null
-          conversation_id: string | null
-          created_at: string | null
-          emotions: Json | null
-          external_message_id: string | null
-          id: string
-          instance_name: string
-          intent: string | null
-          keywords: string[] | null
-          message_id: string
-          message_text: string
-          model_used: string | null
-          remote_jid: string
-          requires_attention: boolean | null
-          sentiment: string
-          sentiment_score: number | null
-          urgency: string | null
-        }
-        Insert: {
-          analyzed_at?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          emotions?: Json | null
-          external_message_id?: string | null
-          id?: string
-          instance_name?: string
-          intent?: string | null
-          keywords?: string[] | null
-          message_id: string
-          message_text: string
-          model_used?: string | null
-          remote_jid: string
-          requires_attention?: boolean | null
-          sentiment: string
-          sentiment_score?: number | null
-          urgency?: string | null
-        }
-        Update: {
-          analyzed_at?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          emotions?: Json | null
-          external_message_id?: string | null
-          id?: string
-          instance_name?: string
-          intent?: string | null
-          keywords?: string[] | null
-          message_id?: string
-          message_text?: string
-          model_used?: string | null
-          remote_jid?: string
-          requires_attention?: boolean | null
-          sentiment?: string
-          sentiment_score?: number | null
-          urgency?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_sentiment_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      evolution_settings: {
-        Row: {
-          category: string | null
-          created_at: string | null
-          description: string | null
-          id: string
-          is_secret: boolean | null
-          key: string
-          updated_at: string | null
-          value: Json
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_secret?: boolean | null
-          key: string
-          updated_at?: string | null
-          value: Json
-        }
-        Update: {
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_secret?: boolean | null
-          key?: string
-          updated_at?: string | null
-          value?: Json
-        }
-        Relationships: []
-      }
-      evolution_source_schema_map: {
-        Row: {
-          column_name: string | null
-          data_type: string | null
-          database_name: string
-          discovered_at: string
-          id: number
-          is_nullable: string | null
-          is_primary_key: boolean | null
-          is_unique: boolean | null
-          ordinal_position: number | null
-          raw_metadata: Json | null
-          row_count_est: number | null
-          schema_name: string
-          table_name: string
-        }
-        Insert: {
-          column_name?: string | null
-          data_type?: string | null
-          database_name: string
-          discovered_at?: string
-          id?: number
-          is_nullable?: string | null
-          is_primary_key?: boolean | null
-          is_unique?: boolean | null
-          ordinal_position?: number | null
-          raw_metadata?: Json | null
-          row_count_est?: number | null
-          schema_name: string
-          table_name: string
-        }
-        Update: {
-          column_name?: string | null
-          data_type?: string | null
-          database_name?: string
-          discovered_at?: string
-          id?: number
-          is_nullable?: string | null
-          is_primary_key?: boolean | null
-          is_unique?: boolean | null
-          ordinal_position?: number | null
-          raw_metadata?: Json | null
-          row_count_est?: number | null
-          schema_name?: string
-          table_name?: string
-        }
-        Relationships: []
-      }
-      evolution_source_shadow_log: {
-        Row: {
-          captured_at: string | null
-          dedup_rate: number | null
-          event_count: number
-          event_types: Json | null
-          id: string
-          snapshot_date: string
-          source: string
-          window_days: number
-        }
-        Insert: {
-          captured_at?: string | null
-          dedup_rate?: number | null
-          event_count: number
-          event_types?: Json | null
-          id?: string
-          snapshot_date?: string
-          source: string
-          window_days?: number
-        }
-        Update: {
-          captured_at?: string | null
-          dedup_rate?: number | null
-          event_count?: number
-          event_types?: Json | null
-          id?: string
-          snapshot_date?: string
-          source?: string
-          window_days?: number
-        }
-        Relationships: []
-      }
-      evolution_spam_keywords: {
-        Row: {
-          action: string | null
-          auto_reply_message: string | null
-          created_at: string | null
-          hit_count: number | null
-          id: string
-          is_active: boolean | null
-          keyword: string
-          match_type: string | null
-        }
-        Insert: {
-          action?: string | null
-          auto_reply_message?: string | null
-          created_at?: string | null
-          hit_count?: number | null
-          id?: string
-          is_active?: boolean | null
-          keyword: string
-          match_type?: string | null
-        }
-        Update: {
-          action?: string | null
-          auto_reply_message?: string | null
-          created_at?: string | null
-          hit_count?: number | null
-          id?: string
-          is_active?: boolean | null
-          keyword?: string
-          match_type?: string | null
-        }
-        Relationships: []
-      }
-      evolution_stage_mapping: {
-        Row: {
-          auto_transition_after_hours: number | null
-          label_color: string | null
-          label_name: string
-          next_stage: string | null
-          stage_key: string
-          stage_order: number | null
-        }
-        Insert: {
-          auto_transition_after_hours?: number | null
-          label_color?: string | null
-          label_name: string
-          next_stage?: string | null
-          stage_key: string
-          stage_order?: number | null
-        }
-        Update: {
-          auto_transition_after_hours?: number | null
-          label_color?: string | null
-          label_name?: string
-          next_stage?: string | null
-          stage_key?: string
-          stage_order?: number | null
-        }
-        Relationships: []
-      }
-      evolution_status_reactions: {
-        Row: {
-          automation_rule_id: string | null
-          created_at: string | null
-          id: string
-          instance_name: string
-          reacted_at: string | null
-          reacted_by: string | null
-          reaction_emoji: string
-          reaction_type: string
-          send_error: string | null
-          sent_at: string | null
-          sent_to_whatsapp: boolean | null
-          status_id: string
-        }
-        Insert: {
-          automation_rule_id?: string | null
-          created_at?: string | null
-          id?: string
-          instance_name?: string
-          reacted_at?: string | null
-          reacted_by?: string | null
-          reaction_emoji?: string
-          reaction_type?: string
-          send_error?: string | null
-          sent_at?: string | null
-          sent_to_whatsapp?: boolean | null
-          status_id: string
-        }
-        Update: {
-          automation_rule_id?: string | null
-          created_at?: string | null
-          id?: string
-          instance_name?: string
-          reacted_at?: string | null
-          reacted_by?: string | null
-          reaction_emoji?: string
-          reaction_type?: string
-          send_error?: string | null
-          sent_at?: string | null
-          sent_to_whatsapp?: boolean | null
-          status_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "evolution_status_reactions_status_id_fkey"
-            columns: ["status_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_whatsapp_status"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      evolution_tag_assignments: {
-        Row: {
-          assigned_at: string | null
-          assigned_by: string | null
-          entity_id: string
-          entity_type: string
-          id: string
-          tag_id: string | null
-        }
-        Insert: {
-          assigned_at?: string | null
-          assigned_by?: string | null
-          entity_id: string
-          entity_type: string
-          id?: string
-          tag_id?: string | null
-        }
-        Update: {
-          assigned_at?: string | null
-          assigned_by?: string | null
-          entity_id?: string
-          entity_type?: string
-          id?: string
-          tag_id?: string | null
-        }
-        Relationships: []
-      }
-      evolution_tags: {
-        Row: {
-          auto_apply: boolean | null
-          auto_apply_rules: Json | null
-          category: string | null
-          color: string | null
-          created_at: string | null
-          description: string | null
-          id: string
-          name: string
-          use_count: number | null
-        }
-        Insert: {
-          auto_apply?: boolean | null
-          auto_apply_rules?: Json | null
-          category?: string | null
-          color?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          name: string
-          use_count?: number | null
-        }
-        Update: {
-          auto_apply?: boolean | null
-          auto_apply_rules?: Json | null
-          category?: string | null
-          color?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          name?: string
-          use_count?: number | null
-        }
-        Relationships: []
-      }
-      evolution_tasks: {
-        Row: {
-          assigned_by: string | null
-          assigned_to: string | null
-          completed_at: string | null
-          completed_by: string | null
-          contact_id: string | null
-          conversation_id: string | null
-          created_at: string | null
-          deal_id: string | null
-          deleted_at: string | null
-          description: string | null
-          due_date: string | null
-          due_time: string | null
-          id: string
-          is_recurring: boolean | null
-          metadata: Json | null
-          notes: string | null
-          parent_task_id: string | null
-          priority: string | null
-          recurrence_end: string | null
-          recurrence_rule: string | null
-          reminder_at: string | null
-          status: string | null
-          tags: string[] | null
-          task_type: string | null
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          assigned_by?: string | null
-          assigned_to?: string | null
-          completed_at?: string | null
-          completed_by?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          deal_id?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          due_date?: string | null
-          due_time?: string | null
-          id?: string
-          is_recurring?: boolean | null
-          metadata?: Json | null
-          notes?: string | null
-          parent_task_id?: string | null
-          priority?: string | null
-          recurrence_end?: string | null
-          recurrence_rule?: string | null
-          reminder_at?: string | null
-          status?: string | null
-          tags?: string[] | null
-          task_type?: string | null
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          assigned_by?: string | null
-          assigned_to?: string | null
-          completed_at?: string | null
-          completed_by?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          deal_id?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          due_date?: string | null
-          due_time?: string | null
-          id?: string
-          is_recurring?: boolean | null
-          metadata?: Json | null
-          notes?: string | null
-          parent_task_id?: string | null
-          priority?: string | null
-          recurrence_end?: string | null
-          recurrence_rule?: string | null
-          reminder_at?: string | null
-          status?: string | null
-          tags?: string[] | null
-          task_type?: string | null
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_tasks_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      evolution_template_usage: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          id: string
-          remote_jid: string
-          send_status: string
-          template_id: string | null
-          variables_used: Json | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          remote_jid: string
-          send_status?: string
-          template_id?: string | null
-          variables_used?: Json | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          remote_jid?: string
-          send_status?: string
-          template_id?: string | null
-          variables_used?: Json | null
-        }
-        Relationships: []
-      }
       evolution_traefik_401_stats: {
         Row: {
           client_host: string | null
@@ -6491,75 +2407,6 @@ export type Database = {
           id?: number
           path?: string
           status?: number
-        }
-        Relationships: []
-      }
-      evolution_webhook_dlq: {
-        Row: {
-          consumer_version: string | null
-          created_at: string | null
-          error_message: string
-          error_stack: string | null
-          event_type: string
-          id: string
-          instance_name: string
-          last_request_id: number | null
-          max_retries: number | null
-          next_retry_at: string | null
-          original_event_id: string | null
-          payload: Json | null
-          queue_name: string | null
-          raw_payload: string | null
-          remote_jid: string | null
-          resolved_at: string | null
-          resolved_by: string | null
-          retry_count: number | null
-          source_event_id: string | null
-          status: string
-        }
-        Insert: {
-          consumer_version?: string | null
-          created_at?: string | null
-          error_message: string
-          error_stack?: string | null
-          event_type: string
-          id?: string
-          instance_name: string
-          last_request_id?: number | null
-          max_retries?: number | null
-          next_retry_at?: string | null
-          original_event_id?: string | null
-          payload?: Json | null
-          queue_name?: string | null
-          raw_payload?: string | null
-          remote_jid?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          retry_count?: number | null
-          source_event_id?: string | null
-          status?: string
-        }
-        Update: {
-          consumer_version?: string | null
-          created_at?: string | null
-          error_message?: string
-          error_stack?: string | null
-          event_type?: string
-          id?: string
-          instance_name?: string
-          last_request_id?: number | null
-          max_retries?: number | null
-          next_retry_at?: string | null
-          original_event_id?: string | null
-          payload?: Json | null
-          queue_name?: string | null
-          raw_payload?: string | null
-          remote_jid?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          retry_count?: number | null
-          source_event_id?: string | null
-          status?: string
         }
         Relationships: []
       }
@@ -7346,80 +3193,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_whatsapp_status: {
-        Row: {
-          contact_id: string | null
-          content: string | null
-          created_at: string | null
-          expires_at: string | null
-          id: string
-          instance_name: string
-          local_media_url: string | null
-          media_download_status: string | null
-          media_downloaded_at: string | null
-          media_meta: Json | null
-          media_mimetype: string | null
-          media_url: string | null
-          message_id: string
-          message_type: string | null
-          participant_jid: string
-          participant_name: string | null
-          posted_at: string | null
-          viewed_at: string | null
-          viewed_by_us: boolean | null
-        }
-        Insert: {
-          contact_id?: string | null
-          content?: string | null
-          created_at?: string | null
-          expires_at?: string | null
-          id?: string
-          instance_name?: string
-          local_media_url?: string | null
-          media_download_status?: string | null
-          media_downloaded_at?: string | null
-          media_meta?: Json | null
-          media_mimetype?: string | null
-          media_url?: string | null
-          message_id: string
-          message_type?: string | null
-          participant_jid: string
-          participant_name?: string | null
-          posted_at?: string | null
-          viewed_at?: string | null
-          viewed_by_us?: boolean | null
-        }
-        Update: {
-          contact_id?: string | null
-          content?: string | null
-          created_at?: string | null
-          expires_at?: string | null
-          id?: string
-          instance_name?: string
-          local_media_url?: string | null
-          media_download_status?: string | null
-          media_downloaded_at?: string | null
-          media_meta?: Json | null
-          media_mimetype?: string | null
-          media_url?: string | null
-          message_id?: string
-          message_type?: string | null
-          participant_jid?: string
-          participant_name?: string | null
-          posted_at?: string | null
-          viewed_at?: string | null
-          viewed_by_us?: boolean | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "evolution_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       idx_usage_audit: {
         Row: {
           captured_at: string
@@ -7799,36 +3572,7 @@ export type Database = {
           storage_path?: string | null
           worker_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_mdq_message"
-            columns: ["message_id", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "active_messages"
-            referencedColumns: ["message_id", "instance_name"]
-          },
-          {
-            foreignKeyName: "fk_mdq_message"
-            columns: ["message_id", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "evolution_messages"
-            referencedColumns: ["message_id", "instance_name"]
-          },
-          {
-            foreignKeyName: "fk_mdq_message"
-            columns: ["message_id", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "evolution_messages_v2"
-            referencedColumns: ["message_id", "instance_name"]
-          },
-          {
-            foreignKeyName: "fk_mdq_message"
-            columns: ["message_id", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "v_messages_unified"
-            referencedColumns: ["message_id", "instance_name"]
-          },
-        ]
+        Relationships: []
       }
       media_loss_registry: {
         Row: {
@@ -7873,36 +3617,7 @@ export type Database = {
           remote_jid?: string | null
           snapshot_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_mlr_message_uuid_instance"
-            columns: ["message_uuid", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "active_messages"
-            referencedColumns: ["id", "instance_name"]
-          },
-          {
-            foreignKeyName: "fk_mlr_message_uuid_instance"
-            columns: ["message_uuid", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "evolution_messages"
-            referencedColumns: ["id", "instance_name"]
-          },
-          {
-            foreignKeyName: "fk_mlr_message_uuid_instance"
-            columns: ["message_uuid", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "evolution_messages_v2"
-            referencedColumns: ["id", "instance_name"]
-          },
-          {
-            foreignKeyName: "fk_mlr_message_uuid_instance"
-            columns: ["message_uuid", "instance_name"]
-            isOneToOne: false
-            referencedRelation: "v_messages_unified"
-            referencedColumns: ["id", "instance_name"]
-          },
-        ]
+        Relationships: []
       }
       media_orphan_triage: {
         Row: {
@@ -8245,6 +3960,21 @@ export type Database = {
         }
         Relationships: []
       }
+      pg14_message_hourly: {
+        Row: {
+          cnt: number | null
+          hour: string | null
+        }
+        Insert: {
+          cnt?: number | null
+          hour?: string | null
+        }
+        Update: {
+          cnt?: number | null
+          hour?: string | null
+        }
+        Relationships: []
+      }
       vps_comments: {
         Row: {
           author: string
@@ -8563,13 +4293,7 @@ export type Database = {
           processed_at: string | null
           push_name: string | null
           remote_jid: string | null
-          status:
-            | "pending"
-            | "success"
-            | "skipped"
-            | "failed"
-            | "dead_letter"
-            | null
+          status: Database["zapp"]["Enums"]["webhook_event_status"] | null
         }
         Insert: {
           created_at?: string | null
@@ -8913,6 +4637,21 @@ export type Database = {
         }
         Relationships: []
       }
+      v_bootstrap_coverage_monitor: {
+        Row: {
+          bootstrap_invalid_count: number | null
+          checked_at: string | null
+          coverage_pct: number | null
+          covered_count: number | null
+          high_map_count: number | null
+          lid_contacts_total: number | null
+          organic_phonejid_events: number | null
+          phase: string | null
+          potential_if_all_matched_pct: number | null
+          upgrade_readiness: string | null
+        }
+        Relationships: []
+      }
       v_bootstrap_history: {
         Row: {
           created_at: string | null
@@ -8946,6 +4685,51 @@ export type Database = {
           reject_call?: never
           status?: string | null
           triggered_by?: string | null
+        }
+        Relationships: []
+      }
+      v_contact_gap_analysis: {
+        Row: {
+          digits: number | null
+          jids: number | null
+          key: string | null
+          msgs: number | null
+          msgs_inbound: number | null
+          report_type: string | null
+        }
+        Relationships: []
+      }
+      v_conversations_wpp2_enriched: {
+        Row: {
+          assigned_to: string | null
+          contact_id: string | null
+          contact_phone: string | null
+          created_at: string | null
+          department: string | null
+          first_message_at: string | null
+          full_name: string | null
+          id: string | null
+          instance_name: string | null
+          is_bot_active: boolean | null
+          jid_type: string | null
+          labels: string[] | null
+          last_inbound_at: string | null
+          last_message_at: string | null
+          last_message_content: string | null
+          last_message_type: string | null
+          last_outbound_at: string | null
+          mapping_confidence: string | null
+          message_count: number | null
+          metadata: Json | null
+          phone_display: string | null
+          priority: string | null
+          push_name: string | null
+          remote_jid: string | null
+          resolved_jid: string | null
+          status: string | null
+          subject: string | null
+          unread_count: number | null
+          updated_at: string | null
         }
         Relationships: []
       }
@@ -9002,6 +4786,42 @@ export type Database = {
         }
         Relationships: []
       }
+      v_ghost_conversations: {
+        Row: {
+          conversation_id: string | null
+          created_at: string | null
+          instance_name: string | null
+          last_message_at: string | null
+          msgs_recebidas: number | null
+          msgs_sem_contato: number | null
+          phone_candidate: string | null
+          remote_jid: string | null
+          unread_count: number | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string | null
+          instance_name?: string | null
+          last_message_at?: string | null
+          msgs_recebidas?: never
+          msgs_sem_contato?: never
+          phone_candidate?: never
+          remote_jid?: string | null
+          unread_count?: number | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string | null
+          instance_name?: string | null
+          last_message_at?: string | null
+          msgs_recebidas?: never
+          msgs_sem_contato?: never
+          phone_candidate?: never
+          remote_jid?: string | null
+          unread_count?: number | null
+        }
+        Relationships: []
+      }
       v_incident_metrics_48h: {
         Row: {
           first_seen: string | null
@@ -9039,12 +4859,7 @@ export type Database = {
           gap_sync_checked_at: string | null
           gap_sync_min: number | null
           gap_sync_status:
-            | "healthy"
-            | "warning"
-            | "degraded_webhook"
-            | "degraded_sender"
-            | "critical_alerts"
-            | "critical"
+            | Database["public"]["Enums"]["evolution_pipeline_status"]
             | null
           ipwatch_hits_24h: number | null
           last_ingest_at: string | null
@@ -9091,7 +4906,9 @@ export type Database = {
           contact_identity_total: number | null
           contacts_lid_phone_contaminated: number | null
           contacts_real_phone: number | null
+          contacts_sync_count: number | null
           contacts_with_phonejid: number | null
+          converged_48h: number | null
           coverage_goal_met: boolean | null
           delta_last_hour: number | null
           fake_jid_trend: string | null
@@ -9104,6 +4921,8 @@ export type Database = {
           lid_status: string | null
           map_invalid: number | null
           map_real_entries: number | null
+          phonejid_signal: boolean | null
+          usync_count: number | null
         }
         Relationships: []
       }
@@ -9420,31 +5239,6 @@ export type Database = {
         }
         Relationships: []
       }
-      v_upgrade_status: {
-        Row: {
-          backfill_target: string | null
-          ci_lid_entries: number | null
-          contacts_lid_phone_contaminated: number | null
-          coverage_target: string | null
-          current_audit_label: string | null
-          current_image_rollback: string | null
-          current_version_index: string | null
-          fake_jid_trend: string | null
-          fake_jids_historical: number | null
-          generated_at: string | null
-          graveyard_lid_entries: number | null
-          lid_contacts_wpp2: number | null
-          lid_coverage_pct: number | null
-          lid_health_score: number | null
-          lid_status: string | null
-          map_real_entries: number | null
-          migrations_today: number | null
-          readiness_checks_ok: number | null
-          score_target: string | null
-          upgrade_readiness: string | null
-        }
-        Relationships: []
-      }
       v_vps_go_live_checklist: {
         Row: {
           category: string | null
@@ -9513,15 +5307,12 @@ export type Database = {
           deleted_count: number
         }[]
       }
-      fn_analytics_wal_watchdog: { Args: never; Returns: Json }
+      debug_consumer_stats: { Args: { p_row: Json }; Returns: string }
       fn_apply_lid_mappings: {
         Args: { p_batch?: number; p_dry_run?: boolean }
         Returns: Json
       }
-      fn_audit_rmq_durability_risk: {
-        Args: { p_window?: string }
-        Returns: Json
-      }
+      fn_auto_apply_lid_mappings: { Args: never; Returns: Json }
       fn_auto_ban_401_abusers: {
         Args: { p_threshold?: number; p_window_minutes?: number }
         Returns: {
@@ -9531,28 +5322,14 @@ export type Database = {
         }[]
       }
       fn_auto_create_next_partitions: { Args: never; Returns: string[] }
-      fn_auto_resolve_alerts: { Args: never; Returns: undefined }
       fn_backfill_contact_id: { Args: { p_batch?: number }; Returns: number }
       fn_blockers_auto_detect: { Args: never; Returns: Json }
       fn_bootstrap_wpp2_instance: {
         Args: { p_instance_id: string; p_trigger?: string }
         Returns: Json
       }
-      fn_burnin_critical_alert_check: { Args: never; Returns: Json }
-      fn_burnin_disconnection_check: { Args: never; Returns: Json }
-      fn_burnin_monitor: { Args: never; Returns: Json }
-      fn_cache_warmup_after_vacuum: { Args: never; Returns: Json }
-      fn_canonical_route_check_daily: { Args: never; Returns: Json }
-      fn_canonical_route_decision: {
-        Args: { p_max_parity_delta_pct?: number; p_min_days?: number }
-        Returns: Json
-      }
-      fn_check_401_rate: { Args: never; Returns: undefined }
-      fn_check_ack_stall: { Args: never; Returns: undefined }
-      fn_check_connection_saturation: { Args: never; Returns: undefined }
-      fn_check_guardian_alive: { Args: never; Returns: undefined }
       fn_check_media_pipeline_health: { Args: never; Returns: Json }
-      fn_check_wal_slot_health: { Args: never; Returns: undefined }
+      fn_check_socket_flapping: { Args: never; Returns: Json }
       fn_cleanup_evolution_guardian_events: {
         Args: { p_days_to_keep?: number }
         Returns: Json
@@ -9560,10 +5337,6 @@ export type Database = {
       fn_cleanup_media_queue_expired: {
         Args: { p_older_than_days?: number }
         Returns: number
-      }
-      fn_cleanup_test_artifacts: {
-        Args: { p_confirm?: boolean; p_max_age_hours?: number }
-        Returns: Json
       }
       fn_create_monthly_partition: {
         Args: {
@@ -9574,38 +5347,11 @@ export type Database = {
         }
         Returns: string
       }
-      fn_delete_test_contacts: {
-        Args: { p_pattern: string }
-        Returns: {
-          deleted_contacts: number
-          deleted_convs: number
-          msg: string
-        }[]
-      }
-      fn_detect_401_bursts: { Args: never; Returns: Json }
-      fn_detect_ack_loss_gap: {
-        Args: { p_dlq_threshold?: number; p_window?: string }
-        Returns: Json
-      }
-      fn_detect_dedup_cap_failures: {
-        Args: { p_window?: string }
-        Returns: Json
-      }
-      fn_detect_spurious_closes: {
-        Args: { p_reconnect_window?: string; p_window?: string }
-        Returns: Json
-      }
-      fn_detect_swarm_task_duplication: { Args: never; Returns: Json }
-      fn_download_wa_status_media: {
-        Args: { p_batch_size?: number }
-        Returns: Json
-      }
       fn_e2e_media_probe: { Args: { p_window_hours?: number }; Returns: Json }
       fn_enqueue_orphan_media: {
         Args: { p_days_back?: number; p_limit?: number }
         Returns: number
       }
-      fn_ensure_evolution_backcompat_views: { Args: never; Returns: number }
       fn_ensure_monthly_partitions: {
         Args: {
           p_base_table?: string
@@ -9621,6 +5367,10 @@ export type Database = {
         Args: { p_max_size_mb?: number; p_older_than_hours?: number }
         Returns: number
       }
+      fn_execute_lid_backfill_when_ready: {
+        Args: { p_force_run?: boolean }
+        Returns: Json
+      }
       fn_expire_old_media_queue: { Args: never; Returns: number }
       fn_expire_stale_media_queue: {
         Args: { p_age_days?: number }
@@ -9629,47 +5379,28 @@ export type Database = {
           oldest_expired: string
         }[]
       }
-      fn_expire_whatsapp_media_urls: {
-        Args: { p_batch_limit?: number; p_days_old?: number }
-        Returns: Json
-      }
-      fn_feed_401_disconnect_alerts: {
-        Args: { p_minutes?: number; p_threshold?: number }
-        Returns: Json
-      }
-      fn_flag_poison_messages: { Args: never; Returns: Json }
-      fn_get_incident_runbook: { Args: { p_type?: string }; Returns: Json }
-      fn_handle_expired_r2_media: { Args: never; Returns: number }
       fn_is_admin: { Args: never; Returns: boolean }
       fn_lid_cleanup_convergence_guard: { Args: never; Returns: Json }
       fn_lid_convergence_snapshot: { Args: never; Returns: Json }
       fn_lid_health_report: { Args: never; Returns: Json }
       fn_lid_normalizer_test_suite: { Args: never; Returns: Json }
       fn_lid_regression_suite: { Args: never; Returns: Json }
+      fn_lid_status_label: {
+        Args: {
+          p_contacts_with_phonejid: number
+          p_map_real_entries: number
+          p_pn_rows: number
+          p_trend: string
+        }
+        Returns: string
+      }
       fn_lid_upgrade_alert_check: { Args: never; Returns: undefined }
-      fn_lid_upgrade_readiness_check: { Args: never; Returns: Json }
-      fn_link_orphan_messages: { Args: { p_limit?: number }; Returns: Json }
       fn_list_storage_cache_for_purge: {
         Args: { days?: number }
         Returns: {
-          age_days: number
           bucket_name: string
-          media_id: string
-          message_id: string
           storage_path: string
         }[]
-      }
-      fn_logpatch_verify: {
-        Args: never
-        Returns: {
-          detail: string
-          patch: string
-          status: string
-        }[]
-      }
-      fn_mark_status_viewed: {
-        Args: { p_instance?: string; p_message_id: string }
-        Returns: boolean
       }
       fn_media_public_url: { Args: { raw_url: string }; Returns: string }
       fn_media_queue_health_check: {
@@ -9683,29 +5414,8 @@ export type Database = {
           recommendation: string
         }[]
       }
-      fn_migrate_media_urls_to_r2: {
-        Args: { batch_size?: number; dry_run?: boolean }
-        Returns: Json
-      }
-      fn_monitor_lid_contamination: { Args: never; Returns: Json }
-      fn_monitor_pino_timeouts: { Args: never; Returns: Json }
-      fn_monthly_evo_audit: { Args: never; Returns: Json }
       fn_passive_lid_accumulator: {
         Args: { p_lookback_hours?: number }
-        Returns: Json
-      }
-      fn_pipeline_health_probe: { Args: never; Returns: Json }
-      fn_post_upgrade_verify: {
-        Args: { p_timeout_minutes?: number }
-        Returns: Json
-      }
-      fn_pre_upgrade_final_check: { Args: never; Returns: Json }
-      fn_prepare_lid_dedup: {
-        Args: {
-          p_batch_size?: number
-          p_dry_run?: boolean
-          p_instance?: string
-        }
         Returns: Json
       }
       fn_process_api_contacts_response: { Args: never; Returns: Json }
@@ -9713,27 +5423,12 @@ export type Database = {
         Args: { p_batch_size?: number }
         Returns: Json
       }
-      fn_purge_lid_orphan_messages_batch: {
-        Args: { p_batch_size?: number }
-        Returns: Json
-      }
       fn_purge_storage_cache: { Args: { p_days?: number }; Returns: Json }
-      fn_record_runbook_drill: { Args: { p_type: string }; Returns: Json }
+      fn_reconcile_media_fk_orphans: { Args: never; Returns: Json }
       fn_reset_stuck_media_queue: {
         Args: { p_stuck_minutes?: number }
         Returns: number
       }
-      fn_resolve_alert: {
-        Args: { p_by?: string; p_id?: string; p_ids?: string[] }
-        Returns: {
-          alert_type: string
-          id: string
-          resolved_at: string
-          resolved_by: string
-          severity: string
-        }[]
-      }
-      fn_resolve_contact_id_by_jid: { Args: { p_jid: string }; Returns: string }
       fn_resolve_identity: {
         Args: { p_instance?: string; p_jid: string }
         Returns: Json
@@ -9748,63 +5443,15 @@ export type Database = {
         }[]
       }
       fn_retry_stuck_media_queue: { Args: never; Returns: number }
-      fn_run_media_health_alert: { Args: never; Returns: undefined }
-      fn_scrub_r2_paths_from_logs: {
-        Args: { p_window?: string }
-        Returns: Json
-      }
-      fn_scrub_r2_text: { Args: { p_input: string }; Returns: string }
-      fn_shadow_snapshot_daily: { Args: never; Returns: Json }
-      fn_shadow_source_measurement: {
-        Args: { p_days?: number }
-        Returns: {
-          dedup_rate: number
-          event_count: number
-          event_types: Json
-          source: string
-        }[]
-      }
       fn_sync_guardian_heartbeat: {
         Args: { p_pg_password?: string }
         Returns: Json
       }
-      fn_sync_lid_from_api: {
-        Args: { p_instance?: string; p_limit?: number }
-        Returns: Json
-      }
+      fn_sync_lid_from_api:
+        | { Args: { p_instance?: string }; Returns: Json }
+        | { Args: { p_instance: string; p_limit?: number }; Returns: Json }
       fn_sync_messages_to_v2: { Args: never; Returns: Json }
-      fn_touch_contact_presence: {
-        Args: { p_instance?: string; p_presence: string; p_remote_jid: string }
-        Returns: boolean
-      }
-      fn_trigger_audio_transcription: {
-        Args: { p_batch_size?: number }
-        Returns: Json
-      }
-      fn_update_instance_health: { Args: never; Returns: undefined }
-      fn_upsert_group_from_event: {
-        Args: {
-          p_connection_id: string
-          p_desc?: string
-          p_group_id: string
-          p_instance?: string
-          p_name: string
-          p_participants?: string[]
-        }
-        Returns: string
-      }
-      fn_upsert_group_participants: {
-        Args: {
-          p_action?: string
-          p_group_id: string
-          p_instance?: string
-          p_participants: string[]
-        }
-        Returns: number
-      }
       fn_uuid_safe: { Args: { t: string }; Returns: string }
-      fn_v2_mirror_health: { Args: never; Returns: Json }
-      fn_v2_pipeline_heartbeat: { Args: never; Returns: Json }
       fn_validate_media_security: {
         Args: {
           p_contact_id?: string
@@ -9869,23 +5516,129 @@ export type Database = {
         }[]
       }
       fn_watchdog_media_links: { Args: never; Returns: string }
-      fn_wpp2_uptime_kpi: {
-        Args: { p_alert?: boolean; p_instance?: string; p_window?: string }
-        Returns: Json
-      }
       get_snapshot_version: { Args: never; Returns: number }
       is_contact_id_available: {
         Args: { p_contact_id: string }
         Returns: boolean
       }
-      list_media_to_mirror: {
-        Args: { limit_count?: number; offset_count?: number }
+      rpc_boundary_cooldown_clear: { Args: { p_key: string }; Returns: number }
+      rpc_boundary_cooldown_get: { Args: { p_key: string }; Returns: string }
+      rpc_boundary_enqueue_media_download: {
+        Args: {
+          p_direct_path: string
+          p_instance_name: string
+          p_media_key: string
+          p_media_type: string
+          p_message_id: string
+          p_message_uuid: string
+          p_mimetype: string
+          p_priority: number
+          p_remote_jid: string
+        }
+        Returns: undefined
+      }
+      rpc_boundary_event_mark_fail: {
+        Args: { p_error: string; p_id: string }
+        Returns: undefined
+      }
+      rpc_boundary_event_mark_ok: { Args: { p_id: string }; Returns: undefined }
+      rpc_boundary_events_pull: {
+        Args: { p_limit?: number }
         Returns: {
-          storage_bucket: string
-          storage_path: string
-          storage_url: string
+          event_type: string
+          id: string
+          instance_name: string
+          payload: Json
+          retry_count: number
         }[]
       }
+      rpc_boundary_graveyard_pairs: {
+        Args: never
+        Returns: {
+          deleted_at: string
+          deleted_contact_id: string
+          merged_into_contact_id: string
+        }[]
+      }
+      rpc_boundary_graveyard_pending_count: { Args: never; Returns: number }
+      rpc_boundary_insert_consumer_stats: {
+        Args: { p_row: Json }
+        Returns: undefined
+      }
+      rpc_boundary_insert_heartbeat_event: {
+        Args: { p_audit_events_1h: number; p_event_type: string }
+        Returns: undefined
+      }
+      rpc_boundary_insert_pipeline_health: {
+        Args: { p_row: Json }
+        Returns: undefined
+      }
+      rpc_boundary_isonwa_mark: { Args: { p_jids: string[] }; Returns: number }
+      rpc_boundary_isonwa_pull: {
+        Args: { p_limit?: number }
+        Returns: {
+          remote_jid: string
+        }[]
+      }
+      rpc_boundary_ledger_insert: {
+        Args: {
+          p_event_type: string
+          p_from_me: boolean
+          p_instance_name: string
+          p_media_key_seen: boolean
+          p_message_id: string
+          p_message_type: string
+          p_outcome: string
+          p_remote_jid: string
+        }
+        Returns: undefined
+      }
+      rpc_boundary_lookup_contact_id: {
+        Args: { p_instance_name: string; p_remote_jid: string }
+        Returns: string
+      }
+      rpc_boundary_pipeline_health_probe: { Args: never; Returns: Json }
+      rpc_boundary_provision_instance_partitions: {
+        Args: { p_instance_name: string }
+        Returns: undefined
+      }
+      rpc_boundary_purge_events: {
+        Args: { p_batch_size: number; p_retention_days: number }
+        Returns: Json
+      }
+      rpc_boundary_reconcile_apply: {
+        Args: { p_http_status: number; p_id: number; p_result: Json }
+        Returns: undefined
+      }
+      rpc_boundary_reconcile_enqueue: {
+        Args: { p_request_id: number }
+        Returns: number
+      }
+      rpc_boundary_reconcile_pending: {
+        Args: { p_limit?: number }
+        Returns: {
+          id: number
+          request_id: number
+        }[]
+      }
+      rpc_boundary_refresh_daily_metrics: { Args: never; Returns: undefined }
+      rpc_boundary_resolve_lid_phone: {
+        Args: { p_lid: string }
+        Returns: string
+      }
+      rpc_boundary_scrub_secret: { Args: { p_key: string }; Returns: Json }
+      rpc_boundary_upsert_lid_identity: {
+        Args: {
+          p_confidence: string
+          p_lid_jid: string
+          p_phone_number: string
+          p_pn_jid: string
+          p_raw: Json
+          p_source: string
+        }
+        Returns: undefined
+      }
+      rpc_boundary_vps_health_score: { Args: never; Returns: number }
       rpc_claim_media_download_batch: {
         Args: { p_batch_size?: number; p_instance_name?: string }
         Returns: {
@@ -9910,28 +5663,6 @@ export type Database = {
       rpc_fail_media_download: {
         Args: { p_error?: string; p_queue_id: number }
         Returns: undefined
-      }
-      search_contacts_gin: {
-        Args: {
-          p_limit?: number
-          p_min_sim?: number
-          p_offset?: number
-          p_query: string
-        }
-        Returns: {
-          company: string
-          email: string
-          full_name: string
-          id: string
-          phone_number: string
-          push_name: string
-          remote_jid: string
-          sim_score: number
-        }[]
-      }
-      update_status_media_url: {
-        Args: { p_media_url: string; p_status_id: string }
-        Returns: Json
       }
       validate_snapshot_freshness: {
         Args: { p_max_age_seconds?: number }
@@ -10044,7 +5775,15 @@ export type Database = {
           went_offline_at?: string | null
           went_online_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agent_presence_current_queue_id_fkey"
+            columns: ["current_queue_id"]
+            isOneToOne: false
+            referencedRelation: "queues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       agent_skills: {
         Row: {
@@ -10143,7 +5882,15 @@ export type Database = {
           updated_at?: string | null
           xp?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agent_stats_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       agent_visibility_grants: {
         Row: {
@@ -10167,7 +5914,29 @@ export type Database = {
           granted_by?: string | null
           id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agent_visibility_grants_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_visibility_grants_can_see_agent_id_fkey"
+            columns: ["can_see_agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_visibility_grants_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       agents: {
         Row: {
@@ -10181,17 +5950,7 @@ export type Database = {
           name: string | null
           persona: string | null
           reasoning: string | null
-          status:
-            | "draft"
-            | "configured"
-            | "testing"
-            | "staging"
-            | "review"
-            | "production"
-            | "monitoring"
-            | "deprecated"
-            | "archived"
-            | null
+          status: Database["zapp"]["Enums"]["agent_status"] | null
           tags: string[] | null
           template_category: string | null
           updated_at: string | null
@@ -10210,17 +5969,7 @@ export type Database = {
           name?: string | null
           persona?: string | null
           reasoning?: string | null
-          status?:
-            | "draft"
-            | "configured"
-            | "testing"
-            | "staging"
-            | "review"
-            | "production"
-            | "monitoring"
-            | "deprecated"
-            | "archived"
-            | null
+          status?: Database["zapp"]["Enums"]["agent_status"] | null
           tags?: string[] | null
           template_category?: string | null
           updated_at?: string | null
@@ -10239,17 +5988,7 @@ export type Database = {
           name?: string | null
           persona?: string | null
           reasoning?: string | null
-          status?:
-            | "draft"
-            | "configured"
-            | "testing"
-            | "staging"
-            | "review"
-            | "production"
-            | "monitoring"
-            | "deprecated"
-            | "archived"
-            | null
+          status?: Database["zapp"]["Enums"]["agent_status"] | null
           tags?: string[] | null
           template_category?: string | null
           updated_at?: string | null
@@ -10284,7 +6023,22 @@ export type Database = {
           source?: string | null
           tag_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversation_tags_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_conversation_tags_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       alert_channels: {
         Row: {
@@ -10539,7 +6293,15 @@ export type Database = {
           meme_id?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audio_meme_favorites_meme_id_fkey"
+            columns: ["meme_id"]
+            isOneToOne: false
+            referencedRelation: "audio_memes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audio_memes: {
         Row: {
@@ -10728,7 +6490,15 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "auto_close_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       automation_executions: {
         Row: {
@@ -10812,7 +6582,29 @@ export type Database = {
           trigger_event?: string | null
           trigger_payload?: Json | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "automation_executions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_executions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_executions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       automation_rules: {
         Row: {
@@ -10872,7 +6664,22 @@ export type Database = {
           trigger_type?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "automation_rules_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_rules_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       automations: {
         Row: {
@@ -10929,7 +6736,29 @@ export type Database = {
           trigger_type?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "automations_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "service_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       avatars: {
         Row: {
@@ -11151,21 +6980,7 @@ export type Database = {
         Row: {
           action_config: Json | null
           action_order: number | null
-          action_type:
-            | "move_card"
-            | "set_field"
-            | "assign_user"
-            | "add_comment"
-            | "send_email"
-            | "send_notification"
-            | "create_card"
-            | "add_recurrence"
-            | "invoke_agent"
-            | "call_webhook"
-            | "call_mcp"
-            | "create_calendar_event"
-            | "update_register"
-            | null
+          action_type: Database["zapp"]["Enums"]["bpm_action_type"] | null
           agent_id: string | null
           automation_id: string | null
           created_at: string | null
@@ -11176,21 +6991,7 @@ export type Database = {
         Insert: {
           action_config?: Json | null
           action_order?: number | null
-          action_type?:
-            | "move_card"
-            | "set_field"
-            | "assign_user"
-            | "add_comment"
-            | "send_email"
-            | "send_notification"
-            | "create_card"
-            | "add_recurrence"
-            | "invoke_agent"
-            | "call_webhook"
-            | "call_mcp"
-            | "create_calendar_event"
-            | "update_register"
-            | null
+          action_type?: Database["zapp"]["Enums"]["bpm_action_type"] | null
           agent_id?: string | null
           automation_id?: string | null
           created_at?: string | null
@@ -11201,21 +7002,7 @@ export type Database = {
         Update: {
           action_config?: Json | null
           action_order?: number | null
-          action_type?:
-            | "move_card"
-            | "set_field"
-            | "assign_user"
-            | "add_comment"
-            | "send_email"
-            | "send_notification"
-            | "create_card"
-            | "add_recurrence"
-            | "invoke_agent"
-            | "call_webhook"
-            | "call_mcp"
-            | "create_calendar_event"
-            | "update_register"
-            | null
+          action_type?: Database["zapp"]["Enums"]["bpm_action_type"] | null
           agent_id?: string | null
           automation_id?: string | null
           created_at?: string | null
@@ -11322,16 +7109,7 @@ export type Database = {
           last_executed_at: string | null
           name: string | null
           trigger_config: Json | null
-          trigger_type:
-            | "card_created"
-            | "step_changed"
-            | "field_changed"
-            | "email_received"
-            | "condition_met"
-            | "schedule"
-            | "webhook_received"
-            | "manual"
-            | null
+          trigger_type: Database["zapp"]["Enums"]["bpm_trigger_type"] | null
           updated_at: string | null
         }
         Insert: {
@@ -11346,16 +7124,7 @@ export type Database = {
           last_executed_at?: string | null
           name?: string | null
           trigger_config?: Json | null
-          trigger_type?:
-            | "card_created"
-            | "step_changed"
-            | "field_changed"
-            | "email_received"
-            | "condition_met"
-            | "schedule"
-            | "webhook_received"
-            | "manual"
-            | null
+          trigger_type?: Database["zapp"]["Enums"]["bpm_trigger_type"] | null
           updated_at?: string | null
         }
         Update: {
@@ -11370,16 +7139,7 @@ export type Database = {
           last_executed_at?: string | null
           name?: string | null
           trigger_config?: Json | null
-          trigger_type?:
-            | "card_created"
-            | "step_changed"
-            | "field_changed"
-            | "email_received"
-            | "condition_met"
-            | "schedule"
-            | "webhook_received"
-            | "manual"
-            | null
+          trigger_type?: Database["zapp"]["Enums"]["bpm_trigger_type"] | null
           updated_at?: string | null
         }
         Relationships: []
@@ -11749,7 +7509,7 @@ export type Database = {
           day_of_month: number | null
           day_of_week: number | null
           end_date: string | null
-          frequency: "daily" | "weekly" | "monthly" | "yearly" | null
+          frequency: Database["zapp"]["Enums"]["bpm_recurrence_freq"] | null
           id: string | null
           interval_value: number | null
           is_active: boolean | null
@@ -11767,7 +7527,7 @@ export type Database = {
           day_of_month?: number | null
           day_of_week?: number | null
           end_date?: string | null
-          frequency?: "daily" | "weekly" | "monthly" | "yearly" | null
+          frequency?: Database["zapp"]["Enums"]["bpm_recurrence_freq"] | null
           id?: string | null
           interval_value?: number | null
           is_active?: boolean | null
@@ -11785,7 +7545,7 @@ export type Database = {
           day_of_month?: number | null
           day_of_week?: number | null
           end_date?: string | null
-          frequency?: "daily" | "weekly" | "monthly" | "yearly" | null
+          frequency?: Database["zapp"]["Enums"]["bpm_recurrence_freq"] | null
           id?: string | null
           interval_value?: number | null
           is_active?: boolean | null
@@ -11911,7 +7671,7 @@ export type Database = {
           priority: number | null
           recurrence_config: Json | null
           search_vector: unknown
-          status: "active" | "archived" | "completed" | "cancelled" | null
+          status: Database["zapp"]["Enums"]["bpm_card_status"] | null
           title: string | null
           updated_at: string | null
           workspace_id: string | null
@@ -11932,7 +7692,7 @@ export type Database = {
           priority?: number | null
           recurrence_config?: Json | null
           search_vector?: unknown
-          status?: "active" | "archived" | "completed" | "cancelled" | null
+          status?: Database["zapp"]["Enums"]["bpm_card_status"] | null
           title?: string | null
           updated_at?: string | null
           workspace_id?: string | null
@@ -11953,7 +7713,7 @@ export type Database = {
           priority?: number | null
           recurrence_config?: Json | null
           search_vector?: unknown
-          status?: "active" | "archived" | "completed" | "cancelled" | null
+          status?: Database["zapp"]["Enums"]["bpm_card_status"] | null
           title?: string | null
           updated_at?: string | null
           workspace_id?: string | null
@@ -12211,13 +7971,7 @@ export type Database = {
           color: string | null
           created_at: string | null
           created_by: string | null
-          default_view:
-            | "kanban"
-            | "list"
-            | "calendar"
-            | "timeline"
-            | "gantt"
-            | null
+          default_view: Database["zapp"]["Enums"]["bpm_view_type"] | null
           deleted_at: string | null
           description: string | null
           icon: string | null
@@ -12232,13 +7986,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           created_by?: string | null
-          default_view?:
-            | "kanban"
-            | "list"
-            | "calendar"
-            | "timeline"
-            | "gantt"
-            | null
+          default_view?: Database["zapp"]["Enums"]["bpm_view_type"] | null
           deleted_at?: string | null
           description?: string | null
           icon?: string | null
@@ -12253,13 +8001,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           created_by?: string | null
-          default_view?:
-            | "kanban"
-            | "list"
-            | "calendar"
-            | "timeline"
-            | "gantt"
-            | null
+          default_view?: Database["zapp"]["Enums"]["bpm_view_type"] | null
           deleted_at?: string | null
           description?: string | null
           icon?: string | null
@@ -12282,33 +8024,7 @@ export type Database = {
           deleted_at: string | null
           field_hash: string | null
           field_order: number | null
-          field_type:
-            | "TEXT_SHORT_FIELD"
-            | "TEXT_LONG_FIELD"
-            | "COMBO_BOX_FIELD"
-            | "DATE_PICKER_FIELD"
-            | "RADIO_BOX_FIELD"
-            | "CHECK_BOX_FIELD"
-            | "COMBO_BOX_USER_FIELD"
-            | "COMBO_BOX_REGISTER_FIELD"
-            | "COMBO_BOX_FLOW_FIELD"
-            | "CURRENCY_FIELD"
-            | "DUE_DATE_FIELD"
-            | "MAIL_FIELD"
-            | "PHONE_FIELD"
-            | "SWITCH_FIELD"
-            | "INPUT_LIST_FIELD"
-            | "NUMBER_FIELD"
-            | "DOC_FIELD"
-            | "INPUT_RICH_TEXT_FIELD"
-            | "LINK_FIELD"
-            | "FILE_FIELD"
-            | "RATING_FIELD"
-            | "COLOR_FIELD"
-            | "LOCATION_FIELD"
-            | "FORMULA_FIELD"
-            | "RELATION_FIELD"
-            | null
+          field_type: Database["zapp"]["Enums"]["bpm_field_type"] | null
           form_id: string | null
           help_text: string | null
           id: string | null
@@ -12328,33 +8044,7 @@ export type Database = {
           deleted_at?: string | null
           field_hash?: string | null
           field_order?: number | null
-          field_type?:
-            | "TEXT_SHORT_FIELD"
-            | "TEXT_LONG_FIELD"
-            | "COMBO_BOX_FIELD"
-            | "DATE_PICKER_FIELD"
-            | "RADIO_BOX_FIELD"
-            | "CHECK_BOX_FIELD"
-            | "COMBO_BOX_USER_FIELD"
-            | "COMBO_BOX_REGISTER_FIELD"
-            | "COMBO_BOX_FLOW_FIELD"
-            | "CURRENCY_FIELD"
-            | "DUE_DATE_FIELD"
-            | "MAIL_FIELD"
-            | "PHONE_FIELD"
-            | "SWITCH_FIELD"
-            | "INPUT_LIST_FIELD"
-            | "NUMBER_FIELD"
-            | "DOC_FIELD"
-            | "INPUT_RICH_TEXT_FIELD"
-            | "LINK_FIELD"
-            | "FILE_FIELD"
-            | "RATING_FIELD"
-            | "COLOR_FIELD"
-            | "LOCATION_FIELD"
-            | "FORMULA_FIELD"
-            | "RELATION_FIELD"
-            | null
+          field_type?: Database["zapp"]["Enums"]["bpm_field_type"] | null
           form_id?: string | null
           help_text?: string | null
           id?: string | null
@@ -12374,33 +8064,7 @@ export type Database = {
           deleted_at?: string | null
           field_hash?: string | null
           field_order?: number | null
-          field_type?:
-            | "TEXT_SHORT_FIELD"
-            | "TEXT_LONG_FIELD"
-            | "COMBO_BOX_FIELD"
-            | "DATE_PICKER_FIELD"
-            | "RADIO_BOX_FIELD"
-            | "CHECK_BOX_FIELD"
-            | "COMBO_BOX_USER_FIELD"
-            | "COMBO_BOX_REGISTER_FIELD"
-            | "COMBO_BOX_FLOW_FIELD"
-            | "CURRENCY_FIELD"
-            | "DUE_DATE_FIELD"
-            | "MAIL_FIELD"
-            | "PHONE_FIELD"
-            | "SWITCH_FIELD"
-            | "INPUT_LIST_FIELD"
-            | "NUMBER_FIELD"
-            | "DOC_FIELD"
-            | "INPUT_RICH_TEXT_FIELD"
-            | "LINK_FIELD"
-            | "FILE_FIELD"
-            | "RATING_FIELD"
-            | "COLOR_FIELD"
-            | "LOCATION_FIELD"
-            | "FORMULA_FIELD"
-            | "RELATION_FIELD"
-            | null
+          field_type?: Database["zapp"]["Enums"]["bpm_field_type"] | null
           form_id?: string | null
           help_text?: string | null
           id?: string | null
@@ -12666,33 +8330,7 @@ export type Database = {
           deleted_at: string | null
           field_hash: string | null
           field_order: number | null
-          field_type:
-            | "TEXT_SHORT_FIELD"
-            | "TEXT_LONG_FIELD"
-            | "COMBO_BOX_FIELD"
-            | "DATE_PICKER_FIELD"
-            | "RADIO_BOX_FIELD"
-            | "CHECK_BOX_FIELD"
-            | "COMBO_BOX_USER_FIELD"
-            | "COMBO_BOX_REGISTER_FIELD"
-            | "COMBO_BOX_FLOW_FIELD"
-            | "CURRENCY_FIELD"
-            | "DUE_DATE_FIELD"
-            | "MAIL_FIELD"
-            | "PHONE_FIELD"
-            | "SWITCH_FIELD"
-            | "INPUT_LIST_FIELD"
-            | "NUMBER_FIELD"
-            | "DOC_FIELD"
-            | "INPUT_RICH_TEXT_FIELD"
-            | "LINK_FIELD"
-            | "FILE_FIELD"
-            | "RATING_FIELD"
-            | "COLOR_FIELD"
-            | "LOCATION_FIELD"
-            | "FORMULA_FIELD"
-            | "RELATION_FIELD"
-            | null
+          field_type: Database["zapp"]["Enums"]["bpm_field_type"] | null
           id: string | null
           is_required: boolean | null
           label: string | null
@@ -12705,33 +8343,7 @@ export type Database = {
           deleted_at?: string | null
           field_hash?: string | null
           field_order?: number | null
-          field_type?:
-            | "TEXT_SHORT_FIELD"
-            | "TEXT_LONG_FIELD"
-            | "COMBO_BOX_FIELD"
-            | "DATE_PICKER_FIELD"
-            | "RADIO_BOX_FIELD"
-            | "CHECK_BOX_FIELD"
-            | "COMBO_BOX_USER_FIELD"
-            | "COMBO_BOX_REGISTER_FIELD"
-            | "COMBO_BOX_FLOW_FIELD"
-            | "CURRENCY_FIELD"
-            | "DUE_DATE_FIELD"
-            | "MAIL_FIELD"
-            | "PHONE_FIELD"
-            | "SWITCH_FIELD"
-            | "INPUT_LIST_FIELD"
-            | "NUMBER_FIELD"
-            | "DOC_FIELD"
-            | "INPUT_RICH_TEXT_FIELD"
-            | "LINK_FIELD"
-            | "FILE_FIELD"
-            | "RATING_FIELD"
-            | "COLOR_FIELD"
-            | "LOCATION_FIELD"
-            | "FORMULA_FIELD"
-            | "RELATION_FIELD"
-            | null
+          field_type?: Database["zapp"]["Enums"]["bpm_field_type"] | null
           id?: string | null
           is_required?: boolean | null
           label?: string | null
@@ -12744,33 +8356,7 @@ export type Database = {
           deleted_at?: string | null
           field_hash?: string | null
           field_order?: number | null
-          field_type?:
-            | "TEXT_SHORT_FIELD"
-            | "TEXT_LONG_FIELD"
-            | "COMBO_BOX_FIELD"
-            | "DATE_PICKER_FIELD"
-            | "RADIO_BOX_FIELD"
-            | "CHECK_BOX_FIELD"
-            | "COMBO_BOX_USER_FIELD"
-            | "COMBO_BOX_REGISTER_FIELD"
-            | "COMBO_BOX_FLOW_FIELD"
-            | "CURRENCY_FIELD"
-            | "DUE_DATE_FIELD"
-            | "MAIL_FIELD"
-            | "PHONE_FIELD"
-            | "SWITCH_FIELD"
-            | "INPUT_LIST_FIELD"
-            | "NUMBER_FIELD"
-            | "DOC_FIELD"
-            | "INPUT_RICH_TEXT_FIELD"
-            | "LINK_FIELD"
-            | "FILE_FIELD"
-            | "RATING_FIELD"
-            | "COLOR_FIELD"
-            | "LOCATION_FIELD"
-            | "FORMULA_FIELD"
-            | "RELATION_FIELD"
-            | null
+          field_type?: Database["zapp"]["Enums"]["bpm_field_type"] | null
           id?: string | null
           is_required?: boolean | null
           label?: string | null
@@ -12895,13 +8481,7 @@ export type Database = {
           row_height: string | null
           sort_config: Json | null
           updated_at: string | null
-          view_type:
-            | "kanban"
-            | "list"
-            | "calendar"
-            | "timeline"
-            | "gantt"
-            | null
+          view_type: Database["zapp"]["Enums"]["bpm_view_type"] | null
           visible_columns: Json | null
         }
         Insert: {
@@ -12920,13 +8500,7 @@ export type Database = {
           row_height?: string | null
           sort_config?: Json | null
           updated_at?: string | null
-          view_type?:
-            | "kanban"
-            | "list"
-            | "calendar"
-            | "timeline"
-            | "gantt"
-            | null
+          view_type?: Database["zapp"]["Enums"]["bpm_view_type"] | null
           visible_columns?: Json | null
         }
         Update: {
@@ -12945,13 +8519,7 @@ export type Database = {
           row_height?: string | null
           sort_config?: Json | null
           updated_at?: string | null
-          view_type?:
-            | "kanban"
-            | "list"
-            | "calendar"
-            | "timeline"
-            | "gantt"
-            | null
+          view_type?: Database["zapp"]["Enums"]["bpm_view_type"] | null
           visible_columns?: Json | null
         }
         Relationships: []
@@ -13140,7 +8708,29 @@ export type Database = {
           status?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "calls_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calls_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calls_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campaign_ab_variants: {
         Row: {
@@ -13182,7 +8772,15 @@ export type Database = {
           send_count?: number | null
           variant_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campaign_ab_variants_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campaign_contacts: {
         Row: {
@@ -13215,7 +8813,29 @@ export type Database = {
           sent_at?: string | null
           status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campaign_contacts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campaigns: {
         Row: {
@@ -13290,7 +8910,36 @@ export type Database = {
           updated_at?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "campaigns_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "campaigns_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "zapp_whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       channel_connections: {
         Row: {
@@ -13341,7 +8990,36 @@ export type Database = {
           webhook_url?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "zapp_whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       channel_connections_safe: {
         Row: {
@@ -13383,7 +9061,36 @@ export type Database = {
           webhook_url?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_connections_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "zapp_whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       channel_provider_routes: {
         Row: {
@@ -13422,7 +9129,71 @@ export type Database = {
           updated_at?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "channel_provider_routes_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_provider_routes_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_provider_routes_current_provider_id_fkey"
+            columns: ["current_provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_provider_routes_fallback_provider_id_fkey"
+            columns: ["fallback_provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_provider_routes_primary_provider_id_fkey"
+            columns: ["primary_provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_provider_routes_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "channel_provider_routes_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "channel_provider_routes_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_provider_routes_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "zapp_whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       channel_queues: {
         Row: {
@@ -13491,7 +9262,29 @@ export type Database = {
           priority?: number | null
           queue_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "channel_routing_rules_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_routing_rules_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_routing_rules_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "queues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chatbot_executions: {
         Row: {
@@ -13530,7 +9323,29 @@ export type Database = {
           status?: string | null
           variables?: Json | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chatbot_executions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chatbot_executions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chatbot_executions_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "chatbot_flows"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chatbot_flows: {
         Row: {
@@ -13584,7 +9399,36 @@ export type Database = {
           variables?: Json | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chatbot_flows_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "chatbot_flows_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "chatbot_flows_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chatbot_flows_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "zapp_whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chunks: {
         Row: {
@@ -13665,7 +9509,15 @@ export type Database = {
           priority?: number | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "client_wallet_rules_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       colaboradores: {
         Row: {
@@ -13935,7 +9787,36 @@ export type Database = {
           response_time_ms?: number | null
           status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "connection_health_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "connection_health_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "connection_health_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connection_health_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "zapp_whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_assignments: {
         Row: {
@@ -14040,7 +9921,22 @@ export type Database = {
           id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contact_custom_fields_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_custom_fields_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_export_log: {
         Row: {
@@ -14124,7 +10020,22 @@ export type Database = {
           total_messages: number | null
           updated_at: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ci_contact_id_fk"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ci_contact_id_fk"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_notes: {
         Row: {
@@ -14133,6 +10044,8 @@ export type Database = {
           content: string | null
           created_at: string | null
           id: string | null
+          is_pinned: boolean | null
+          note_type: string | null
           updated_at: string | null
         }
         Insert: {
@@ -14141,6 +10054,8 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           id?: string | null
+          is_pinned?: boolean | null
+          note_type?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -14149,9 +10064,33 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           id?: string | null
+          is_pinned?: boolean | null
+          note_type?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contact_notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_phones: {
         Row: {
@@ -14196,7 +10135,22 @@ export type Database = {
           phone_raw?: string | null
           verified_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contact_phones_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_phones_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_purchases: {
         Row: {
@@ -14244,7 +10198,29 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contact_purchases_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_purchases_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_purchases_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "sales_deals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_segments: {
         Row: {
@@ -14304,7 +10280,29 @@ export type Database = {
           id?: string | null
           tag_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contact_tags_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_tags_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contacts: {
         Row: {
@@ -14553,7 +10551,29 @@ export type Database = {
           topics?: string[] | null
           urgency?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_analyses_analyzed_by_fkey"
+            columns: ["analyzed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_analyses_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_analyses_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_audit_logs: {
         Row: {
@@ -14604,7 +10624,15 @@ export type Database = {
           source?: string | null
           user_agent?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_audit_logs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_pins"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_closures: {
         Row: {
@@ -14637,7 +10665,29 @@ export type Database = {
           notes?: string | null
           outcome?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_closures_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_closures_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_closures_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_events: {
         Row: {
@@ -14688,7 +10738,57 @@ export type Database = {
           to_queue_id?: string | null
           trace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_events_from_agent_id_fkey"
+            columns: ["from_agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_events_from_queue_id_fkey"
+            columns: ["from_queue_id"]
+            isOneToOne: false
+            referencedRelation: "queues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_events_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_events_to_agent_id_fkey"
+            columns: ["to_agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_events_to_queue_id_fkey"
+            columns: ["to_queue_id"]
+            isOneToOne: false
+            referencedRelation: "queues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_memory: {
         Row: {
@@ -14730,7 +10830,29 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_memory_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_memory_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_memory_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_pins: {
         Row: {
@@ -14793,7 +10915,29 @@ export type Database = {
           sla_configuration_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_sla_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_sla_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_sla_sla_configuration_id_fkey"
+            columns: ["sla_configuration_id"]
+            isOneToOne: false
+            referencedRelation: "sla_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_snoozes: {
         Row: {
@@ -14820,7 +10964,29 @@ export type Database = {
           snooze_until?: string | null
           snoozed_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_snoozes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_snoozes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_snoozes_snoozed_by_fkey"
+            columns: ["snoozed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_summaries: {
         Row: {
@@ -14892,7 +11058,29 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_tasks_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_tasks_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_threads: {
         Row: {
@@ -15057,7 +11245,22 @@ export type Database = {
           transfer_type?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversation_transfers_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_transfers_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cookies_config: {
         Row: {
@@ -15348,7 +11551,15 @@ export type Database = {
           severity?: string | null
           threshold?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "crisis_room_alerts_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cron_schedule_executions: {
         Row: {
@@ -15453,7 +11664,43 @@ export type Database = {
           updated_by?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "csat_auto_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csat_auto_config_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "csat_auto_config_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "csat_auto_config_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csat_auto_config_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "zapp_whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       csat_responses: {
         Row: {
@@ -15519,7 +11766,29 @@ export type Database = {
           id?: string | null
           rating?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "csat_surveys_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csat_surveys_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csat_surveys_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       custom_emojis: {
         Row: {
@@ -15642,7 +11911,22 @@ export type Database = {
           id?: string | null
           performed_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "deal_activities_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "sales_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_activities_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       department_invitations: {
         Row: {
@@ -15693,7 +11977,22 @@ export type Database = {
           used_at?: string | null
           used_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "department_invitations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_invitations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       departments: {
         Row: {
@@ -16247,6 +12546,577 @@ export type Database = {
         }
         Relationships: []
       }
+      evo_ack_loss_candidates: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          event_type: string | null
+          failure_category: string | null
+          id: string | null
+          instance_name: string | null
+          likely_lost: boolean | null
+          queue_name: string | null
+          remote_jid: string | null
+          retry_count: number | null
+          retry_exhausted: boolean | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          failure_category?: never
+          id?: string | null
+          instance_name?: string | null
+          likely_lost?: never
+          queue_name?: string | null
+          remote_jid?: string | null
+          retry_count?: number | null
+          retry_exhausted?: never
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          failure_category?: never
+          id?: string | null
+          instance_name?: string | null
+          likely_lost?: never
+          queue_name?: string | null
+          remote_jid?: string | null
+          retry_count?: number | null
+          retry_exhausted?: never
+          status?: string | null
+        }
+        Relationships: []
+      }
+      evo_bootstrap_coverage_monitor: {
+        Row: {
+          bootstrap_invalid_count: number | null
+          checked_at: string | null
+          coverage_pct: number | null
+          covered_count: number | null
+          high_map_count: number | null
+          lid_contacts_total: number | null
+          organic_phonejid_events: number | null
+          phase: string | null
+          potential_if_all_matched_pct: number | null
+          upgrade_readiness: string | null
+        }
+        Relationships: []
+      }
+      evo_bootstrap_log: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          instance_id: string | null
+          instance_name: string | null
+          notes: string | null
+          rabbitmq_events_count: number | null
+          settings_applied: Json | null
+          status: string | null
+          triggered_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          instance_id?: string | null
+          instance_name?: string | null
+          notes?: string | null
+          rabbitmq_events_count?: number | null
+          settings_applied?: Json | null
+          status?: string | null
+          triggered_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          instance_id?: string | null
+          instance_name?: string | null
+          notes?: string | null
+          rabbitmq_events_count?: number | null
+          settings_applied?: Json | null
+          status?: string | null
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
+      evo_connection_history: {
+        Row: {
+          created_at: string | null
+          duration_seconds: number | null
+          id: string | null
+          instance_name: string | null
+          metadata: Json | null
+          previous_state: string | null
+          state: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string | null
+          instance_name?: string | null
+          metadata?: Json | null
+          previous_state?: string | null
+          state?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string | null
+          instance_name?: string | null
+          metadata?: Json | null
+          previous_state?: string | null
+          state?: string | null
+        }
+        Relationships: []
+      }
+      evo_contact_identity: {
+        Row: {
+          confidence: string | null
+          first_seen: string | null
+          id: string | null
+          instance_name: string | null
+          last_seen: string | null
+          lid_jid: string | null
+          phone_number: string | null
+          pn_jid: string | null
+          raw_signal: Json | null
+          source: string | null
+        }
+        Insert: {
+          confidence?: string | null
+          first_seen?: string | null
+          id?: string | null
+          instance_name?: string | null
+          last_seen?: string | null
+          lid_jid?: string | null
+          phone_number?: string | null
+          pn_jid?: string | null
+          raw_signal?: Json | null
+          source?: string | null
+        }
+        Update: {
+          confidence?: string | null
+          first_seen?: string | null
+          id?: string | null
+          instance_name?: string | null
+          last_seen?: string | null
+          lid_jid?: string | null
+          phone_number?: string | null
+          pn_jid?: string | null
+          raw_signal?: Json | null
+          source?: string | null
+        }
+        Relationships: []
+      }
+      evo_ghost_conversations: {
+        Row: {
+          conversation_id: string | null
+          created_at: string | null
+          instance_name: string | null
+          last_message_at: string | null
+          msgs_recebidas: number | null
+          msgs_sem_contato: number | null
+          phone_candidate: string | null
+          remote_jid: string | null
+          unread_count: number | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string | null
+          instance_name?: string | null
+          last_message_at?: string | null
+          msgs_recebidas?: never
+          msgs_sem_contato?: never
+          phone_candidate?: never
+          remote_jid?: string | null
+          unread_count?: number | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string | null
+          instance_name?: string | null
+          last_message_at?: string | null
+          msgs_recebidas?: never
+          msgs_sem_contato?: never
+          phone_candidate?: never
+          remote_jid?: string | null
+          unread_count?: number | null
+        }
+        Relationships: []
+      }
+      evo_guardian_heartbeat: {
+        Row: {
+          cycles_since_last: number | null
+          details: Json | null
+          heartbeat_at: string | null
+          id: string | null
+          service_name: string | null
+        }
+        Insert: {
+          cycles_since_last?: number | null
+          details?: Json | null
+          heartbeat_at?: string | null
+          id?: string | null
+          service_name?: string | null
+        }
+        Update: {
+          cycles_since_last?: number | null
+          details?: Json | null
+          heartbeat_at?: string | null
+          id?: string | null
+          service_name?: string | null
+        }
+        Relationships: []
+      }
+      evo_lid_health_scorecard: {
+        Row: {
+          checked_at: string | null
+          contact_identity_lid: number | null
+          contact_identity_pn: number | null
+          contact_identity_total: number | null
+          contacts_lid_phone_contaminated: number | null
+          contacts_real_phone: number | null
+          contacts_sync_count: number | null
+          contacts_with_phonejid: number | null
+          converged_48h: number | null
+          coverage_goal_met: boolean | null
+          delta_last_hour: number | null
+          fake_jid_trend: string | null
+          fake_jids_canary: number | null
+          fake_jids_historical: number | null
+          lid_contacts: number | null
+          lid_contacts_wpp2: number | null
+          lid_coverage_pct: number | null
+          lid_health_score: number | null
+          lid_status: string | null
+          map_invalid: number | null
+          map_real_entries: number | null
+          phonejid_signal: boolean | null
+          usync_count: number | null
+        }
+        Relationships: []
+      }
+      evo_lid_phone_map: {
+        Row: {
+          confidence: string | null
+          created_at: string | null
+          instance_name: string | null
+          lid_jid: string | null
+          phone_jid: string | null
+          phone_number: string | null
+          raw_signal: Json | null
+          source: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          confidence?: string | null
+          created_at?: string | null
+          instance_name?: string | null
+          lid_jid?: string | null
+          phone_jid?: string | null
+          phone_number?: string | null
+          raw_signal?: Json | null
+          source?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          confidence?: string | null
+          created_at?: string | null
+          instance_name?: string | null
+          lid_jid?: string | null
+          phone_jid?: string | null
+          phone_number?: string | null
+          raw_signal?: Json | null
+          source?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      evo_media_download_queue: {
+        Row: {
+          created_at: string | null
+          direct_path: string | null
+          download_url: string | null
+          error_message: string | null
+          file_length: number | null
+          id: number | null
+          instance_name: string | null
+          jitter_ms: number | null
+          locked_at: string | null
+          max_retries: number | null
+          media_key: string | null
+          media_status_target: string | null
+          media_type: string | null
+          message_id: string | null
+          message_uuid: string | null
+          mimetype: string | null
+          next_retry_at: string | null
+          priority: number | null
+          processed_at: string | null
+          remote_jid: string | null
+          retry_count: number | null
+          scan_result: string | null
+          scan_status: string | null
+          scanned_at: string | null
+          status: string | null
+          storage_path: string | null
+          worker_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          direct_path?: string | null
+          download_url?: string | null
+          error_message?: string | null
+          file_length?: number | null
+          id?: number | null
+          instance_name?: string | null
+          jitter_ms?: number | null
+          locked_at?: string | null
+          max_retries?: number | null
+          media_key?: string | null
+          media_status_target?: string | null
+          media_type?: string | null
+          message_id?: string | null
+          message_uuid?: string | null
+          mimetype?: string | null
+          next_retry_at?: string | null
+          priority?: number | null
+          processed_at?: string | null
+          remote_jid?: string | null
+          retry_count?: number | null
+          scan_result?: string | null
+          scan_status?: string | null
+          scanned_at?: string | null
+          status?: string | null
+          storage_path?: string | null
+          worker_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          direct_path?: string | null
+          download_url?: string | null
+          error_message?: string | null
+          file_length?: number | null
+          id?: number | null
+          instance_name?: string | null
+          jitter_ms?: number | null
+          locked_at?: string | null
+          max_retries?: number | null
+          media_key?: string | null
+          media_status_target?: string | null
+          media_type?: string | null
+          message_id?: string | null
+          message_uuid?: string | null
+          mimetype?: string | null
+          next_retry_at?: string | null
+          priority?: number | null
+          processed_at?: string | null
+          remote_jid?: string | null
+          retry_count?: number | null
+          scan_result?: string | null
+          scan_status?: string | null
+          scanned_at?: string | null
+          status?: string | null
+          storage_path?: string | null
+          worker_id?: string | null
+        }
+        Relationships: []
+      }
+      evo_pipeline_health_log: {
+        Row: {
+          alerts_critical_open: number | null
+          alerts_unresolved: number | null
+          baileys_health: string | null
+          baileys_severity: number | null
+          checked_at: string | null
+          consumer_filas: string | null
+          consumer_ok_count: number | null
+          created_at: string | null
+          detail: string | null
+          evo_state: string | null
+          gap_inbound_min: number | null
+          id: string | null
+          instance_name: string | null
+          notes: string | null
+          pipeline_status:
+            | Database["public"]["Enums"]["evolution_pipeline_status"]
+            | null
+          probe_latency_ms: number | null
+          probe_status: string | null
+          queue_failed_24h: number | null
+          queue_pending_now: number | null
+          queue_sent_24h: number | null
+          snapshot: Json | null
+          unroutable_count: number | null
+          webhook_avg_ms: number | null
+          webhook_events_15min: number | null
+          webhook_events_1h: number | null
+          webhook_processed_pct: number | null
+        }
+        Insert: {
+          alerts_critical_open?: number | null
+          alerts_unresolved?: number | null
+          baileys_health?: string | null
+          baileys_severity?: number | null
+          checked_at?: string | null
+          consumer_filas?: string | null
+          consumer_ok_count?: number | null
+          created_at?: string | null
+          detail?: string | null
+          evo_state?: string | null
+          gap_inbound_min?: number | null
+          id?: string | null
+          instance_name?: string | null
+          notes?: string | null
+          pipeline_status?:
+            | Database["public"]["Enums"]["evolution_pipeline_status"]
+            | null
+          probe_latency_ms?: number | null
+          probe_status?: string | null
+          queue_failed_24h?: number | null
+          queue_pending_now?: number | null
+          queue_sent_24h?: number | null
+          snapshot?: Json | null
+          unroutable_count?: number | null
+          webhook_avg_ms?: number | null
+          webhook_events_15min?: number | null
+          webhook_events_1h?: number | null
+          webhook_processed_pct?: number | null
+        }
+        Update: {
+          alerts_critical_open?: number | null
+          alerts_unresolved?: number | null
+          baileys_health?: string | null
+          baileys_severity?: number | null
+          checked_at?: string | null
+          consumer_filas?: string | null
+          consumer_ok_count?: number | null
+          created_at?: string | null
+          detail?: string | null
+          evo_state?: string | null
+          gap_inbound_min?: number | null
+          id?: string | null
+          instance_name?: string | null
+          notes?: string | null
+          pipeline_status?:
+            | Database["public"]["Enums"]["evolution_pipeline_status"]
+            | null
+          probe_latency_ms?: number | null
+          probe_status?: string | null
+          queue_failed_24h?: number | null
+          queue_pending_now?: number | null
+          queue_sent_24h?: number | null
+          snapshot?: Json | null
+          unroutable_count?: number | null
+          webhook_avg_ms?: number | null
+          webhook_events_15min?: number | null
+          webhook_events_1h?: number | null
+          webhook_processed_pct?: number | null
+        }
+        Relationships: []
+      }
+      evo_traefik_401_stats: {
+        Row: {
+          client_host: string | null
+          collected_at: string | null
+          count: number | null
+          host: string | null
+          id: number | null
+          path: string | null
+          status: number | null
+        }
+        Insert: {
+          client_host?: string | null
+          collected_at?: string | null
+          count?: number | null
+          host?: string | null
+          id?: number | null
+          path?: string | null
+          status?: number | null
+        }
+        Update: {
+          client_host?: string | null
+          collected_at?: string | null
+          count?: number | null
+          host?: string | null
+          id?: number | null
+          path?: string | null
+          status?: number | null
+        }
+        Relationships: []
+      }
+      evo_webhook_events_recent: {
+        Row: {
+          created_at: string | null
+          processed: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          processed?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          processed?: boolean | null
+        }
+        Relationships: []
+      }
+      evo_webhook_events_v2: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          event_type: string | null
+          from_me: boolean | null
+          id: string | null
+          instance_name: string | null
+          message_type: string | null
+          payload: Json | null
+          processed: boolean | null
+          processed_at: string | null
+          push_name: string | null
+          remote_jid: string | null
+          retry_count: number | null
+          source: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          from_me?: boolean | null
+          id?: string | null
+          instance_name?: string | null
+          message_type?: string | null
+          payload?: Json | null
+          processed?: boolean | null
+          processed_at?: string | null
+          push_name?: string | null
+          remote_jid?: string | null
+          retry_count?: number | null
+          source?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          from_me?: boolean | null
+          id?: string | null
+          instance_name?: string | null
+          message_type?: string | null
+          payload?: Json | null
+          processed?: boolean | null
+          processed_at?: string | null
+          push_name?: string | null
+          remote_jid?: string | null
+          retry_count?: number | null
+          source?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       evolution_alert_cooldown: {
         Row: {
           alert_key: string | null
@@ -16701,7 +13571,22 @@ export type Database = {
           remote_jid?: string | null
           started_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_calls_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_calls_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_chatbot_responses: {
         Row: {
@@ -16810,8 +13695,11 @@ export type Database = {
           full_name: string | null
           id: string | null
           instance_name: string | null
+          is_on_whatsapp: boolean | null
           last_message_at: string | null
           last_name: string | null
+          last_presence_at: string | null
+          last_seen_at: string | null
           lead_score: number | null
           lead_source: string | null
           lead_status: string | null
@@ -16829,6 +13717,7 @@ export type Database = {
           notes: string | null
           phone_number: string | null
           pii_masked_at: string | null
+          presence_status: string | null
           profile_picture_url: string | null
           push_name: string | null
           queue_id: string | null
@@ -16841,6 +13730,7 @@ export type Database = {
           total_purchases: number | null
           updated_at: string | null
           version: number | null
+          whatsapp_checked_at: string | null
           whatsapp_labels: string[] | null
         }
         Insert: {
@@ -16856,8 +13746,11 @@ export type Database = {
           full_name?: string | null
           id?: string | null
           instance_name?: string | null
+          is_on_whatsapp?: boolean | null
           last_message_at?: string | null
           last_name?: string | null
+          last_presence_at?: string | null
+          last_seen_at?: string | null
           lead_score?: number | null
           lead_source?: string | null
           lead_status?: string | null
@@ -16875,6 +13768,7 @@ export type Database = {
           notes?: string | null
           phone_number?: string | null
           pii_masked_at?: string | null
+          presence_status?: string | null
           profile_picture_url?: string | null
           push_name?: string | null
           queue_id?: string | null
@@ -16887,6 +13781,7 @@ export type Database = {
           total_purchases?: number | null
           updated_at?: string | null
           version?: number | null
+          whatsapp_checked_at?: string | null
           whatsapp_labels?: string[] | null
         }
         Update: {
@@ -16902,8 +13797,11 @@ export type Database = {
           full_name?: string | null
           id?: string | null
           instance_name?: string | null
+          is_on_whatsapp?: boolean | null
           last_message_at?: string | null
           last_name?: string | null
+          last_presence_at?: string | null
+          last_seen_at?: string | null
           lead_score?: number | null
           lead_source?: string | null
           lead_status?: string | null
@@ -16921,6 +13819,7 @@ export type Database = {
           notes?: string | null
           phone_number?: string | null
           pii_masked_at?: string | null
+          presence_status?: string | null
           profile_picture_url?: string | null
           push_name?: string | null
           queue_id?: string | null
@@ -16933,6 +13832,7 @@ export type Database = {
           total_purchases?: number | null
           updated_at?: string | null
           version?: number | null
+          whatsapp_checked_at?: string | null
           whatsapp_labels?: string[] | null
         }
         Relationships: []
@@ -17031,7 +13931,22 @@ export type Database = {
           unread_count?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_conversations_compras: {
         Row: {
@@ -17784,7 +14699,22 @@ export type Database = {
           weighted_value?: number | null
           won?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_deals_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_deals_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_fallback_events: {
         Row: {
@@ -17937,7 +14867,22 @@ export type Database = {
           template_id?: string | null
           triggered_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_followups_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_followups_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_group_messages: {
         Row: {
@@ -17993,6 +14938,7 @@ export type Database = {
           joined_at: string | null
           left_at: string | null
           participant_jid: string | null
+          phone_jid: string | null
           role: string | null
         }
         Insert: {
@@ -18003,6 +14949,7 @@ export type Database = {
           joined_at?: string | null
           left_at?: string | null
           participant_jid?: string | null
+          phone_jid?: string | null
           role?: string | null
         }
         Update: {
@@ -18013,6 +14960,7 @@ export type Database = {
           joined_at?: string | null
           left_at?: string | null
           participant_jid?: string | null
+          phone_jid?: string | null
           role?: string | null
         }
         Relationships: []
@@ -18053,6 +15001,45 @@ export type Database = {
           last_executed_at?: string | null
           rule_type?: string | null
           trigger_value?: string | null
+        }
+        Relationships: []
+      }
+      evolution_groups: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          description: string | null
+          group_id: string | null
+          id: string | null
+          instance_name: string | null
+          name: string | null
+          participant_count: number | null
+          updated_at: string | null
+          whatsapp_connection_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          group_id?: string | null
+          id?: string | null
+          instance_name?: string | null
+          name?: string | null
+          participant_count?: number | null
+          updated_at?: string | null
+          whatsapp_connection_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          group_id?: string | null
+          id?: string | null
+          instance_name?: string | null
+          name?: string | null
+          participant_count?: number | null
+          updated_at?: string | null
+          whatsapp_connection_id?: string | null
         }
         Relationships: []
       }
@@ -18434,6 +15421,36 @@ export type Database = {
         }
         Relationships: []
       }
+      evolution_license_health_log: {
+        Row: {
+          alert_sent: boolean | null
+          checked_at: string | null
+          http_status: number | null
+          id: number | null
+          raw: Json | null
+          response_time_ms: number | null
+          status: string | null
+        }
+        Insert: {
+          alert_sent?: boolean | null
+          checked_at?: string | null
+          http_status?: number | null
+          id?: number | null
+          raw?: Json | null
+          response_time_ms?: number | null
+          status?: string | null
+        }
+        Update: {
+          alert_sent?: boolean | null
+          checked_at?: string | null
+          http_status?: number | null
+          id?: number | null
+          raw?: Json | null
+          response_time_ms?: number | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       evolution_logpatch_audit: {
         Row: {
           boot_at: string | null
@@ -18511,12 +15528,16 @@ export type Database = {
           file_size: number | null
           height: number | null
           id: string | null
+          instance_name: string | null
           is_animated: boolean | null
+          media_status: string | null
           media_type: string | null
           message_id: string | null
           mime_type: string | null
           remote_jid: string | null
+          storage_bucket: string | null
           storage_path: string | null
+          storage_path_clean: string | null
           storage_url: string | null
           thumbnail_base64: string | null
           width: number | null
@@ -18531,12 +15552,16 @@ export type Database = {
           file_size?: number | null
           height?: number | null
           id?: string | null
+          instance_name?: string | null
           is_animated?: boolean | null
+          media_status?: string | null
           media_type?: string | null
           message_id?: string | null
           mime_type?: string | null
           remote_jid?: string | null
+          storage_bucket?: string | null
           storage_path?: string | null
+          storage_path_clean?: string | null
           storage_url?: string | null
           thumbnail_base64?: string | null
           width?: number | null
@@ -18551,12 +15576,16 @@ export type Database = {
           file_size?: number | null
           height?: number | null
           id?: string | null
+          instance_name?: string | null
           is_animated?: boolean | null
+          media_status?: string | null
           media_type?: string | null
           message_id?: string | null
           mime_type?: string | null
           remote_jid?: string | null
+          storage_bucket?: string | null
           storage_path?: string | null
+          storage_path_clean?: string | null
           storage_url?: string | null
           thumbnail_base64?: string | null
           width?: number | null
@@ -18885,7 +15914,22 @@ export type Database = {
           transcription_status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_messages_default: {
         Row: {
@@ -18899,19 +15943,26 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
           id: string | null
+          ingest_meta: Json | null
           instance_name: string | null
           is_important: boolean | null
           is_read: boolean | null
           is_starred: boolean | null
           link_preview: Json | null
+          media_bucket: string | null
           media_filename: string | null
           media_meta: Json | null
           media_mimetype: string | null
+          media_path: string | null
+          media_sha256: string | null
           media_size: number | null
+          media_status: string | null
           media_type: string | null
           media_url: string | null
           message_id: string | null
@@ -18922,7 +15973,10 @@ export type Database = {
           quoted_message_id: string | null
           raw_data: Json | null
           remote_jid: string | null
+          remote_jid_original: string | null
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -18930,6 +15984,8 @@ export type Database = {
           sticker_id: string | null
           tags: string[] | null
           template_name: string | null
+          transcription: string | null
+          transcription_status: string | null
           updated_at: string | null
         }
         Insert: {
@@ -18943,19 +15999,26 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
           id?: string | null
+          ingest_meta?: Json | null
           instance_name?: string | null
           is_important?: boolean | null
           is_read?: boolean | null
           is_starred?: boolean | null
           link_preview?: Json | null
+          media_bucket?: string | null
           media_filename?: string | null
           media_meta?: Json | null
           media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
           media_size?: number | null
+          media_status?: string | null
           media_type?: string | null
           media_url?: string | null
           message_id?: string | null
@@ -18966,7 +16029,10 @@ export type Database = {
           quoted_message_id?: string | null
           raw_data?: Json | null
           remote_jid?: string | null
+          remote_jid_original?: string | null
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -18974,6 +16040,8 @@ export type Database = {
           sticker_id?: string | null
           tags?: string[] | null
           template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -18987,19 +16055,26 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
           id?: string | null
+          ingest_meta?: Json | null
           instance_name?: string | null
           is_important?: boolean | null
           is_read?: boolean | null
           is_starred?: boolean | null
           link_preview?: Json | null
+          media_bucket?: string | null
           media_filename?: string | null
           media_meta?: Json | null
           media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
           media_size?: number | null
+          media_status?: string | null
           media_type?: string | null
           media_url?: string | null
           message_id?: string | null
@@ -19010,7 +16085,10 @@ export type Database = {
           quoted_message_id?: string | null
           raw_data?: Json | null
           remote_jid?: string | null
+          remote_jid_original?: string | null
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -19018,6 +16096,8 @@ export type Database = {
           sticker_id?: string | null
           tags?: string[] | null
           template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -19034,19 +16114,26 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
           id: string | null
+          ingest_meta: Json | null
           instance_name: string | null
           is_important: boolean | null
           is_read: boolean | null
           is_starred: boolean | null
           link_preview: Json | null
+          media_bucket: string | null
           media_filename: string | null
           media_meta: Json | null
           media_mimetype: string | null
+          media_path: string | null
+          media_sha256: string | null
           media_size: number | null
+          media_status: string | null
           media_type: string | null
           media_url: string | null
           message_id: string | null
@@ -19057,7 +16144,10 @@ export type Database = {
           quoted_message_id: string | null
           raw_data: Json | null
           remote_jid: string | null
+          remote_jid_original: string | null
           reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -19065,6 +16155,8 @@ export type Database = {
           sticker_id: string | null
           tags: string[] | null
           template_name: string | null
+          transcription: string | null
+          transcription_status: string | null
           updated_at: string | null
         }
         Insert: {
@@ -19078,19 +16170,26 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
           id?: string | null
+          ingest_meta?: Json | null
           instance_name?: string | null
           is_important?: boolean | null
           is_read?: boolean | null
           is_starred?: boolean | null
           link_preview?: Json | null
+          media_bucket?: string | null
           media_filename?: string | null
           media_meta?: Json | null
           media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
           media_size?: number | null
+          media_status?: string | null
           media_type?: string | null
           media_url?: string | null
           message_id?: string | null
@@ -19101,7 +16200,10 @@ export type Database = {
           quoted_message_id?: string | null
           raw_data?: Json | null
           remote_jid?: string | null
+          remote_jid_original?: string | null
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -19109,6 +16211,8 @@ export type Database = {
           sticker_id?: string | null
           tags?: string[] | null
           template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -19122,19 +16226,26 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
           id?: string | null
+          ingest_meta?: Json | null
           instance_name?: string | null
           is_important?: boolean | null
           is_read?: boolean | null
           is_starred?: boolean | null
           link_preview?: Json | null
+          media_bucket?: string | null
           media_filename?: string | null
           media_meta?: Json | null
           media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
           media_size?: number | null
+          media_status?: string | null
           media_type?: string | null
           media_url?: string | null
           message_id?: string | null
@@ -19145,7 +16256,10 @@ export type Database = {
           quoted_message_id?: string | null
           raw_data?: Json | null
           remote_jid?: string | null
+          remote_jid_original?: string | null
           reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -19153,6 +16267,8 @@ export type Database = {
           sticker_id?: string | null
           tags?: string[] | null
           template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -19178,10 +16294,14 @@ export type Database = {
           is_read: boolean | null
           is_starred: boolean | null
           link_preview: Json | null
+          media_bucket: string | null
           media_filename: string | null
           media_meta: Json | null
           media_mimetype: string | null
+          media_path: string | null
+          media_sha256: string | null
           media_size: number | null
+          media_status: string | null
           media_type: string | null
           media_url: string | null
           message_id: string | null
@@ -19192,6 +16312,7 @@ export type Database = {
           quoted_message_id: string | null
           raw_data: Json | null
           remote_jid: string | null
+          reply_to_id: string | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -19199,6 +16320,8 @@ export type Database = {
           sticker_id: string | null
           tags: string[] | null
           template_name: string | null
+          transcription: string | null
+          transcription_status: string | null
           updated_at: string | null
         }
         Insert: {
@@ -19221,10 +16344,14 @@ export type Database = {
           is_read?: boolean | null
           is_starred?: boolean | null
           link_preview?: Json | null
+          media_bucket?: string | null
           media_filename?: string | null
           media_meta?: Json | null
           media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
           media_size?: number | null
+          media_status?: string | null
           media_type?: string | null
           media_url?: string | null
           message_id?: string | null
@@ -19235,6 +16362,7 @@ export type Database = {
           quoted_message_id?: string | null
           raw_data?: Json | null
           remote_jid?: string | null
+          reply_to_id?: string | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -19242,6 +16370,8 @@ export type Database = {
           sticker_id?: string | null
           tags?: string[] | null
           template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -19264,10 +16394,14 @@ export type Database = {
           is_read?: boolean | null
           is_starred?: boolean | null
           link_preview?: Json | null
+          media_bucket?: string | null
           media_filename?: string | null
           media_meta?: Json | null
           media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
           media_size?: number | null
+          media_status?: string | null
           media_type?: string | null
           media_url?: string | null
           message_id?: string | null
@@ -19278,6 +16412,7 @@ export type Database = {
           quoted_message_id?: string | null
           raw_data?: Json | null
           remote_jid?: string | null
+          reply_to_id?: string | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -19285,6 +16420,8 @@ export type Database = {
           sticker_id?: string | null
           tags?: string[] | null
           template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -19577,6 +16714,50 @@ export type Database = {
         }
         Relationships: []
       }
+      evolution_notification_outbox: {
+        Row: {
+          attempt_count: number | null
+          channel: string | null
+          created_at: string | null
+          id: number | null
+          last_attempt_at: string | null
+          last_error: string | null
+          notification_id: string | null
+          payload: Json | null
+          status: string | null
+        }
+        Insert: {
+          attempt_count?: number | null
+          channel?: string | null
+          created_at?: string | null
+          id?: number | null
+          last_attempt_at?: string | null
+          last_error?: string | null
+          notification_id?: string | null
+          payload?: Json | null
+          status?: string | null
+        }
+        Update: {
+          attempt_count?: number | null
+          channel?: string | null
+          created_at?: string | null
+          id?: number | null
+          last_attempt_at?: string | null
+          last_error?: string | null
+          notification_id?: string | null
+          payload?: Json | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evolution_notification_outbox_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       evolution_notifications: {
         Row: {
           alert_id: string | null
@@ -19629,7 +16810,22 @@ export type Database = {
           status?: string | null
           title?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_notifications_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_notifications_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_performance_metrics: {
         Row: {
@@ -19675,12 +16871,7 @@ export type Database = {
           instance_name: string | null
           notes: string | null
           pipeline_status:
-            | "healthy"
-            | "warning"
-            | "degraded_webhook"
-            | "degraded_sender"
-            | "critical_alerts"
-            | "critical"
+            | Database["public"]["Enums"]["evolution_pipeline_status"]
             | null
           probe_latency_ms: number | null
           probe_status: string | null
@@ -19710,12 +16901,7 @@ export type Database = {
           instance_name?: string | null
           notes?: string | null
           pipeline_status?:
-            | "healthy"
-            | "warning"
-            | "degraded_webhook"
-            | "degraded_sender"
-            | "critical_alerts"
-            | "critical"
+            | Database["public"]["Enums"]["evolution_pipeline_status"]
             | null
           probe_latency_ms?: number | null
           probe_status?: string | null
@@ -19745,12 +16931,7 @@ export type Database = {
           instance_name?: string | null
           notes?: string | null
           pipeline_status?:
-            | "healthy"
-            | "warning"
-            | "degraded_webhook"
-            | "degraded_sender"
-            | "critical_alerts"
-            | "critical"
+            | Database["public"]["Enums"]["evolution_pipeline_status"]
             | null
           probe_latency_ms?: number | null
           probe_status?: string | null
@@ -19832,36 +17013,66 @@ export type Database = {
       evolution_rabbit_consumer_stats: {
         Row: {
           collected_at: string | null
+          drop: number | null
           drop_by: Json | null
           drop_count: number | null
+          err: number | null
           filas_ok: string | null
           id: number | null
           instance: string | null
+          ok: number | null
           ok_count: number | null
+          pg_log_err: number | null
+          pg_log_ok: number | null
           replica: string | null
+          resub: number | null
+          retry: number | null
+          retry_by: Json | null
           retry_count: number | null
+          sentry_sent: number | null
+          shadow: number | null
         }
         Insert: {
           collected_at?: string | null
+          drop?: number | null
           drop_by?: Json | null
           drop_count?: number | null
+          err?: number | null
           filas_ok?: string | null
           id?: number | null
           instance?: string | null
+          ok?: number | null
           ok_count?: number | null
+          pg_log_err?: number | null
+          pg_log_ok?: number | null
           replica?: string | null
+          resub?: number | null
+          retry?: number | null
+          retry_by?: Json | null
           retry_count?: number | null
+          sentry_sent?: number | null
+          shadow?: number | null
         }
         Update: {
           collected_at?: string | null
+          drop?: number | null
           drop_by?: Json | null
           drop_count?: number | null
+          err?: number | null
           filas_ok?: string | null
           id?: number | null
           instance?: string | null
+          ok?: number | null
           ok_count?: number | null
+          pg_log_err?: number | null
+          pg_log_ok?: number | null
           replica?: string | null
+          resub?: number | null
+          retry?: number | null
+          retry_by?: Json | null
           retry_count?: number | null
+          sentry_sent?: number | null
+          shadow?: number | null
         }
         Relationships: []
       }
@@ -19946,6 +17157,42 @@ export type Database = {
           remote_jid?: string | null
           target_users?: string[] | null
           title?: string | null
+        }
+        Relationships: []
+      }
+      evolution_reconcile_health_log: {
+        Row: {
+          checked_at: string | null
+          gap_min: number | null
+          mir_contact: number | null
+          mir_msg: number | null
+          pct_contact: string | null
+          pct_msg: string | null
+          src_contact: number | null
+          src_msg: number | null
+          status: string | null
+        }
+        Insert: {
+          checked_at?: string | null
+          gap_min?: number | null
+          mir_contact?: number | null
+          mir_msg?: number | null
+          pct_contact?: string | null
+          pct_msg?: string | null
+          src_contact?: number | null
+          src_msg?: number | null
+          status?: string | null
+        }
+        Update: {
+          checked_at?: string | null
+          gap_min?: number | null
+          mir_contact?: number | null
+          mir_msg?: number | null
+          pct_contact?: string | null
+          pct_msg?: string | null
+          src_contact?: number | null
+          src_msg?: number | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -20193,7 +17440,9 @@ export type Database = {
           conversation_id: string | null
           created_at: string | null
           emotions: Json | null
+          external_message_id: string | null
           id: string | null
+          instance_name: string | null
           intent: string | null
           keywords: string[] | null
           message_id: string | null
@@ -20211,7 +17460,9 @@ export type Database = {
           conversation_id?: string | null
           created_at?: string | null
           emotions?: Json | null
+          external_message_id?: string | null
           id?: string | null
+          instance_name?: string | null
           intent?: string | null
           keywords?: string[] | null
           message_id?: string | null
@@ -20229,7 +17480,9 @@ export type Database = {
           conversation_id?: string | null
           created_at?: string | null
           emotions?: Json | null
+          external_message_id?: string | null
           id?: string | null
+          instance_name?: string | null
           intent?: string | null
           keywords?: string[] | null
           message_id?: string | null
@@ -20241,7 +17494,22 @@ export type Database = {
           sentiment_score?: number | null
           urgency?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_sentiment_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_sentiment_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_settings: {
         Row: {
@@ -20321,6 +17589,39 @@ export type Database = {
           row_count_est?: number | null
           schema_name?: string | null
           table_name?: string | null
+        }
+        Relationships: []
+      }
+      evolution_source_shadow_log: {
+        Row: {
+          captured_at: string | null
+          dedup_rate: number | null
+          event_count: number | null
+          event_types: Json | null
+          id: string | null
+          snapshot_date: string | null
+          source: string | null
+          window_days: number | null
+        }
+        Insert: {
+          captured_at?: string | null
+          dedup_rate?: number | null
+          event_count?: number | null
+          event_types?: Json | null
+          id?: string | null
+          snapshot_date?: string | null
+          source?: string | null
+          window_days?: number | null
+        }
+        Update: {
+          captured_at?: string | null
+          dedup_rate?: number | null
+          event_count?: number | null
+          event_types?: Json | null
+          id?: string | null
+          snapshot_date?: string | null
+          source?: string | null
+          window_days?: number | null
         }
         Relationships: []
       }
@@ -20427,7 +17728,15 @@ export type Database = {
           sent_to_whatsapp?: boolean | null
           status_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "evolution_status_reactions_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_whatsapp_status"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_tag_assignments: {
         Row: {
@@ -20577,7 +17886,22 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_tasks_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_template_usage: {
         Row: {
@@ -21422,6 +18746,33 @@ export type Database = {
         }
         Relationships: []
       }
+      evolution_whatsapp_check_queue: {
+        Row: {
+          checked_at: string | null
+          created_at: string | null
+          id: number | null
+          instance_name: string | null
+          remote_jid: string | null
+          status: string | null
+        }
+        Insert: {
+          checked_at?: string | null
+          created_at?: string | null
+          id?: number | null
+          instance_name?: string | null
+          remote_jid?: string | null
+          status?: string | null
+        }
+        Update: {
+          checked_at?: string | null
+          created_at?: string | null
+          id?: number | null
+          instance_name?: string | null
+          remote_jid?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       evolution_whatsapp_status: {
         Row: {
           contact_id: string | null
@@ -21430,6 +18781,9 @@ export type Database = {
           expires_at: string | null
           id: string | null
           instance_name: string | null
+          local_media_url: string | null
+          media_download_status: string | null
+          media_downloaded_at: string | null
           media_meta: Json | null
           media_mimetype: string | null
           media_url: string | null
@@ -21448,6 +18802,9 @@ export type Database = {
           expires_at?: string | null
           id?: string | null
           instance_name?: string | null
+          local_media_url?: string | null
+          media_download_status?: string | null
+          media_downloaded_at?: string | null
           media_meta?: Json | null
           media_mimetype?: string | null
           media_url?: string | null
@@ -21466,6 +18823,9 @@ export type Database = {
           expires_at?: string | null
           id?: string | null
           instance_name?: string | null
+          local_media_url?: string | null
+          media_download_status?: string | null
+          media_downloaded_at?: string | null
           media_meta?: Json | null
           media_mimetype?: string | null
           media_url?: string | null
@@ -21477,7 +18837,22 @@ export type Database = {
           viewed_at?: string | null
           viewed_by_us?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       extensions: {
         Row: {
@@ -21591,7 +18966,22 @@ export type Database = {
           id?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "favorite_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "favorite_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feature_flags: {
         Row: {
@@ -21601,6 +18991,7 @@ export type Database = {
           created_at: string | null
           enabled: boolean | null
           expires_at: string | null
+          is_public: boolean | null
           key: string | null
           metadata: Json | null
           rollout_percentage: number | null
@@ -21613,6 +19004,7 @@ export type Database = {
           created_at?: string | null
           enabled?: boolean | null
           expires_at?: string | null
+          is_public?: boolean | null
           key?: string | null
           metadata?: Json | null
           rollout_percentage?: number | null
@@ -21625,6 +19017,7 @@ export type Database = {
           created_at?: string | null
           enabled?: boolean | null
           expires_at?: string | null
+          is_public?: boolean | null
           key?: string | null
           metadata?: Json | null
           rollout_percentage?: number | null
@@ -21696,7 +19089,29 @@ export type Database = {
           started_at?: string | null
           status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "followup_executions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_executions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_executions_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "followup_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       followup_sequences: {
         Row: {
@@ -21729,7 +19144,36 @@ export type Database = {
           updated_at?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "followup_sequences_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "followup_sequences_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "followup_sequences_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_sequences_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "zapp_whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       followup_steps: {
         Row: {
@@ -21762,7 +19206,15 @@ export type Database = {
           sequence_id?: string | null
           step_order?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "followup_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "followup_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fornecedores: {
         Row: {
@@ -22239,7 +19691,15 @@ export type Database = {
           webhook_enabled?: boolean | null
           webhook_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "instance_registry_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       integration_profiles: {
         Row: {
@@ -22653,7 +20113,15 @@ export type Database = {
           rule_id?: string | null
           severity?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "media_quarantine_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "media_security_config"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       media_scan_log: {
         Row: {
@@ -22890,7 +20358,29 @@ export type Database = {
           message_id?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       message_templates: {
         Row: {
@@ -22985,7 +20475,22 @@ export type Database = {
           whatsapp_message_id: string | null
           whatsapp_timestamp: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mfa_sessions: {
         Row: {
@@ -23613,7 +21118,29 @@ export type Database = {
           sticker_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "outbound_message_queue_audio_meme_id_fkey"
+            columns: ["audio_meme_id"]
+            isOneToOne: false
+            referencedRelation: "audio_memes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outbound_message_queue_sticker_id_fkey"
+            columns: ["sticker_id"]
+            isOneToOne: false
+            referencedRelation: "mv_top_stickers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outbound_message_queue_sticker_id_fkey"
+            columns: ["sticker_id"]
+            isOneToOne: false
+            referencedRelation: "stickers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       outbox_events: {
         Row: {
@@ -23808,7 +21335,15 @@ export type Database = {
           token_hash?: string | null
           used_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "password_reset_tokens_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "password_reset_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       perfis_usuarios: {
         Row: {
@@ -24006,7 +21541,29 @@ export type Database = {
           pinned_by?: string | null
           position?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pinned_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pinned_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pinned_conversations_pinned_by_fkey"
+            columns: ["pinned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       processed_webhook_events: {
         Row: {
@@ -24153,6 +21710,7 @@ export type Database = {
           max_chats: number | null
           name: string | null
           nickname: string | null
+          onboarding_status: string | null
           online_status: string | null
           permissions: Json | null
           phone: string | null
@@ -24180,6 +21738,7 @@ export type Database = {
           max_chats?: number | null
           name?: string | null
           nickname?: string | null
+          onboarding_status?: string | null
           online_status?: string | null
           permissions?: Json | null
           phone?: string | null
@@ -24207,6 +21766,7 @@ export type Database = {
           max_chats?: number | null
           name?: string | null
           nickname?: string | null
+          onboarding_status?: string | null
           online_status?: string | null
           permissions?: Json | null
           phone?: string | null
@@ -24216,7 +21776,22 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       provider_configs: {
         Row: {
@@ -24396,7 +21971,22 @@ export type Database = {
           provider_id?: string | null
           session_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "provider_session_logs_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_session_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "provider_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       provider_sessions: {
         Row: {
@@ -24432,7 +22022,57 @@ export type Database = {
           status?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "provider_sessions_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_sessions_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_sessions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_sessions_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "provider_sessions_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "provider_sessions_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_sessions_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "zapp_whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       qr_attempts: {
         Row: {
@@ -24480,40 +22120,78 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "qr_attempts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "qr_attempts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "qr_attempts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qr_attempts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "zapp_whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       queue_goals: {
         Row: {
           alerts_enabled: boolean | null
           created_at: string | null
+          current_value: number | null
           id: string | null
           max_avg_wait_minutes: number | null
           max_messages_pending: number | null
           max_waiting_contacts: number | null
+          metric: string | null
           min_assignment_rate: number | null
           queue_id: string | null
+          target_value: number | null
           updated_at: string | null
         }
         Insert: {
           alerts_enabled?: boolean | null
           created_at?: string | null
+          current_value?: number | null
           id?: string | null
           max_avg_wait_minutes?: number | null
           max_messages_pending?: number | null
           max_waiting_contacts?: number | null
+          metric?: string | null
           min_assignment_rate?: number | null
           queue_id?: string | null
+          target_value?: number | null
           updated_at?: string | null
         }
         Update: {
           alerts_enabled?: boolean | null
           created_at?: string | null
+          current_value?: number | null
           id?: string | null
           max_avg_wait_minutes?: number | null
           max_messages_pending?: number | null
           max_waiting_contacts?: number | null
+          metric?: string | null
           min_assignment_rate?: number | null
           queue_id?: string | null
+          target_value?: number | null
           updated_at?: string | null
         }
         Relationships: []
@@ -24546,7 +22224,22 @@ export type Database = {
           queue_id?: string | null
           role?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "queue_members_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "queue_members_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "queues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       queue_positions: {
         Row: {
@@ -24579,7 +22272,22 @@ export type Database = {
           position?: number | null
           queue_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "queue_positions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "queue_positions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       queue_routing_rules: {
         Row: {
@@ -24609,7 +22317,15 @@ export type Database = {
           queue_id?: string | null
           rule_type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "queue_routing_rules_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "queues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       queue_skill_requirements: {
         Row: {
@@ -24735,7 +22451,22 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "queues_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "queues_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quick_replies: {
         Row: {
@@ -24921,7 +22652,22 @@ export type Database = {
           status?: string | null
           triggered_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reconnection_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reconnection_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reminders: {
         Row: {
@@ -24954,7 +22700,22 @@ export type Database = {
           remind_at?: string | null
           title?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reminders_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reprocess_jobs: {
         Row: {
@@ -25074,7 +22835,15 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"] | null
           role_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       roles: {
         Row: {
@@ -25233,7 +23002,36 @@ export type Database = {
           value?: number | null
           won_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sales_deals_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_deals_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_deals_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_deals_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "sales_pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sales_pipeline_stages: {
         Row: {
@@ -25419,7 +23217,50 @@ export type Database = {
           updated_at?: string | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_messages_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "scheduled_messages_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "scheduled_messages_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_messages_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "zapp_whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scheduled_report_configs: {
         Row: {
@@ -25686,7 +23527,15 @@ export type Database = {
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "security_audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       sentiment_alerts: {
         Row: {
@@ -25857,7 +23706,29 @@ export type Database = {
           sicoob_vendedor_id?: string | null
           zappweb_agent_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sicoob_contact_mapping_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sicoob_contact_mapping_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sicoob_contact_mapping_zappweb_agent_id_fkey"
+            columns: ["zappweb_agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sicoob_reply_outbox: {
         Row: {
@@ -26055,7 +23926,15 @@ export type Database = {
           rule_id?: string | null
           threshold_type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sla_delivery_violations_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sla_history: {
         Row: {
@@ -26100,7 +23979,22 @@ export type Database = {
           status?: string | null
           thread_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sla_history_sla_config_id_fkey"
+            columns: ["sla_config_id"]
+            isOneToOne: false
+            referencedRelation: "sla_configurations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sla_history_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_threads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sla_rules: {
         Row: {
@@ -26154,7 +24048,29 @@ export type Database = {
           resolution_minutes?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sla_rules_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sla_rules_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sla_rules_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sla_violations: {
         Row: {
@@ -26292,7 +24208,22 @@ export type Database = {
           sticker_id?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sticker_favorites_sticker_id_fkey"
+            columns: ["sticker_id"]
+            isOneToOne: false
+            referencedRelation: "mv_top_stickers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sticker_favorites_sticker_id_fkey"
+            columns: ["sticker_id"]
+            isOneToOne: false
+            referencedRelation: "stickers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stickers: {
         Row: {
@@ -26388,7 +24319,36 @@ export type Database = {
           last_assigned_at?: string | null
           queue_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sticky_assignments_agent_profile_id_fkey"
+            columns: ["agent_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sticky_assignments_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sticky_assignments_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sticky_assignments_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "queues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       storage_cleanup_logs: {
         Row: {
@@ -26880,7 +24840,15 @@ export type Database = {
           tag_name?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tags_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       talkx_blacklist: {
         Row: {
@@ -26904,7 +24872,29 @@ export type Database = {
           id?: string | null
           reason?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "talkx_blacklist_blocked_by_fkey"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talkx_blacklist_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talkx_blacklist_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       talkx_campaigns: {
         Row: {
@@ -26979,7 +24969,36 @@ export type Database = {
           variables_config?: Json | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "talkx_campaigns_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "talkx_campaigns_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "talkx_campaigns_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talkx_campaigns_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "zapp_whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       talkx_recipients: {
         Row: {
@@ -27021,7 +25040,29 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "talkx_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "talkx_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talkx_recipients_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talkx_recipients_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       task_queues: {
         Row: {
@@ -27075,7 +25116,22 @@ export type Database = {
           last_read_at?: string | null
           profile_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_conversation_members_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "team_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_conversation_members_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_conversations: {
         Row: {
@@ -27111,7 +25167,29 @@ export type Database = {
           type?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_conversations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_conversations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_conversations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_message_reactions: {
         Row: {
@@ -27165,7 +25243,22 @@ export type Database = {
           read_at?: string | null
           status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_message_receipts_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "team_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_message_receipts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_messages: {
         Row: {
@@ -27174,6 +25267,8 @@ export type Database = {
           created_at: string | null
           id: string | null
           is_edited: boolean | null
+          media_bucket: string | null
+          media_path: string | null
           media_type: string | null
           media_url: string | null
           message_type: string | null
@@ -27188,6 +25283,8 @@ export type Database = {
           created_at?: string | null
           id?: string | null
           is_edited?: boolean | null
+          media_bucket?: string | null
+          media_path?: string | null
           media_type?: string | null
           media_url?: string | null
           message_type?: string | null
@@ -27202,6 +25299,8 @@ export type Database = {
           created_at?: string | null
           id?: string | null
           is_edited?: boolean | null
+          media_bucket?: string | null
+          media_path?: string | null
           media_type?: string | null
           media_url?: string | null
           message_type?: string | null
@@ -27210,7 +25309,29 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "team_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "team_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transfer_comments: {
         Row: {
@@ -27243,7 +25364,22 @@ export type Database = {
           metadata?: Json | null
           transfer_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "transfer_comments_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_comments_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_transfers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transportadoras: {
         Row: {
@@ -27441,7 +25577,15 @@ export type Database = {
           user_id?: string | null
           workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       user_service_accounts: {
         Row: {
@@ -27516,7 +25660,15 @@ export type Database = {
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_sessions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "user_devices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_settings: {
         Row: {
@@ -27805,7 +25957,7 @@ export type Database = {
       }
       warroom_alerts: {
         Row: {
-          alert_type: "info" | "warning" | "critical" | "sla_breach" | null
+          alert_type: Database["zapp"]["Enums"]["warroom_alert_type"] | null
           created_at: string | null
           dismissed_by: string | null
           entity: string | null
@@ -27818,7 +25970,7 @@ export type Database = {
           title: string | null
         }
         Insert: {
-          alert_type?: "info" | "warning" | "critical" | "sla_breach" | null
+          alert_type?: Database["zapp"]["Enums"]["warroom_alert_type"] | null
           created_at?: string | null
           dismissed_by?: string | null
           entity?: string | null
@@ -27831,7 +25983,7 @@ export type Database = {
           title?: string | null
         }
         Update: {
-          alert_type?: "info" | "warning" | "critical" | "sla_breach" | null
+          alert_type?: Database["zapp"]["Enums"]["warroom_alert_type"] | null
           created_at?: string | null
           dismissed_by?: string | null
           entity?: string | null
@@ -27843,7 +25995,15 @@ export type Database = {
           source?: string | null
           title?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "warroom_alerts_dismissed_by_fkey"
+            columns: ["dismissed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       webauthn_challenges: {
         Row: {
@@ -28006,6 +26166,7 @@ export type Database = {
           idempotency_key: string | null
           instance: string | null
           message_key_id: string | null
+          payload: Json | null
           processed_at: string | null
           request_id: string | null
           responded: boolean | null
@@ -28018,6 +26179,7 @@ export type Database = {
           idempotency_key?: string | null
           instance?: string | null
           message_key_id?: string | null
+          payload?: Json | null
           processed_at?: string | null
           request_id?: string | null
           responded?: boolean | null
@@ -28030,6 +26192,7 @@ export type Database = {
           idempotency_key?: string | null
           instance?: string | null
           message_key_id?: string | null
+          payload?: Json | null
           processed_at?: string | null
           request_id?: string | null
           responded?: boolean | null
@@ -28464,7 +26627,36 @@ export type Database = {
           verify_token?: string | null
           waba_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "zapp_whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       whatsapp_official_credentials_safe: {
         Row: {
@@ -28500,7 +26692,36 @@ export type Database = {
           updated_at?: string | null
           waba_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "zapp_whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       whatsapp_templates: {
         Row: {
@@ -28551,7 +26772,36 @@ export type Database = {
           variables?: string[] | null
           whatsapp_connection_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_templates_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_templates_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_templates_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_templates_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "zapp_whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       whisper_files: {
         Row: {
@@ -28626,7 +26876,29 @@ export type Database = {
           target_agent_id?: string | null
           whisper_thread_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whisper_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whisper_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whisper_messages_target_agent_id_fkey"
+            columns: ["target_agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workspace_members: {
         Row: {
@@ -28781,6 +27053,651 @@ export type Database = {
         }
         Relationships: []
       }
+      zapp_contact_intelligence: {
+        Row: {
+          contact_id: string | null
+          contact_name: string | null
+          created_at: string | null
+          days_since_contact: number | null
+          disc_profile: string | null
+          engagement_score: number | null
+          id: string | null
+          inbound_ratio: number | null
+          lead_status: string | null
+          phone: string | null
+          predicted_value: number | null
+          risk_level: string | null
+          sentiment: string | null
+          total_messages: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          days_since_contact?: number | null
+          disc_profile?: string | null
+          engagement_score?: number | null
+          id?: string | null
+          inbound_ratio?: number | null
+          lead_status?: string | null
+          phone?: string | null
+          predicted_value?: number | null
+          risk_level?: string | null
+          sentiment?: string | null
+          total_messages?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          days_since_contact?: number | null
+          disc_profile?: string | null
+          engagement_score?: number | null
+          id?: string | null
+          inbound_ratio?: number | null
+          lead_status?: string | null
+          phone?: string | null
+          predicted_value?: number | null
+          risk_level?: string | null
+          sentiment?: string | null
+          total_messages?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ci_contact_id_fk"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ci_contact_id_fk"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zapp_evolution_media: {
+        Row: {
+          base64_data: string | null
+          caption: string | null
+          created_at: string | null
+          duration_seconds: number | null
+          file_name: string | null
+          file_sha256: string | null
+          file_size: number | null
+          height: number | null
+          id: string | null
+          instance_name: string | null
+          is_animated: boolean | null
+          media_status: string | null
+          media_type: string | null
+          message_id: string | null
+          mime_type: string | null
+          remote_jid: string | null
+          storage_bucket: string | null
+          storage_path: string | null
+          storage_path_clean: string | null
+          storage_url: string | null
+          thumbnail_base64: string | null
+          width: number | null
+        }
+        Insert: {
+          base64_data?: string | null
+          caption?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          file_name?: string | null
+          file_sha256?: string | null
+          file_size?: number | null
+          height?: number | null
+          id?: string | null
+          instance_name?: string | null
+          is_animated?: boolean | null
+          media_status?: string | null
+          media_type?: string | null
+          message_id?: string | null
+          mime_type?: string | null
+          remote_jid?: string | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+          storage_path_clean?: string | null
+          storage_url?: string | null
+          thumbnail_base64?: string | null
+          width?: number | null
+        }
+        Update: {
+          base64_data?: string | null
+          caption?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          file_name?: string | null
+          file_sha256?: string | null
+          file_size?: number | null
+          height?: number | null
+          id?: string | null
+          instance_name?: string | null
+          is_animated?: boolean | null
+          media_status?: string | null
+          media_type?: string | null
+          message_id?: string | null
+          mime_type?: string | null
+          remote_jid?: string | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+          storage_path_clean?: string | null
+          storage_url?: string | null
+          thumbnail_base64?: string | null
+          width?: number | null
+        }
+        Relationships: []
+      }
+      zapp_evolution_messages: {
+        Row: {
+          audio_meme_id: string | null
+          caption: string | null
+          category: string | null
+          contact_id: string | null
+          content: string | null
+          conversation_id: string | null
+          created_at: string | null
+          deleted_at: string | null
+          direction: string | null
+          edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
+          follow_up_at: string | null
+          follow_up_done: boolean | null
+          from_me: boolean | null
+          id: string | null
+          ingest_meta: Json | null
+          instance_name: string | null
+          is_important: boolean | null
+          is_read: boolean | null
+          is_starred: boolean | null
+          link_preview: Json | null
+          media_bucket: string | null
+          media_filename: string | null
+          media_meta: Json | null
+          media_mimetype: string | null
+          media_path: string | null
+          media_sha256: string | null
+          media_size: number | null
+          media_status: string | null
+          media_type: string | null
+          media_url: string | null
+          message_id: string | null
+          message_type: string | null
+          notes: string | null
+          payload: Json | null
+          push_name: string | null
+          quoted_message_id: string | null
+          raw_data: Json | null
+          remote_jid: string | null
+          remote_jid_original: string | null
+          reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
+          sent_by_bot: boolean | null
+          sentiment: string | null
+          status: string | null
+          status_at: string | null
+          sticker_id: string | null
+          tags: string[] | null
+          template_name: string | null
+          transcription: string | null
+          transcription_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          audio_meme_id?: string | null
+          caption?: string | null
+          category?: string | null
+          contact_id?: string | null
+          content?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          direction?: string | null
+          edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
+          follow_up_at?: string | null
+          follow_up_done?: boolean | null
+          from_me?: boolean | null
+          id?: string | null
+          ingest_meta?: Json | null
+          instance_name?: string | null
+          is_important?: boolean | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          link_preview?: Json | null
+          media_bucket?: string | null
+          media_filename?: string | null
+          media_meta?: Json | null
+          media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
+          media_size?: number | null
+          media_status?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          message_id?: string | null
+          message_type?: string | null
+          notes?: string | null
+          payload?: Json | null
+          push_name?: string | null
+          quoted_message_id?: string | null
+          raw_data?: Json | null
+          remote_jid?: string | null
+          remote_jid_original?: string | null
+          reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
+          sent_by_bot?: boolean | null
+          sentiment?: string | null
+          status?: string | null
+          status_at?: string | null
+          sticker_id?: string | null
+          tags?: string[] | null
+          template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          audio_meme_id?: string | null
+          caption?: string | null
+          category?: string | null
+          contact_id?: string | null
+          content?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          direction?: string | null
+          edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
+          follow_up_at?: string | null
+          follow_up_done?: boolean | null
+          from_me?: boolean | null
+          id?: string | null
+          ingest_meta?: Json | null
+          instance_name?: string | null
+          is_important?: boolean | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          link_preview?: Json | null
+          media_bucket?: string | null
+          media_filename?: string | null
+          media_meta?: Json | null
+          media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
+          media_size?: number | null
+          media_status?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          message_id?: string | null
+          message_type?: string | null
+          notes?: string | null
+          payload?: Json | null
+          push_name?: string | null
+          quoted_message_id?: string | null
+          raw_data?: Json | null
+          remote_jid?: string | null
+          remote_jid_original?: string | null
+          reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
+          sent_by_bot?: boolean | null
+          sentiment?: string | null
+          status?: string | null
+          status_at?: string | null
+          sticker_id?: string | null
+          tags?: string[] | null
+          template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zapp_evolution_messages_wpp2: {
+        Row: {
+          audio_meme_id: string | null
+          caption: string | null
+          category: string | null
+          contact_id: string | null
+          content: string | null
+          conversation_id: string | null
+          created_at: string | null
+          deleted_at: string | null
+          direction: string | null
+          edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
+          follow_up_at: string | null
+          follow_up_done: boolean | null
+          from_me: boolean | null
+          id: string | null
+          ingest_meta: Json | null
+          instance_name: string | null
+          is_important: boolean | null
+          is_read: boolean | null
+          is_starred: boolean | null
+          link_preview: Json | null
+          media_bucket: string | null
+          media_filename: string | null
+          media_meta: Json | null
+          media_mimetype: string | null
+          media_path: string | null
+          media_sha256: string | null
+          media_size: number | null
+          media_status: string | null
+          media_type: string | null
+          media_url: string | null
+          message_id: string | null
+          message_type: string | null
+          notes: string | null
+          payload: Json | null
+          push_name: string | null
+          quoted_message_id: string | null
+          raw_data: Json | null
+          remote_jid: string | null
+          remote_jid_original: string | null
+          reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
+          sent_by_bot: boolean | null
+          sentiment: string | null
+          status: string | null
+          status_at: string | null
+          sticker_id: string | null
+          tags: string[] | null
+          template_name: string | null
+          transcription: string | null
+          transcription_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          audio_meme_id?: string | null
+          caption?: string | null
+          category?: string | null
+          contact_id?: string | null
+          content?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          direction?: string | null
+          edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
+          follow_up_at?: string | null
+          follow_up_done?: boolean | null
+          from_me?: boolean | null
+          id?: string | null
+          ingest_meta?: Json | null
+          instance_name?: string | null
+          is_important?: boolean | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          link_preview?: Json | null
+          media_bucket?: string | null
+          media_filename?: string | null
+          media_meta?: Json | null
+          media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
+          media_size?: number | null
+          media_status?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          message_id?: string | null
+          message_type?: string | null
+          notes?: string | null
+          payload?: Json | null
+          push_name?: string | null
+          quoted_message_id?: string | null
+          raw_data?: Json | null
+          remote_jid?: string | null
+          remote_jid_original?: string | null
+          reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
+          sent_by_bot?: boolean | null
+          sentiment?: string | null
+          status?: string | null
+          status_at?: string | null
+          sticker_id?: string | null
+          tags?: string[] | null
+          template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          audio_meme_id?: string | null
+          caption?: string | null
+          category?: string | null
+          contact_id?: string | null
+          content?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          direction?: string | null
+          edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
+          follow_up_at?: string | null
+          follow_up_done?: boolean | null
+          from_me?: boolean | null
+          id?: string | null
+          ingest_meta?: Json | null
+          instance_name?: string | null
+          is_important?: boolean | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          link_preview?: Json | null
+          media_bucket?: string | null
+          media_filename?: string | null
+          media_meta?: Json | null
+          media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
+          media_size?: number | null
+          media_status?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          message_id?: string | null
+          message_type?: string | null
+          notes?: string | null
+          payload?: Json | null
+          push_name?: string | null
+          quoted_message_id?: string | null
+          raw_data?: Json | null
+          remote_jid?: string | null
+          remote_jid_original?: string | null
+          reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
+          sent_by_bot?: boolean | null
+          sentiment?: string | null
+          status?: string | null
+          status_at?: string | null
+          sticker_id?: string | null
+          tags?: string[] | null
+          template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      zapp_instance_credentials: {
+        Row: {
+          id: string | null
+          instance_name: string | null
+          is_active: boolean | null
+        }
+        Insert: {
+          id?: string | null
+          instance_name?: string | null
+          is_active?: boolean | null
+        }
+        Update: {
+          id?: string | null
+          instance_name?: string | null
+          is_active?: boolean | null
+        }
+        Relationships: []
+      }
+      zapp_whatsapp_connections: {
+        Row: {
+          api_key: string | null
+          api_type: string | null
+          api_url: string | null
+          auto_reconnect_enabled: boolean | null
+          battery_level: number | null
+          connected_at: string | null
+          created_at: string | null
+          created_by: string | null
+          degraded_at: string | null
+          disconnected_at: string | null
+          evo_instance_id: string | null
+          farewell_enabled: boolean | null
+          farewell_message: string | null
+          health_reason: string | null
+          health_response_ms: number | null
+          health_status: string | null
+          id: string | null
+          instance_id: string | null
+          instance_name: string | null
+          is_active: boolean | null
+          is_default: boolean | null
+          is_plugged: boolean | null
+          last_connected_at: string | null
+          last_health_check: string | null
+          loop_protection_active: boolean | null
+          max_reconnect_attempts: number | null
+          max_retries: number | null
+          name: string | null
+          owner_jid: string | null
+          phone_number: string | null
+          qr_code: string | null
+          qr_code_base64: string | null
+          reconnect_interval_seconds: number | null
+          retry_count: number | null
+          routing_mode: string | null
+          settings: Json | null
+          status: string | null
+          updated_at: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          api_type?: string | null
+          api_url?: string | null
+          auto_reconnect_enabled?: boolean | null
+          battery_level?: number | null
+          connected_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          degraded_at?: string | null
+          disconnected_at?: string | null
+          evo_instance_id?: string | null
+          farewell_enabled?: boolean | null
+          farewell_message?: string | null
+          health_reason?: string | null
+          health_response_ms?: number | null
+          health_status?: string | null
+          id?: string | null
+          instance_id?: string | null
+          instance_name?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          is_plugged?: boolean | null
+          last_connected_at?: string | null
+          last_health_check?: string | null
+          loop_protection_active?: boolean | null
+          max_reconnect_attempts?: number | null
+          max_retries?: number | null
+          name?: string | null
+          owner_jid?: string | null
+          phone_number?: string | null
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          reconnect_interval_seconds?: number | null
+          retry_count?: number | null
+          routing_mode?: string | null
+          settings?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          api_type?: string | null
+          api_url?: string | null
+          auto_reconnect_enabled?: boolean | null
+          battery_level?: number | null
+          connected_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          degraded_at?: string | null
+          disconnected_at?: string | null
+          evo_instance_id?: string | null
+          farewell_enabled?: boolean | null
+          farewell_message?: string | null
+          health_reason?: string | null
+          health_response_ms?: number | null
+          health_status?: string | null
+          id?: string | null
+          instance_id?: string | null
+          instance_name?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          is_plugged?: boolean | null
+          last_connected_at?: string | null
+          last_health_check?: string | null
+          loop_protection_active?: boolean | null
+          max_reconnect_attempts?: number | null
+          max_retries?: number | null
+          name?: string | null
+          owner_jid?: string | null
+          phone_number?: string | null
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          reconnect_interval_seconds?: number | null
+          retry_count?: number | null
+          routing_mode?: string | null
+          settings?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_user_permission: {
@@ -28789,6 +27706,7 @@ export type Database = {
       }
       exec_sql: { Args: { query: string }; Returns: Json[] }
       fn_apply_connection_update: { Args: { p_event: Json }; Returns: Json }
+      fn_boundary_audit: { Args: never; Returns: Json }
       fn_check_n8n_app_privileges_local: { Args: never; Returns: Json }
       fn_jwt_secret_ref: { Args: never; Returns: string }
       generate_transfer_ticket: { Args: never; Returns: string }
@@ -28829,6 +27747,10 @@ export type Database = {
       postgres_fdw_handler: { Args: never; Returns: unknown }
       purge_old_query_telemetry: { Args: { p_days: number }; Returns: number }
       rpc_app_bootstrap: { Args: never; Returns: Json }
+      rpc_boundary_insert_consumer_stats: {
+        Args: { p_row: Json }
+        Returns: undefined
+      }
       rpc_claim_media_download_batch: {
         Args: { p_batch_size?: number; p_instance_name?: string }
         Returns: {
@@ -28878,7 +27800,7 @@ export type Database = {
         | { Args: { p_contact_id: string }; Returns: Json }
         | {
             Args: { p_instance?: string; p_remote_jid: string }
-            Returns: Database["public"]["Views"]["evolution_contacts"]["Row"][]
+            Returns: Database["evo"]["Tables"]["evolution_contacts"]["Row"][]
             SetofOptions: {
               from: "*"
               to: "evolution_contacts"
@@ -28886,6 +27808,8 @@ export type Database = {
               isSetofReturn: true
             }
           }
+      rpc_get_whatsapp_mode: { Args: never; Returns: string }
+      rpc_set_whatsapp_mode: { Args: { p_mode: string }; Returns: string }
       set_audio_transcription: {
         Args: {
           p_error_code?: string
@@ -28922,6 +27846,13 @@ export type Database = {
         | "messenger"
         | "webchat"
         | "email"
+      evolution_pipeline_status:
+        | "healthy"
+        | "warning"
+        | "degraded_webhook"
+        | "degraded_sender"
+        | "critical_alerts"
+        | "critical"
       service_account_type:
         | "google_sheets"
         | "google_docs"
@@ -28977,6 +27908,165 @@ export type Database = {
         }
         Relationships: []
       }
+      _backfill_nomes_backup_20260814: {
+        Row: {
+          assigned_to: string | null
+          backed_up_at: string | null
+          company: string | null
+          created_at: string | null
+          dedup_hash: string | null
+          deleted_at: string | null
+          deleted_reason: string | null
+          email: string | null
+          first_contact_at: string | null
+          first_name: string | null
+          full_name: string | null
+          id: string
+          instance_name: string | null
+          is_on_whatsapp: boolean | null
+          last_message_at: string | null
+          last_name: string | null
+          last_presence_at: string | null
+          last_seen_at: string | null
+          lead_score: number | null
+          lead_source: string | null
+          lead_status: string | null
+          lgpd_consent_at: string | null
+          lgpd_consent_channel: string | null
+          lgpd_data_sharing: boolean | null
+          lgpd_deletion_requested_at: string | null
+          lgpd_last_updated_at: string | null
+          lgpd_marketing_consent: boolean | null
+          lgpd_opt_out_at: string | null
+          lgpd_profiling: boolean | null
+          merge_source_id: string | null
+          message_count: number | null
+          nickname: string | null
+          notes: string | null
+          phone_number: string | null
+          pii_masked_at: string | null
+          presence_status: string | null
+          profile_picture_url: string | null
+          push_name: string | null
+          queue_id: string | null
+          raw_data: Json | null
+          remote_jid: string | null
+          role_title: string | null
+          search_vector: unknown
+          tags: string[] | null
+          total_messages: number | null
+          total_purchases: number | null
+          updated_at: string | null
+          version: number | null
+          whatsapp_checked_at: string | null
+          whatsapp_labels: string[] | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          backed_up_at?: string | null
+          company?: string | null
+          created_at?: string | null
+          dedup_hash?: string | null
+          deleted_at?: string | null
+          deleted_reason?: string | null
+          email?: string | null
+          first_contact_at?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          id: string
+          instance_name?: string | null
+          is_on_whatsapp?: boolean | null
+          last_message_at?: string | null
+          last_name?: string | null
+          last_presence_at?: string | null
+          last_seen_at?: string | null
+          lead_score?: number | null
+          lead_source?: string | null
+          lead_status?: string | null
+          lgpd_consent_at?: string | null
+          lgpd_consent_channel?: string | null
+          lgpd_data_sharing?: boolean | null
+          lgpd_deletion_requested_at?: string | null
+          lgpd_last_updated_at?: string | null
+          lgpd_marketing_consent?: boolean | null
+          lgpd_opt_out_at?: string | null
+          lgpd_profiling?: boolean | null
+          merge_source_id?: string | null
+          message_count?: number | null
+          nickname?: string | null
+          notes?: string | null
+          phone_number?: string | null
+          pii_masked_at?: string | null
+          presence_status?: string | null
+          profile_picture_url?: string | null
+          push_name?: string | null
+          queue_id?: string | null
+          raw_data?: Json | null
+          remote_jid?: string | null
+          role_title?: string | null
+          search_vector?: unknown
+          tags?: string[] | null
+          total_messages?: number | null
+          total_purchases?: number | null
+          updated_at?: string | null
+          version?: number | null
+          whatsapp_checked_at?: string | null
+          whatsapp_labels?: string[] | null
+        }
+        Update: {
+          assigned_to?: string | null
+          backed_up_at?: string | null
+          company?: string | null
+          created_at?: string | null
+          dedup_hash?: string | null
+          deleted_at?: string | null
+          deleted_reason?: string | null
+          email?: string | null
+          first_contact_at?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          id?: string
+          instance_name?: string | null
+          is_on_whatsapp?: boolean | null
+          last_message_at?: string | null
+          last_name?: string | null
+          last_presence_at?: string | null
+          last_seen_at?: string | null
+          lead_score?: number | null
+          lead_source?: string | null
+          lead_status?: string | null
+          lgpd_consent_at?: string | null
+          lgpd_consent_channel?: string | null
+          lgpd_data_sharing?: boolean | null
+          lgpd_deletion_requested_at?: string | null
+          lgpd_last_updated_at?: string | null
+          lgpd_marketing_consent?: boolean | null
+          lgpd_opt_out_at?: string | null
+          lgpd_profiling?: boolean | null
+          merge_source_id?: string | null
+          message_count?: number | null
+          nickname?: string | null
+          notes?: string | null
+          phone_number?: string | null
+          pii_masked_at?: string | null
+          presence_status?: string | null
+          profile_picture_url?: string | null
+          push_name?: string | null
+          queue_id?: string | null
+          raw_data?: Json | null
+          remote_jid?: string | null
+          role_title?: string | null
+          search_vector?: unknown
+          tags?: string[] | null
+          total_messages?: number | null
+          total_purchases?: number | null
+          updated_at?: string | null
+          version?: number | null
+          whatsapp_checked_at?: string | null
+          whatsapp_labels?: string[] | null
+        }
+        Relationships: []
+      }
       _backup_contact_intelligence_lid_phone_20260811: {
         Row: {
           contact_id: string | null
@@ -29028,6 +28118,57 @@ export type Database = {
           sentiment?: string | null
           total_messages?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      _backup_repontagem_conversation_events_20260812: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          event_type: string | null
+          from_agent_id: string | null
+          from_queue_id: string | null
+          id: string
+          idempotency_key: string | null
+          metadata: Json | null
+          performed_by: string | null
+          provider_message_log_id: string | null
+          thread_id: string | null
+          to_agent_id: string | null
+          to_queue_id: string | null
+          trace_id: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string | null
+          event_type?: string | null
+          from_agent_id?: string | null
+          from_queue_id?: string | null
+          id: string
+          idempotency_key?: string | null
+          metadata?: Json | null
+          performed_by?: string | null
+          provider_message_log_id?: string | null
+          thread_id?: string | null
+          to_agent_id?: string | null
+          to_queue_id?: string | null
+          trace_id?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string | null
+          event_type?: string | null
+          from_agent_id?: string | null
+          from_queue_id?: string | null
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json | null
+          performed_by?: string | null
+          provider_message_log_id?: string | null
+          thread_id?: string | null
+          to_agent_id?: string | null
+          to_queue_id?: string | null
+          trace_id?: string | null
         }
         Relationships: []
       }
@@ -29106,6 +28247,294 @@ export type Database = {
           table_name?: string
           toast_size?: number | null
           total_size?: number | null
+        }
+        Relationships: []
+      }
+      _dedup_backup_20260813: {
+        Row: {
+          _canonico_id: string | null
+          assigned_to: string | null
+          company: string | null
+          created_at: string | null
+          dedup_hash: string | null
+          deleted_at: string | null
+          deleted_reason: string | null
+          email: string | null
+          first_contact_at: string | null
+          first_name: string | null
+          full_name: string | null
+          id: string
+          instance_name: string | null
+          is_on_whatsapp: boolean | null
+          last_message_at: string | null
+          last_name: string | null
+          last_presence_at: string | null
+          last_seen_at: string | null
+          lead_score: number | null
+          lead_source: string | null
+          lead_status: string | null
+          lgpd_consent_at: string | null
+          lgpd_consent_channel: string | null
+          lgpd_data_sharing: boolean | null
+          lgpd_deletion_requested_at: string | null
+          lgpd_last_updated_at: string | null
+          lgpd_marketing_consent: boolean | null
+          lgpd_opt_out_at: string | null
+          lgpd_profiling: boolean | null
+          merge_source_id: string | null
+          message_count: number | null
+          nickname: string | null
+          notes: string | null
+          phone_number: string | null
+          pii_masked_at: string | null
+          presence_status: string | null
+          profile_picture_url: string | null
+          push_name: string | null
+          queue_id: string | null
+          raw_data: Json | null
+          remote_jid: string | null
+          role_title: string | null
+          search_vector: unknown
+          tags: string[] | null
+          total_messages: number | null
+          total_purchases: number | null
+          updated_at: string | null
+          version: number | null
+          whatsapp_checked_at: string | null
+          whatsapp_labels: string[] | null
+        }
+        Insert: {
+          _canonico_id?: string | null
+          assigned_to?: string | null
+          company?: string | null
+          created_at?: string | null
+          dedup_hash?: string | null
+          deleted_at?: string | null
+          deleted_reason?: string | null
+          email?: string | null
+          first_contact_at?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          id: string
+          instance_name?: string | null
+          is_on_whatsapp?: boolean | null
+          last_message_at?: string | null
+          last_name?: string | null
+          last_presence_at?: string | null
+          last_seen_at?: string | null
+          lead_score?: number | null
+          lead_source?: string | null
+          lead_status?: string | null
+          lgpd_consent_at?: string | null
+          lgpd_consent_channel?: string | null
+          lgpd_data_sharing?: boolean | null
+          lgpd_deletion_requested_at?: string | null
+          lgpd_last_updated_at?: string | null
+          lgpd_marketing_consent?: boolean | null
+          lgpd_opt_out_at?: string | null
+          lgpd_profiling?: boolean | null
+          merge_source_id?: string | null
+          message_count?: number | null
+          nickname?: string | null
+          notes?: string | null
+          phone_number?: string | null
+          pii_masked_at?: string | null
+          presence_status?: string | null
+          profile_picture_url?: string | null
+          push_name?: string | null
+          queue_id?: string | null
+          raw_data?: Json | null
+          remote_jid?: string | null
+          role_title?: string | null
+          search_vector?: unknown
+          tags?: string[] | null
+          total_messages?: number | null
+          total_purchases?: number | null
+          updated_at?: string | null
+          version?: number | null
+          whatsapp_checked_at?: string | null
+          whatsapp_labels?: string[] | null
+        }
+        Update: {
+          _canonico_id?: string | null
+          assigned_to?: string | null
+          company?: string | null
+          created_at?: string | null
+          dedup_hash?: string | null
+          deleted_at?: string | null
+          deleted_reason?: string | null
+          email?: string | null
+          first_contact_at?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          id?: string
+          instance_name?: string | null
+          is_on_whatsapp?: boolean | null
+          last_message_at?: string | null
+          last_name?: string | null
+          last_presence_at?: string | null
+          last_seen_at?: string | null
+          lead_score?: number | null
+          lead_source?: string | null
+          lead_status?: string | null
+          lgpd_consent_at?: string | null
+          lgpd_consent_channel?: string | null
+          lgpd_data_sharing?: boolean | null
+          lgpd_deletion_requested_at?: string | null
+          lgpd_last_updated_at?: string | null
+          lgpd_marketing_consent?: boolean | null
+          lgpd_opt_out_at?: string | null
+          lgpd_profiling?: boolean | null
+          merge_source_id?: string | null
+          message_count?: number | null
+          nickname?: string | null
+          notes?: string | null
+          phone_number?: string | null
+          pii_masked_at?: string | null
+          presence_status?: string | null
+          profile_picture_url?: string | null
+          push_name?: string | null
+          queue_id?: string | null
+          raw_data?: Json | null
+          remote_jid?: string | null
+          role_title?: string | null
+          search_vector?: unknown
+          tags?: string[] | null
+          total_messages?: number | null
+          total_purchases?: number | null
+          updated_at?: string | null
+          version?: number | null
+          whatsapp_checked_at?: string | null
+          whatsapp_labels?: string[] | null
+        }
+        Relationships: []
+      }
+      _dedup_backup_ci_20260813: {
+        Row: {
+          contact_id: string | null
+          contact_name: string | null
+          created_at: string | null
+          days_since_contact: number | null
+          disc_profile: string | null
+          engagement_score: number | null
+          id: string
+          inbound_ratio: number | null
+          lead_status: string | null
+          phone: string | null
+          predicted_value: number | null
+          risk_level: string | null
+          sentiment: string | null
+          total_messages: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          days_since_contact?: number | null
+          disc_profile?: string | null
+          engagement_score?: number | null
+          id: string
+          inbound_ratio?: number | null
+          lead_status?: string | null
+          phone?: string | null
+          predicted_value?: number | null
+          risk_level?: string | null
+          sentiment?: string | null
+          total_messages?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          days_since_contact?: number | null
+          disc_profile?: string | null
+          engagement_score?: number | null
+          id?: string
+          inbound_ratio?: number | null
+          lead_status?: string | null
+          phone?: string | null
+          predicted_value?: number | null
+          risk_level?: string | null
+          sentiment?: string | null
+          total_messages?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      _dedup_backup_events_20260813: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          event_type: string | null
+          from_agent_id: string | null
+          from_queue_id: string | null
+          id: string
+          idempotency_key: string | null
+          metadata: Json | null
+          performed_by: string | null
+          provider_message_log_id: string | null
+          thread_id: string | null
+          to_agent_id: string | null
+          to_queue_id: string | null
+          trace_id: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string | null
+          event_type?: string | null
+          from_agent_id?: string | null
+          from_queue_id?: string | null
+          id: string
+          idempotency_key?: string | null
+          metadata?: Json | null
+          performed_by?: string | null
+          provider_message_log_id?: string | null
+          thread_id?: string | null
+          to_agent_id?: string | null
+          to_queue_id?: string | null
+          trace_id?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string | null
+          event_type?: string | null
+          from_agent_id?: string | null
+          from_queue_id?: string | null
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json | null
+          performed_by?: string | null
+          provider_message_log_id?: string | null
+          thread_id?: string | null
+          to_agent_id?: string | null
+          to_queue_id?: string | null
+          trace_id?: string | null
+        }
+        Relationships: []
+      }
+      _dedup_lid_pares_20260813: {
+        Row: {
+          lid_contact_id: string
+          lid_jid: string
+          phone: string
+          s_contact_id: string
+          s_jid: string
+        }
+        Insert: {
+          lid_contact_id: string
+          lid_jid: string
+          phone: string
+          s_contact_id: string
+          s_jid: string
+        }
+        Update: {
+          lid_contact_id?: string
+          lid_jid?: string
+          phone?: string
+          s_contact_id?: string
+          s_jid?: string
         }
         Relationships: []
       }
@@ -29274,6 +28703,57 @@ export type Database = {
           last_record_id?: string | null
           last_seen_at?: string
           table_name?: string
+        }
+        Relationships: []
+      }
+      _remap_backup_20260814_conversations: {
+        Row: {
+          contact_id: string | null
+          id: string
+          instance_name: string | null
+          remote_jid: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          id: string
+          instance_name?: string | null
+          remote_jid?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          id?: string
+          instance_name?: string | null
+          remote_jid?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      _remap_backup_20260814_messages: {
+        Row: {
+          contact_id: string | null
+          conversation_id: string | null
+          id: string
+          instance_name: string | null
+          remote_jid: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          conversation_id?: string | null
+          id: string
+          instance_name?: string | null
+          remote_jid?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          conversation_id?: string | null
+          id?: string
+          instance_name?: string | null
+          remote_jid?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -29576,6 +29056,7 @@ export type Database = {
           achievements_count: number
           avg_response_time_seconds: number | null
           best_streak: number
+          coins: number
           conversations_resolved: number
           created_at: string | null
           current_streak: number
@@ -29592,6 +29073,7 @@ export type Database = {
           achievements_count?: number
           avg_response_time_seconds?: number | null
           best_streak?: number
+          coins?: number
           conversations_resolved?: number
           created_at?: string | null
           current_streak?: number
@@ -29608,6 +29090,7 @@ export type Database = {
           achievements_count?: number
           avg_response_time_seconds?: number | null
           best_streak?: number
+          coins?: number
           conversations_resolved?: number
           created_at?: string | null
           current_streak?: number
@@ -29895,54 +29378,6 @@ export type Database = {
           metadata?: Json | null
           status?: string
           user_id?: string | null
-        }
-        Relationships: []
-      }
-      auto_export_jobs: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          file_path: string | null
-          filters: Json | null
-          format: string | null
-          id: string | null
-          last_error: string | null
-          last_run_at: string | null
-          name: string | null
-          row_count: number | null
-          source_table: string | null
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          file_path?: string | null
-          filters?: Json | null
-          format?: string | null
-          id?: string | null
-          last_error?: string | null
-          last_run_at?: string | null
-          name?: string | null
-          row_count?: number | null
-          source_table?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          file_path?: string | null
-          filters?: Json | null
-          format?: string | null
-          id?: string | null
-          last_error?: string | null
-          last_run_at?: string | null
-          name?: string | null
-          row_count?: number | null
-          source_table?: string | null
-          status?: string | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -32594,6 +32029,30 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_identity_lid_staging: {
+        Row: {
+          _row_id: number
+          instance_name: string
+          last_seen: string | null
+          lid_jid: string
+          pn_jid: string
+        }
+        Insert: {
+          _row_id?: number
+          instance_name: string
+          last_seen?: string | null
+          lid_jid: string
+          pn_jid: string
+        }
+        Update: {
+          _row_id?: number
+          instance_name?: string
+          last_seen?: string | null
+          lid_jid?: string
+          pn_jid?: string
+        }
+        Relationships: []
+      }
       contact_intelligence: {
         Row: {
           contact_id: string
@@ -34755,6 +34214,7 @@ export type Database = {
           created_at: string
           id: string
           instance_name: string | null
+          message_id: string | null
           rating: number | null
           response_time_seconds: number | null
         }
@@ -34766,6 +34226,7 @@ export type Database = {
           created_at?: string
           id?: string
           instance_name?: string | null
+          message_id?: string | null
           rating?: number | null
           response_time_seconds?: number | null
         }
@@ -34777,6 +34238,7 @@ export type Database = {
           created_at?: string
           id?: string
           instance_name?: string | null
+          message_id?: string | null
           rating?: number | null
           response_time_seconds?: number | null
         }
@@ -34784,31 +34246,58 @@ export type Database = {
       }
       csat_surveys: {
         Row: {
-          agent_id: string
+          agent_id: string | null
+          attempts: number
           contact_id: string
+          conversation_id: string | null
           conversation_resolved_at: string | null
           created_at: string | null
           feedback: string | null
           id: string
-          rating: number
+          last_error: string | null
+          message_text: string | null
+          rating: number | null
+          responded_at: string | null
+          send_at: string
+          status: string
+          updated_at: string
+          whatsapp_connection_id: string | null
         }
         Insert: {
-          agent_id: string
+          agent_id?: string | null
+          attempts?: number
           contact_id: string
+          conversation_id?: string | null
           conversation_resolved_at?: string | null
           created_at?: string | null
           feedback?: string | null
           id?: string
-          rating: number
+          last_error?: string | null
+          message_text?: string | null
+          rating?: number | null
+          responded_at?: string | null
+          send_at?: string
+          status?: string
+          updated_at?: string
+          whatsapp_connection_id?: string | null
         }
         Update: {
-          agent_id?: string
+          agent_id?: string | null
+          attempts?: number
           contact_id?: string
+          conversation_id?: string | null
           conversation_resolved_at?: string | null
           created_at?: string | null
           feedback?: string | null
           id?: string
-          rating?: number
+          last_error?: string | null
+          message_text?: string | null
+          rating?: number | null
+          responded_at?: string | null
+          send_at?: string
+          status?: string
+          updated_at?: string
+          whatsapp_connection_id?: string | null
         }
         Relationships: [
           {
@@ -34872,6 +34361,48 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csat_surveys_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["connection_id"]
+          },
+          {
+            foreignKeyName: "csat_surveys_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["whatsapp_connection_id"]
+          },
+          {
+            foreignKeyName: "csat_surveys_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csat_surveys_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections_agent"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csat_surveys_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csat_surveys_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -35789,6 +35320,3393 @@ export type Database = {
         }
         Relationships: []
       }
+      evo_reconcile_contact_snapshot: {
+        Row: {
+          captured_at: string
+          delta_abs: number | null
+          delta_pct: number | null
+          id: string
+          instance_name: string
+          mir_contacts: number
+          notes: string | null
+          src_contacts: number
+          status: string | null
+        }
+        Insert: {
+          captured_at?: string
+          delta_abs?: number | null
+          delta_pct?: number | null
+          id?: string
+          instance_name: string
+          mir_contacts: number
+          notes?: string | null
+          src_contacts: number
+          status?: string | null
+        }
+        Update: {
+          captured_at?: string
+          delta_abs?: number | null
+          delta_pct?: number | null
+          id?: string
+          instance_name?: string
+          mir_contacts?: number
+          notes?: string | null
+          src_contacts?: number
+          status?: string | null
+        }
+        Relationships: []
+      }
+      evolution_alerts: {
+        Row: {
+          acknowledged: boolean | null
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          contact_id: string | null
+          created_at: string | null
+          description: string | null
+          escalated_at: string | null
+          id: string
+          message: string | null
+          notified_at: string | null
+          payload: Json | null
+          remote_jid: string | null
+          resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          title: string | null
+        }
+        Insert: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          contact_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          escalated_at?: string | null
+          id?: string
+          message?: string | null
+          notified_at?: string | null
+          payload?: Json | null
+          remote_jid?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity: string
+          title?: string | null
+        }
+        Update: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          contact_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          escalated_at?: string | null
+          id?: string
+          message?: string | null
+          notified_at?: string | null
+          payload?: Json | null
+          remote_jid?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          title?: string | null
+        }
+        Relationships: []
+      }
+      evolution_api_consumers: {
+        Row: {
+          api_key_secret_ref: string | null
+          consumer_type: string
+          created_at: string
+          criticality: string
+          description: string | null
+          endpoints_called: string[] | null
+          id: string
+          last_verified_at: string | null
+          name: string
+          notes: string | null
+          rotation_needed: boolean
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          api_key_secret_ref?: string | null
+          consumer_type: string
+          created_at?: string
+          criticality?: string
+          description?: string | null
+          endpoints_called?: string[] | null
+          id: string
+          last_verified_at?: string | null
+          name: string
+          notes?: string | null
+          rotation_needed?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          api_key_secret_ref?: string | null
+          consumer_type?: string
+          created_at?: string
+          criticality?: string
+          description?: string | null
+          endpoints_called?: string[] | null
+          id?: string
+          last_verified_at?: string | null
+          name?: string
+          notes?: string | null
+          rotation_needed?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      evolution_audit_log: {
+        Row: {
+          action: string
+          changes: Json | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          new_values: Json | null
+          old_values: Json | null
+          performed_by: string
+          performed_by_type: string | null
+          session_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          changes?: Json | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          new_values?: Json | null
+          old_values?: Json | null
+          performed_by?: string
+          performed_by_type?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          changes?: Json | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          new_values?: Json | null
+          old_values?: Json | null
+          performed_by?: string
+          performed_by_type?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      evolution_automation_logs: {
+        Row: {
+          action_result: Json | null
+          automation_id: string | null
+          contact_id: string | null
+          error_message: string | null
+          executed_at: string | null
+          id: string
+          status: string | null
+          trigger_data: Json | null
+        }
+        Insert: {
+          action_result?: Json | null
+          automation_id?: string | null
+          contact_id?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          status?: string | null
+          trigger_data?: Json | null
+        }
+        Update: {
+          action_result?: Json | null
+          automation_id?: string | null
+          contact_id?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          status?: string | null
+          trigger_data?: Json | null
+        }
+        Relationships: []
+      }
+      evolution_bitrix_queue: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          entity_type: string
+          id: string
+          last_error: string | null
+          local_id: string
+          max_attempts: number | null
+          next_attempt_at: string | null
+          operation: string
+          payload: Json
+          processed_at: string | null
+          status: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string | null
+          entity_type: string
+          id?: string
+          last_error?: string | null
+          local_id: string
+          max_attempts?: number | null
+          next_attempt_at?: string | null
+          operation: string
+          payload: Json
+          processed_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string | null
+          entity_type?: string
+          id?: string
+          last_error?: string | null
+          local_id?: string
+          max_attempts?: number | null
+          next_attempt_at?: string | null
+          operation?: string
+          payload?: Json
+          processed_at?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      evolution_burnin_tracker: {
+        Row: {
+          burn_in_passed: boolean
+          burn_in_start: string
+          id: number
+          last_reset_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          burn_in_passed?: boolean
+          burn_in_start?: string
+          id?: number
+          last_reset_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          burn_in_passed?: boolean
+          burn_in_start?: string
+          id?: number
+          last_reset_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      evolution_business_hours: {
+        Row: {
+          close_time: string
+          created_at: string | null
+          day_of_week: number
+          id: string
+          is_closed: boolean | null
+          open_time: string
+          timezone: string | null
+        }
+        Insert: {
+          close_time: string
+          created_at?: string | null
+          day_of_week: number
+          id?: string
+          is_closed?: boolean | null
+          open_time: string
+          timezone?: string | null
+        }
+        Update: {
+          close_time?: string
+          created_at?: string | null
+          day_of_week?: number
+          id?: string
+          is_closed?: boolean | null
+          open_time?: string
+          timezone?: string | null
+        }
+        Relationships: []
+      }
+      evolution_calls: {
+        Row: {
+          call_id: string
+          call_status: string
+          call_type: string
+          contact_id: string | null
+          created_at: string | null
+          direction: string
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          instance_name: string | null
+          missed_callback_sent: boolean | null
+          raw_data: Json | null
+          remote_jid: string
+          started_at: string | null
+        }
+        Insert: {
+          call_id: string
+          call_status: string
+          call_type: string
+          contact_id?: string | null
+          created_at?: string | null
+          direction: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          instance_name?: string | null
+          missed_callback_sent?: boolean | null
+          raw_data?: Json | null
+          remote_jid: string
+          started_at?: string | null
+        }
+        Update: {
+          call_id?: string
+          call_status?: string
+          call_type?: string
+          contact_id?: string | null
+          created_at?: string | null
+          direction?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          instance_name?: string | null
+          missed_callback_sent?: boolean | null
+          raw_data?: Json | null
+          remote_jid?: string
+          started_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_calls_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_calls_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_calls_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_calls_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_calls_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_calls_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evolution_chatbot_responses: {
+        Row: {
+          created_at: string | null
+          feedback: string | null
+          id: string
+          model_used: string
+          remote_jid: string
+          response_text: string
+          response_time_ms: number | null
+          tokens_used: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          feedback?: string | null
+          id?: string
+          model_used?: string
+          remote_jid: string
+          response_text: string
+          response_time_ms?: number | null
+          tokens_used?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          feedback?: string | null
+          id?: string
+          model_used?: string
+          remote_jid?: string
+          response_text?: string
+          response_time_ms?: number | null
+          tokens_used?: number | null
+        }
+        Relationships: []
+      }
+      evolution_contact_rate_limits: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_rate_limited: boolean | null
+          message_count: number | null
+          remote_jid: string
+          updated_at: string | null
+          window_start: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_rate_limited?: boolean | null
+          message_count?: number | null
+          remote_jid: string
+          updated_at?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_rate_limited?: boolean | null
+          message_count?: number | null
+          remote_jid?: string
+          updated_at?: string | null
+          window_start?: string | null
+        }
+        Relationships: []
+      }
+      evolution_daily_metrics: {
+        Row: {
+          active_contacts: number | null
+          automations_triggered: number | null
+          avg_messages_per_contact: number | null
+          avg_resolution_time_seconds: number | null
+          avg_response_time_seconds: number | null
+          calculated_at: string | null
+          conversations_opened: number | null
+          conversations_resolved: number | null
+          deal_win_rate: number | null
+          deals_created: number | null
+          deals_lost: number | null
+          deals_won: number | null
+          followups_sent: number | null
+          id: string
+          lead_to_deal_rate: number | null
+          messages_received: number | null
+          messages_sent: number | null
+          metric_date: string
+          new_contacts: number | null
+          pipeline_value: number | null
+          revenue: number | null
+          total_contacts: number | null
+        }
+        Insert: {
+          active_contacts?: number | null
+          automations_triggered?: number | null
+          avg_messages_per_contact?: number | null
+          avg_resolution_time_seconds?: number | null
+          avg_response_time_seconds?: number | null
+          calculated_at?: string | null
+          conversations_opened?: number | null
+          conversations_resolved?: number | null
+          deal_win_rate?: number | null
+          deals_created?: number | null
+          deals_lost?: number | null
+          deals_won?: number | null
+          followups_sent?: number | null
+          id?: string
+          lead_to_deal_rate?: number | null
+          messages_received?: number | null
+          messages_sent?: number | null
+          metric_date: string
+          new_contacts?: number | null
+          pipeline_value?: number | null
+          revenue?: number | null
+          total_contacts?: number | null
+        }
+        Update: {
+          active_contacts?: number | null
+          automations_triggered?: number | null
+          avg_messages_per_contact?: number | null
+          avg_resolution_time_seconds?: number | null
+          avg_response_time_seconds?: number | null
+          calculated_at?: string | null
+          conversations_opened?: number | null
+          conversations_resolved?: number | null
+          deal_win_rate?: number | null
+          deals_created?: number | null
+          deals_lost?: number | null
+          deals_won?: number | null
+          followups_sent?: number | null
+          id?: string
+          lead_to_deal_rate?: number | null
+          messages_received?: number | null
+          messages_sent?: number | null
+          metric_date?: string
+          new_contacts?: number | null
+          pipeline_value?: number | null
+          revenue?: number | null
+          total_contacts?: number | null
+        }
+        Relationships: []
+      }
+      evolution_deals: {
+        Row: {
+          actual_close_date: string | null
+          assigned_to: string | null
+          closed_at: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          cost: number | null
+          created_at: string | null
+          deal_number: number
+          deleted_at: string | null
+          description: string | null
+          discount_percent: number | null
+          expected_close_date: string | null
+          id: string
+          instance_name: string | null
+          lost: boolean | null
+          lost_notes: string | null
+          lost_reason: string | null
+          metadata: Json | null
+          notes: string | null
+          probability: number | null
+          products: Json | null
+          profit: number | null
+          source: string | null
+          stage: string | null
+          stage_changed_at: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          value: number | null
+          weighted_value: number | null
+          won: boolean | null
+        }
+        Insert: {
+          actual_close_date?: string | null
+          assigned_to?: string | null
+          closed_at?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          cost?: number | null
+          created_at?: string | null
+          deal_number?: number
+          deleted_at?: string | null
+          description?: string | null
+          discount_percent?: number | null
+          expected_close_date?: string | null
+          id?: string
+          instance_name?: string | null
+          lost?: boolean | null
+          lost_notes?: string | null
+          lost_reason?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          probability?: number | null
+          products?: Json | null
+          profit?: number | null
+          source?: string | null
+          stage?: string | null
+          stage_changed_at?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          value?: number | null
+          weighted_value?: number | null
+          won?: boolean | null
+        }
+        Update: {
+          actual_close_date?: string | null
+          assigned_to?: string | null
+          closed_at?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          cost?: number | null
+          created_at?: string | null
+          deal_number?: number
+          deleted_at?: string | null
+          description?: string | null
+          discount_percent?: number | null
+          expected_close_date?: string | null
+          id?: string
+          instance_name?: string | null
+          lost?: boolean | null
+          lost_notes?: string | null
+          lost_reason?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          probability?: number | null
+          products?: Json | null
+          profit?: number | null
+          source?: string | null
+          stage?: string | null
+          stage_changed_at?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          value?: number | null
+          weighted_value?: number | null
+          won?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_deals_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_deals_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_deals_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_deals_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_deals_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_deals_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evolution_fallback_events: {
+        Row: {
+          action: string | null
+          created_at: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          instance: string | null
+          instance_name: string | null
+          payload: Json | null
+          ts: string | null
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          instance?: string | null
+          instance_name?: string | null
+          payload?: Json | null
+          ts?: string | null
+        }
+        Update: {
+          action?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          instance?: string | null
+          instance_name?: string | null
+          payload?: Json | null
+          ts?: string | null
+        }
+        Relationships: []
+      }
+      evolution_followup_rules: {
+        Row: {
+          conditions: Json | null
+          created_at: string | null
+          delay_hours: number | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          run_count: number | null
+          sequence_group: string | null
+          sequence_order: number | null
+          template_id: string | null
+          trigger_config: Json
+          trigger_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          conditions?: Json | null
+          created_at?: string | null
+          delay_hours?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          run_count?: number | null
+          sequence_group?: string | null
+          sequence_order?: number | null
+          template_id?: string | null
+          trigger_config?: Json
+          trigger_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          conditions?: Json | null
+          created_at?: string | null
+          delay_hours?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          run_count?: number | null
+          sequence_group?: string | null
+          sequence_order?: number | null
+          template_id?: string | null
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      evolution_followups: {
+        Row: {
+          attempts: number | null
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string | null
+          created_by: string | null
+          custom_message: string | null
+          deal_id: string | null
+          error_message: string | null
+          followup_type: string
+          id: string
+          instance_name: string | null
+          max_attempts: number | null
+          metadata: Json | null
+          response_at: string | null
+          scheduled_at: string
+          sent_at: string | null
+          status: string | null
+          template_id: string | null
+          triggered_at: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custom_message?: string | null
+          deal_id?: string | null
+          error_message?: string | null
+          followup_type: string
+          id?: string
+          instance_name?: string | null
+          max_attempts?: number | null
+          metadata?: Json | null
+          response_at?: string | null
+          scheduled_at: string
+          sent_at?: string | null
+          status?: string | null
+          template_id?: string | null
+          triggered_at?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custom_message?: string | null
+          deal_id?: string | null
+          error_message?: string | null
+          followup_type?: string
+          id?: string
+          instance_name?: string | null
+          max_attempts?: number | null
+          metadata?: Json | null
+          response_at?: string | null
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string | null
+          template_id?: string | null
+          triggered_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_followups_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_followups_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_followups_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_followups_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_followups_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_followups_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evolution_group_messages: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          group_id: string | null
+          id: string
+          is_from_admin: boolean | null
+          media_url: string | null
+          mentions: string[] | null
+          message_id: string
+          message_type: string | null
+          quoted_message_id: string | null
+          sender_jid: string
+          sender_name: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          group_id?: string | null
+          id?: string
+          is_from_admin?: boolean | null
+          media_url?: string | null
+          mentions?: string[] | null
+          message_id: string
+          message_type?: string | null
+          quoted_message_id?: string | null
+          sender_jid: string
+          sender_name?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          group_id?: string | null
+          id?: string
+          is_from_admin?: boolean | null
+          media_url?: string | null
+          mentions?: string[] | null
+          message_id?: string
+          message_type?: string | null
+          quoted_message_id?: string | null
+          sender_jid?: string
+          sender_name?: string | null
+        }
+        Relationships: []
+      }
+      evolution_group_participants: {
+        Row: {
+          contact_id: string | null
+          group_id: string | null
+          id: string
+          is_active: boolean | null
+          joined_at: string | null
+          left_at: string | null
+          participant_jid: string
+          phone_jid: string | null
+          role: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          group_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          participant_jid: string
+          phone_jid?: string | null
+          role?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          group_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          participant_jid?: string
+          phone_jid?: string | null
+          role?: string | null
+        }
+        Relationships: []
+      }
+      evolution_group_rules: {
+        Row: {
+          action_type: string
+          action_value: string | null
+          created_at: string | null
+          execution_count: number | null
+          group_id: string | null
+          id: string
+          is_active: boolean | null
+          last_executed_at: string | null
+          rule_type: string
+          trigger_value: string | null
+        }
+        Insert: {
+          action_type: string
+          action_value?: string | null
+          created_at?: string | null
+          execution_count?: number | null
+          group_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_executed_at?: string | null
+          rule_type: string
+          trigger_value?: string | null
+        }
+        Update: {
+          action_type?: string
+          action_value?: string | null
+          created_at?: string | null
+          execution_count?: number | null
+          group_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_executed_at?: string | null
+          rule_type?: string
+          trigger_value?: string | null
+        }
+        Relationships: []
+      }
+      evolution_groups: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          description: string | null
+          group_id: string
+          id: string
+          instance_name: string
+          name: string | null
+          participant_count: number
+          updated_at: string
+          whatsapp_connection_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          group_id: string
+          id?: string
+          instance_name?: string
+          name?: string | null
+          participant_count?: number
+          updated_at?: string
+          whatsapp_connection_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          group_id?: string
+          id?: string
+          instance_name?: string
+          name?: string | null
+          participant_count?: number
+          updated_at?: string
+          whatsapp_connection_id?: string | null
+        }
+        Relationships: []
+      }
+      evolution_health_logs: {
+        Row: {
+          connection_id: string | null
+          created_at: string | null
+          endpoint_tested: string | null
+          error_count: number | null
+          error_message: string | null
+          http_status_code: number | null
+          id: string
+          instance_name: string
+          metadata: Json | null
+          online_instances: number | null
+          performed_at: string
+          response_time_ms: number | null
+          status: string
+          success_count: number | null
+          total_instances: number | null
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string | null
+          endpoint_tested?: string | null
+          error_count?: number | null
+          error_message?: string | null
+          http_status_code?: number | null
+          id?: string
+          instance_name: string
+          metadata?: Json | null
+          online_instances?: number | null
+          performed_at?: string
+          response_time_ms?: number | null
+          status?: string
+          success_count?: number | null
+          total_instances?: number | null
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string | null
+          endpoint_tested?: string | null
+          error_count?: number | null
+          error_message?: string | null
+          http_status_code?: number | null
+          id?: string
+          instance_name?: string
+          metadata?: Json | null
+          online_instances?: number | null
+          performed_at?: string
+          response_time_ms?: number | null
+          status?: string
+          success_count?: number | null
+          total_instances?: number | null
+        }
+        Relationships: []
+      }
+      evolution_holidays: {
+        Row: {
+          auto_reply_message: string | null
+          close_time: string | null
+          created_at: string | null
+          date: string
+          id: string
+          is_half_day: boolean | null
+          name: string
+        }
+        Insert: {
+          auto_reply_message?: string | null
+          close_time?: string | null
+          created_at?: string | null
+          date: string
+          id?: string
+          is_half_day?: boolean | null
+          name: string
+        }
+        Update: {
+          auto_reply_message?: string | null
+          close_time?: string | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          is_half_day?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
+      evolution_incident_runbook: {
+        Row: {
+          category: string
+          created_at: string
+          escalation: string | null
+          estimated_minutes: number | null
+          id: string
+          last_drilled_at: string | null
+          severity: string
+          steps: Json
+          success_criteria: string[]
+          title: string
+          triggers: string[]
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          escalation?: string | null
+          estimated_minutes?: number | null
+          id: string
+          last_drilled_at?: string | null
+          severity: string
+          steps: Json
+          success_criteria: string[]
+          title: string
+          triggers: string[]
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          escalation?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          last_drilled_at?: string | null
+          severity?: string
+          steps?: Json
+          success_criteria?: string[]
+          title?: string
+          triggers?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      evolution_instance_credentials: {
+        Row: {
+          api_key: string
+          api_url: string
+          connection_id: string | null
+          created_at: string
+          department: string | null
+          display_name: string | null
+          health_status: string
+          id: string
+          instance_name: string
+          instance_token: string | null
+          is_active: boolean
+          last_health_check: string | null
+          notes: string | null
+          online_instances: number | null
+          total_instances: number | null
+          updated_at: string
+          vault_secret_id: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          api_key: string
+          api_url?: string
+          connection_id?: string | null
+          created_at?: string
+          department?: string | null
+          display_name?: string | null
+          health_status?: string
+          id?: string
+          instance_name: string
+          instance_token?: string | null
+          is_active?: boolean
+          last_health_check?: string | null
+          notes?: string | null
+          online_instances?: number | null
+          total_instances?: number | null
+          updated_at?: string
+          vault_secret_id?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          api_key?: string
+          api_url?: string
+          connection_id?: string | null
+          created_at?: string
+          department?: string | null
+          display_name?: string | null
+          health_status?: string
+          id?: string
+          instance_name?: string
+          instance_token?: string | null
+          is_active?: boolean
+          last_health_check?: string | null
+          notes?: string | null
+          online_instances?: number | null
+          total_instances?: number | null
+          updated_at?: string
+          vault_secret_id?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
+      evolution_ip_blocklist: {
+        Row: {
+          auto_blocked: boolean
+          created_at: string
+          first_seen: string
+          hit_count: number
+          ip_address: string
+          last_seen: string
+          reason: string
+          unblocked_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          auto_blocked?: boolean
+          created_at?: string
+          first_seen: string
+          hit_count?: number
+          ip_address: string
+          last_seen: string
+          reason: string
+          unblocked_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auto_blocked?: boolean
+          created_at?: string
+          first_seen?: string
+          hit_count?: number
+          ip_address?: string
+          last_seen?: string
+          reason?: string
+          unblocked_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      evolution_keyword_automations: {
+        Row: {
+          cooldown_minutes: number | null
+          created_at: string | null
+          hit_count: number | null
+          id: string
+          is_active: boolean | null
+          is_case_sensitive: boolean | null
+          keyword: string
+          last_triggered_at: string | null
+          match_type: string | null
+          media_url: string | null
+          menu_options: Json | null
+          only_first_message: boolean | null
+          only_outside_hours: boolean | null
+          priority: number | null
+          response_text: string | null
+          response_type: string | null
+          template_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cooldown_minutes?: number | null
+          created_at?: string | null
+          hit_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_case_sensitive?: boolean | null
+          keyword: string
+          last_triggered_at?: string | null
+          match_type?: string | null
+          media_url?: string | null
+          menu_options?: Json | null
+          only_first_message?: boolean | null
+          only_outside_hours?: boolean | null
+          priority?: number | null
+          response_text?: string | null
+          response_type?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cooldown_minutes?: number | null
+          created_at?: string | null
+          hit_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_case_sensitive?: boolean | null
+          keyword?: string
+          last_triggered_at?: string | null
+          match_type?: string | null
+          media_url?: string | null
+          menu_options?: Json | null
+          only_first_message?: boolean | null
+          only_outside_hours?: boolean | null
+          priority?: number | null
+          response_text?: string | null
+          response_type?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      evolution_label_associations: {
+        Row: {
+          associated_at: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          id: string
+          is_active: boolean | null
+          label_id: string | null
+          remote_jid: string
+          removed_at: string | null
+        }
+        Insert: {
+          associated_at?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          label_id?: string | null
+          remote_jid: string
+          removed_at?: string | null
+        }
+        Update: {
+          associated_at?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          label_id?: string | null
+          remote_jid?: string
+          removed_at?: string | null
+        }
+        Relationships: []
+      }
+      evolution_labels: {
+        Row: {
+          color: string | null
+          color_hex: string | null
+          created_at: string | null
+          id: string
+          instance_name: string | null
+          is_active: boolean | null
+          label_id: string
+          name: string
+          predefined_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          color_hex?: string | null
+          created_at?: string | null
+          id?: string
+          instance_name?: string | null
+          is_active?: boolean | null
+          label_id: string
+          name: string
+          predefined_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          color_hex?: string | null
+          created_at?: string | null
+          id?: string
+          instance_name?: string | null
+          is_active?: boolean | null
+          label_id?: string
+          name?: string
+          predefined_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      evolution_license_health_log: {
+        Row: {
+          alert_sent: boolean
+          checked_at: string
+          http_status: number | null
+          id: number
+          raw: Json | null
+          response_time_ms: number | null
+          status: string
+        }
+        Insert: {
+          alert_sent?: boolean
+          checked_at?: string
+          http_status?: number | null
+          id?: never
+          raw?: Json | null
+          response_time_ms?: number | null
+          status: string
+        }
+        Update: {
+          alert_sent?: boolean
+          checked_at?: string
+          http_status?: number | null
+          id?: never
+          raw?: Json | null
+          response_time_ms?: number | null
+          status?: string
+        }
+        Relationships: []
+      }
+      evolution_logpatch_audit: {
+        Row: {
+          boot_at: string | null
+          booted_at: string
+          container_id: string
+          evolution_version: string | null
+          force_update: number | null
+          id: string
+          image_digest: string | null
+          instance_name: string
+          logpatch_detail: Json
+          logpatch_status: string
+          notes: string | null
+          patch_mode: string
+          patch_version: string | null
+          patched_size_bytes: number | null
+          t1_ok: boolean | null
+          t2_ok: boolean | null
+          t3_ok: boolean | null
+          t4_ok: boolean | null
+          t5_ok: boolean | null
+          verified_at: string | null
+        }
+        Insert: {
+          boot_at?: string | null
+          booted_at?: string
+          container_id?: string
+          evolution_version?: string | null
+          force_update?: number | null
+          id?: string
+          image_digest?: string | null
+          instance_name?: string
+          logpatch_detail?: Json
+          logpatch_status?: string
+          notes?: string | null
+          patch_mode?: string
+          patch_version?: string | null
+          patched_size_bytes?: number | null
+          t1_ok?: boolean | null
+          t2_ok?: boolean | null
+          t3_ok?: boolean | null
+          t4_ok?: boolean | null
+          t5_ok?: boolean | null
+          verified_at?: string | null
+        }
+        Update: {
+          boot_at?: string | null
+          booted_at?: string
+          container_id?: string
+          evolution_version?: string | null
+          force_update?: number | null
+          id?: string
+          image_digest?: string | null
+          instance_name?: string
+          logpatch_detail?: Json
+          logpatch_status?: string
+          notes?: string | null
+          patch_mode?: string
+          patch_version?: string | null
+          patched_size_bytes?: number | null
+          t1_ok?: boolean | null
+          t2_ok?: boolean | null
+          t3_ok?: boolean | null
+          t4_ok?: boolean | null
+          t5_ok?: boolean | null
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
+      evolution_media: {
+        Row: {
+          base64_data: string | null
+          caption: string | null
+          created_at: string | null
+          duration_seconds: number | null
+          file_name: string | null
+          file_sha256: string | null
+          file_size: number | null
+          height: number | null
+          id: string
+          instance_name: string
+          is_animated: boolean | null
+          media_status: string | null
+          media_type: string
+          message_id: string
+          mime_type: string | null
+          remote_jid: string
+          storage_bucket: string | null
+          storage_path: string | null
+          storage_path_clean: string | null
+          storage_url: string | null
+          thumbnail_base64: string | null
+          width: number | null
+        }
+        Insert: {
+          base64_data?: string | null
+          caption?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          file_name?: string | null
+          file_sha256?: string | null
+          file_size?: number | null
+          height?: number | null
+          id?: string
+          instance_name?: string
+          is_animated?: boolean | null
+          media_status?: string | null
+          media_type: string
+          message_id: string
+          mime_type?: string | null
+          remote_jid: string
+          storage_bucket?: string | null
+          storage_path?: string | null
+          storage_path_clean?: string | null
+          storage_url?: string | null
+          thumbnail_base64?: string | null
+          width?: number | null
+        }
+        Update: {
+          base64_data?: string | null
+          caption?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          file_name?: string | null
+          file_sha256?: string | null
+          file_size?: number | null
+          height?: number | null
+          id?: string
+          instance_name?: string
+          is_animated?: boolean | null
+          media_status?: string | null
+          media_type?: string
+          message_id?: string
+          mime_type?: string | null
+          remote_jid?: string
+          storage_bucket?: string | null
+          storage_path?: string | null
+          storage_path_clean?: string | null
+          storage_url?: string | null
+          thumbnail_base64?: string | null
+          width?: number | null
+        }
+        Relationships: []
+      }
+      evolution_message_queue: {
+        Row: {
+          attempts: number | null
+          contact_id: string | null
+          content: string | null
+          created_at: string | null
+          created_by: string | null
+          delivered_at: string | null
+          error_message: string | null
+          id: string
+          instance_name: string | null
+          max_attempts: number | null
+          media_filename: string | null
+          media_url: string | null
+          message_type: string | null
+          metadata: Json | null
+          priority: number | null
+          read_at: string | null
+          remote_jid: string
+          scheduled_at: string | null
+          sent_at: string | null
+          source: string | null
+          source_id: string | null
+          status: string | null
+          template_id: string | null
+          template_vars: Json | null
+          whatsapp_message_id: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          contact_id?: string | null
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          instance_name?: string | null
+          max_attempts?: number | null
+          media_filename?: string | null
+          media_url?: string | null
+          message_type?: string | null
+          metadata?: Json | null
+          priority?: number | null
+          read_at?: string | null
+          remote_jid: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          source?: string | null
+          source_id?: string | null
+          status?: string | null
+          template_id?: string | null
+          template_vars?: Json | null
+          whatsapp_message_id?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          contact_id?: string | null
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          instance_name?: string | null
+          max_attempts?: number | null
+          media_filename?: string | null
+          media_url?: string | null
+          message_type?: string | null
+          metadata?: Json | null
+          priority?: number | null
+          read_at?: string | null
+          remote_jid?: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          source?: string | null
+          source_id?: string | null
+          status?: string | null
+          template_id?: string | null
+          template_vars?: Json | null
+          whatsapp_message_id?: string | null
+        }
+        Relationships: []
+      }
+      evolution_message_templates: {
+        Row: {
+          approval_status: string | null
+          approved_at: string | null
+          buttons: Json | null
+          category: string
+          content: string
+          created_at: string | null
+          created_by: string | null
+          footer_text: string | null
+          header_content: string | null
+          header_type: string | null
+          id: string
+          instance_name: string | null
+          is_active: boolean | null
+          language: string | null
+          last_used_at: string | null
+          name: string
+          rejection_reason: string | null
+          updated_at: string | null
+          usage_count: number | null
+          variables: Json | null
+        }
+        Insert: {
+          approval_status?: string | null
+          approved_at?: string | null
+          buttons?: Json | null
+          category?: string
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          footer_text?: string | null
+          header_content?: string | null
+          header_type?: string | null
+          id?: string
+          instance_name?: string | null
+          is_active?: boolean | null
+          language?: string | null
+          last_used_at?: string | null
+          name: string
+          rejection_reason?: string | null
+          updated_at?: string | null
+          usage_count?: number | null
+          variables?: Json | null
+        }
+        Update: {
+          approval_status?: string | null
+          approved_at?: string | null
+          buttons?: Json | null
+          category?: string
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          footer_text?: string | null
+          header_content?: string | null
+          header_type?: string | null
+          id?: string
+          instance_name?: string | null
+          is_active?: boolean | null
+          language?: string | null
+          last_used_at?: string | null
+          name?: string
+          rejection_reason?: string | null
+          updated_at?: string | null
+          usage_count?: number | null
+          variables?: Json | null
+        }
+        Relationships: []
+      }
+      evolution_messages_wpp2_archive: {
+        Row: {
+          audio_meme_id: string | null
+          caption: string | null
+          category: string | null
+          contact_id: string | null
+          content: string | null
+          conversation_id: string | null
+          created_at: string
+          deleted_at: string | null
+          direction: string | null
+          edited_at: string | null
+          follow_up_at: string | null
+          follow_up_done: boolean | null
+          from_me: boolean | null
+          id: string
+          instance_name: string
+          is_important: boolean | null
+          is_read: boolean
+          is_starred: boolean | null
+          link_preview: Json | null
+          media_bucket: string | null
+          media_filename: string | null
+          media_meta: Json | null
+          media_mimetype: string | null
+          media_path: string | null
+          media_sha256: string | null
+          media_size: number | null
+          media_status: string | null
+          media_type: string | null
+          media_url: string | null
+          message_id: string | null
+          message_type: string
+          notes: string | null
+          payload: Json | null
+          push_name: string | null
+          quoted_message_id: string | null
+          raw_data: Json | null
+          remote_jid: string
+          reply_to_id: string | null
+          sent_by_bot: boolean | null
+          sentiment: string | null
+          status: string | null
+          status_at: string | null
+          sticker_id: string | null
+          tags: string[] | null
+          template_name: string | null
+          transcription: string | null
+          transcription_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          audio_meme_id?: string | null
+          caption?: string | null
+          category?: string | null
+          contact_id?: string | null
+          content?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          direction?: string | null
+          edited_at?: string | null
+          follow_up_at?: string | null
+          follow_up_done?: boolean | null
+          from_me?: boolean | null
+          id?: string
+          instance_name: string
+          is_important?: boolean | null
+          is_read?: boolean
+          is_starred?: boolean | null
+          link_preview?: Json | null
+          media_bucket?: string | null
+          media_filename?: string | null
+          media_meta?: Json | null
+          media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
+          media_size?: number | null
+          media_status?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          message_id?: string | null
+          message_type?: string
+          notes?: string | null
+          payload?: Json | null
+          push_name?: string | null
+          quoted_message_id?: string | null
+          raw_data?: Json | null
+          remote_jid: string
+          reply_to_id?: string | null
+          sent_by_bot?: boolean | null
+          sentiment?: string | null
+          status?: string | null
+          status_at?: string | null
+          sticker_id?: string | null
+          tags?: string[] | null
+          template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          audio_meme_id?: string | null
+          caption?: string | null
+          category?: string | null
+          contact_id?: string | null
+          content?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          direction?: string | null
+          edited_at?: string | null
+          follow_up_at?: string | null
+          follow_up_done?: boolean | null
+          from_me?: boolean | null
+          id?: string
+          instance_name?: string
+          is_important?: boolean | null
+          is_read?: boolean
+          is_starred?: boolean | null
+          link_preview?: Json | null
+          media_bucket?: string | null
+          media_filename?: string | null
+          media_meta?: Json | null
+          media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
+          media_size?: number | null
+          media_status?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          message_id?: string | null
+          message_type?: string
+          notes?: string | null
+          payload?: Json | null
+          push_name?: string | null
+          quoted_message_id?: string | null
+          raw_data?: Json | null
+          remote_jid?: string
+          reply_to_id?: string | null
+          sent_by_bot?: boolean | null
+          sentiment?: string | null
+          status?: string | null
+          status_at?: string | null
+          sticker_id?: string | null
+          tags?: string[] | null
+          template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      evolution_mirror_batches: {
+        Row: {
+          batch_seq: number
+          bytes_gz: number | null
+          consumed_at: string | null
+          consumed_status: string | null
+          consumer_error: string | null
+          created_at: string
+          id: number
+          metrics: Json | null
+          row_count: number | null
+          run_id: string | null
+          s3_bucket: string
+          s3_key: string
+        }
+        Insert: {
+          batch_seq: number
+          bytes_gz?: number | null
+          consumed_at?: string | null
+          consumed_status?: string | null
+          consumer_error?: string | null
+          created_at?: string
+          id?: number
+          metrics?: Json | null
+          row_count?: number | null
+          run_id?: string | null
+          s3_bucket?: string
+          s3_key: string
+        }
+        Update: {
+          batch_seq?: number
+          bytes_gz?: number | null
+          consumed_at?: string | null
+          consumed_status?: string | null
+          consumer_error?: string | null
+          created_at?: string
+          id?: number
+          metrics?: Json | null
+          row_count?: number | null
+          run_id?: string | null
+          s3_bucket?: string
+          s3_key?: string
+        }
+        Relationships: []
+      }
+      evolution_mirror_checkpoints: {
+        Row: {
+          checkpoint_key: string
+          id: number
+          last_message_id: string | null
+          last_synced_at: string
+          total_synced: number | null
+          updated_at: string
+        }
+        Insert: {
+          checkpoint_key: string
+          id?: number
+          last_message_id?: string | null
+          last_synced_at: string
+          total_synced?: number | null
+          updated_at?: string
+        }
+        Update: {
+          checkpoint_key?: string
+          id?: number
+          last_message_id?: string | null
+          last_synced_at?: string
+          total_synced?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      evolution_mirror_media_queue: {
+        Row: {
+          created_at: string
+          downloaded_at: string | null
+          file_length: number | null
+          id: number
+          last_error: string | null
+          media_key: string | null
+          media_type: string
+          media_url_source: string | null
+          message_id: string
+          mimetype: string | null
+          minio_path: string | null
+          retry_count: number | null
+          status: string
+          transcription: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          downloaded_at?: string | null
+          file_length?: number | null
+          id?: number
+          last_error?: string | null
+          media_key?: string | null
+          media_type: string
+          media_url_source?: string | null
+          message_id: string
+          mimetype?: string | null
+          minio_path?: string | null
+          retry_count?: number | null
+          status?: string
+          transcription?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          downloaded_at?: string | null
+          file_length?: number | null
+          id?: number
+          last_error?: string | null
+          media_key?: string | null
+          media_type?: string
+          media_url_source?: string | null
+          message_id?: string
+          mimetype?: string | null
+          minio_path?: string | null
+          retry_count?: number | null
+          status?: string
+          transcription?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      evolution_mirror_runs: {
+        Row: {
+          chunks_processed: number | null
+          completed_at: string | null
+          created_at: string
+          duration_seconds: number | null
+          error_message: string | null
+          id: string
+          messages_errored: number | null
+          messages_exported: number | null
+          messages_inserted: number | null
+          messages_skipped: number | null
+          metadata: Json | null
+          run_type: string
+          since_timestamp: string | null
+          started_at: string
+          status: string
+          until_timestamp: string | null
+        }
+        Insert: {
+          chunks_processed?: number | null
+          completed_at?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          messages_errored?: number | null
+          messages_exported?: number | null
+          messages_inserted?: number | null
+          messages_skipped?: number | null
+          metadata?: Json | null
+          run_type: string
+          since_timestamp?: string | null
+          started_at?: string
+          status: string
+          until_timestamp?: string | null
+        }
+        Update: {
+          chunks_processed?: number | null
+          completed_at?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          messages_errored?: number | null
+          messages_exported?: number | null
+          messages_inserted?: number | null
+          messages_skipped?: number | null
+          metadata?: Json | null
+          run_type?: string
+          since_timestamp?: string | null
+          started_at?: string
+          status?: string
+          until_timestamp?: string | null
+        }
+        Relationships: []
+      }
+      evolution_monthly_audit_log: {
+        Row: {
+          audit_month: string
+          created_at: string
+          id: number
+          report: Json
+        }
+        Insert: {
+          audit_month: string
+          created_at?: string
+          id?: number
+          report: Json
+        }
+        Update: {
+          audit_month?: string
+          created_at?: string
+          id?: number
+          report?: Json
+        }
+        Relationships: []
+      }
+      evolution_notification_config: {
+        Row: {
+          api_token: string | null
+          channel: string
+          chat_id: string | null
+          created_at: string | null
+          email_addresses: string[] | null
+          enabled: boolean | null
+          id: string
+          notify_on: string[] | null
+          notify_on_days: number[] | null
+          notify_on_hours: string | null
+          priority_filter: string[] | null
+          slack_webhook: string | null
+          updated_at: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          api_token?: string | null
+          channel: string
+          chat_id?: string | null
+          created_at?: string | null
+          email_addresses?: string[] | null
+          enabled?: boolean | null
+          id?: string
+          notify_on?: string[] | null
+          notify_on_days?: number[] | null
+          notify_on_hours?: string | null
+          priority_filter?: string[] | null
+          slack_webhook?: string | null
+          updated_at?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          api_token?: string | null
+          channel?: string
+          chat_id?: string | null
+          created_at?: string | null
+          email_addresses?: string[] | null
+          enabled?: boolean | null
+          id?: string
+          notify_on?: string[] | null
+          notify_on_days?: number[] | null
+          notify_on_hours?: string | null
+          priority_filter?: string[] | null
+          slack_webhook?: string | null
+          updated_at?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
+      evolution_notification_log: {
+        Row: {
+          alert_id: string | null
+          channel: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          message: string
+          sent_at: string | null
+          status: string | null
+        }
+        Insert: {
+          alert_id?: string | null
+          channel: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          message: string
+          sent_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          alert_id?: string | null
+          channel?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          message?: string
+          sent_at?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      evolution_notification_outbox: {
+        Row: {
+          attempt_count: number
+          channel: string
+          created_at: string
+          id: number
+          last_attempt_at: string | null
+          last_error: string | null
+          notification_id: string
+          payload: Json | null
+          status: string
+        }
+        Insert: {
+          attempt_count?: number
+          channel: string
+          created_at?: string
+          id?: never
+          last_attempt_at?: string | null
+          last_error?: string | null
+          notification_id: string
+          payload?: Json | null
+          status?: string
+        }
+        Update: {
+          attempt_count?: number
+          channel?: string
+          created_at?: string
+          id?: never
+          last_attempt_at?: string | null
+          last_error?: string | null
+          notification_id?: string
+          payload?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evolution_notification_outbox_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evolution_notifications: {
+        Row: {
+          alert_id: string | null
+          channels_sent: string[] | null
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string | null
+          deal_id: string | null
+          id: string
+          message: string
+          metadata: Json | null
+          notification_type: string
+          priority: string | null
+          read_at: string | null
+          read_by: string | null
+          status: string | null
+          title: string
+        }
+        Insert: {
+          alert_id?: string | null
+          channels_sent?: string[] | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          deal_id?: string | null
+          id?: string
+          message: string
+          metadata?: Json | null
+          notification_type: string
+          priority?: string | null
+          read_at?: string | null
+          read_by?: string | null
+          status?: string | null
+          title: string
+        }
+        Update: {
+          alert_id?: string | null
+          channels_sent?: string[] | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          deal_id?: string | null
+          id?: string
+          message?: string
+          metadata?: Json | null
+          notification_type?: string
+          priority?: string | null
+          read_at?: string | null
+          read_by?: string | null
+          status?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_notifications_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_notifications_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_notifications_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_notifications_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_notifications_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_notifications_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evolution_performance_metrics: {
+        Row: {
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          metric_date: string
+          metric_type: string
+          metric_value: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          metric_date?: string
+          metric_type: string
+          metric_value: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          metric_date?: string
+          metric_type?: string
+          metric_value?: number
+        }
+        Relationships: []
+      }
+      evolution_quick_replies: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          shortcut: string
+          title: string
+          use_count: number | null
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          shortcut: string
+          title: string
+          use_count?: number | null
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          shortcut?: string
+          title?: string
+          use_count?: number | null
+        }
+        Relationships: []
+      }
+      evolution_reactions: {
+        Row: {
+          created_at: string | null
+          emoji: string
+          from_me: boolean | null
+          id: string
+          instance_name: string
+          message_id: string
+          push_name: string | null
+          reacted_at: string | null
+          remote_jid: string
+        }
+        Insert: {
+          created_at?: string | null
+          emoji: string
+          from_me?: boolean | null
+          id?: string
+          instance_name: string
+          message_id: string
+          push_name?: string | null
+          reacted_at?: string | null
+          remote_jid: string
+        }
+        Update: {
+          created_at?: string | null
+          emoji?: string
+          from_me?: boolean | null
+          id?: string
+          instance_name?: string
+          message_id?: string
+          push_name?: string | null
+          reacted_at?: string | null
+          remote_jid?: string
+        }
+        Relationships: []
+      }
+      evolution_realtime_events: {
+        Row: {
+          body: string | null
+          created_at: string | null
+          data: Json | null
+          entity_id: string | null
+          entity_type: string
+          event_type: string
+          id: string
+          priority: string | null
+          read: boolean | null
+          read_at: string | null
+          remote_jid: string | null
+          target_users: string[] | null
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string | null
+          data?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          event_type: string
+          id?: string
+          priority?: string | null
+          read?: boolean | null
+          read_at?: string | null
+          remote_jid?: string | null
+          target_users?: string[] | null
+          title: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string | null
+          data?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          event_type?: string
+          id?: string
+          priority?: string | null
+          read?: boolean | null
+          read_at?: string | null
+          remote_jid?: string | null
+          target_users?: string[] | null
+          title?: string
+        }
+        Relationships: []
+      }
+      evolution_retry_metrics: {
+        Row: {
+          action: string
+          attempt_count: number
+          created_at: string | null
+          final_http_status: number | null
+          final_status: string
+          id: string
+          idempotency_key: string | null
+          instance_name: string | null
+          method: string
+          retry_reasons: Json
+          total_duration_ms: number | null
+        }
+        Insert: {
+          action: string
+          attempt_count: number
+          created_at?: string | null
+          final_http_status?: number | null
+          final_status: string
+          id?: string
+          idempotency_key?: string | null
+          instance_name?: string | null
+          method: string
+          retry_reasons?: Json
+          total_duration_ms?: number | null
+        }
+        Update: {
+          action?: string
+          attempt_count?: number
+          created_at?: string | null
+          final_http_status?: number | null
+          final_status?: string
+          id?: string
+          idempotency_key?: string | null
+          instance_name?: string | null
+          method?: string
+          retry_reasons?: Json
+          total_duration_ms?: number | null
+        }
+        Relationships: []
+      }
+      evolution_sales_pipeline: {
+        Row: {
+          assigned_to: string | null
+          created_at: string | null
+          current_stage: string
+          id: string
+          last_message_at: string | null
+          metadata: Json | null
+          notes: string | null
+          previous_stage: string | null
+          push_name: string | null
+          remote_jid: string
+          stage_changed_at: string | null
+          total_messages: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string | null
+          current_stage?: string
+          id?: string
+          last_message_at?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          previous_stage?: string | null
+          push_name?: string | null
+          remote_jid: string
+          stage_changed_at?: string | null
+          total_messages?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string | null
+          current_stage?: string
+          id?: string
+          last_message_at?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          previous_stage?: string | null
+          push_name?: string | null
+          remote_jid?: string
+          stage_changed_at?: string | null
+          total_messages?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      evolution_scheduled_messages: {
+        Row: {
+          contact_id: string | null
+          content: string
+          created_at: string | null
+          created_by: string | null
+          error_message: string | null
+          id: string
+          instance_name: string | null
+          media_url: string | null
+          scheduled_at: string
+          sent_at: string | null
+          status: string | null
+          template_id: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          instance_name?: string | null
+          media_url?: string | null
+          scheduled_at: string
+          sent_at?: string | null
+          status?: string | null
+          template_id?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          instance_name?: string | null
+          media_url?: string | null
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string | null
+          template_id?: string | null
+        }
+        Relationships: []
+      }
+      evolution_send_idempotency: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          external_message_id: string | null
+          http_status: number
+          idem_key: string
+          instance_name: string
+          path: string
+          response: Json
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          external_message_id?: string | null
+          http_status: number
+          idem_key: string
+          instance_name: string
+          path: string
+          response?: Json
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          external_message_id?: string | null
+          http_status?: number
+          idem_key?: string
+          instance_name?: string
+          path?: string
+          response?: Json
+        }
+        Relationships: []
+      }
+      evolution_sentiment_analysis: {
+        Row: {
+          analyzed_at: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string | null
+          emotions: Json | null
+          external_message_id: string | null
+          id: string
+          instance_name: string
+          intent: string | null
+          keywords: string[] | null
+          message_id: string
+          message_text: string
+          model_used: string | null
+          remote_jid: string
+          requires_attention: boolean | null
+          sentiment: string
+          sentiment_score: number | null
+          urgency: string | null
+        }
+        Insert: {
+          analyzed_at?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          emotions?: Json | null
+          external_message_id?: string | null
+          id?: string
+          instance_name?: string
+          intent?: string | null
+          keywords?: string[] | null
+          message_id: string
+          message_text: string
+          model_used?: string | null
+          remote_jid: string
+          requires_attention?: boolean | null
+          sentiment: string
+          sentiment_score?: number | null
+          urgency?: string | null
+        }
+        Update: {
+          analyzed_at?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          emotions?: Json | null
+          external_message_id?: string | null
+          id?: string
+          instance_name?: string
+          intent?: string | null
+          keywords?: string[] | null
+          message_id?: string
+          message_text?: string
+          model_used?: string | null
+          remote_jid?: string
+          requires_attention?: boolean | null
+          sentiment?: string
+          sentiment_score?: number | null
+          urgency?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_sentiment_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_sentiment_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_sentiment_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_sentiment_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_sentiment_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_sentiment_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evolution_settings: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_secret: boolean | null
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_secret?: boolean | null
+          key: string
+          updated_at?: string | null
+          value: Json
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_secret?: boolean | null
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      evolution_source_schema_map: {
+        Row: {
+          column_name: string | null
+          data_type: string | null
+          database_name: string
+          discovered_at: string
+          id: number
+          is_nullable: string | null
+          is_primary_key: boolean | null
+          is_unique: boolean | null
+          ordinal_position: number | null
+          raw_metadata: Json | null
+          row_count_est: number | null
+          schema_name: string
+          table_name: string
+        }
+        Insert: {
+          column_name?: string | null
+          data_type?: string | null
+          database_name: string
+          discovered_at?: string
+          id?: number
+          is_nullable?: string | null
+          is_primary_key?: boolean | null
+          is_unique?: boolean | null
+          ordinal_position?: number | null
+          raw_metadata?: Json | null
+          row_count_est?: number | null
+          schema_name: string
+          table_name: string
+        }
+        Update: {
+          column_name?: string | null
+          data_type?: string | null
+          database_name?: string
+          discovered_at?: string
+          id?: number
+          is_nullable?: string | null
+          is_primary_key?: boolean | null
+          is_unique?: boolean | null
+          ordinal_position?: number | null
+          raw_metadata?: Json | null
+          row_count_est?: number | null
+          schema_name?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
+      evolution_source_shadow_log: {
+        Row: {
+          captured_at: string | null
+          dedup_rate: number | null
+          event_count: number
+          event_types: Json | null
+          id: string
+          snapshot_date: string
+          source: string
+          window_days: number
+        }
+        Insert: {
+          captured_at?: string | null
+          dedup_rate?: number | null
+          event_count: number
+          event_types?: Json | null
+          id?: string
+          snapshot_date?: string
+          source: string
+          window_days?: number
+        }
+        Update: {
+          captured_at?: string | null
+          dedup_rate?: number | null
+          event_count?: number
+          event_types?: Json | null
+          id?: string
+          snapshot_date?: string
+          source?: string
+          window_days?: number
+        }
+        Relationships: []
+      }
+      evolution_spam_keywords: {
+        Row: {
+          action: string | null
+          auto_reply_message: string | null
+          created_at: string | null
+          hit_count: number | null
+          id: string
+          is_active: boolean | null
+          keyword: string
+          match_type: string | null
+        }
+        Insert: {
+          action?: string | null
+          auto_reply_message?: string | null
+          created_at?: string | null
+          hit_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          keyword: string
+          match_type?: string | null
+        }
+        Update: {
+          action?: string | null
+          auto_reply_message?: string | null
+          created_at?: string | null
+          hit_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          keyword?: string
+          match_type?: string | null
+        }
+        Relationships: []
+      }
+      evolution_stage_mapping: {
+        Row: {
+          auto_transition_after_hours: number | null
+          label_color: string | null
+          label_name: string
+          next_stage: string | null
+          stage_key: string
+          stage_order: number | null
+        }
+        Insert: {
+          auto_transition_after_hours?: number | null
+          label_color?: string | null
+          label_name: string
+          next_stage?: string | null
+          stage_key: string
+          stage_order?: number | null
+        }
+        Update: {
+          auto_transition_after_hours?: number | null
+          label_color?: string | null
+          label_name?: string
+          next_stage?: string | null
+          stage_key?: string
+          stage_order?: number | null
+        }
+        Relationships: []
+      }
+      evolution_status_reactions: {
+        Row: {
+          automation_rule_id: string | null
+          created_at: string | null
+          id: string
+          instance_name: string
+          reacted_at: string | null
+          reacted_by: string | null
+          reaction_emoji: string
+          reaction_type: string
+          send_error: string | null
+          sent_at: string | null
+          sent_to_whatsapp: boolean | null
+          status_id: string
+        }
+        Insert: {
+          automation_rule_id?: string | null
+          created_at?: string | null
+          id?: string
+          instance_name?: string
+          reacted_at?: string | null
+          reacted_by?: string | null
+          reaction_emoji?: string
+          reaction_type?: string
+          send_error?: string | null
+          sent_at?: string | null
+          sent_to_whatsapp?: boolean | null
+          status_id: string
+        }
+        Update: {
+          automation_rule_id?: string | null
+          created_at?: string | null
+          id?: string
+          instance_name?: string
+          reacted_at?: string | null
+          reacted_by?: string | null
+          reaction_emoji?: string
+          reaction_type?: string
+          send_error?: string | null
+          sent_at?: string | null
+          sent_to_whatsapp?: boolean | null
+          status_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evolution_status_reactions_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_whatsapp_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_status_reactions_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "v_whatsapp_status_feed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evolution_tag_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          tag_id: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          tag_id?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          tag_id?: string | null
+        }
+        Relationships: []
+      }
+      evolution_tags: {
+        Row: {
+          auto_apply: boolean | null
+          auto_apply_rules: Json | null
+          category: string | null
+          color: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          use_count: number | null
+        }
+        Insert: {
+          auto_apply?: boolean | null
+          auto_apply_rules?: Json | null
+          category?: string | null
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          use_count?: number | null
+        }
+        Update: {
+          auto_apply?: boolean | null
+          auto_apply_rules?: Json | null
+          category?: string | null
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          use_count?: number | null
+        }
+        Relationships: []
+      }
+      evolution_tasks: {
+        Row: {
+          assigned_by: string | null
+          assigned_to: string | null
+          completed_at: string | null
+          completed_by: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string | null
+          deal_id: string | null
+          deleted_at: string | null
+          description: string | null
+          due_date: string | null
+          due_time: string | null
+          id: string
+          is_recurring: boolean | null
+          metadata: Json | null
+          notes: string | null
+          parent_task_id: string | null
+          priority: string | null
+          recurrence_end: string | null
+          recurrence_rule: string | null
+          reminder_at: string | null
+          status: string | null
+          tags: string[] | null
+          task_type: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_by?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          deal_id?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          metadata?: Json | null
+          notes?: string | null
+          parent_task_id?: string | null
+          priority?: string | null
+          recurrence_end?: string | null
+          recurrence_rule?: string | null
+          reminder_at?: string | null
+          status?: string | null
+          tags?: string[] | null
+          task_type?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_by?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          deal_id?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          metadata?: Json | null
+          notes?: string | null
+          parent_task_id?: string | null
+          priority?: string | null
+          recurrence_end?: string | null
+          recurrence_rule?: string | null
+          reminder_at?: string | null
+          status?: string | null
+          tags?: string[] | null
+          task_type?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_tasks_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evolution_template_usage: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          remote_jid: string
+          send_status: string
+          template_id: string | null
+          variables_used: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          remote_jid: string
+          send_status?: string
+          template_id?: string | null
+          variables_used?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          remote_jid?: string
+          send_status?: string
+          template_id?: string | null
+          variables_used?: Json | null
+        }
+        Relationships: []
+      }
+      evolution_webhook_dlq: {
+        Row: {
+          consumer_version: string | null
+          created_at: string | null
+          error_message: string
+          error_stack: string | null
+          event_type: string
+          id: string
+          instance_name: string
+          last_request_id: number | null
+          max_retries: number | null
+          next_retry_at: string | null
+          original_event_id: string | null
+          payload: Json | null
+          queue_name: string | null
+          raw_payload: string | null
+          remote_jid: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          retry_count: number | null
+          source_event_id: string | null
+          status: string
+        }
+        Insert: {
+          consumer_version?: string | null
+          created_at?: string | null
+          error_message: string
+          error_stack?: string | null
+          event_type: string
+          id?: string
+          instance_name: string
+          last_request_id?: number | null
+          max_retries?: number | null
+          next_retry_at?: string | null
+          original_event_id?: string | null
+          payload?: Json | null
+          queue_name?: string | null
+          raw_payload?: string | null
+          remote_jid?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          retry_count?: number | null
+          source_event_id?: string | null
+          status?: string
+        }
+        Update: {
+          consumer_version?: string | null
+          created_at?: string | null
+          error_message?: string
+          error_stack?: string | null
+          event_type?: string
+          id?: string
+          instance_name?: string
+          last_request_id?: number | null
+          max_retries?: number | null
+          next_retry_at?: string | null
+          original_event_id?: string | null
+          payload?: Json | null
+          queue_name?: string | null
+          raw_payload?: string | null
+          remote_jid?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          retry_count?: number | null
+          source_event_id?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      evolution_whatsapp_status: {
+        Row: {
+          contact_id: string | null
+          content: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          instance_name: string
+          local_media_url: string | null
+          media_download_status: string | null
+          media_downloaded_at: string | null
+          media_meta: Json | null
+          media_mimetype: string | null
+          media_url: string | null
+          message_id: string
+          message_type: string | null
+          participant_jid: string
+          participant_name: string | null
+          posted_at: string | null
+          viewed_at: string | null
+          viewed_by_us: boolean | null
+        }
+        Insert: {
+          contact_id?: string | null
+          content?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          instance_name?: string
+          local_media_url?: string | null
+          media_download_status?: string | null
+          media_downloaded_at?: string | null
+          media_meta?: Json | null
+          media_mimetype?: string | null
+          media_url?: string | null
+          message_id: string
+          message_type?: string | null
+          participant_jid: string
+          participant_name?: string | null
+          posted_at?: string | null
+          viewed_at?: string | null
+          viewed_by_us?: boolean | null
+        }
+        Update: {
+          contact_id?: string | null
+          content?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          instance_name?: string
+          local_media_url?: string | null
+          media_download_status?: string | null
+          media_downloaded_at?: string | null
+          media_meta?: Json | null
+          media_mimetype?: string | null
+          media_url?: string | null
+          message_id?: string
+          message_type?: string | null
+          participant_jid?: string
+          participant_name?: string | null
+          posted_at?: string | null
+          viewed_at?: string | null
+          viewed_by_us?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_whatsapp_status_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       extensions: {
         Row: {
           id: string
@@ -35953,6 +38871,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      favorite_messages: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       feature_flags: {
         Row: {
@@ -37091,6 +40033,27 @@ export type Database = {
         }
         Relationships: []
       }
+      license_heartbeat_log: {
+        Row: {
+          checked_at: string
+          http_code: number | null
+          raw: string | null
+          status: string | null
+        }
+        Insert: {
+          checked_at: string
+          http_code?: number | null
+          raw?: string | null
+          status?: string | null
+        }
+        Update: {
+          checked_at?: string
+          http_code?: number | null
+          raw?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       login_attempts: {
         Row: {
           attempt_count: number
@@ -37358,6 +40321,48 @@ export type Database = {
             referencedColumns: ["profile_id"]
           },
         ]
+      }
+      message_reports: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          details: string | null
+          id: string
+          instance_name: string | null
+          message_id: string
+          reason: string
+          reporter_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          instance_name?: string | null
+          message_id: string
+          reason: string
+          reporter_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          instance_name?: string | null
+          message_id?: string
+          reason?: string
+          reporter_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Relationships: []
       }
       message_templates: {
         Row: {
@@ -38284,6 +41289,33 @@ export type Database = {
             referencedColumns: ["profile_id"]
           },
         ]
+      }
+      pinned_messages: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          id: string
+          message_id: string
+          pinned_by: string
+          position: number
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          message_id: string
+          pinned_by: string
+          position?: number
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string
+          pinned_by?: string
+          position?: number
+        }
+        Relationships: []
       }
       processed_requests: {
         Row: {
@@ -39497,6 +42529,66 @@ export type Database = {
           user_id?: string | null
           was_blocked?: boolean | null
           window_ms?: number
+        }
+        Relationships: []
+      }
+      realtime_message_fanout: {
+        Row: {
+          contact_id: string | null
+          content: string | null
+          created_at: string
+          deleted_at: string | null
+          error_code: string | null
+          error_reason: string | null
+          from_me: boolean | null
+          id: string
+          instance_name: string
+          is_read: boolean | null
+          media_url: string | null
+          message_id: string
+          message_type: string | null
+          remote_jid: string | null
+          status: string | null
+          status_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          content?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
+          from_me?: boolean | null
+          id?: string
+          instance_name: string
+          is_read?: boolean | null
+          media_url?: string | null
+          message_id: string
+          message_type?: string | null
+          remote_jid?: string | null
+          status?: string | null
+          status_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          content?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
+          from_me?: boolean | null
+          id?: string
+          instance_name?: string
+          is_read?: boolean | null
+          media_url?: string | null
+          message_id?: string
+          message_type?: string | null
+          remote_jid?: string | null
+          status?: string | null
+          status_at?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -46797,7 +49889,50 @@ export type Database = {
           unread_count?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cookies_health_dashboard: {
         Row: {
@@ -47650,6 +50785,25 @@ export type Database = {
         }
         Relationships: []
       }
+      evo_contact_delta: {
+        Row: {
+          delta_pct_last: number | null
+          enriched_email: number | null
+          enriched_nome: number | null
+          enrichment_pct: number | null
+          instance_name: string | null
+          mir_last: number | null
+          mirror_active: number | null
+          mirror_total: number | null
+          newest_activity: string | null
+          novos_30d: number | null
+          novos_7d: number | null
+          oldest: string | null
+          snap_at: string | null
+          src_last: number | null
+        }
+        Relationships: []
+      }
       evolution_alert_cooldown: {
         Row: {
           alert_key: string | null
@@ -47683,195 +50837,6 @@ export type Database = {
           last_severity?: string | null
           last_severity_rank?: number | null
           updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_alerts: {
-        Row: {
-          acknowledged: boolean | null
-          acknowledged_at: string | null
-          acknowledged_by: string | null
-          alert_type: string | null
-          contact_id: string | null
-          created_at: string | null
-          description: string | null
-          escalated_at: string | null
-          id: string | null
-          message: string | null
-          payload: Json | null
-          remote_jid: string | null
-          resolved_at: string | null
-          resolved_by: string | null
-          severity: string | null
-          title: string | null
-        }
-        Insert: {
-          acknowledged?: boolean | null
-          acknowledged_at?: string | null
-          acknowledged_by?: string | null
-          alert_type?: string | null
-          contact_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          escalated_at?: string | null
-          id?: string | null
-          message?: string | null
-          payload?: Json | null
-          remote_jid?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          severity?: string | null
-          title?: string | null
-        }
-        Update: {
-          acknowledged?: boolean | null
-          acknowledged_at?: string | null
-          acknowledged_by?: string | null
-          alert_type?: string | null
-          contact_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          escalated_at?: string | null
-          id?: string | null
-          message?: string | null
-          payload?: Json | null
-          remote_jid?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          severity?: string | null
-          title?: string | null
-        }
-        Relationships: []
-      }
-      evolution_api_consumers: {
-        Row: {
-          api_key_secret_ref: string | null
-          consumer_type: string | null
-          created_at: string | null
-          criticality: string | null
-          description: string | null
-          endpoints_called: string[] | null
-          id: string | null
-          last_verified_at: string | null
-          name: string | null
-          notes: string | null
-          rotation_needed: boolean | null
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          api_key_secret_ref?: string | null
-          consumer_type?: string | null
-          created_at?: string | null
-          criticality?: string | null
-          description?: string | null
-          endpoints_called?: string[] | null
-          id?: string | null
-          last_verified_at?: string | null
-          name?: string | null
-          notes?: string | null
-          rotation_needed?: boolean | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          api_key_secret_ref?: string | null
-          consumer_type?: string | null
-          created_at?: string | null
-          criticality?: string | null
-          description?: string | null
-          endpoints_called?: string[] | null
-          id?: string | null
-          last_verified_at?: string | null
-          name?: string | null
-          notes?: string | null
-          rotation_needed?: boolean | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_audit_log: {
-        Row: {
-          action: string | null
-          changes: Json | null
-          created_at: string | null
-          entity_id: string | null
-          entity_type: string | null
-          id: string | null
-          ip_address: string | null
-          metadata: Json | null
-          new_values: Json | null
-          old_values: Json | null
-          performed_by: string | null
-          performed_by_type: string | null
-          session_id: string | null
-          user_agent: string | null
-        }
-        Insert: {
-          action?: string | null
-          changes?: Json | null
-          created_at?: string | null
-          entity_id?: string | null
-          entity_type?: string | null
-          id?: string | null
-          ip_address?: string | null
-          metadata?: Json | null
-          new_values?: Json | null
-          old_values?: Json | null
-          performed_by?: string | null
-          performed_by_type?: string | null
-          session_id?: string | null
-          user_agent?: string | null
-        }
-        Update: {
-          action?: string | null
-          changes?: Json | null
-          created_at?: string | null
-          entity_id?: string | null
-          entity_type?: string | null
-          id?: string | null
-          ip_address?: string | null
-          metadata?: Json | null
-          new_values?: Json | null
-          old_values?: Json | null
-          performed_by?: string | null
-          performed_by_type?: string | null
-          session_id?: string | null
-          user_agent?: string | null
-        }
-        Relationships: []
-      }
-      evolution_automation_logs: {
-        Row: {
-          action_result: Json | null
-          automation_id: string | null
-          contact_id: string | null
-          error_message: string | null
-          executed_at: string | null
-          id: string | null
-          status: string | null
-          trigger_data: Json | null
-        }
-        Insert: {
-          action_result?: Json | null
-          automation_id?: string | null
-          contact_id?: string | null
-          error_message?: string | null
-          executed_at?: string | null
-          id?: string | null
-          status?: string | null
-          trigger_data?: Json | null
-        }
-        Update: {
-          action_result?: Json | null
-          automation_id?: string | null
-          contact_id?: string | null
-          error_message?: string | null
-          executed_at?: string | null
-          id?: string | null
-          status?: string | null
-          trigger_data?: Json | null
         }
         Relationships: []
       }
@@ -47914,51 +50879,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_bitrix_queue: {
-        Row: {
-          attempts: number | null
-          created_at: string | null
-          entity_type: string | null
-          id: string | null
-          last_error: string | null
-          local_id: string | null
-          max_attempts: number | null
-          next_attempt_at: string | null
-          operation: string | null
-          payload: Json | null
-          processed_at: string | null
-          status: string | null
-        }
-        Insert: {
-          attempts?: number | null
-          created_at?: string | null
-          entity_type?: string | null
-          id?: string | null
-          last_error?: string | null
-          local_id?: string | null
-          max_attempts?: number | null
-          next_attempt_at?: string | null
-          operation?: string | null
-          payload?: Json | null
-          processed_at?: string | null
-          status?: string | null
-        }
-        Update: {
-          attempts?: number | null
-          created_at?: string | null
-          entity_type?: string | null
-          id?: string | null
-          last_error?: string | null
-          local_id?: string | null
-          max_attempts?: number | null
-          next_attempt_at?: string | null
-          operation?: string | null
-          payload?: Json | null
-          processed_at?: string | null
-          status?: string | null
-        }
-        Relationships: []
-      }
       evolution_bootstrap_log: {
         Row: {
           created_at: string | null
@@ -47995,144 +50915,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_burnin_tracker: {
-        Row: {
-          burn_in_passed: boolean | null
-          burn_in_start: string | null
-          id: number | null
-          last_reset_reason: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          burn_in_passed?: boolean | null
-          burn_in_start?: string | null
-          id?: number | null
-          last_reset_reason?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          burn_in_passed?: boolean | null
-          burn_in_start?: string | null
-          id?: number | null
-          last_reset_reason?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_business_hours: {
-        Row: {
-          close_time: string | null
-          created_at: string | null
-          day_of_week: number | null
-          id: string | null
-          is_closed: boolean | null
-          open_time: string | null
-          timezone: string | null
-        }
-        Insert: {
-          close_time?: string | null
-          created_at?: string | null
-          day_of_week?: number | null
-          id?: string | null
-          is_closed?: boolean | null
-          open_time?: string | null
-          timezone?: string | null
-        }
-        Update: {
-          close_time?: string | null
-          created_at?: string | null
-          day_of_week?: number | null
-          id?: string | null
-          is_closed?: boolean | null
-          open_time?: string | null
-          timezone?: string | null
-        }
-        Relationships: []
-      }
-      evolution_calls: {
-        Row: {
-          call_id: string | null
-          call_status: string | null
-          call_type: string | null
-          contact_id: string | null
-          created_at: string | null
-          direction: string | null
-          duration_seconds: number | null
-          ended_at: string | null
-          id: string | null
-          instance_name: string | null
-          missed_callback_sent: boolean | null
-          raw_data: Json | null
-          remote_jid: string | null
-          started_at: string | null
-        }
-        Insert: {
-          call_id?: string | null
-          call_status?: string | null
-          call_type?: string | null
-          contact_id?: string | null
-          created_at?: string | null
-          direction?: string | null
-          duration_seconds?: number | null
-          ended_at?: string | null
-          id?: string | null
-          instance_name?: string | null
-          missed_callback_sent?: boolean | null
-          raw_data?: Json | null
-          remote_jid?: string | null
-          started_at?: string | null
-        }
-        Update: {
-          call_id?: string | null
-          call_status?: string | null
-          call_type?: string | null
-          contact_id?: string | null
-          created_at?: string | null
-          direction?: string | null
-          duration_seconds?: number | null
-          ended_at?: string | null
-          id?: string | null
-          instance_name?: string | null
-          missed_callback_sent?: boolean | null
-          raw_data?: Json | null
-          remote_jid?: string | null
-          started_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_chatbot_responses: {
-        Row: {
-          created_at: string | null
-          feedback: string | null
-          id: string | null
-          model_used: string | null
-          remote_jid: string | null
-          response_text: string | null
-          response_time_ms: number | null
-          tokens_used: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          feedback?: string | null
-          id?: string | null
-          model_used?: string | null
-          remote_jid?: string | null
-          response_text?: string | null
-          response_time_ms?: number | null
-          tokens_used?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          feedback?: string | null
-          id?: string | null
-          model_used?: string | null
-          remote_jid?: string | null
-          response_text?: string | null
-          response_time_ms?: number | null
-          tokens_used?: number | null
-        }
-        Relationships: []
-      }
       evolution_connection_history: {
         Row: {
           created_at: string | null
@@ -48163,36 +50945,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_contact_rate_limits: {
-        Row: {
-          created_at: string | null
-          id: string | null
-          is_rate_limited: boolean | null
-          message_count: number | null
-          remote_jid: string | null
-          updated_at: string | null
-          window_start: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string | null
-          is_rate_limited?: boolean | null
-          message_count?: number | null
-          remote_jid?: string | null
-          updated_at?: string | null
-          window_start?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string | null
-          is_rate_limited?: boolean | null
-          message_count?: number | null
-          remote_jid?: string | null
-          updated_at?: string | null
-          window_start?: string | null
-        }
-        Relationships: []
-      }
       evolution_contacts: {
         Row: {
           assigned_to: string | null
@@ -48207,8 +50959,11 @@ export type Database = {
           full_name: string | null
           id: string | null
           instance_name: string | null
+          is_on_whatsapp: boolean | null
           last_message_at: string | null
           last_name: string | null
+          last_presence_at: string | null
+          last_seen_at: string | null
           lead_score: number | null
           lead_source: string | null
           lead_status: string | null
@@ -48226,8 +50981,10 @@ export type Database = {
           notes: string | null
           phone_number: string | null
           pii_masked_at: string | null
+          presence_status: string | null
           profile_picture_url: string | null
           push_name: string | null
+          queue_id: string | null
           raw_data: Json | null
           remote_jid: string | null
           role_title: string | null
@@ -48237,6 +50994,7 @@ export type Database = {
           total_purchases: number | null
           updated_at: string | null
           version: number | null
+          whatsapp_checked_at: string | null
           whatsapp_labels: string[] | null
         }
         Insert: {
@@ -48252,8 +51010,11 @@ export type Database = {
           full_name?: string | null
           id?: string | null
           instance_name?: string | null
+          is_on_whatsapp?: boolean | null
           last_message_at?: string | null
           last_name?: string | null
+          last_presence_at?: string | null
+          last_seen_at?: string | null
           lead_score?: number | null
           lead_source?: string | null
           lead_status?: string | null
@@ -48271,8 +51032,10 @@ export type Database = {
           notes?: string | null
           phone_number?: string | null
           pii_masked_at?: string | null
+          presence_status?: string | null
           profile_picture_url?: string | null
           push_name?: string | null
+          queue_id?: string | null
           raw_data?: Json | null
           remote_jid?: string | null
           role_title?: string | null
@@ -48282,6 +51045,7 @@ export type Database = {
           total_purchases?: number | null
           updated_at?: string | null
           version?: number | null
+          whatsapp_checked_at?: string | null
           whatsapp_labels?: string[] | null
         }
         Update: {
@@ -48297,8 +51061,11 @@ export type Database = {
           full_name?: string | null
           id?: string | null
           instance_name?: string | null
+          is_on_whatsapp?: boolean | null
           last_message_at?: string | null
           last_name?: string | null
+          last_presence_at?: string | null
+          last_seen_at?: string | null
           lead_score?: number | null
           lead_source?: string | null
           lead_status?: string | null
@@ -48316,8 +51083,10 @@ export type Database = {
           notes?: string | null
           phone_number?: string | null
           pii_masked_at?: string | null
+          presence_status?: string | null
           profile_picture_url?: string | null
           push_name?: string | null
+          queue_id?: string | null
           raw_data?: Json | null
           remote_jid?: string | null
           role_title?: string | null
@@ -48327,6 +51096,7 @@ export type Database = {
           total_purchases?: number | null
           updated_at?: string | null
           version?: number | null
+          whatsapp_checked_at?: string | null
           whatsapp_labels?: string[] | null
         }
         Relationships: []
@@ -48425,7 +51195,50 @@ export type Database = {
           unread_count?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_conversations_compras: {
         Row: {
@@ -49003,492 +51816,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_daily_metrics: {
-        Row: {
-          active_contacts: number | null
-          automations_triggered: number | null
-          avg_messages_per_contact: number | null
-          avg_resolution_time_seconds: number | null
-          avg_response_time_seconds: number | null
-          calculated_at: string | null
-          conversations_opened: number | null
-          conversations_resolved: number | null
-          deal_win_rate: number | null
-          deals_created: number | null
-          deals_lost: number | null
-          deals_won: number | null
-          followups_sent: number | null
-          id: string | null
-          lead_to_deal_rate: number | null
-          messages_received: number | null
-          messages_sent: number | null
-          metric_date: string | null
-          new_contacts: number | null
-          pipeline_value: number | null
-          revenue: number | null
-          total_contacts: number | null
-        }
-        Insert: {
-          active_contacts?: number | null
-          automations_triggered?: number | null
-          avg_messages_per_contact?: number | null
-          avg_resolution_time_seconds?: number | null
-          avg_response_time_seconds?: number | null
-          calculated_at?: string | null
-          conversations_opened?: number | null
-          conversations_resolved?: number | null
-          deal_win_rate?: number | null
-          deals_created?: number | null
-          deals_lost?: number | null
-          deals_won?: number | null
-          followups_sent?: number | null
-          id?: string | null
-          lead_to_deal_rate?: number | null
-          messages_received?: number | null
-          messages_sent?: number | null
-          metric_date?: string | null
-          new_contacts?: number | null
-          pipeline_value?: number | null
-          revenue?: number | null
-          total_contacts?: number | null
-        }
-        Update: {
-          active_contacts?: number | null
-          automations_triggered?: number | null
-          avg_messages_per_contact?: number | null
-          avg_resolution_time_seconds?: number | null
-          avg_response_time_seconds?: number | null
-          calculated_at?: string | null
-          conversations_opened?: number | null
-          conversations_resolved?: number | null
-          deal_win_rate?: number | null
-          deals_created?: number | null
-          deals_lost?: number | null
-          deals_won?: number | null
-          followups_sent?: number | null
-          id?: string | null
-          lead_to_deal_rate?: number | null
-          messages_received?: number | null
-          messages_sent?: number | null
-          metric_date?: string | null
-          new_contacts?: number | null
-          pipeline_value?: number | null
-          revenue?: number | null
-          total_contacts?: number | null
-        }
-        Relationships: []
-      }
-      evolution_deals: {
-        Row: {
-          actual_close_date: string | null
-          assigned_to: string | null
-          closed_at: string | null
-          contact_id: string | null
-          conversation_id: string | null
-          cost: number | null
-          created_at: string | null
-          deal_number: number | null
-          deleted_at: string | null
-          description: string | null
-          discount_percent: number | null
-          expected_close_date: string | null
-          id: string | null
-          instance_name: string | null
-          lost: boolean | null
-          lost_notes: string | null
-          lost_reason: string | null
-          metadata: Json | null
-          notes: string | null
-          probability: number | null
-          products: Json | null
-          profit: number | null
-          source: string | null
-          stage: string | null
-          stage_changed_at: string | null
-          tags: string[] | null
-          title: string | null
-          updated_at: string | null
-          value: number | null
-          weighted_value: number | null
-          won: boolean | null
-        }
-        Insert: {
-          actual_close_date?: string | null
-          assigned_to?: string | null
-          closed_at?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          cost?: number | null
-          created_at?: string | null
-          deal_number?: number | null
-          deleted_at?: string | null
-          description?: string | null
-          discount_percent?: number | null
-          expected_close_date?: string | null
-          id?: string | null
-          instance_name?: string | null
-          lost?: boolean | null
-          lost_notes?: string | null
-          lost_reason?: string | null
-          metadata?: Json | null
-          notes?: string | null
-          probability?: number | null
-          products?: Json | null
-          profit?: number | null
-          source?: string | null
-          stage?: string | null
-          stage_changed_at?: string | null
-          tags?: string[] | null
-          title?: string | null
-          updated_at?: string | null
-          value?: number | null
-          weighted_value?: number | null
-          won?: boolean | null
-        }
-        Update: {
-          actual_close_date?: string | null
-          assigned_to?: string | null
-          closed_at?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          cost?: number | null
-          created_at?: string | null
-          deal_number?: number | null
-          deleted_at?: string | null
-          description?: string | null
-          discount_percent?: number | null
-          expected_close_date?: string | null
-          id?: string | null
-          instance_name?: string | null
-          lost?: boolean | null
-          lost_notes?: string | null
-          lost_reason?: string | null
-          metadata?: Json | null
-          notes?: string | null
-          probability?: number | null
-          products?: Json | null
-          profit?: number | null
-          source?: string | null
-          stage?: string | null
-          stage_changed_at?: string | null
-          tags?: string[] | null
-          title?: string | null
-          updated_at?: string | null
-          value?: number | null
-          weighted_value?: number | null
-          won?: boolean | null
-        }
-        Relationships: []
-      }
-      evolution_fallback_events: {
-        Row: {
-          action: string | null
-          created_at: string | null
-          error_message: string | null
-          event_type: string | null
-          id: string | null
-          instance: string | null
-          instance_name: string | null
-          payload: Json | null
-          ts: string | null
-        }
-        Insert: {
-          action?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          id?: string | null
-          instance?: string | null
-          instance_name?: string | null
-          payload?: Json | null
-          ts?: string | null
-        }
-        Update: {
-          action?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string | null
-          id?: string | null
-          instance?: string | null
-          instance_name?: string | null
-          payload?: Json | null
-          ts?: string | null
-        }
-        Relationships: []
-      }
-      evolution_followup_rules: {
-        Row: {
-          conditions: Json | null
-          created_at: string | null
-          delay_hours: number | null
-          description: string | null
-          id: string | null
-          is_active: boolean | null
-          name: string | null
-          run_count: number | null
-          sequence_group: string | null
-          sequence_order: number | null
-          template_id: string | null
-          trigger_config: Json | null
-          trigger_type: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          conditions?: Json | null
-          created_at?: string | null
-          delay_hours?: number | null
-          description?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          run_count?: number | null
-          sequence_group?: string | null
-          sequence_order?: number | null
-          template_id?: string | null
-          trigger_config?: Json | null
-          trigger_type?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          conditions?: Json | null
-          created_at?: string | null
-          delay_hours?: number | null
-          description?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          run_count?: number | null
-          sequence_group?: string | null
-          sequence_order?: number | null
-          template_id?: string | null
-          trigger_config?: Json | null
-          trigger_type?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_followups: {
-        Row: {
-          attempts: number | null
-          contact_id: string | null
-          conversation_id: string | null
-          created_at: string | null
-          created_by: string | null
-          custom_message: string | null
-          deal_id: string | null
-          error_message: string | null
-          followup_type: string | null
-          id: string | null
-          instance_name: string | null
-          max_attempts: number | null
-          metadata: Json | null
-          response_at: string | null
-          scheduled_at: string | null
-          sent_at: string | null
-          status: string | null
-          template_id: string | null
-          triggered_at: string | null
-        }
-        Insert: {
-          attempts?: number | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          custom_message?: string | null
-          deal_id?: string | null
-          error_message?: string | null
-          followup_type?: string | null
-          id?: string | null
-          instance_name?: string | null
-          max_attempts?: number | null
-          metadata?: Json | null
-          response_at?: string | null
-          scheduled_at?: string | null
-          sent_at?: string | null
-          status?: string | null
-          template_id?: string | null
-          triggered_at?: string | null
-        }
-        Update: {
-          attempts?: number | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          custom_message?: string | null
-          deal_id?: string | null
-          error_message?: string | null
-          followup_type?: string | null
-          id?: string | null
-          instance_name?: string | null
-          max_attempts?: number | null
-          metadata?: Json | null
-          response_at?: string | null
-          scheduled_at?: string | null
-          sent_at?: string | null
-          status?: string | null
-          template_id?: string | null
-          triggered_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_group_messages: {
-        Row: {
-          content: string | null
-          created_at: string | null
-          group_id: string | null
-          id: string | null
-          is_from_admin: boolean | null
-          media_url: string | null
-          mentions: string[] | null
-          message_id: string | null
-          message_type: string | null
-          quoted_message_id: string | null
-          sender_jid: string | null
-          sender_name: string | null
-        }
-        Insert: {
-          content?: string | null
-          created_at?: string | null
-          group_id?: string | null
-          id?: string | null
-          is_from_admin?: boolean | null
-          media_url?: string | null
-          mentions?: string[] | null
-          message_id?: string | null
-          message_type?: string | null
-          quoted_message_id?: string | null
-          sender_jid?: string | null
-          sender_name?: string | null
-        }
-        Update: {
-          content?: string | null
-          created_at?: string | null
-          group_id?: string | null
-          id?: string | null
-          is_from_admin?: boolean | null
-          media_url?: string | null
-          mentions?: string[] | null
-          message_id?: string | null
-          message_type?: string | null
-          quoted_message_id?: string | null
-          sender_jid?: string | null
-          sender_name?: string | null
-        }
-        Relationships: []
-      }
-      evolution_group_participants: {
-        Row: {
-          contact_id: string | null
-          group_id: string | null
-          id: string | null
-          is_active: boolean | null
-          joined_at: string | null
-          left_at: string | null
-          participant_jid: string | null
-          role: string | null
-        }
-        Insert: {
-          contact_id?: string | null
-          group_id?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          joined_at?: string | null
-          left_at?: string | null
-          participant_jid?: string | null
-          role?: string | null
-        }
-        Update: {
-          contact_id?: string | null
-          group_id?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          joined_at?: string | null
-          left_at?: string | null
-          participant_jid?: string | null
-          role?: string | null
-        }
-        Relationships: []
-      }
-      evolution_group_rules: {
-        Row: {
-          action_type: string | null
-          action_value: string | null
-          created_at: string | null
-          execution_count: number | null
-          group_id: string | null
-          id: string | null
-          is_active: boolean | null
-          last_executed_at: string | null
-          rule_type: string | null
-          trigger_value: string | null
-        }
-        Insert: {
-          action_type?: string | null
-          action_value?: string | null
-          created_at?: string | null
-          execution_count?: number | null
-          group_id?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          last_executed_at?: string | null
-          rule_type?: string | null
-          trigger_value?: string | null
-        }
-        Update: {
-          action_type?: string | null
-          action_value?: string | null
-          created_at?: string | null
-          execution_count?: number | null
-          group_id?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          last_executed_at?: string | null
-          rule_type?: string | null
-          trigger_value?: string | null
-        }
-        Relationships: []
-      }
-      evolution_groups: {
-        Row: {
-          avatar_url: string | null
-          created_at: string | null
-          description: string | null
-          group_id: string | null
-          id: string | null
-          instance_name: string | null
-          name: string | null
-          participant_count: number | null
-          updated_at: string | null
-          whatsapp_connection_id: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string | null
-          description?: string | null
-          group_id?: string | null
-          id?: string | null
-          instance_name?: string | null
-          name?: string | null
-          participant_count?: number | null
-          updated_at?: string | null
-          whatsapp_connection_id?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string | null
-          description?: string | null
-          group_id?: string | null
-          id?: string | null
-          instance_name?: string | null
-          name?: string | null
-          participant_count?: number | null
-          updated_at?: string | null
-          whatsapp_connection_id?: string | null
-        }
-        Relationships: []
-      }
       evolution_guardian_heartbeat: {
         Row: {
           cycles_since_last: number | null
@@ -49510,189 +51837,6 @@ export type Database = {
           heartbeat_at?: string | null
           id?: string | null
           service_name?: string | null
-        }
-        Relationships: []
-      }
-      evolution_health_logs: {
-        Row: {
-          connection_id: string | null
-          created_at: string | null
-          endpoint_tested: string | null
-          error_count: number | null
-          error_message: string | null
-          http_status_code: number | null
-          id: string | null
-          instance_name: string | null
-          metadata: Json | null
-          online_instances: number | null
-          performed_at: string | null
-          response_time_ms: number | null
-          status: string | null
-          success_count: number | null
-          total_instances: number | null
-        }
-        Insert: {
-          connection_id?: string | null
-          created_at?: string | null
-          endpoint_tested?: string | null
-          error_count?: number | null
-          error_message?: string | null
-          http_status_code?: number | null
-          id?: string | null
-          instance_name?: string | null
-          metadata?: Json | null
-          online_instances?: number | null
-          performed_at?: string | null
-          response_time_ms?: number | null
-          status?: string | null
-          success_count?: number | null
-          total_instances?: number | null
-        }
-        Update: {
-          connection_id?: string | null
-          created_at?: string | null
-          endpoint_tested?: string | null
-          error_count?: number | null
-          error_message?: string | null
-          http_status_code?: number | null
-          id?: string | null
-          instance_name?: string | null
-          metadata?: Json | null
-          online_instances?: number | null
-          performed_at?: string | null
-          response_time_ms?: number | null
-          status?: string | null
-          success_count?: number | null
-          total_instances?: number | null
-        }
-        Relationships: []
-      }
-      evolution_holidays: {
-        Row: {
-          auto_reply_message: string | null
-          close_time: string | null
-          created_at: string | null
-          date: string | null
-          id: string | null
-          is_half_day: boolean | null
-          name: string | null
-        }
-        Insert: {
-          auto_reply_message?: string | null
-          close_time?: string | null
-          created_at?: string | null
-          date?: string | null
-          id?: string | null
-          is_half_day?: boolean | null
-          name?: string | null
-        }
-        Update: {
-          auto_reply_message?: string | null
-          close_time?: string | null
-          created_at?: string | null
-          date?: string | null
-          id?: string | null
-          is_half_day?: boolean | null
-          name?: string | null
-        }
-        Relationships: []
-      }
-      evolution_incident_runbook: {
-        Row: {
-          category: string | null
-          created_at: string | null
-          escalation: string | null
-          estimated_minutes: number | null
-          id: string | null
-          last_drilled_at: string | null
-          severity: string | null
-          steps: Json | null
-          success_criteria: string[] | null
-          title: string | null
-          triggers: string[] | null
-          updated_at: string | null
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string | null
-          escalation?: string | null
-          estimated_minutes?: number | null
-          id?: string | null
-          last_drilled_at?: string | null
-          severity?: string | null
-          steps?: Json | null
-          success_criteria?: string[] | null
-          title?: string | null
-          triggers?: string[] | null
-          updated_at?: string | null
-        }
-        Update: {
-          category?: string | null
-          created_at?: string | null
-          escalation?: string | null
-          estimated_minutes?: number | null
-          id?: string | null
-          last_drilled_at?: string | null
-          severity?: string | null
-          steps?: Json | null
-          success_criteria?: string[] | null
-          title?: string | null
-          triggers?: string[] | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_instance_credentials: {
-        Row: {
-          api_url: string | null
-          connection_id: string | null
-          created_at: string | null
-          department: string | null
-          display_name: string | null
-          health_status: string | null
-          id: string | null
-          instance_name: string | null
-          is_active: boolean | null
-          last_health_check: string | null
-          notes: string | null
-          online_instances: number | null
-          total_instances: number | null
-          updated_at: string | null
-          webhook_url: string | null
-        }
-        Insert: {
-          api_url?: string | null
-          connection_id?: string | null
-          created_at?: string | null
-          department?: string | null
-          display_name?: string | null
-          health_status?: string | null
-          id?: string | null
-          instance_name?: string | null
-          is_active?: boolean | null
-          last_health_check?: string | null
-          notes?: string | null
-          online_instances?: number | null
-          total_instances?: number | null
-          updated_at?: string | null
-          webhook_url?: string | null
-        }
-        Update: {
-          api_url?: string | null
-          connection_id?: string | null
-          created_at?: string | null
-          department?: string | null
-          display_name?: string | null
-          health_status?: string | null
-          id?: string | null
-          instance_name?: string | null
-          is_active?: boolean | null
-          last_health_check?: string | null
-          notes?: string | null
-          online_instances?: number | null
-          total_instances?: number | null
-          updated_at?: string | null
-          webhook_url?: string | null
         }
         Relationships: []
       }
@@ -49774,459 +51918,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_ip_blocklist: {
-        Row: {
-          auto_blocked: boolean | null
-          created_at: string | null
-          first_seen: string | null
-          hit_count: number | null
-          ip_address: string | null
-          last_seen: string | null
-          reason: string | null
-          unblocked_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          auto_blocked?: boolean | null
-          created_at?: string | null
-          first_seen?: string | null
-          hit_count?: number | null
-          ip_address?: string | null
-          last_seen?: string | null
-          reason?: string | null
-          unblocked_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          auto_blocked?: boolean | null
-          created_at?: string | null
-          first_seen?: string | null
-          hit_count?: number | null
-          ip_address?: string | null
-          last_seen?: string | null
-          reason?: string | null
-          unblocked_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_keyword_automations: {
-        Row: {
-          cooldown_minutes: number | null
-          created_at: string | null
-          hit_count: number | null
-          id: string | null
-          is_active: boolean | null
-          is_case_sensitive: boolean | null
-          keyword: string | null
-          last_triggered_at: string | null
-          match_type: string | null
-          media_url: string | null
-          menu_options: Json | null
-          only_first_message: boolean | null
-          only_outside_hours: boolean | null
-          priority: number | null
-          response_text: string | null
-          response_type: string | null
-          template_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          cooldown_minutes?: number | null
-          created_at?: string | null
-          hit_count?: number | null
-          id?: string | null
-          is_active?: boolean | null
-          is_case_sensitive?: boolean | null
-          keyword?: string | null
-          last_triggered_at?: string | null
-          match_type?: string | null
-          media_url?: string | null
-          menu_options?: Json | null
-          only_first_message?: boolean | null
-          only_outside_hours?: boolean | null
-          priority?: number | null
-          response_text?: string | null
-          response_type?: string | null
-          template_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          cooldown_minutes?: number | null
-          created_at?: string | null
-          hit_count?: number | null
-          id?: string | null
-          is_active?: boolean | null
-          is_case_sensitive?: boolean | null
-          keyword?: string | null
-          last_triggered_at?: string | null
-          match_type?: string | null
-          media_url?: string | null
-          menu_options?: Json | null
-          only_first_message?: boolean | null
-          only_outside_hours?: boolean | null
-          priority?: number | null
-          response_text?: string | null
-          response_type?: string | null
-          template_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_label_associations: {
-        Row: {
-          associated_at: string | null
-          contact_id: string | null
-          conversation_id: string | null
-          id: string | null
-          is_active: boolean | null
-          label_id: string | null
-          remote_jid: string | null
-          removed_at: string | null
-        }
-        Insert: {
-          associated_at?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          label_id?: string | null
-          remote_jid?: string | null
-          removed_at?: string | null
-        }
-        Update: {
-          associated_at?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          label_id?: string | null
-          remote_jid?: string | null
-          removed_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_labels: {
-        Row: {
-          color: string | null
-          color_hex: string | null
-          created_at: string | null
-          id: string | null
-          instance_name: string | null
-          is_active: boolean | null
-          label_id: string | null
-          name: string | null
-          predefined_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          color?: string | null
-          color_hex?: string | null
-          created_at?: string | null
-          id?: string | null
-          instance_name?: string | null
-          is_active?: boolean | null
-          label_id?: string | null
-          name?: string | null
-          predefined_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          color?: string | null
-          color_hex?: string | null
-          created_at?: string | null
-          id?: string | null
-          instance_name?: string | null
-          is_active?: boolean | null
-          label_id?: string | null
-          name?: string | null
-          predefined_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_logpatch_audit: {
-        Row: {
-          boot_at: string | null
-          booted_at: string | null
-          container_id: string | null
-          evolution_version: string | null
-          force_update: number | null
-          id: string | null
-          image_digest: string | null
-          instance_name: string | null
-          logpatch_detail: Json | null
-          logpatch_status: string | null
-          notes: string | null
-          patch_version: string | null
-          patched_size_bytes: number | null
-          t1_ok: boolean | null
-          t2_ok: boolean | null
-          t3_ok: boolean | null
-          t4_ok: boolean | null
-          t5_ok: boolean | null
-          verified_at: string | null
-        }
-        Insert: {
-          boot_at?: string | null
-          booted_at?: string | null
-          container_id?: string | null
-          evolution_version?: string | null
-          force_update?: number | null
-          id?: string | null
-          image_digest?: string | null
-          instance_name?: string | null
-          logpatch_detail?: Json | null
-          logpatch_status?: string | null
-          notes?: string | null
-          patch_version?: string | null
-          patched_size_bytes?: number | null
-          t1_ok?: boolean | null
-          t2_ok?: boolean | null
-          t3_ok?: boolean | null
-          t4_ok?: boolean | null
-          t5_ok?: boolean | null
-          verified_at?: string | null
-        }
-        Update: {
-          boot_at?: string | null
-          booted_at?: string | null
-          container_id?: string | null
-          evolution_version?: string | null
-          force_update?: number | null
-          id?: string | null
-          image_digest?: string | null
-          instance_name?: string | null
-          logpatch_detail?: Json | null
-          logpatch_status?: string | null
-          notes?: string | null
-          patch_version?: string | null
-          patched_size_bytes?: number | null
-          t1_ok?: boolean | null
-          t2_ok?: boolean | null
-          t3_ok?: boolean | null
-          t4_ok?: boolean | null
-          t5_ok?: boolean | null
-          verified_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_media: {
-        Row: {
-          base64_data: string | null
-          caption: string | null
-          created_at: string | null
-          duration_seconds: number | null
-          file_name: string | null
-          file_sha256: string | null
-          file_size: number | null
-          height: number | null
-          id: string | null
-          is_animated: boolean | null
-          media_type: string | null
-          message_id: string | null
-          mime_type: string | null
-          remote_jid: string | null
-          storage_path: string | null
-          storage_url: string | null
-          thumbnail_base64: string | null
-          width: number | null
-        }
-        Insert: {
-          base64_data?: string | null
-          caption?: string | null
-          created_at?: string | null
-          duration_seconds?: number | null
-          file_name?: string | null
-          file_sha256?: string | null
-          file_size?: number | null
-          height?: number | null
-          id?: string | null
-          is_animated?: boolean | null
-          media_type?: string | null
-          message_id?: string | null
-          mime_type?: string | null
-          remote_jid?: string | null
-          storage_path?: string | null
-          storage_url?: string | null
-          thumbnail_base64?: string | null
-          width?: number | null
-        }
-        Update: {
-          base64_data?: string | null
-          caption?: string | null
-          created_at?: string | null
-          duration_seconds?: number | null
-          file_name?: string | null
-          file_sha256?: string | null
-          file_size?: number | null
-          height?: number | null
-          id?: string | null
-          is_animated?: boolean | null
-          media_type?: string | null
-          message_id?: string | null
-          mime_type?: string | null
-          remote_jid?: string | null
-          storage_path?: string | null
-          storage_url?: string | null
-          thumbnail_base64?: string | null
-          width?: number | null
-        }
-        Relationships: []
-      }
-      evolution_message_queue: {
-        Row: {
-          attempts: number | null
-          contact_id: string | null
-          content: string | null
-          created_at: string | null
-          created_by: string | null
-          delivered_at: string | null
-          error_message: string | null
-          id: string | null
-          instance_name: string | null
-          max_attempts: number | null
-          media_filename: string | null
-          media_url: string | null
-          message_type: string | null
-          metadata: Json | null
-          priority: number | null
-          read_at: string | null
-          remote_jid: string | null
-          scheduled_at: string | null
-          sent_at: string | null
-          source: string | null
-          source_id: string | null
-          status: string | null
-          template_id: string | null
-          template_vars: Json | null
-          whatsapp_message_id: string | null
-        }
-        Insert: {
-          attempts?: number | null
-          contact_id?: string | null
-          content?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          delivered_at?: string | null
-          error_message?: string | null
-          id?: string | null
-          instance_name?: string | null
-          max_attempts?: number | null
-          media_filename?: string | null
-          media_url?: string | null
-          message_type?: string | null
-          metadata?: Json | null
-          priority?: number | null
-          read_at?: string | null
-          remote_jid?: string | null
-          scheduled_at?: string | null
-          sent_at?: string | null
-          source?: string | null
-          source_id?: string | null
-          status?: string | null
-          template_id?: string | null
-          template_vars?: Json | null
-          whatsapp_message_id?: string | null
-        }
-        Update: {
-          attempts?: number | null
-          contact_id?: string | null
-          content?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          delivered_at?: string | null
-          error_message?: string | null
-          id?: string | null
-          instance_name?: string | null
-          max_attempts?: number | null
-          media_filename?: string | null
-          media_url?: string | null
-          message_type?: string | null
-          metadata?: Json | null
-          priority?: number | null
-          read_at?: string | null
-          remote_jid?: string | null
-          scheduled_at?: string | null
-          sent_at?: string | null
-          source?: string | null
-          source_id?: string | null
-          status?: string | null
-          template_id?: string | null
-          template_vars?: Json | null
-          whatsapp_message_id?: string | null
-        }
-        Relationships: []
-      }
-      evolution_message_templates: {
-        Row: {
-          approval_status: string | null
-          approved_at: string | null
-          buttons: Json | null
-          category: string | null
-          content: string | null
-          created_at: string | null
-          created_by: string | null
-          footer_text: string | null
-          header_content: string | null
-          header_type: string | null
-          id: string | null
-          instance_name: string | null
-          is_active: boolean | null
-          language: string | null
-          last_used_at: string | null
-          name: string | null
-          rejection_reason: string | null
-          updated_at: string | null
-          usage_count: number | null
-          variables: Json | null
-        }
-        Insert: {
-          approval_status?: string | null
-          approved_at?: string | null
-          buttons?: Json | null
-          category?: string | null
-          content?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          footer_text?: string | null
-          header_content?: string | null
-          header_type?: string | null
-          id?: string | null
-          instance_name?: string | null
-          is_active?: boolean | null
-          language?: string | null
-          last_used_at?: string | null
-          name?: string | null
-          rejection_reason?: string | null
-          updated_at?: string | null
-          usage_count?: number | null
-          variables?: Json | null
-        }
-        Update: {
-          approval_status?: string | null
-          approved_at?: string | null
-          buttons?: Json | null
-          category?: string | null
-          content?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          footer_text?: string | null
-          header_content?: string | null
-          header_type?: string | null
-          id?: string | null
-          instance_name?: string | null
-          is_active?: boolean | null
-          language?: string | null
-          last_used_at?: string | null
-          name?: string | null
-          rejection_reason?: string | null
-          updated_at?: string | null
-          usage_count?: number | null
-          variables?: Json | null
-        }
-        Relationships: []
-      }
       evolution_messages: {
         Row: {
           audio_meme_id: string | null
@@ -50239,19 +51930,26 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
           id: string | null
+          ingest_meta: Json | null
           instance_name: string | null
           is_important: boolean | null
           is_read: boolean | null
           is_starred: boolean | null
           link_preview: Json | null
+          media_bucket: string | null
           media_filename: string | null
           media_meta: Json | null
           media_mimetype: string | null
+          media_path: string | null
+          media_sha256: string | null
           media_size: number | null
+          media_status: string | null
           media_type: string | null
           media_url: string | null
           message_id: string | null
@@ -50262,6 +51960,10 @@ export type Database = {
           quoted_message_id: string | null
           raw_data: Json | null
           remote_jid: string | null
+          remote_jid_original: string | null
+          reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -50269,6 +51971,8 @@ export type Database = {
           sticker_id: string | null
           tags: string[] | null
           template_name: string | null
+          transcription: string | null
+          transcription_status: string | null
           updated_at: string | null
         }
         Insert: {
@@ -50282,19 +51986,26 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
           id?: string | null
+          ingest_meta?: Json | null
           instance_name?: string | null
           is_important?: boolean | null
           is_read?: boolean | null
           is_starred?: boolean | null
           link_preview?: Json | null
+          media_bucket?: string | null
           media_filename?: string | null
           media_meta?: Json | null
           media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
           media_size?: number | null
+          media_status?: string | null
           media_type?: string | null
           media_url?: string | null
           message_id?: string | null
@@ -50305,6 +52016,10 @@ export type Database = {
           quoted_message_id?: string | null
           raw_data?: Json | null
           remote_jid?: string | null
+          remote_jid_original?: string | null
+          reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -50312,6 +52027,8 @@ export type Database = {
           sticker_id?: string | null
           tags?: string[] | null
           template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -50325,19 +52042,26 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
           id?: string | null
+          ingest_meta?: Json | null
           instance_name?: string | null
           is_important?: boolean | null
           is_read?: boolean | null
           is_starred?: boolean | null
           link_preview?: Json | null
+          media_bucket?: string | null
           media_filename?: string | null
           media_meta?: Json | null
           media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
           media_size?: number | null
+          media_status?: string | null
           media_type?: string | null
           media_url?: string | null
           message_id?: string | null
@@ -50348,6 +52072,10 @@ export type Database = {
           quoted_message_id?: string | null
           raw_data?: Json | null
           remote_jid?: string | null
+          remote_jid_original?: string | null
+          reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -50355,9 +52083,54 @@ export type Database = {
           sticker_id?: string | null
           tags?: string[] | null
           template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evolution_messages_default: {
         Row: {
@@ -50371,19 +52144,26 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
           id: string | null
+          ingest_meta: Json | null
           instance_name: string | null
           is_important: boolean | null
           is_read: boolean | null
           is_starred: boolean | null
           link_preview: Json | null
+          media_bucket: string | null
           media_filename: string | null
           media_meta: Json | null
           media_mimetype: string | null
+          media_path: string | null
+          media_sha256: string | null
           media_size: number | null
+          media_status: string | null
           media_type: string | null
           media_url: string | null
           message_id: string | null
@@ -50394,6 +52174,10 @@ export type Database = {
           quoted_message_id: string | null
           raw_data: Json | null
           remote_jid: string | null
+          remote_jid_original: string | null
+          reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -50401,6 +52185,8 @@ export type Database = {
           sticker_id: string | null
           tags: string[] | null
           template_name: string | null
+          transcription: string | null
+          transcription_status: string | null
           updated_at: string | null
         }
         Insert: {
@@ -50414,19 +52200,26 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
           id?: string | null
+          ingest_meta?: Json | null
           instance_name?: string | null
           is_important?: boolean | null
           is_read?: boolean | null
           is_starred?: boolean | null
           link_preview?: Json | null
+          media_bucket?: string | null
           media_filename?: string | null
           media_meta?: Json | null
           media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
           media_size?: number | null
+          media_status?: string | null
           media_type?: string | null
           media_url?: string | null
           message_id?: string | null
@@ -50437,6 +52230,10 @@ export type Database = {
           quoted_message_id?: string | null
           raw_data?: Json | null
           remote_jid?: string | null
+          remote_jid_original?: string | null
+          reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -50444,6 +52241,8 @@ export type Database = {
           sticker_id?: string | null
           tags?: string[] | null
           template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -50457,19 +52256,26 @@ export type Database = {
           deleted_at?: string | null
           direction?: string | null
           edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
           follow_up_at?: string | null
           follow_up_done?: boolean | null
           from_me?: boolean | null
           id?: string | null
+          ingest_meta?: Json | null
           instance_name?: string | null
           is_important?: boolean | null
           is_read?: boolean | null
           is_starred?: boolean | null
           link_preview?: Json | null
+          media_bucket?: string | null
           media_filename?: string | null
           media_meta?: Json | null
           media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
           media_size?: number | null
+          media_status?: string | null
           media_type?: string | null
           media_url?: string | null
           message_id?: string | null
@@ -50480,6 +52286,10 @@ export type Database = {
           quoted_message_id?: string | null
           raw_data?: Json | null
           remote_jid?: string | null
+          remote_jid_original?: string | null
+          reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
           sent_by_bot?: boolean | null
           sentiment?: string | null
           status?: string | null
@@ -50487,6 +52297,8 @@ export type Database = {
           sticker_id?: string | null
           tags?: string[] | null
           template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -50503,19 +52315,26 @@ export type Database = {
           deleted_at: string | null
           direction: string | null
           edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
           follow_up_at: string | null
           follow_up_done: boolean | null
           from_me: boolean | null
           id: string | null
+          ingest_meta: Json | null
           instance_name: string | null
           is_important: boolean | null
           is_read: boolean | null
           is_starred: boolean | null
           link_preview: Json | null
+          media_bucket: string | null
           media_filename: string | null
           media_meta: Json | null
           media_mimetype: string | null
+          media_path: string | null
+          media_sha256: string | null
           media_size: number | null
+          media_status: string | null
           media_type: string | null
           media_url: string | null
           message_id: string | null
@@ -50526,6 +52345,10 @@ export type Database = {
           quoted_message_id: string | null
           raw_data: Json | null
           remote_jid: string | null
+          remote_jid_original: string | null
+          reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
           sent_by_bot: boolean | null
           sentiment: string | null
           status: string | null
@@ -50533,594 +52356,121 @@ export type Database = {
           sticker_id: string | null
           tags: string[] | null
           template_name: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          audio_meme_id?: string | null
-          caption?: string | null
-          category?: string | null
-          contact_id?: string | null
-          content?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          direction?: string | null
-          edited_at?: string | null
-          follow_up_at?: string | null
-          follow_up_done?: boolean | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          is_important?: boolean | null
-          is_read?: boolean | null
-          is_starred?: boolean | null
-          link_preview?: Json | null
-          media_filename?: string | null
-          media_meta?: Json | null
-          media_mimetype?: string | null
-          media_size?: number | null
-          media_type?: string | null
-          media_url?: string | null
-          message_id?: string | null
-          message_type?: string | null
-          notes?: string | null
-          payload?: Json | null
-          push_name?: string | null
-          quoted_message_id?: string | null
-          raw_data?: Json | null
-          remote_jid?: string | null
-          sent_by_bot?: boolean | null
-          sentiment?: string | null
-          status?: string | null
-          status_at?: string | null
-          sticker_id?: string | null
-          tags?: string[] | null
-          template_name?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          audio_meme_id?: string | null
-          caption?: string | null
-          category?: string | null
-          contact_id?: string | null
-          content?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          direction?: string | null
-          edited_at?: string | null
-          follow_up_at?: string | null
-          follow_up_done?: boolean | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          is_important?: boolean | null
-          is_read?: boolean | null
-          is_starred?: boolean | null
-          link_preview?: Json | null
-          media_filename?: string | null
-          media_meta?: Json | null
-          media_mimetype?: string | null
-          media_size?: number | null
-          media_type?: string | null
-          media_url?: string | null
-          message_id?: string | null
-          message_type?: string | null
-          notes?: string | null
-          payload?: Json | null
-          push_name?: string | null
-          quoted_message_id?: string | null
-          raw_data?: Json | null
-          remote_jid?: string | null
-          sent_by_bot?: boolean | null
-          sentiment?: string | null
-          status?: string | null
-          status_at?: string | null
-          sticker_id?: string | null
-          tags?: string[] | null
-          template_name?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_messages_wpp2_archive: {
-        Row: {
-          audio_meme_id: string | null
-          caption: string | null
-          category: string | null
-          contact_id: string | null
-          content: string | null
-          conversation_id: string | null
-          created_at: string | null
-          deleted_at: string | null
-          direction: string | null
-          edited_at: string | null
-          follow_up_at: string | null
-          follow_up_done: boolean | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          is_important: boolean | null
-          is_read: boolean | null
-          is_starred: boolean | null
-          link_preview: Json | null
-          media_filename: string | null
-          media_meta: Json | null
-          media_mimetype: string | null
-          media_size: number | null
-          media_type: string | null
-          media_url: string | null
-          message_id: string | null
-          message_type: string | null
-          notes: string | null
-          payload: Json | null
-          push_name: string | null
-          quoted_message_id: string | null
-          raw_data: Json | null
-          remote_jid: string | null
-          sent_by_bot: boolean | null
-          sentiment: string | null
-          status: string | null
-          status_at: string | null
-          sticker_id: string | null
-          tags: string[] | null
-          template_name: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          audio_meme_id?: string | null
-          caption?: string | null
-          category?: string | null
-          contact_id?: string | null
-          content?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          direction?: string | null
-          edited_at?: string | null
-          follow_up_at?: string | null
-          follow_up_done?: boolean | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          is_important?: boolean | null
-          is_read?: boolean | null
-          is_starred?: boolean | null
-          link_preview?: Json | null
-          media_filename?: string | null
-          media_meta?: Json | null
-          media_mimetype?: string | null
-          media_size?: number | null
-          media_type?: string | null
-          media_url?: string | null
-          message_id?: string | null
-          message_type?: string | null
-          notes?: string | null
-          payload?: Json | null
-          push_name?: string | null
-          quoted_message_id?: string | null
-          raw_data?: Json | null
-          remote_jid?: string | null
-          sent_by_bot?: boolean | null
-          sentiment?: string | null
-          status?: string | null
-          status_at?: string | null
-          sticker_id?: string | null
-          tags?: string[] | null
-          template_name?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          audio_meme_id?: string | null
-          caption?: string | null
-          category?: string | null
-          contact_id?: string | null
-          content?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          direction?: string | null
-          edited_at?: string | null
-          follow_up_at?: string | null
-          follow_up_done?: boolean | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          is_important?: boolean | null
-          is_read?: boolean | null
-          is_starred?: boolean | null
-          link_preview?: Json | null
-          media_filename?: string | null
-          media_meta?: Json | null
-          media_mimetype?: string | null
-          media_size?: number | null
-          media_type?: string | null
-          media_url?: string | null
-          message_id?: string | null
-          message_type?: string | null
-          notes?: string | null
-          payload?: Json | null
-          push_name?: string | null
-          quoted_message_id?: string | null
-          raw_data?: Json | null
-          remote_jid?: string | null
-          sent_by_bot?: boolean | null
-          sentiment?: string | null
-          status?: string | null
-          status_at?: string | null
-          sticker_id?: string | null
-          tags?: string[] | null
-          template_name?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_mirror_batches: {
-        Row: {
-          batch_seq: number | null
-          bytes_gz: number | null
-          consumed_at: string | null
-          consumed_status: string | null
-          consumer_error: string | null
-          created_at: string | null
-          id: number | null
-          metrics: Json | null
-          row_count: number | null
-          run_id: string | null
-          s3_bucket: string | null
-          s3_key: string | null
-        }
-        Insert: {
-          batch_seq?: number | null
-          bytes_gz?: number | null
-          consumed_at?: string | null
-          consumed_status?: string | null
-          consumer_error?: string | null
-          created_at?: string | null
-          id?: number | null
-          metrics?: Json | null
-          row_count?: number | null
-          run_id?: string | null
-          s3_bucket?: string | null
-          s3_key?: string | null
-        }
-        Update: {
-          batch_seq?: number | null
-          bytes_gz?: number | null
-          consumed_at?: string | null
-          consumed_status?: string | null
-          consumer_error?: string | null
-          created_at?: string | null
-          id?: number | null
-          metrics?: Json | null
-          row_count?: number | null
-          run_id?: string | null
-          s3_bucket?: string | null
-          s3_key?: string | null
-        }
-        Relationships: []
-      }
-      evolution_mirror_checkpoints: {
-        Row: {
-          checkpoint_key: string | null
-          id: number | null
-          last_message_id: string | null
-          last_synced_at: string | null
-          total_synced: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          checkpoint_key?: string | null
-          id?: number | null
-          last_message_id?: string | null
-          last_synced_at?: string | null
-          total_synced?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          checkpoint_key?: string | null
-          id?: number | null
-          last_message_id?: string | null
-          last_synced_at?: string | null
-          total_synced?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_mirror_media_queue: {
-        Row: {
-          created_at: string | null
-          downloaded_at: string | null
-          file_length: number | null
-          id: number | null
-          last_error: string | null
-          media_key: string | null
-          media_type: string | null
-          media_url_source: string | null
-          message_id: string | null
-          mimetype: string | null
-          minio_path: string | null
-          retry_count: number | null
-          status: string | null
           transcription: string | null
+          transcription_status: string | null
           updated_at: string | null
         }
         Insert: {
-          created_at?: string | null
-          downloaded_at?: string | null
-          file_length?: number | null
-          id?: number | null
-          last_error?: string | null
-          media_key?: string | null
-          media_type?: string | null
-          media_url_source?: string | null
-          message_id?: string | null
-          mimetype?: string | null
-          minio_path?: string | null
-          retry_count?: number | null
-          status?: string | null
-          transcription?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          downloaded_at?: string | null
-          file_length?: number | null
-          id?: number | null
-          last_error?: string | null
-          media_key?: string | null
-          media_type?: string | null
-          media_url_source?: string | null
-          message_id?: string | null
-          mimetype?: string | null
-          minio_path?: string | null
-          retry_count?: number | null
-          status?: string | null
-          transcription?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_mirror_runs: {
-        Row: {
-          chunks_processed: number | null
-          completed_at: string | null
-          created_at: string | null
-          duration_seconds: number | null
-          error_message: string | null
-          id: string | null
-          messages_errored: number | null
-          messages_exported: number | null
-          messages_inserted: number | null
-          messages_skipped: number | null
-          metadata: Json | null
-          run_type: string | null
-          since_timestamp: string | null
-          started_at: string | null
-          status: string | null
-          until_timestamp: string | null
-        }
-        Insert: {
-          chunks_processed?: number | null
-          completed_at?: string | null
-          created_at?: string | null
-          duration_seconds?: number | null
-          error_message?: string | null
-          id?: string | null
-          messages_errored?: number | null
-          messages_exported?: number | null
-          messages_inserted?: number | null
-          messages_skipped?: number | null
-          metadata?: Json | null
-          run_type?: string | null
-          since_timestamp?: string | null
-          started_at?: string | null
-          status?: string | null
-          until_timestamp?: string | null
-        }
-        Update: {
-          chunks_processed?: number | null
-          completed_at?: string | null
-          created_at?: string | null
-          duration_seconds?: number | null
-          error_message?: string | null
-          id?: string | null
-          messages_errored?: number | null
-          messages_exported?: number | null
-          messages_inserted?: number | null
-          messages_skipped?: number | null
-          metadata?: Json | null
-          run_type?: string | null
-          since_timestamp?: string | null
-          started_at?: string | null
-          status?: string | null
-          until_timestamp?: string | null
-        }
-        Relationships: []
-      }
-      evolution_monthly_audit_log: {
-        Row: {
-          audit_month: string | null
-          created_at: string | null
-          id: number | null
-          report: Json | null
-        }
-        Insert: {
-          audit_month?: string | null
-          created_at?: string | null
-          id?: number | null
-          report?: Json | null
-        }
-        Update: {
-          audit_month?: string | null
-          created_at?: string | null
-          id?: number | null
-          report?: Json | null
-        }
-        Relationships: []
-      }
-      evolution_notification_config: {
-        Row: {
-          api_token: string | null
-          channel: string | null
-          chat_id: string | null
-          created_at: string | null
-          email_addresses: string[] | null
-          enabled: boolean | null
-          id: string | null
-          notify_on: string[] | null
-          notify_on_days: number[] | null
-          notify_on_hours: string | null
-          priority_filter: string[] | null
-          slack_webhook: string | null
-          updated_at: string | null
-          webhook_url: string | null
-        }
-        Insert: {
-          api_token?: string | null
-          channel?: string | null
-          chat_id?: string | null
-          created_at?: string | null
-          email_addresses?: string[] | null
-          enabled?: boolean | null
-          id?: string | null
-          notify_on?: string[] | null
-          notify_on_days?: number[] | null
-          notify_on_hours?: string | null
-          priority_filter?: string[] | null
-          slack_webhook?: string | null
-          updated_at?: string | null
-          webhook_url?: string | null
-        }
-        Update: {
-          api_token?: string | null
-          channel?: string | null
-          chat_id?: string | null
-          created_at?: string | null
-          email_addresses?: string[] | null
-          enabled?: boolean | null
-          id?: string | null
-          notify_on?: string[] | null
-          notify_on_days?: number[] | null
-          notify_on_hours?: string | null
-          priority_filter?: string[] | null
-          slack_webhook?: string | null
-          updated_at?: string | null
-          webhook_url?: string | null
-        }
-        Relationships: []
-      }
-      evolution_notification_log: {
-        Row: {
-          alert_id: string | null
-          channel: string | null
-          created_at: string | null
-          error_message: string | null
-          id: string | null
-          message: string | null
-          sent_at: string | null
-          status: string | null
-        }
-        Insert: {
-          alert_id?: string | null
-          channel?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string | null
-          message?: string | null
-          sent_at?: string | null
-          status?: string | null
-        }
-        Update: {
-          alert_id?: string | null
-          channel?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string | null
-          message?: string | null
-          sent_at?: string | null
-          status?: string | null
-        }
-        Relationships: []
-      }
-      evolution_notifications: {
-        Row: {
-          alert_id: string | null
-          channels_sent: string[] | null
-          contact_id: string | null
-          conversation_id: string | null
-          created_at: string | null
-          deal_id: string | null
-          id: string | null
-          message: string | null
-          metadata: Json | null
-          notification_type: string | null
-          priority: string | null
-          read_at: string | null
-          read_by: string | null
-          status: string | null
-          title: string | null
-        }
-        Insert: {
-          alert_id?: string | null
-          channels_sent?: string[] | null
+          audio_meme_id?: string | null
+          caption?: string | null
+          category?: string | null
           contact_id?: string | null
+          content?: string | null
           conversation_id?: string | null
           created_at?: string | null
-          deal_id?: string | null
+          deleted_at?: string | null
+          direction?: string | null
+          edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
+          follow_up_at?: string | null
+          follow_up_done?: boolean | null
+          from_me?: boolean | null
           id?: string | null
-          message?: string | null
-          metadata?: Json | null
-          notification_type?: string | null
-          priority?: string | null
-          read_at?: string | null
-          read_by?: string | null
+          ingest_meta?: Json | null
+          instance_name?: string | null
+          is_important?: boolean | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          link_preview?: Json | null
+          media_bucket?: string | null
+          media_filename?: string | null
+          media_meta?: Json | null
+          media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
+          media_size?: number | null
+          media_status?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          message_id?: string | null
+          message_type?: string | null
+          notes?: string | null
+          payload?: Json | null
+          push_name?: string | null
+          quoted_message_id?: string | null
+          raw_data?: Json | null
+          remote_jid?: string | null
+          remote_jid_original?: string | null
+          reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
+          sent_by_bot?: boolean | null
+          sentiment?: string | null
           status?: string | null
-          title?: string | null
+          status_at?: string | null
+          sticker_id?: string | null
+          tags?: string[] | null
+          template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
+          updated_at?: string | null
         }
         Update: {
-          alert_id?: string | null
-          channels_sent?: string[] | null
+          audio_meme_id?: string | null
+          caption?: string | null
+          category?: string | null
           contact_id?: string | null
+          content?: string | null
           conversation_id?: string | null
           created_at?: string | null
-          deal_id?: string | null
+          deleted_at?: string | null
+          direction?: string | null
+          edited_at?: string | null
+          error_code?: string | null
+          error_reason?: string | null
+          follow_up_at?: string | null
+          follow_up_done?: boolean | null
+          from_me?: boolean | null
           id?: string | null
-          message?: string | null
-          metadata?: Json | null
-          notification_type?: string | null
-          priority?: string | null
-          read_at?: string | null
-          read_by?: string | null
+          ingest_meta?: Json | null
+          instance_name?: string | null
+          is_important?: boolean | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          link_preview?: Json | null
+          media_bucket?: string | null
+          media_filename?: string | null
+          media_meta?: Json | null
+          media_mimetype?: string | null
+          media_path?: string | null
+          media_sha256?: string | null
+          media_size?: number | null
+          media_status?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          message_id?: string | null
+          message_type?: string | null
+          notes?: string | null
+          payload?: Json | null
+          push_name?: string | null
+          quoted_message_id?: string | null
+          raw_data?: Json | null
+          remote_jid?: string | null
+          remote_jid_original?: string | null
+          reply_to_id?: string | null
+          retry_attempt?: number | null
+          retry_total?: number | null
+          sent_by_bot?: boolean | null
+          sentiment?: string | null
           status?: string | null
-          title?: string | null
-        }
-        Relationships: []
-      }
-      evolution_performance_metrics: {
-        Row: {
-          created_at: string | null
-          id: string | null
-          metadata: Json | null
-          metric_date: string | null
-          metric_type: string | null
-          metric_value: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string | null
-          metadata?: Json | null
-          metric_date?: string | null
-          metric_type?: string | null
-          metric_value?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string | null
-          metadata?: Json | null
-          metric_date?: string | null
-          metric_type?: string | null
-          metric_value?: number | null
+          status_at?: string | null
+          sticker_id?: string | null
+          tags?: string[] | null
+          template_name?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -51135,7 +52485,7 @@ export type Database = {
           gap_inbound_min: number | null
           id: string | null
           pipeline_status:
-            | Database["zapp"]["Enums"]["evolution_pipeline_status"]
+            | Database["public"]["Enums"]["evolution_pipeline_status"]
             | null
           queue_failed_24h: number | null
           queue_pending_now: number | null
@@ -51156,7 +52506,7 @@ export type Database = {
           gap_inbound_min?: number | null
           id?: string | null
           pipeline_status?:
-            | Database["zapp"]["Enums"]["evolution_pipeline_status"]
+            | Database["public"]["Enums"]["evolution_pipeline_status"]
             | null
           queue_failed_24h?: number | null
           queue_pending_now?: number | null
@@ -51177,7 +52527,7 @@ export type Database = {
           gap_inbound_min?: number | null
           id?: string | null
           pipeline_status?:
-            | Database["zapp"]["Enums"]["evolution_pipeline_status"]
+            | Database["public"]["Enums"]["evolution_pipeline_status"]
             | null
           queue_failed_24h?: number | null
           queue_pending_now?: number | null
@@ -51217,123 +52567,6 @@ export type Database = {
           pipeline_id?: string | null
           reason?: string | null
           to_stage?: string | null
-        }
-        Relationships: []
-      }
-      evolution_quick_replies: {
-        Row: {
-          category: string | null
-          content: string | null
-          created_at: string | null
-          id: string | null
-          is_active: boolean | null
-          shortcut: string | null
-          title: string | null
-          use_count: number | null
-        }
-        Insert: {
-          category?: string | null
-          content?: string | null
-          created_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          shortcut?: string | null
-          title?: string | null
-          use_count?: number | null
-        }
-        Update: {
-          category?: string | null
-          content?: string | null
-          created_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          shortcut?: string | null
-          title?: string | null
-          use_count?: number | null
-        }
-        Relationships: []
-      }
-      evolution_reactions: {
-        Row: {
-          created_at: string | null
-          emoji: string | null
-          from_me: boolean | null
-          id: string | null
-          instance_name: string | null
-          message_id: string | null
-          push_name: string | null
-          reacted_at: string | null
-          remote_jid: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          emoji?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_id?: string | null
-          push_name?: string | null
-          reacted_at?: string | null
-          remote_jid?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          emoji?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          instance_name?: string | null
-          message_id?: string | null
-          push_name?: string | null
-          reacted_at?: string | null
-          remote_jid?: string | null
-        }
-        Relationships: []
-      }
-      evolution_realtime_events: {
-        Row: {
-          body: string | null
-          created_at: string | null
-          data: Json | null
-          entity_id: string | null
-          entity_type: string | null
-          event_type: string | null
-          id: string | null
-          priority: string | null
-          read: boolean | null
-          read_at: string | null
-          remote_jid: string | null
-          target_users: string[] | null
-          title: string | null
-        }
-        Insert: {
-          body?: string | null
-          created_at?: string | null
-          data?: Json | null
-          entity_id?: string | null
-          entity_type?: string | null
-          event_type?: string | null
-          id?: string | null
-          priority?: string | null
-          read?: boolean | null
-          read_at?: string | null
-          remote_jid?: string | null
-          target_users?: string[] | null
-          title?: string | null
-        }
-        Update: {
-          body?: string | null
-          created_at?: string | null
-          data?: Json | null
-          entity_id?: string | null
-          entity_type?: string | null
-          event_type?: string | null
-          id?: string | null
-          priority?: string | null
-          read?: boolean | null
-          read_at?: string | null
-          remote_jid?: string | null
-          target_users?: string[] | null
-          title?: string | null
         }
         Relationships: []
       }
@@ -51403,660 +52636,6 @@ export type Database = {
           ran_at?: string | null
           triggered_by?: string | null
           unprocessed_days_kept?: number | null
-        }
-        Relationships: []
-      }
-      evolution_retry_metrics: {
-        Row: {
-          action: string | null
-          attempt_count: number | null
-          created_at: string | null
-          final_http_status: number | null
-          final_status: string | null
-          id: string | null
-          idempotency_key: string | null
-          instance_name: string | null
-          method: string | null
-          retry_reasons: Json | null
-          total_duration_ms: number | null
-        }
-        Insert: {
-          action?: string | null
-          attempt_count?: number | null
-          created_at?: string | null
-          final_http_status?: number | null
-          final_status?: string | null
-          id?: string | null
-          idempotency_key?: string | null
-          instance_name?: string | null
-          method?: string | null
-          retry_reasons?: Json | null
-          total_duration_ms?: number | null
-        }
-        Update: {
-          action?: string | null
-          attempt_count?: number | null
-          created_at?: string | null
-          final_http_status?: number | null
-          final_status?: string | null
-          id?: string | null
-          idempotency_key?: string | null
-          instance_name?: string | null
-          method?: string | null
-          retry_reasons?: Json | null
-          total_duration_ms?: number | null
-        }
-        Relationships: []
-      }
-      evolution_sales_pipeline: {
-        Row: {
-          assigned_to: string | null
-          created_at: string | null
-          current_stage: string | null
-          id: string | null
-          last_message_at: string | null
-          metadata: Json | null
-          notes: string | null
-          previous_stage: string | null
-          push_name: string | null
-          remote_jid: string | null
-          stage_changed_at: string | null
-          total_messages: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          assigned_to?: string | null
-          created_at?: string | null
-          current_stage?: string | null
-          id?: string | null
-          last_message_at?: string | null
-          metadata?: Json | null
-          notes?: string | null
-          previous_stage?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          stage_changed_at?: string | null
-          total_messages?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          assigned_to?: string | null
-          created_at?: string | null
-          current_stage?: string | null
-          id?: string | null
-          last_message_at?: string | null
-          metadata?: Json | null
-          notes?: string | null
-          previous_stage?: string | null
-          push_name?: string | null
-          remote_jid?: string | null
-          stage_changed_at?: string | null
-          total_messages?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_scheduled_messages: {
-        Row: {
-          contact_id: string | null
-          content: string | null
-          created_at: string | null
-          created_by: string | null
-          error_message: string | null
-          id: string | null
-          instance_name: string | null
-          media_url: string | null
-          scheduled_at: string | null
-          sent_at: string | null
-          status: string | null
-          template_id: string | null
-        }
-        Insert: {
-          contact_id?: string | null
-          content?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          error_message?: string | null
-          id?: string | null
-          instance_name?: string | null
-          media_url?: string | null
-          scheduled_at?: string | null
-          sent_at?: string | null
-          status?: string | null
-          template_id?: string | null
-        }
-        Update: {
-          contact_id?: string | null
-          content?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          error_message?: string | null
-          id?: string | null
-          instance_name?: string | null
-          media_url?: string | null
-          scheduled_at?: string | null
-          sent_at?: string | null
-          status?: string | null
-          template_id?: string | null
-        }
-        Relationships: []
-      }
-      evolution_send_idempotency: {
-        Row: {
-          created_at: string | null
-          expires_at: string | null
-          external_message_id: string | null
-          http_status: number | null
-          idem_key: string | null
-          instance_name: string | null
-          path: string | null
-          response: Json | null
-        }
-        Insert: {
-          created_at?: string | null
-          expires_at?: string | null
-          external_message_id?: string | null
-          http_status?: number | null
-          idem_key?: string | null
-          instance_name?: string | null
-          path?: string | null
-          response?: Json | null
-        }
-        Update: {
-          created_at?: string | null
-          expires_at?: string | null
-          external_message_id?: string | null
-          http_status?: number | null
-          idem_key?: string | null
-          instance_name?: string | null
-          path?: string | null
-          response?: Json | null
-        }
-        Relationships: []
-      }
-      evolution_sentiment_analysis: {
-        Row: {
-          analyzed_at: string | null
-          contact_id: string | null
-          conversation_id: string | null
-          created_at: string | null
-          emotions: Json | null
-          id: string | null
-          intent: string | null
-          keywords: string[] | null
-          message_id: string | null
-          message_text: string | null
-          model_used: string | null
-          remote_jid: string | null
-          requires_attention: boolean | null
-          sentiment: string | null
-          sentiment_score: number | null
-          urgency: string | null
-        }
-        Insert: {
-          analyzed_at?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          emotions?: Json | null
-          id?: string | null
-          intent?: string | null
-          keywords?: string[] | null
-          message_id?: string | null
-          message_text?: string | null
-          model_used?: string | null
-          remote_jid?: string | null
-          requires_attention?: boolean | null
-          sentiment?: string | null
-          sentiment_score?: number | null
-          urgency?: string | null
-        }
-        Update: {
-          analyzed_at?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          emotions?: Json | null
-          id?: string | null
-          intent?: string | null
-          keywords?: string[] | null
-          message_id?: string | null
-          message_text?: string | null
-          model_used?: string | null
-          remote_jid?: string | null
-          requires_attention?: boolean | null
-          sentiment?: string | null
-          sentiment_score?: number | null
-          urgency?: string | null
-        }
-        Relationships: []
-      }
-      evolution_settings: {
-        Row: {
-          category: string | null
-          created_at: string | null
-          description: string | null
-          id: string | null
-          is_secret: boolean | null
-          key: string | null
-          updated_at: string | null
-          value: Json | null
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string | null
-          is_secret?: boolean | null
-          key?: string | null
-          updated_at?: string | null
-          value?: Json | null
-        }
-        Update: {
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string | null
-          is_secret?: boolean | null
-          key?: string | null
-          updated_at?: string | null
-          value?: Json | null
-        }
-        Relationships: []
-      }
-      evolution_source_schema_map: {
-        Row: {
-          column_name: string | null
-          data_type: string | null
-          database_name: string | null
-          discovered_at: string | null
-          id: number | null
-          is_nullable: string | null
-          is_primary_key: boolean | null
-          is_unique: boolean | null
-          ordinal_position: number | null
-          raw_metadata: Json | null
-          row_count_est: number | null
-          schema_name: string | null
-          table_name: string | null
-        }
-        Insert: {
-          column_name?: string | null
-          data_type?: string | null
-          database_name?: string | null
-          discovered_at?: string | null
-          id?: number | null
-          is_nullable?: string | null
-          is_primary_key?: boolean | null
-          is_unique?: boolean | null
-          ordinal_position?: number | null
-          raw_metadata?: Json | null
-          row_count_est?: number | null
-          schema_name?: string | null
-          table_name?: string | null
-        }
-        Update: {
-          column_name?: string | null
-          data_type?: string | null
-          database_name?: string | null
-          discovered_at?: string | null
-          id?: number | null
-          is_nullable?: string | null
-          is_primary_key?: boolean | null
-          is_unique?: boolean | null
-          ordinal_position?: number | null
-          raw_metadata?: Json | null
-          row_count_est?: number | null
-          schema_name?: string | null
-          table_name?: string | null
-        }
-        Relationships: []
-      }
-      evolution_spam_keywords: {
-        Row: {
-          action: string | null
-          auto_reply_message: string | null
-          created_at: string | null
-          hit_count: number | null
-          id: string | null
-          is_active: boolean | null
-          keyword: string | null
-          match_type: string | null
-        }
-        Insert: {
-          action?: string | null
-          auto_reply_message?: string | null
-          created_at?: string | null
-          hit_count?: number | null
-          id?: string | null
-          is_active?: boolean | null
-          keyword?: string | null
-          match_type?: string | null
-        }
-        Update: {
-          action?: string | null
-          auto_reply_message?: string | null
-          created_at?: string | null
-          hit_count?: number | null
-          id?: string | null
-          is_active?: boolean | null
-          keyword?: string | null
-          match_type?: string | null
-        }
-        Relationships: []
-      }
-      evolution_stage_mapping: {
-        Row: {
-          auto_transition_after_hours: number | null
-          label_color: string | null
-          label_name: string | null
-          next_stage: string | null
-          stage_key: string | null
-          stage_order: number | null
-        }
-        Insert: {
-          auto_transition_after_hours?: number | null
-          label_color?: string | null
-          label_name?: string | null
-          next_stage?: string | null
-          stage_key?: string | null
-          stage_order?: number | null
-        }
-        Update: {
-          auto_transition_after_hours?: number | null
-          label_color?: string | null
-          label_name?: string | null
-          next_stage?: string | null
-          stage_key?: string | null
-          stage_order?: number | null
-        }
-        Relationships: []
-      }
-      evolution_status_reactions: {
-        Row: {
-          automation_rule_id: string | null
-          created_at: string | null
-          id: string | null
-          instance_name: string | null
-          reacted_at: string | null
-          reacted_by: string | null
-          reaction_emoji: string | null
-          reaction_type: string | null
-          send_error: string | null
-          sent_at: string | null
-          sent_to_whatsapp: boolean | null
-          status_id: string | null
-        }
-        Insert: {
-          automation_rule_id?: string | null
-          created_at?: string | null
-          id?: string | null
-          instance_name?: string | null
-          reacted_at?: string | null
-          reacted_by?: string | null
-          reaction_emoji?: string | null
-          reaction_type?: string | null
-          send_error?: string | null
-          sent_at?: string | null
-          sent_to_whatsapp?: boolean | null
-          status_id?: string | null
-        }
-        Update: {
-          automation_rule_id?: string | null
-          created_at?: string | null
-          id?: string | null
-          instance_name?: string | null
-          reacted_at?: string | null
-          reacted_by?: string | null
-          reaction_emoji?: string | null
-          reaction_type?: string | null
-          send_error?: string | null
-          sent_at?: string | null
-          sent_to_whatsapp?: boolean | null
-          status_id?: string | null
-        }
-        Relationships: []
-      }
-      evolution_tag_assignments: {
-        Row: {
-          assigned_at: string | null
-          assigned_by: string | null
-          entity_id: string | null
-          entity_type: string | null
-          id: string | null
-          tag_id: string | null
-        }
-        Insert: {
-          assigned_at?: string | null
-          assigned_by?: string | null
-          entity_id?: string | null
-          entity_type?: string | null
-          id?: string | null
-          tag_id?: string | null
-        }
-        Update: {
-          assigned_at?: string | null
-          assigned_by?: string | null
-          entity_id?: string | null
-          entity_type?: string | null
-          id?: string | null
-          tag_id?: string | null
-        }
-        Relationships: []
-      }
-      evolution_tags: {
-        Row: {
-          auto_apply: boolean | null
-          auto_apply_rules: Json | null
-          category: string | null
-          color: string | null
-          created_at: string | null
-          description: string | null
-          id: string | null
-          name: string | null
-          use_count: number | null
-        }
-        Insert: {
-          auto_apply?: boolean | null
-          auto_apply_rules?: Json | null
-          category?: string | null
-          color?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string | null
-          name?: string | null
-          use_count?: number | null
-        }
-        Update: {
-          auto_apply?: boolean | null
-          auto_apply_rules?: Json | null
-          category?: string | null
-          color?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string | null
-          name?: string | null
-          use_count?: number | null
-        }
-        Relationships: []
-      }
-      evolution_tasks: {
-        Row: {
-          assigned_by: string | null
-          assigned_to: string | null
-          completed_at: string | null
-          completed_by: string | null
-          contact_id: string | null
-          conversation_id: string | null
-          created_at: string | null
-          deal_id: string | null
-          deleted_at: string | null
-          description: string | null
-          due_date: string | null
-          due_time: string | null
-          id: string | null
-          is_recurring: boolean | null
-          metadata: Json | null
-          notes: string | null
-          parent_task_id: string | null
-          priority: string | null
-          recurrence_end: string | null
-          recurrence_rule: string | null
-          reminder_at: string | null
-          status: string | null
-          tags: string[] | null
-          task_type: string | null
-          title: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          assigned_by?: string | null
-          assigned_to?: string | null
-          completed_at?: string | null
-          completed_by?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          deal_id?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          due_date?: string | null
-          due_time?: string | null
-          id?: string | null
-          is_recurring?: boolean | null
-          metadata?: Json | null
-          notes?: string | null
-          parent_task_id?: string | null
-          priority?: string | null
-          recurrence_end?: string | null
-          recurrence_rule?: string | null
-          reminder_at?: string | null
-          status?: string | null
-          tags?: string[] | null
-          task_type?: string | null
-          title?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          assigned_by?: string | null
-          assigned_to?: string | null
-          completed_at?: string | null
-          completed_by?: string | null
-          contact_id?: string | null
-          conversation_id?: string | null
-          created_at?: string | null
-          deal_id?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          due_date?: string | null
-          due_time?: string | null
-          id?: string | null
-          is_recurring?: boolean | null
-          metadata?: Json | null
-          notes?: string | null
-          parent_task_id?: string | null
-          priority?: string | null
-          recurrence_end?: string | null
-          recurrence_rule?: string | null
-          reminder_at?: string | null
-          status?: string | null
-          tags?: string[] | null
-          task_type?: string | null
-          title?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_template_usage: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          id: string | null
-          remote_jid: string | null
-          send_status: string | null
-          template_id: string | null
-          variables_used: Json | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          id?: string | null
-          remote_jid?: string | null
-          send_status?: string | null
-          template_id?: string | null
-          variables_used?: Json | null
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          id?: string | null
-          remote_jid?: string | null
-          send_status?: string | null
-          template_id?: string | null
-          variables_used?: Json | null
-        }
-        Relationships: []
-      }
-      evolution_webhook_dlq: {
-        Row: {
-          consumer_version: string | null
-          created_at: string | null
-          error_message: string | null
-          error_stack: string | null
-          event_type: string | null
-          id: string | null
-          instance_name: string | null
-          last_request_id: number | null
-          max_retries: number | null
-          next_retry_at: string | null
-          original_event_id: string | null
-          payload: Json | null
-          queue_name: string | null
-          remote_jid: string | null
-          resolved_at: string | null
-          resolved_by: string | null
-          retry_count: number | null
-          status: string | null
-        }
-        Insert: {
-          consumer_version?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          error_stack?: string | null
-          event_type?: string | null
-          id?: string | null
-          instance_name?: string | null
-          last_request_id?: number | null
-          max_retries?: number | null
-          next_retry_at?: string | null
-          original_event_id?: string | null
-          payload?: Json | null
-          queue_name?: string | null
-          remote_jid?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          retry_count?: number | null
-          status?: string | null
-        }
-        Update: {
-          consumer_version?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          error_stack?: string | null
-          event_type?: string | null
-          id?: string | null
-          instance_name?: string | null
-          last_request_id?: number | null
-          max_retries?: number | null
-          next_retry_at?: string | null
-          original_event_id?: string | null
-          payload?: Json | null
-          queue_name?: string | null
-          remote_jid?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          retry_count?: number | null
-          status?: string | null
         }
         Relationships: []
       }
@@ -52771,63 +53350,6 @@ export type Database = {
           remote_jid?: string | null
           retry_count?: number | null
           status?: string | null
-        }
-        Relationships: []
-      }
-      evolution_whatsapp_status: {
-        Row: {
-          contact_id: string | null
-          content: string | null
-          created_at: string | null
-          expires_at: string | null
-          id: string | null
-          instance_name: string | null
-          media_meta: Json | null
-          media_mimetype: string | null
-          media_url: string | null
-          message_id: string | null
-          message_type: string | null
-          participant_jid: string | null
-          participant_name: string | null
-          posted_at: string | null
-          viewed_at: string | null
-          viewed_by_us: boolean | null
-        }
-        Insert: {
-          contact_id?: string | null
-          content?: string | null
-          created_at?: string | null
-          expires_at?: string | null
-          id?: string | null
-          instance_name?: string | null
-          media_meta?: Json | null
-          media_mimetype?: string | null
-          media_url?: string | null
-          message_id?: string | null
-          message_type?: string | null
-          participant_jid?: string | null
-          participant_name?: string | null
-          posted_at?: string | null
-          viewed_at?: string | null
-          viewed_by_us?: boolean | null
-        }
-        Update: {
-          contact_id?: string | null
-          content?: string | null
-          created_at?: string | null
-          expires_at?: string | null
-          id?: string | null
-          instance_name?: string | null
-          media_meta?: Json | null
-          media_mimetype?: string | null
-          media_url?: string | null
-          message_id?: string | null
-          message_type?: string | null
-          participant_jid?: string | null
-          participant_name?: string | null
-          posted_at?: string | null
-          viewed_at?: string | null
-          viewed_by_us?: boolean | null
         }
         Relationships: []
       }
@@ -53846,7 +54368,50 @@ export type Database = {
           whatsapp_message_id: string | null
           whatsapp_timestamp: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages_whatsapp: {
         Row: {
@@ -53888,7 +54453,50 @@ export type Database = {
           remote_jid?: string | null
           status?: never
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meta_capi_events: {
         Row: {
@@ -55853,7 +56461,50 @@ export type Database = {
           unread_count: number | null
           updated_at: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v_pending_notifications: {
         Row: {
@@ -56551,7 +57202,50 @@ export type Database = {
           status: string | null
           storage_type: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contact_360"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_with_legacy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_deleted_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_evolution_messages_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_top_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_system_health: {
         Row: {
@@ -56620,6 +57314,13 @@ export type Database = {
           remote_jid?: string | null
           target_users?: string[] | null
           title?: string | null
+        }
+        Relationships: []
+      }
+      vw_whatsapp_mode: {
+        Row: {
+          mode: string | null
+          updated_at: string | null
         }
         Relationships: []
       }
@@ -57150,16 +57851,6 @@ export type Database = {
       }
     }
     Functions: {
-      _fn_health_diag: {
-        Args: never
-        Returns: {
-          dim: string
-          ms: number
-        }[]
-      }
-      _fn_health_min_test: { Args: never; Returns: Json }
-      _fn_health_noexc: { Args: never; Returns: Json }
-      _fn_health_nosecdef: { Args: never; Returns: Json }
       acquire_idempotency_lock: {
         Args: { p_action: string; p_request_id: string; p_user_id: string }
         Returns: Json
@@ -57487,6 +58178,10 @@ export type Database = {
         Args: { p_acknowledged_by?: string; p_alert_id: string }
         Returns: boolean
       }
+      fn_acknowledge_stale_alerts: {
+        Args: { p_hours?: number }
+        Returns: number
+      }
       fn_activate_discord_fallback: {
         Args: { p_webhook_url: string }
         Returns: Json
@@ -57587,6 +58282,7 @@ export type Database = {
         }
         Returns: string
       }
+      fn_alert_ghost_conversations: { Args: never; Returns: number }
       fn_alert_ghost_message_events: { Args: never; Returns: number }
       fn_alert_health_score_degraded:
         | {
@@ -57618,6 +58314,7 @@ export type Database = {
         Args: { p_instance_name?: string }
         Returns: Json
       }
+      fn_analytics_wal_watchdog: { Args: never; Returns: Json }
       fn_analyze_sentiment: {
         Args: { p_text: string }
         Returns: {
@@ -57672,7 +58369,7 @@ export type Database = {
           severity: number
         }[]
       }
-      fn_auto_resolve_alerts: { Args: { p_hours?: number }; Returns: number }
+      fn_auto_resolve_alerts: { Args: never; Returns: undefined }
       fn_auto_resolve_baileys_alerts: { Args: never; Returns: number }
       fn_auto_save_received_audio_meme: {
         Args: {
@@ -57710,6 +58407,8 @@ export type Database = {
         Returns: Json
       }
       fn_batch_normalize_status: { Args: { p_batch?: number }; Returns: Json }
+      fn_bootstrap_coverage_hourly_check: { Args: never; Returns: Json }
+      fn_cache_warmup_after_vacuum: { Args: never; Returns: Json }
       fn_calculate_daily_kpis: { Args: never; Returns: Json }
       fn_calculate_daily_metrics: {
         Args: { p_date?: string }
@@ -57726,6 +58425,12 @@ export type Database = {
           total_calls: number
         }[]
       }
+      fn_capture_csat_replies: {
+        Args: { p_limit?: number }
+        Returns: {
+          captured: number
+        }[]
+      }
       fn_categorize_sticker: {
         Args: {
           p_new_category: string
@@ -57735,6 +58440,9 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_checar_inbound_zerado: { Args: never; Returns: Json }
+      fn_check_401_rate: { Args: never; Returns: undefined }
+      fn_check_ack_stall: { Args: never; Returns: undefined }
       fn_check_all_cards_sla: { Args: never; Returns: number }
       fn_check_baileys_zombie: {
         Args: never
@@ -57746,6 +58454,7 @@ export type Database = {
           severity_score: number
         }[]
       }
+      fn_check_connection_saturation: { Args: never; Returns: undefined }
       fn_check_email_rpc_acl: {
         Args: never
         Returns: {
@@ -57767,13 +58476,17 @@ export type Database = {
       fn_check_evolution_jid_health: { Args: never; Returns: Json }
       fn_check_evolution_pipeline_health: { Args: never; Returns: Json }
       fn_check_followup_triggers: { Args: never; Returns: number }
+      fn_check_guardian_alive: { Args: never; Returns: undefined }
       fn_check_integrations_health: { Args: never; Returns: Json }
+      fn_check_license_heartbeat: { Args: never; Returns: string }
       fn_check_logout_pattern: { Args: never; Returns: Json }
       fn_check_minio_decomission: { Args: never; Returns: Json }
       fn_check_overdue_tasks: { Args: never; Returns: number }
       fn_check_rate_limit: { Args: { p_remote_jid: string }; Returns: boolean }
       fn_check_restore_validation_health: { Args: never; Returns: Json }
       fn_check_stuck_pending_messages: { Args: never; Returns: Json }
+      fn_check_v04_phonejid_arrived: { Args: never; Returns: undefined }
+      fn_check_wal_slot_health: { Args: never; Returns: undefined }
       fn_check_webhook_health: { Args: never; Returns: Json }
       fn_check_webhook_lag: { Args: never; Returns: Json }
       fn_circuit_allow: { Args: { p_service: string }; Returns: boolean }
@@ -57931,6 +58644,34 @@ export type Database = {
       fn_d30_reminder_check: { Args: never; Returns: undefined }
       fn_daily_ops_briefing: { Args: never; Returns: Json }
       fn_dashboard_data: { Args: never; Returns: Json }
+      fn_dashboard_heatmap: {
+        Args: { p_days?: number; p_metric?: string }
+        Returns: {
+          day: number
+          hour: number
+          sample_count: number
+          total_rows: number
+          value: number
+        }[]
+      }
+      fn_demand_forecast: {
+        Args: { p_days?: number; p_forecast_days?: number }
+        Returns: {
+          d: string
+          dow: number
+          kind: string
+          value: number
+        }[]
+      }
+      fn_detect_401_bursts: { Args: never; Returns: Json }
+      fn_detect_ack_loss_gap: {
+        Args: { p_dlq_threshold?: number; p_window?: string }
+        Returns: Json
+      }
+      fn_detect_dedup_cap_failures: {
+        Args: { p_window?: string }
+        Returns: Json
+      }
       fn_detect_schema_drift: {
         Args: never
         Returns: {
@@ -57941,6 +58682,11 @@ export type Database = {
           suspected_table: string
         }[]
       }
+      fn_detect_spurious_closes: {
+        Args: { p_reconnect_window?: string; p_window?: string }
+        Returns: Json
+      }
+      fn_detect_swarm_task_duplication: { Args: never; Returns: Json }
       fn_dlq_compute_next_retry: {
         Args: { p_attempt: number }
         Returns: string
@@ -57948,6 +58694,10 @@ export type Database = {
       fn_dlq_process_retries: { Args: { p_batch?: number }; Returns: number }
       fn_dlq_stats: { Args: never; Returns: Json }
       fn_dlq_verify_retries: { Args: never; Returns: Json }
+      fn_download_wa_status_media: {
+        Args: { p_batch_size?: number }
+        Returns: Json
+      }
       fn_drop_logflare_slot: { Args: never; Returns: string }
       fn_edge_delete_evolution_credentials: {
         Args: { p_id: string }
@@ -57979,6 +58729,7 @@ export type Database = {
         Args: { p_instance: string; p_message_id: string }
         Returns: string
       }
+      fn_ensure_critical_crons_active: { Args: never; Returns: Json }
       fn_escalate_critical_alerts: { Args: never; Returns: Json }
       fn_evo_outbox_claim: {
         Args: { p_limit?: number }
@@ -58021,6 +58772,10 @@ export type Database = {
       }
       fn_executive_dashboard: { Args: never; Returns: Json }
       fn_executive_summary: { Args: never; Returns: Json }
+      fn_expire_whatsapp_media_urls: {
+        Args: { p_batch_limit?: number; p_days_old?: number }
+        Returns: Json
+      }
       fn_export_messages: {
         Args: {
           p_from?: string
@@ -58035,6 +58790,11 @@ export type Database = {
           tipo: string
         }[]
       }
+      fn_feed_401_disconnect_alerts: {
+        Args: { p_minutes?: number; p_threshold?: number }
+        Returns: Json
+      }
+      fn_flag_poison_messages: { Args: never; Returns: Json }
       fn_force_autovacuum: {
         Args: { p_schema: string; p_table: string }
         Returns: Json
@@ -58110,6 +58870,7 @@ export type Database = {
       fn_get_realtime_stats: { Args: never; Returns: Json }
       fn_get_setting: { Args: { p_key: string }; Returns: Json }
       fn_get_vault_secret: { Args: { p_name: string }; Returns: string }
+      fn_handle_expired_r2_media: { Args: never; Returns: number }
       fn_handle_message_delete: {
         Args: { p_instance: string; p_payload: Json }
         Returns: Json
@@ -58161,6 +58922,7 @@ export type Database = {
         }[]
       }
       fn_jwt_secret_ref: { Args: never; Returns: string }
+      fn_last_evo_license_alert: { Args: never; Returns: string }
       fn_lgpd_anonymize_deleted_contacts: {
         Args: { p_days_threshold?: number }
         Returns: Json
@@ -58173,6 +58935,7 @@ export type Database = {
         Args: { p_days_threshold?: number }
         Returns: Json
       }
+      fn_link_orphan_messages: { Args: { p_limit?: number }; Returns: Json }
       fn_list_audio_meme_categories: { Args: never; Returns: Json }
       fn_list_audio_memes: {
         Args: {
@@ -58236,6 +58999,16 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_log_evo_license_health: {
+        Args: {
+          p_alert?: boolean
+          p_http_status: number
+          p_raw?: Json
+          p_response_time_ms: number
+          p_status: string
+        }
+        Returns: undefined
+      }
       fn_log_reconnection_attempt: {
         Args: {
           p_attempt_number?: number
@@ -58287,10 +59060,13 @@ export type Database = {
       }
       fn_monitor_cron_jobs_health: { Args: never; Returns: Json }
       fn_monitor_dlq_health: { Args: { p_threshold?: number }; Returns: Json }
+      fn_monitor_lid_contamination: { Args: never; Returns: Json }
+      fn_monitor_pino_timeouts: { Args: never; Returns: Json }
       fn_monitor_slow_queries: {
         Args: { p_min_calls?: number; p_min_ms?: number }
         Returns: Json
       }
+      fn_monthly_evo_audit: { Args: never; Returns: Json }
       fn_move_audio_meme_category: {
         Args: { p_meme_id: string; p_new_category: string }
         Returns: Json
@@ -58340,7 +59116,9 @@ export type Database = {
         }[]
       }
       fn_pipeline_analytics: { Args: { p_instance?: string }; Returns: Json }
+      fn_pipeline_canary_insert: { Args: never; Returns: undefined }
       fn_pipeline_health_log_cleanup: { Args: never; Returns: number }
+      fn_pipeline_health_probe: { Args: never; Returns: Json }
       fn_pipeline_watchdog: { Args: never; Returns: Json }
       fn_populate_tail_missing: { Args: never; Returns: number }
       fn_process_chat_update: {
@@ -58375,10 +59153,6 @@ export type Database = {
         Returns: Json
       }
       fn_purge_api_key_from_logs: { Args: { p_key: string }; Returns: Json }
-      fn_purge_processed_webhook_events: {
-        Args: { p_batch_size?: number; p_retention_days?: number }
-        Returns: Json
-      }
       fn_purge_webhook_logs: { Args: { older_than?: string }; Returns: number }
       fn_queue_autoassign_tick: {
         Args: { p_limit?: number }
@@ -58458,9 +59232,12 @@ export type Database = {
         }[]
       }
       fn_replay_webhook_event: { Args: { p_event_id: string }; Returns: Json }
-      fn_reprocess_instance_webhook_events: {
-        Args: { p_instance_name?: string; p_limit?: number }
-        Returns: Json
+      fn_repontar_filhas_graveyard: {
+        Args: { p_dry_run?: boolean }
+        Returns: {
+          linhas_afetadas: number
+          tabela: string
+        }[]
       }
       fn_reprocess_pending_webhook_events: {
         Args: { p_limit?: number }
@@ -58479,13 +59256,13 @@ export type Database = {
         Args: { p_alert_type: string; p_resolved_by?: string }
         Returns: number
       }
+      fn_resolve_contact_id_by_jid: { Args: { p_jid: string }; Returns: string }
       fn_resolve_kpi_alerts_stale: { Args: never; Returns: number }
       fn_resolve_stale_connection_alerts: { Args: never; Returns: number }
       fn_response_time_analysis: {
         Args: { p_instance?: string }
         Returns: Json
       }
-      fn_restore_integrity_check: { Args: never; Returns: Json }
       fn_retention_audit_tables: { Args: never; Returns: Json }
       fn_retention_cleanup: {
         Args: { p_processed_days?: number; p_unprocessed_days?: number }
@@ -58511,10 +59288,7 @@ export type Database = {
         Returns: boolean
       }
       fn_rollback_to_minio: { Args: never; Returns: string }
-      fn_route_failed_webhooks_to_dlq: {
-        Args: { p_batch_size?: number; p_max_age_minutes?: number }
-        Returns: Json
-      }
+      fn_run_media_health_alert: { Args: never; Returns: undefined }
       fn_safe_audit_log: {
         Args: {
           p_action: string
@@ -58539,9 +59313,14 @@ export type Database = {
       fn_schema_drift_daily_check: { Args: never; Returns: Json }
       fn_score_security_acl: { Args: never; Returns: Json }
       fn_score_v2_pipeline: { Args: never; Returns: Json }
+      fn_scrub_r2_paths_from_logs: {
+        Args: { p_window?: string }
+        Returns: Json
+      }
+      fn_scrub_r2_text: { Args: { p_input: string }; Returns: string }
       fn_search_contacts: {
         Args: { p_limit?: number; p_query: string }
-        Returns: Database["zapp"]["Views"]["evolution_contacts"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_contacts"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_contacts"
@@ -58606,6 +59385,7 @@ export type Database = {
         Returns: undefined
       }
       fn_severity_rank: { Args: { p_severity: string }; Returns: number }
+      fn_shadow_snapshot_daily: { Args: never; Returns: Json }
       fn_should_apply_kill_switch: {
         Args: { p_bucket_key: string; p_switch_name: string }
         Returns: boolean
@@ -58693,11 +59473,16 @@ export type Database = {
             }
             Returns: string
           }
+      fn_trigger_audio_transcription: {
+        Args: { p_batch_size?: number }
+        Returns: Json
+      }
       fn_trigger_restore_validation: { Args: never; Returns: Json }
       fn_update_conversation_metrics: {
         Args: { p_conversation_id: string }
         Returns: undefined
       }
+      fn_update_instance_health: { Args: never; Returns: undefined }
       fn_update_lead_score: { Args: { p_contact_id: string }; Returns: number }
       fn_update_pipeline_stage: {
         Args: { p_deal_id: string; p_notes?: string; p_stage: string }
@@ -58708,7 +59493,20 @@ export type Database = {
         Args: { p_instance?: string; p_jid: string; p_push_name: string }
         Returns: string
       }
+      fn_upsert_lid_identity: {
+        Args: {
+          p_confidence?: string
+          p_lid_jid: string
+          p_phone_number?: string
+          p_pn_jid?: string
+          p_raw?: Json
+          p_source?: string
+        }
+        Returns: undefined
+      }
       fn_use_template: { Args: { p_template_id: string }; Returns: string }
+      fn_uuid_safe: { Args: { t: string }; Returns: string }
+      fn_v2_pipeline_heartbeat: { Args: never; Returns: Json }
       fn_vacuum_critical_tables: { Args: never; Returns: Json }
       fn_validate_audit_vocabulary: {
         Args: never
@@ -58718,6 +59516,10 @@ export type Database = {
           permitida: boolean
           qtd_inserts: number
         }[]
+      }
+      fn_validate_whatsapp_connection_url: {
+        Args: { p_instance: string }
+        Returns: Json
       }
       fn_vault_healthcheck: { Args: never; Returns: Json }
       fn_vault_healthcheck_cleanup: { Args: never; Returns: undefined }
@@ -58746,6 +59548,10 @@ export type Database = {
       }
       fn_webhook_purge_consolidated: {
         Args: { p_batch_size?: number; p_v2_retention_days?: number }
+        Returns: Json
+      }
+      fn_wpp2_uptime_kpi: {
+        Args: { p_alert?: boolean; p_instance?: string; p_window?: string }
         Returns: Json
       }
       fn_zapp_web_smoke_test_v2: {
@@ -58830,7 +59636,7 @@ export type Database = {
       }
       get_contact_conversations: {
         Args: { p_contact_id: string; p_limit?: number }
-        Returns: Database["zapp"]["Views"]["evolution_conversations"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_conversations"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_conversations"
@@ -59072,10 +59878,9 @@ export type Database = {
         Returns: boolean
       }
       import_user_data: { Args: { p_data: Json }; Returns: Json }
-      increment_snapshot_version: {
-        Args: { p_table_name: string }
-        Returns: number
-      }
+      increment_snapshot_version:
+        | { Args: { entity_name?: string }; Returns: undefined }
+        | { Args: { p_table_name: string }; Returns: number }
       increment_webhook_rate_limit: {
         Args: {
           p_event_type: string
@@ -59258,6 +60063,7 @@ export type Database = {
       }
       purge_old_deleted_contacts: { Args: never; Returns: number }
       purge_old_query_telemetry: { Args: { p_days?: number }; Returns: number }
+      purge_old_reconcile_snapshots: { Args: never; Returns: number }
       purge_webhook_logs: { Args: never; Returns: undefined }
       reassign_absent_agents: {
         Args: { inactive_minutes?: number }
@@ -59340,6 +60146,77 @@ export type Database = {
         }
         Returns: Json
       }
+      rpc_boundary_apply_lid_mappings: {
+        Args: { p_batch?: number; p_dry_run?: boolean }
+        Returns: Json
+      }
+      rpc_boundary_insert_consumer_stats: {
+        Args: { p_row: Json }
+        Returns: undefined
+      }
+      rpc_boundary_log_audit: {
+        Args: {
+          p_action: string
+          p_entity_type: string
+          p_metadata: Json
+          p_new_values: Json
+          p_performed_by: string
+        }
+        Returns: undefined
+      }
+      rpc_boundary_normalize_send_jid: {
+        Args: { p_instance?: string; p_jid: string }
+        Returns: string
+      }
+      rpc_boundary_raise_alert: {
+        Args: {
+          p_alert_type: string
+          p_dedup_window?: string
+          p_message: string
+          p_payload?: Json
+          p_severity: string
+          p_title: string
+        }
+        Returns: string
+      }
+      rpc_boundary_register_media: {
+        Args: {
+          p_file_name: string
+          p_instance_name: string
+          p_media_status: string
+          p_media_type: string
+          p_message_id: string
+          p_mimetype: string
+          p_queue_id: number
+          p_remote_jid: string
+          p_storage_bucket: string
+          p_storage_path: string
+          p_storage_url: string
+        }
+        Returns: undefined
+      }
+      rpc_boundary_resolve_alert: {
+        Args: { p_alert_type: string; p_resolved_by: string }
+        Returns: number
+      }
+      rpc_boundary_system_health_score: { Args: never; Returns: Json }
+      rpc_boundary_touch_contact: {
+        Args: { p_at?: string; p_remote_jid: string }
+        Returns: undefined
+      }
+      rpc_boundary_upsert_status: {
+        Args: {
+          p_content: string
+          p_instance: string
+          p_media_mimetype: string
+          p_media_url: string
+          p_message_id: string
+          p_message_type: string
+          p_participant_name: string
+          p_posted_at: string
+        }
+        Returns: undefined
+      }
       rpc_bulk_repair_dedup_hashes: {
         Args: {
           p_batch_size?: number
@@ -59356,7 +60233,39 @@ export type Database = {
           p_new_stage: string
           p_performed_by?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_deals"]["Row"]
+        Returns: {
+          actual_close_date: string | null
+          assigned_to: string | null
+          closed_at: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          cost: number | null
+          created_at: string | null
+          deal_number: number
+          deleted_at: string | null
+          description: string | null
+          discount_percent: number | null
+          expected_close_date: string | null
+          id: string
+          instance_name: string | null
+          lost: boolean | null
+          lost_notes: string | null
+          lost_reason: string | null
+          metadata: Json | null
+          notes: string | null
+          probability: number | null
+          products: Json | null
+          profit: number | null
+          source: string | null
+          stage: string | null
+          stage_changed_at: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          value: number | null
+          weighted_value: number | null
+          won: boolean | null
+        }
         SetofOptions: {
           from: "*"
           to: "evolution_deals"
@@ -59378,6 +60287,20 @@ export type Database = {
         }[]
       }
       rpc_check_sticker_duplicate: { Args: { p_hash: string }; Returns: string }
+      rpc_claim_csat_due: {
+        Args: { p_limit?: number }
+        Returns: {
+          agent_id: string
+          contact_id: string
+          conversation_id: string
+          instance_name: string
+          message_text: string
+          phone: string
+          send_at: string
+          survey_id: string
+          whatsapp_connection_id: string
+        }[]
+      }
       rpc_claim_media_download_batch: {
         Args: { p_batch_size?: number; p_instance_name?: string }
         Returns: {
@@ -59391,6 +60314,11 @@ export type Database = {
           remote_jid: string
         }[]
       }
+      rpc_claim_outbound_message: {
+        Args: { p_message_id: string; p_row_id: string; p_status?: string }
+        Returns: Json
+      }
+      rpc_complete_followup: { Args: { p_id: string }; Returns: Json }
       rpc_complete_media_download: {
         Args: {
           p_download_url?: string
@@ -59401,7 +60329,34 @@ export type Database = {
       }
       rpc_complete_task: {
         Args: { p_completed_by?: string; p_id: string; p_notes?: string }
-        Returns: Database["zapp"]["Views"]["evolution_tasks"]["Row"]
+        Returns: {
+          assigned_by: string | null
+          assigned_to: string | null
+          completed_at: string | null
+          completed_by: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string | null
+          deal_id: string | null
+          deleted_at: string | null
+          description: string | null
+          due_date: string | null
+          due_time: string | null
+          id: string
+          is_recurring: boolean | null
+          metadata: Json | null
+          notes: string | null
+          parent_task_id: string | null
+          priority: string | null
+          recurrence_end: string | null
+          recurrence_rule: string | null
+          reminder_at: string | null
+          status: string | null
+          tags: string[] | null
+          task_type: string | null
+          title: string
+          updated_at: string | null
+        }
         SetofOptions: {
           from: "*"
           to: "evolution_tasks"
@@ -59448,6 +60403,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      rpc_delete_followup_sequence: { Args: { p_id: string }; Returns: Json }
+      rpc_delete_message: { Args: { p_id: string }; Returns: Json }
       rpc_disable_service_channel: {
         Args: { p_id: string; p_reason?: string }
         Returns: {
@@ -59735,7 +60692,7 @@ export type Database = {
         | { Args: { p_contact_id: string }; Returns: Json }
         | {
             Args: { p_instance?: string; p_remote_jid: string }
-            Returns: Database["zapp"]["Views"]["evolution_contacts"]["Row"][]
+            Returns: Database["evo"]["Tables"]["evolution_contacts"]["Row"][]
             SetofOptions: {
               from: "*"
               to: "evolution_contacts"
@@ -59757,7 +60714,7 @@ export type Database = {
         | { Args: { p_window_minutes?: number }; Returns: Json }
       rpc_get_message_details: {
         Args: { p_message_id: string }
-        Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_messages"
@@ -59809,10 +60766,15 @@ export type Database = {
         }[]
       }
       rpc_get_whatsapp_mode: { Args: never; Returns: string }
-      rpc_global_search: {
-        Args: { p_instance?: string; p_limit?: number; p_query: string }
-        Returns: Json
-      }
+      rpc_global_search:
+        | {
+            Args: { p_instance?: string; p_limit?: number; p_query: string }
+            Returns: Json
+          }
+        | {
+            Args: { p_instance?: string; p_limit?: number; p_query: string }
+            Returns: Json
+          }
       rpc_gmail_token_status: {
         Args: never
         Returns: {
@@ -59833,94 +60795,43 @@ export type Database = {
         Args: { p_instance?: string; p_limit?: number; p_remote_jids: string[] }
         Returns: Json
       }
-      rpc_delete_followup_sequence: {
-        Args: { p_id: string }
-        Returns: Json
-      }
-      rpc_delete_message: {
-        Args: { p_id: string }
-        Returns: Json
-      }
       rpc_increment_sticker_use: {
         Args: { sticker_id: string }
         Returns: undefined
       }
-      rpc_log_evolution_health: {
+      rpc_insert_followup_sequence: { Args: { p_rows: Json }; Returns: Json }
+      rpc_insert_message: {
         Args: {
-          p_endpoint_tested?: string
-          p_error_message?: string
-          p_http_status_code?: number
-          p_instance_name: string
+          p_caption?: string
+          p_contact_id?: string
+          p_content: string
+          p_direction?: string
+          p_from_me?: boolean
+          p_ingest_meta?: Json
+          p_instance: string
+          p_media_bucket?: string
+          p_media_meta?: Json
+          p_media_path?: string
+          p_media_status?: string
+          p_media_url?: string
+          p_message_id?: string
+          p_message_type?: string
           p_metadata?: Json
-          p_online_instances?: number
-          p_response_time_ms?: number
-          p_status: string
-          p_total_instances?: number
+          p_provider?: string
+          p_push_name?: string
+          p_quoted_message_id?: string
+          p_remote_jid: string
+          p_status_at?: string
+          p_timestamp?: string
         }
-        Returns: string
+        Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "evolution_messages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      rpc_mark_messages_read:
-        | {
-            Args: { p_contact_id: string; p_instance: string }
-            Returns: number
-          }
-        | {
-            Args: { p_conversation_id: string }
-            Returns: undefined
-          }
-      rpc_toggle_followup_sequence: {
-        Args: { p_id: string; p_is_active: boolean }
-        Returns: Json
-      }
-      rpc_insert_followup_sequence: {
-        Args: { p_rows: Json }
-        Returns: Json
-      }
-      rpc_complete_followup: {
-        Args: { p_id: string }
-        Returns: Json
-      }
-      rpc_insert_message:
-        | {
-            Args: {
-              p_content: string
-              p_direction?: string
-              p_from_me: boolean
-              p_instance: string
-              p_media_url?: string
-              p_message_id?: string
-              p_message_type: string
-              p_metadata?: Json
-              p_remote_jid: string
-            }
-            Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"]
-            SetofOptions: {
-              from: "*"
-              to: "evolution_messages"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: {
-              p_content: string
-              p_direction?: string
-              p_from_me?: boolean
-              p_instance: string
-              p_media_url?: string
-              p_message_id?: string
-              p_message_type?: string
-              p_metadata?: Json
-              p_remote_jid: string
-            }
-            Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"]
-            SetofOptions: {
-              from: "*"
-              to: "evolution_messages"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
       rpc_instance_auth_event_summary:
         | { Args: { p_hours?: number; p_instance?: string }; Returns: Json }
         | {
@@ -59986,7 +60897,22 @@ export type Database = {
           p_offset?: number
           p_performed_by?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_audit_log"]["Row"][]
+        Returns: {
+          action: string
+          changes: Json | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          new_values: Json | null
+          old_values: Json | null
+          performed_by: string
+          performed_by_type: string | null
+          session_id: string | null
+          user_agent: string | null
+        }[]
         SetofOptions: {
           from: "*"
           to: "evolution_audit_log"
@@ -59996,7 +60922,22 @@ export type Database = {
       }
       rpc_list_calls: {
         Args: { p_instance?: string; p_limit?: number; p_remote_jid?: string }
-        Returns: Database["zapp"]["Views"]["evolution_calls"]["Row"][]
+        Returns: {
+          call_id: string
+          call_status: string
+          call_type: string
+          contact_id: string | null
+          created_at: string | null
+          direction: string
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          instance_name: string | null
+          missed_callback_sent: boolean | null
+          raw_data: Json | null
+          remote_jid: string
+          started_at: string | null
+        }[]
         SetofOptions: {
           from: "*"
           to: "evolution_calls"
@@ -60033,7 +60974,7 @@ export type Database = {
           p_offset?: number
           p_search?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_contacts"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_contacts"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_contacts"
@@ -60049,7 +60990,7 @@ export type Database = {
           p_offset?: number
           p_status?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_conversations"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_conversations"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_conversations"
@@ -60076,7 +61017,39 @@ export type Database = {
           p_offset?: number
           p_stage?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_deals"]["Row"][]
+        Returns: {
+          actual_close_date: string | null
+          assigned_to: string | null
+          closed_at: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          cost: number | null
+          created_at: string | null
+          deal_number: number
+          deleted_at: string | null
+          description: string | null
+          discount_percent: number | null
+          expected_close_date: string | null
+          id: string
+          instance_name: string | null
+          lost: boolean | null
+          lost_notes: string | null
+          lost_reason: string | null
+          metadata: Json | null
+          notes: string | null
+          probability: number | null
+          products: Json | null
+          profit: number | null
+          source: string | null
+          stage: string | null
+          stage_changed_at: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          value: number | null
+          weighted_value: number | null
+          won: boolean | null
+        }[]
         SetofOptions: {
           from: "*"
           to: "evolution_deals"
@@ -60220,7 +61193,18 @@ export type Database = {
           p_search?: string
           p_type?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_labels"]["Row"][]
+        Returns: {
+          color: string | null
+          color_hex: string | null
+          created_at: string | null
+          id: string
+          instance_name: string | null
+          is_active: boolean | null
+          label_id: string
+          name: string
+          predefined_id: string | null
+          updated_at: string | null
+        }[]
         SetofOptions: {
           from: "*"
           to: "evolution_labels"
@@ -60235,7 +61219,28 @@ export type Database = {
           p_limit?: number
           p_status?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_message_templates"]["Row"][]
+        Returns: {
+          approval_status: string | null
+          approved_at: string | null
+          buttons: Json | null
+          category: string
+          content: string
+          created_at: string | null
+          created_by: string | null
+          footer_text: string | null
+          header_content: string | null
+          header_type: string | null
+          id: string
+          instance_name: string | null
+          is_active: boolean | null
+          language: string | null
+          last_used_at: string | null
+          name: string
+          rejection_reason: string | null
+          updated_at: string | null
+          usage_count: number | null
+          variables: Json | null
+        }[]
         SetofOptions: {
           from: "*"
           to: "evolution_message_templates"
@@ -60250,7 +61255,7 @@ export type Database = {
           p_limit?: number
           p_remote_jid: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_messages"
@@ -60269,7 +61274,7 @@ export type Database = {
           p_offset?: number
           p_search?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_messages"
@@ -60285,7 +61290,7 @@ export type Database = {
           p_offset?: number
           p_remote_jid: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_messages"]["Row"][]
+        Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"][]
         SetofOptions: {
           from: "*"
           to: "evolution_messages"
@@ -60300,7 +61305,16 @@ export type Database = {
           p_limit?: number
           p_search?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_quick_replies"]["Row"][]
+        Returns: {
+          category: string | null
+          content: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          shortcut: string
+          title: string
+          use_count: number | null
+        }[]
         SetofOptions: {
           from: "*"
           to: "evolution_quick_replies"
@@ -60343,21 +61357,52 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      rpc_list_tags: {
-        Args: {
-          p_category?: string
-          p_instance?: string
-          p_limit?: number
-          p_search?: string
-        }
-        Returns: Database["zapp"]["Views"]["evolution_tags"]["Row"][]
-        SetofOptions: {
-          from: "*"
-          to: "evolution_tags"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
+      rpc_list_tags:
+        | {
+            Args: { p_category?: string; p_limit?: number; p_search?: string }
+            Returns: {
+              auto_apply: boolean | null
+              auto_apply_rules: Json | null
+              category: string | null
+              color: string | null
+              created_at: string | null
+              description: string | null
+              id: string
+              name: string
+              use_count: number | null
+            }[]
+            SetofOptions: {
+              from: "*"
+              to: "evolution_tags"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
+        | {
+            Args: {
+              p_category?: string
+              p_instance?: string
+              p_limit?: number
+              p_search?: string
+            }
+            Returns: {
+              auto_apply: boolean | null
+              auto_apply_rules: Json | null
+              category: string | null
+              color: string | null
+              created_at: string | null
+              description: string | null
+              id: string
+              name: string
+              use_count: number | null
+            }[]
+            SetofOptions: {
+              from: "*"
+              to: "evolution_tags"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
       rpc_list_tasks: {
         Args: {
           p_assigned_to?: string
@@ -60369,7 +61414,34 @@ export type Database = {
           p_offset?: number
           p_status?: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_tasks"]["Row"][]
+        Returns: {
+          assigned_by: string | null
+          assigned_to: string | null
+          completed_at: string | null
+          completed_by: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string | null
+          deal_id: string | null
+          deleted_at: string | null
+          description: string | null
+          due_date: string | null
+          due_time: string | null
+          id: string
+          is_recurring: boolean | null
+          metadata: Json | null
+          notes: string | null
+          parent_task_id: string | null
+          priority: string | null
+          recurrence_end: string | null
+          recurrence_rule: string | null
+          reminder_at: string | null
+          status: string | null
+          tags: string[] | null
+          task_type: string | null
+          title: string
+          updated_at: string | null
+        }[]
         SetofOptions: {
           from: "*"
           to: "evolution_tasks"
@@ -60429,6 +61501,20 @@ export type Database = {
         }
         Returns: Json
       }
+      rpc_log_evolution_health: {
+        Args: {
+          p_endpoint_tested?: string
+          p_error_message?: string
+          p_http_status_code?: number
+          p_instance_name: string
+          p_metadata?: Json
+          p_online_instances?: number
+          p_response_time_ms?: number
+          p_status: string
+          p_total_instances?: number
+        }
+        Returns: string
+      }
       rpc_log_gmail_health: {
         Args: {
           p_error_message?: string
@@ -60487,6 +61573,7 @@ export type Database = {
         }
         Returns: Json
       }
+      rpc_mark_conversation_read: { Args: { p_id: string }; Returns: undefined }
       rpc_mark_message_failed: {
         Args: { p_error?: string; p_queue_id: string }
         Returns: undefined
@@ -60495,6 +61582,16 @@ export type Database = {
         Args: { p_contact_id: string }
         Returns: undefined
       }
+      rpc_mark_messages_deleted: {
+        Args: { p_contact_id: string; p_instance?: string }
+        Returns: number
+      }
+      rpc_mark_messages_read:
+        | {
+            Args: { p_contact_id: string; p_instance: string }
+            Returns: number
+          }
+        | { Args: { p_conversation_id: string }; Returns: undefined }
       rpc_message_stats: {
         Args: {
           p_assigned_to?: string
@@ -60596,7 +61693,6 @@ export type Database = {
       }
       rpc_pick_next_agent: { Args: { p_queue_id: string }; Returns: string }
       rpc_pipeline_dashboard: { Args: never; Returns: Json }
-      rpc_platform_maintenance: { Args: never; Returns: Json }
       rpc_provider_panel: {
         Args: never
         Returns: {
@@ -60651,6 +61747,17 @@ export type Database = {
       rpc_purge_contact_intelligence: {
         Args: { p_contact_id: string }
         Returns: undefined
+      }
+      rpc_queue_goal_metrics: {
+        Args: never
+        Returns: {
+          assignment_rate: number
+          avg_wait_minutes: number
+          coverage: string
+          messages_pending: number
+          queue_id: string
+          waiting_contacts: number
+        }[]
       }
       rpc_queue_rebalance_candidates: {
         Args: { p_limit?: number }
@@ -60776,6 +61883,10 @@ export type Database = {
           p_payload_hash?: string
         }
         Returns: boolean
+      }
+      rpc_reset_conversation_unread: {
+        Args: { p_contact_id: string; p_instance?: string }
+        Returns: undefined
       }
       rpc_resolve_instance_by_phone: {
         Args: { p_phone: string }
@@ -60935,6 +62046,10 @@ export type Database = {
         Args: { p_active: boolean; p_jobname: string }
         Returns: undefined
       }
+      rpc_toggle_followup_sequence: {
+        Args: { p_id: string; p_is_active: boolean }
+        Returns: Json
+      }
       rpc_toggle_message_important: {
         Args: { p_message_id: string; p_value: boolean }
         Returns: undefined
@@ -60971,40 +62086,57 @@ export type Database = {
         Args: { p_failure_count: number; p_metadata?: Json; p_status: string }
         Returns: undefined
       }
-      rpc_upsert_contact:
-        | {
-            Args: {
-              p_assigned_to?: string
-              p_company?: string
-              p_email?: string
-              p_full_name?: string
-              p_instance?: string
-              p_lead_score?: number
-              p_lead_source?: string
-              p_lead_status?: string
-              p_notes?: string
-              p_phone_number?: string
-              p_push_name?: string
-              p_remote_jid: string
-              p_role_title?: string
-              p_tags?: string[]
-            }
-            Returns: Database["zapp"]["Views"]["evolution_contacts"]["Row"]
-            SetofOptions: {
-              from: "*"
-              to: "evolution_contacts"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: {
-              p_instance: string
-              p_push_name?: string
-              p_remote_jid: string
-            }
-            Returns: string
-          }
+      rpc_update_incoming_message: {
+        Args: {
+          p_contact_id: string
+          p_content: string
+          p_direction?: string
+          p_from_me?: boolean
+          p_ingest_meta?: Json
+          p_media_bucket?: string
+          p_media_path?: string
+          p_media_status?: string
+          p_media_url?: string
+          p_message_type: string
+          p_quoted_message_id?: string
+          p_row_id: string
+          p_status?: string
+        }
+        Returns: Json
+      }
+      rpc_update_message_transcription: {
+        Args: {
+          p_message_uuid: string
+          p_status: string
+          p_transcription?: string
+        }
+        Returns: undefined
+      }
+      rpc_upsert_contact: {
+        Args: {
+          p_assigned_to?: string
+          p_company?: string
+          p_email?: string
+          p_full_name?: string
+          p_instance: string
+          p_lead_score?: number
+          p_lead_source?: string
+          p_lead_status?: string
+          p_notes?: string
+          p_phone_number?: string
+          p_push_name?: string
+          p_remote_jid: string
+          p_role_title?: string
+          p_tags?: string[]
+        }
+        Returns: Database["evo"]["Tables"]["evolution_contacts"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "evolution_contacts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       rpc_upsert_deal: {
         Args: {
           p_assigned_to?: string
@@ -61025,7 +62157,39 @@ export type Database = {
           p_title: string
           p_value?: number
         }
-        Returns: Database["zapp"]["Views"]["evolution_deals"]["Row"]
+        Returns: {
+          actual_close_date: string | null
+          assigned_to: string | null
+          closed_at: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          cost: number | null
+          created_at: string | null
+          deal_number: number
+          deleted_at: string | null
+          description: string | null
+          discount_percent: number | null
+          expected_close_date: string | null
+          id: string
+          instance_name: string | null
+          lost: boolean | null
+          lost_notes: string | null
+          lost_reason: string | null
+          metadata: Json | null
+          notes: string | null
+          probability: number | null
+          products: Json | null
+          profit: number | null
+          source: string | null
+          stage: string | null
+          stage_changed_at: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          value: number | null
+          weighted_value: number | null
+          won: boolean | null
+        }
         SetofOptions: {
           from: "*"
           to: "evolution_deals"
@@ -61041,7 +62205,7 @@ export type Database = {
           p_instance?: string
           p_label_id?: string
           p_label_type?: string
-          p_name: string
+          p_name?: string
           p_sort_order?: number
         }
         Returns: string
@@ -61109,7 +62273,34 @@ export type Database = {
           p_task_type?: string
           p_title: string
         }
-        Returns: Database["zapp"]["Views"]["evolution_tasks"]["Row"]
+        Returns: {
+          assigned_by: string | null
+          assigned_to: string | null
+          completed_at: string | null
+          completed_by: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string | null
+          deal_id: string | null
+          deleted_at: string | null
+          description: string | null
+          due_date: string | null
+          due_time: string | null
+          id: string
+          is_recurring: boolean | null
+          metadata: Json | null
+          notes: string | null
+          parent_task_id: string | null
+          priority: string | null
+          recurrence_end: string | null
+          recurrence_rule: string | null
+          reminder_at: string | null
+          status: string | null
+          tags: string[] | null
+          task_type: string | null
+          title: string
+          updated_at: string | null
+        }
         SetofOptions: {
           from: "*"
           to: "evolution_tasks"
@@ -61251,6 +62442,33 @@ export type Database = {
         }
         Returns: Json
       }
+      sessions_list: {
+        Args: { p_admin?: boolean; p_target_user_id: string }
+        Returns: {
+          aal: string
+          created_at: string
+          factor_id: string
+          id: string
+          ip: string
+          last_active: string
+          tag: string
+          updated_at: string
+          user_agent: string
+          user_id: string
+        }[]
+      }
+      sessions_revoke: {
+        Args: {
+          p_admin?: boolean
+          p_session_ids: string[]
+          p_target_user_id: string
+        }
+        Returns: number
+      }
+      sessions_revoke_all: {
+        Args: { p_admin?: boolean; p_target_user_id: string }
+        Returns: number
+      }
       sicoob_outbox_claim: {
         Args: { p_batch_size?: number }
         Returns: {
@@ -61366,10 +62584,6 @@ export type Database = {
           remote_jid: string
         }[]
       }
-      zapp_mark_status_viewed: {
-        Args: { p_instance?: string; p_message_id: string }
-        Returns: boolean
-      }
       zapp_notif_config_get: { Args: { p_channel: string }; Returns: Json }
       zapp_touch_contact_presence: {
         Args: { p_instance?: string; p_presence: string; p_remote_jid: string }
@@ -61383,6 +62597,7 @@ export type Database = {
           p_instance?: string
           p_name?: string
           p_participants?: string[]
+          p_phones?: string[]
         }
         Returns: string
       }
@@ -61392,6 +62607,7 @@ export type Database = {
           p_group_id: string
           p_instance?: string
           p_participants: string[]
+          p_phones?: string[]
         }
         Returns: number
       }
@@ -61491,13 +62707,6 @@ export type Database = {
         | "messenger"
         | "webchat"
         | "email"
-      evolution_pipeline_status:
-        | "healthy"
-        | "warning"
-        | "degraded_webhook"
-        | "degraded_sender"
-        | "critical_alerts"
-        | "critical"
       provider_type: "evolution" | "wppconnect" | "baileys" | "custom"
       service_account_type:
         | "google_sheets"
