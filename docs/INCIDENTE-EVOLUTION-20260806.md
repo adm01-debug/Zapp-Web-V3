@@ -45,7 +45,7 @@ re-pairing é rejeitado com `device_removed` por um período (cooldown de
 
 **Fator secundário — IP de datacenter possivelmente marcado:**
 
-A VPS roda em **Scala Hosting, EUA — IP `209.142.67.51`** (faixa de datacenter,
+A VPS roda em **Scala Hosting, EUA — IP `<IP-VPS>`** (faixa de datacenter,
 geolocalizada em Dallas/EUA). IPs de datacenter têm maior probabilidade de
 flagging pelo WhatsApp (login de localização incompatível com o uso do número),
 o que pode agravar o enforcement e/ou estender o cooldown. **Não há evidência de
@@ -155,7 +155,7 @@ Todos os horários em **UTC** e **BRT (UTC−3)**. Marcos verificados.
 
 ### L-3 — Aviso "suspeita de golpe" = geolocalização de datacenter, NÃO é golpe
 - O aviso de "suspeita de golpe"/localização "Dallas" exibido ao usuário final é
-  a **geolocalização do datacenter** (Scala Hosting, IP `209.142.67.51`, EUA),
+  a **geolocalização do datacenter** (Scala Hosting, IP `<IP-VPS>`, EUA),
   não uma ação de golpista.
 - **Recomendação:** comunicar aos usuários do `wpp2` que o login a partir de
   Dallas/EUA é o servidor legítimo da plataforma; avaliar (médio prazo) IP
@@ -175,7 +175,7 @@ Todos os horários em **UTC** e **BRT (UTC−3)**. Marcos verificados.
 - Issue upstream: [WhiskeySockets/Baileys #2248](https://github.com/WhiskeySockets/Baileys/issues/2248) (aberta)
 - Versões: Evolution 2.3.7 / 2.4.0-rc2 → Baileys 7.0.0-rc.9; Baileys estável novo 6.7.24 (29/07/2026)
 - Instância: `wpp2` — UUID `f7a73e2c-327d-426c-8fa6-6ea7743ace02`
-- Infra: VPS Scala Hosting — IP `209.142.67.51` (EUA/Dallas)
+- Infra: VPS Scala Hosting — IP `<IP-VPS>` (EUA/Dallas)
 - Watchdog: `watchdog-baileys v11.1` (suprimiu restart em `device_removed` — comportamento correto)
 - Secret: `evolution_api_key_v5_20260805` (rotação chave global v5, 05/08)
 - Branch: `f2/runbook-fase2-20260805` — documento **não commitado** (working tree sujo)
