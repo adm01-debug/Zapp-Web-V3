@@ -1,21 +1,23 @@
 /**
- * NOTA (CAMPANHAS-09): mensagem agendada — DISPARADOR INEXISTENTE (verificado 2026-08-04).
- *  - useScheduledMessages (agendar/cancelar/listar) e ScheduleCalendarView estão ÍNTEGROS —
- *    nenhuma alteração feita aqui.
- *  - PORÉM: nenhum edge/cron do repo lê zapp.scheduled_messages (grep em supabase/functions =
- *    0 ocorrências; cron de processamento NÃO existe nas migrations). Mensagens agendadas
- *    NUNCA são disparadas. Sinalizado ao maestro: criar edge/cron (padrão do banco:
- *    cron → zapp.fn_*, nunca edge HTTP direto).
- *  - RLS zapp.scheduled_messages (canonical 20260804000000): SÓ `scheduled_messages_select`
- *    (SELECT). Policies INSERT/UPDATE FALTAM → scheduleMutation (insert) e cancelMutation
- *    (update) falham com 403. Sinalizado ao maestro: criar policies INSERT/UPDATE.
+ * NOTA (CAMPANHAS-09 — FIX 2026-08-17, Etapa 65):
+ *  - RLS: policies INSERT/UPDATE criadas em 20260817240000_etapa65_scheduled_messages_rls.sql
+ *    (padrão favorite_contacts, tenant-based) — o 403 silencioso em scheduleMutation
+ *    e cancelMutation não ocorre mais; erros RLS residuais agora viram toast
+ *    EXPLÍCITO com mensagem clara (isRlsDeniedError → rlsDeniedMessage).
+ *  - Lista: erro do useQuery (ex.: 403) não fica mais silencioso — exposto via
+ *    `isError`/`error` e toast único por erro RLS.
+ *  - Dispatcher: zapp.fn_dispatch_scheduled_messages() + cron
+ *    'scheduled-messages-dispatch' (20260817250000_etapa65_scheduled_dispatch_cron.sql).
+ *  - status 'sending' adicionado à união (bookkeeping do claim atômico do dispatcher).
  */
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { queryKeys } from '@/services/api/queryKeys';
 import { isValidUUID } from '@/utils/uuid';
+import { isRlsDeniedError, rlsDeniedMessage } from '@/lib/errors/rlsError';
 
 /** Scheduled Message interface definition. */
 export interface ScheduledMessage {
@@ -25,7 +27,7 @@ export interface ScheduledMessage {
   message_type: string;
   media_url: string | null;
   scheduled_at: string;
-  status: 'pending' | 'sent' | 'failed' | 'cancelled';
+  status: 'pending' | 'sending' | 'sent' | 'failed' | 'cancelled';
   sent_at: string | null;
   error_message: string | null;
   created_by: string | null;
@@ -34,12 +36,29 @@ export interface ScheduledMessage {
   updated_at: string;
 }
 
+/** Mensagem amigável para erro de agendamento; RLS vira toast real, sem silêncio. */
+function scheduleErrorMessage(error: unknown): string {
+  if (isRlsDeniedError(error)) {
+    return `${rlsDeniedMessage('mensagens agendadas')} Verifique se o contato está visível para você.`;
+  }
+  if (error instanceof Error) return error.message;
+  return 'Erro inesperado ao agendar mensagem.';
+}
+
 /** Manages scheduled WhatsApp messages with schedule, cancel, and list operations. */
 export function useScheduledMessages(contactId?: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  // Guarda o último erro RLS já sinalizado por toast (evita toast repetido a
+  // cada re-render/refetch enquanto o erro persistir).
+  const lastRlsToastRef = useRef<string | null>(null);
 
-  const { data: messages = [], isLoading } = useQuery({
+  const {
+    data: messages = [],
+    isLoading,
+    isError,
+    error: queryError,
+  } = useQuery({
     queryKey: queryKeys.scheduledMessages.contact(contactId),
     // Sem contactId → listagem global (ScheduleCalendarView agenda por data, sem filtro de contato).
     // Com contactId → só busca se for UUID válido (evita queries inválidas no perfil de contato).
@@ -57,9 +76,24 @@ export function useScheduledMessages(contactId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as ScheduledMessage[]; // ignore-audit: narrows status from string to 'pending'|'sent'|'failed'|'cancelled'
+      return data as ScheduledMessage[]; // ignore-audit: narrows status from string to union
     },
   });
+
+  // 403 silencioso na LISTAGEM (calendário vazio sem explicação): toast real.
+  useEffect(() => {
+    if (isError && isRlsDeniedError(queryError)) {
+      const key = queryError instanceof Error ? queryError.message : String(queryError);
+      if (lastRlsToastRef.current !== key) {
+        lastRlsToastRef.current = key;
+        toast({
+          title: 'Não foi possível carregar os agendamentos',
+          description: rlsDeniedMessage('mensagens agendadas'),
+          variant: 'destructive',
+        });
+      }
+    }
+  }, [isError, queryError]);
 
   const scheduleMutation = useMutation({
     mutationFn: async (data: {
@@ -105,9 +139,10 @@ export function useScheduledMessages(contactId?: string) {
       toast({ title: 'Mensagem agendada com sucesso!' });
     },
     onError: (error: Error) => {
+      // Toast REAL em 403 — nunca silenciar (CAMPANHAS-09).
       toast({
         title: 'Erro ao agendar mensagem',
-        description: error.message,
+        description: scheduleErrorMessage(error),
         variant: 'destructive',
       });
     },
@@ -125,13 +160,21 @@ export function useScheduledMessages(contactId?: string) {
       queryClient.invalidateQueries({ queryKey: queryKeys.scheduledMessages.all() });
       toast({ title: 'Agendamento cancelado' });
     },
-    onError: (e: Error) =>
-      toast({ title: 'Erro ao cancelar', description: e.message, variant: 'destructive' }),
+    onError: (e: Error) => {
+      // Toast REAL em 403 — nunca silenciar (CAMPANHAS-09).
+      toast({
+        title: 'Erro ao cancelar',
+        description: scheduleErrorMessage(e),
+        variant: 'destructive',
+      });
+    },
   });
 
   return {
     messages,
     isLoading,
+    isError,
+    error: queryError,
     scheduleMessage: scheduleMutation.mutateAsync,
     cancelMessage: cancelMutation.mutateAsync,
     isScheduling: scheduleMutation.isPending,

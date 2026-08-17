@@ -13,7 +13,7 @@ import { toast } from '@/hooks/use-toast';
 interface ScheduleMessageDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSchedule: (message: string, scheduledAt: Date, attachment?: File) => void;
+  onSchedule: (message: string, scheduledAt: Date, attachment?: File) => void | Promise<unknown>;
 }
 
 /** Schedule Message Dialog component. */
@@ -34,7 +34,7 @@ export function ScheduleMessageDialog({
     { label: 'Em 1 semana', getDate: () => setMinutes(setHours(addDays(new Date(), 7), 9), 0) },
   ];
 
-  const handleSchedule = () => {
+  const handleSchedule = async () => {
     if (!message.trim()) {
       toast({
         title: 'Mensagem vazia',
@@ -58,7 +58,15 @@ export function ScheduleMessageDialog({
       return;
     }
 
-    onSchedule(message, scheduledDate, attachment || undefined);
+    // CAMPANHAS-09: aguarda o INSERT resolver ANTES do toast de sucesso —
+    // antes, o sucesso era exibido mesmo com 403 (RLS) e o dialog fechava.
+    // Falha é sinalizada pelo hook (toast destrutivo com causa real) — aqui
+    // só impedimos que a rejeição vire unhandled rejection; o dialog fica aberto.
+    try {
+      await onSchedule(message, scheduledDate, attachment || undefined);
+    } catch {
+      return;
+    }
     toast({
       title: 'Mensagem agendada!',
       description: `Será enviada em ${format(scheduledDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
