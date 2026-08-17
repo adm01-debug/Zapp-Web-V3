@@ -1,0 +1,100 @@
+E1: Deletar migrate-helper do cloud e rotacionar credenciais Lovable Cloud
+E2: Rotacionar JWT_SECRET self-hosted e purgar histórico git (filter-repo)
+E3: Rotacionar MCP_QUERY_SECRET e AUTHENTICATION_API_KEY vazados
+E4: Substituir VAULT_ENC_KEY placeholder e montar secrets no service functions (absorve: secrets Swarm)
+E5: Privatizar buckets PII (whatsapp-media 9,56GB e recibos-entrega) e assinar URLs (imgproxy)
+E6: Sanitizar useBulkActions (risco ALTO de deleção arbitrária)
+E7: RLS tenant-aware: eliminar USING(true) em lote + furos pontuais (absorve: audit_logs, n8n_variables, feature_flags, polroles NULL)
+E8: SECDEF: auditar 1.131 expostas a authenticated, fixar ~49 search_path, cobrir 18 tabelas sem policy
+E9: LGPD: acesso a _lgpd_payload, direito ao esquecimento, triggers de segurança e login-attempts
+E10: Superfície de exposição: PAT, CORS, URI_ALLOW_LIST, secret scanning, secrets E26, bundle Vercel
+E11: Erradicar testes fantasma team-chat e provar RLS ao vivo
+E12: Corrigir cobertura negativa webhookStatusPriority e os 5+ testes-espelho
+E13: E2E: eliminar 6/13 specs sem asserção, drift de portas e specs contra produção
+E14: Reativar auth do proxy.test (31% skips) e suítes desligadas (absorve: externalProxy — suíte única)
+E15: Corrigir gates de CI que travam merge e guardas falsos
+E16: Build reprodutível do RUNNER DE CI (lockfile, base, env, flakiness)
+E17: Resolver a quarentena de 27 suítes (Deno/NEEDS-ENV/ORPHAN/FAILING)
+E18: Remover testes duplicados, STUBs e asserções-vácuo
+E19: Regenerar types.ts e sanear typecheck (ts-nocheck, tsconfig, casts)
+E20: Converter testes tautológicos em SUT real + baseline de cobertura
+E21: Reativar Realtime de mensagens e conversas na publication
+E22: Consertar fila offline do PWA (ADR-005): tag e handler do SW
+E23: Unificar dual-path de mensagens (zapp.messages × evo.evolution_messages)
+E24: Corrigir edge functions críticas (templates 401, health-check, imap-bridge)
+E25: Eliminar bypasses do gateway Evolution e fechar gate I8
+E26: Corrigir crons quebrados e declarar jobs no repo
+E27: Tornar schema_migrations um ledger confiável e versionar RPCs órfãs (absorve: RPCs de email sem migration)
+E28: Corrigir telemetria do consumer (INSERT em relação inexistente)
+E29: Eliminar dependência reversa evo→zapp (fn_normalize_send_jid 13×)
+E30: Performance do banco vivo: índices, N+1, slow queries e bloat
+E31: Testar e corrigir o orquestrador useRealtimeMessages (1019 ln)
+E32: Testar e corrigir o orquestrador useRealtimeInbox (513 ln)
+E33: Fila de retry useMessageQueue: concorrência e DLQ sob teste
+E34: messageSender.ts (503 ln): in-flight dedup e caminho legado zapp
+E35: Caminho evo: externalMessageSender + externalAudioSender
+E36: Dual-path zapp×evo: contrato do useInboxSource e migração
+E37: Mark-as-read (MARK_READ_FLUSH_MS=250) e heartbeat
+E38: Alertas de retry: SOFT_CAP=500 sem toasts duplicados
+E39: Mídia: AbortSignal no useMediaUrl e signed URL 7d
+E40: Hooks de UX/presença: autoscroll, deep links, atalhos e typing
+E41: MessageHoverToolbar: ativar favoritar/fixar/responder-depois/reportar
+E42: Tags funcionais: ContactTagsContent + ChatHeaderMenu
+E43: Stubs de vídeo: ChatHeader videochamada + ContactActionButtons
+E44: StickerManager: upload de compartilhadas + filtro Recentes
+E45: ConversationItem: orquestrar variantes e eliminar monolito
+E46: Falhas silenciosas: onArchive + EditContactDialog `_pendingData`
+E47: ConversationContextMenu legível + navegação de histórico por UUID
+E48: Ações de conversa: ChatPanel atalhos, BulkActionsToolbar, NextBestActionEngine
+E49: LinkPreview OG, MediaGallery download, ScheduleMessageDialog fuso
+E50: Features mortas e consolidação: CRMAutoSync, sumários RLS, EmptyState único, páginas órfãs
+E51: Blindar bypass do papel `dev` com whitelist de ambiente
+E52: MFA pós-login fail-closed: remover catch silencioso
+E53: Backup codes MFA com persistência no banco
+E54: Passkey/WebAuthn autônomo (sem OTP email)
+E55: Reset de senha ponta a ponta (solicitação→aprovação→redefinição)
+E56: Gestão e revogação de sessões ativas
+E57: Convites de usuário + criação via invoke (sem fetch raw)
+E58: SicoobBridgeDashboard com dados reais (remover stub)
+E59: XP de gamificação com escrita transacional (fim da race condition)
+E60: Saneamento final auth/admin: types, escape hatches, nomenclatura, testes P1-P4 e lockout fail-closed
+E61: TalkX: habilitar e comprovar disparo real de campanha
+E62: Campanhas: RLS de escrita, dedup atômico e engine A/B
+E63: useSyncToCRM: RPC real ou aposentadoria com feature flag
+E64: useLatestAnalysis: implementar RPC (GAP-6)
+E65: Mensagens agendadas: RLS (CAMPANHAS-09) + dispatcher real
+E66: Dashboards: remover todos os dados fake/hardcoded
+E67: SLA: consolidar duplicação e corrigir queries
+E68: Notificações: RLS (42501), executor e dedup de providers
+E69: Catálogo, relatórios agendados e NPS/CSAT automáticos
+E70: Onboarding acessível + gamificação real (níveis, achievements, XP transacional)
+E71: Adotar ou arquivar a camada src/services (Repository→Service→Hooks)
+E72: Resolver stubs de integração sem feature flag (GoogleCalendar, N8n, Sentry)
+E73: Telemetria e circuit breakers das integrações: estado único e métricas por provider
+E74: Consolidar useEmail × useEmailManagement (802L × 1335L)
+E75: VoIP: isolar credenciais SIP e fechar/decidir 8 gaps
+E76: Google OAuth + Gmail: DONO ÚNICO do fluxo OAuth (etapas de stubs, encerramento e Vercel referenciam esta)
+E77: ElevenLabs, Bitrix24 e AI router (9 ações)
+E78: TeamChat: upload MIME, transferências auditáveis e RLS com testes reais
+E79: AutoExportManager e downloadAttachment 501 (Google OAuth: ver etapa do dono único)
+E80: Adapters zappweb: tipagem real, columnMap correto e ramo PTT
+E81: Implementar client cloud (C1): 12 verbos + registry fail-closed
+E82: Corrigir normalizer cloud (C3/C4/C5) + espelhos do ADR-008
+E83: Handler webhook v2 (C6) e ativação cloud [APROVAÇÃO]
+E84: Executar ensaio REAL evolution→cloud (E92) [APROVAÇÃO]
+E85: Consumer dual-write (E89) e saúde do evolution-stack
+E86: Roles evo_writer/zapp_writer (E53/E54) + congelamento formal evo [APROVAÇÃO]
+E87: Egresso: remover evolution-proxy + decidir evolution-templates [APROVAÇÃO]
+E88: Soberania de plataforma (I6) + ADR-016 + P4 versionado
+E89: Dono único de migrations evo (I7) + verdade documental
+E90: Fechar pendências operacionais do desacoplamento (runbooks, índices, crons, baselines)
+E91: Corrigir evolution-db-purge OOM (137) + command not found (127)
+E92: Neutralizar deploy DRAFT concorrente e religar observabilidade pós-deploy
+E93: Backup/restore validado e plano de rollback (pré-condição de qualquer ação destrutiva)
+E94: Deploy edge versionado: E35 pipeline, E36 COMMIT_SHA, E40 volume + prod-snapshot
+E95: Corrigir 7 bugs de upload/mídia do CHAT_UPLOAD_AUDIT (P0 403)
+E96: Login/Vercel: envs www.zappweb.app.br, service_role no bundle, watchdog lockout, Google OAuth e URI_ALLOW_LIST
+E97: Migrar 1066 avatares do Lovable Cloud para o self-hosted (AVATAR-MIGRATION-PLAN)
+E98: Docs canônicos e governança (absorve: gates bloqueantes, evidências e fechamento V4)
+E99: Validação final exaustiva: suíte completa, typecheck, lint, build e DOGFOOD visual
+E100: Fechamento: retrospectiva, tag, limpeza e handoff final
