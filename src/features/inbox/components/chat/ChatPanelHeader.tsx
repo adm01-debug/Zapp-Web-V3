@@ -11,6 +11,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
@@ -27,6 +30,8 @@ import {
 } from 'lucide-react';
 import { openChatPopup } from '@/lib/popupManager';
 import { useContactAvatar } from '@/features/inbox';
+import { useTags, useContactTags } from '@/hooks/useTags';
+import { isValidUUID } from '@/features/inbox/utils/contactRef';
 import { ActiveTool } from './ChatHeaderToolbar';
 
 interface ChatMessage {
@@ -68,6 +73,8 @@ interface ChatPanelHeaderProps {
   failuresCount?: number;
   whisperCount?: number;
   onOpenValidation?: () => void;
+  /** Etapa 42: resolve a conversa (ticketStore) — vindo do ChatPanel handlers. */
+  onResolveConversation?: () => void;
 }
 
 /** Chat Panel Header component for the chat section. */
@@ -94,9 +101,17 @@ export function ChatPanelHeader({
   failuresCount,
   whisperCount,
   onOpenValidation,
+  onResolveConversation,
 }: ChatPanelHeaderProps) {
   const isMobile = useIsMobile();
   const { avatarUrl } = useContactAvatar(conversation.contact.id, conversation.contact.avatar);
+
+  // Etapa 42: tags reais do contato para o submenu "Adicionar tag".
+  const contactId = conversation.contact.id;
+  const validContact = !!contactId && isValidUUID(contactId);
+  const { contactTags, addTag } = useContactTags(validContact ? contactId : undefined);
+  const { tags: allTags } = useTags();
+  const availableTags = (allTags ?? []).filter((t) => !contactTags.some((ct) => ct.id === t.id));
 
   return (
     <div className="sticky top-0 z-30 flex h-[64px] shrink-0 items-center justify-between border-b border-border/10 bg-background/60 px-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] backdrop-blur-3xl transition-all duration-500 md:h-[80px] md:px-8">
@@ -252,10 +267,34 @@ export function ChatPanelHeader({
               Abrir em popup
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem disabled>
-              <Tag className="mr-2 h-4 w-4" />
-              Adicionar tag
-            </DropdownMenuItem>
+            {/* Etapa 42: religado — tag real do contato via contact_tags (o item era disabled). */}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="gap-2">
+                <Tag className="h-4 w-4" />
+                Adicionar tag
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="min-w-[150px] border-border bg-popover">
+                {availableTags.length === 0 ? (
+                  <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+                    Nenhuma etiqueta disponível
+                  </DropdownMenuItem>
+                ) : (
+                  availableTags.map((tag) => (
+                    <DropdownMenuItem
+                      key={tag.id}
+                      className="cursor-pointer gap-2 text-xs"
+                      onClick={() => void addTag(tag.id)}
+                    >
+                      <span
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ backgroundColor: tag.color || 'var(--primary)' }}
+                      />
+                      {tag.name}
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
             <DropdownMenuItem onClick={onOpenTransfer}>
               <ArrowRight className="mr-2 h-4 w-4" />
               Transferir
@@ -265,7 +304,11 @@ export function ChatPanelHeader({
               Agendar mensagem
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem disabled>
+            {/* Etapa 42: religado ao ticketStore (paridade com o slash /resolve). */}
+            <DropdownMenuItem
+              disabled={!onResolveConversation}
+              onClick={onResolveConversation}
+            >
               <CheckCircle className="mr-2 h-4 w-4" />
               Marcar como resolvido
             </DropdownMenuItem>

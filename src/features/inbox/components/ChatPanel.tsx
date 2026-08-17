@@ -413,6 +413,7 @@ export function ChatPanel({
             }}
             onOpenSearch={() => handleSetActiveTool('chatSearch')}
             onOpenValidation={isDevExact ? () => openDialog('visualValidation') : undefined}
+            onResolveConversation={handlers.onResolveConversation}
             onOpenTransfer={() => openDialog('transferDialog')}
             onOpenSchedule={() => openDialog('scheduleDialog')}
             onVoiceChange={setVoiceId}
