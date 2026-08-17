@@ -1,14 +1,18 @@
-// csat-auto-send v1.0 — CSAT Automation Edge Function (INBOX-09 + DASHBOARD-05)
+// csat-auto-send v2.0 — CSAT Automation Edge Function (INBOX-09 + DASHBOARD-05 + Etapa 66-CSAT)
 // POST body: { survey_id?, contact_id, agent_id?, connection_id, conversation_id?, delay_minutes? }
-// Flow:
-//   1. Validate auth (require user JWT)
-//   2. Query csat_auto_config for connection_id
-//   3. If disabled → early return
-//   4. Insert csat_surveys if survey_id not provided
-//   5. Fetch contact phone + whatsapp_connections instance_name
-//   6. Render message_template with basic variable substitution
-//   7. Enqueue to evolution_message_queue (with delay if delay_minutes > 0)
-//   8. Return { success, survey_id, scheduled_at }
+//
+// Flow (SIM-CSAT E2 — correções G2/G3/G4/G5/G7/G8):
+//   1. Validate auth (require user JWT; service_role também passa)
+//   2. Load csat_auto_config for connection_id (enabled / template / delay)
+//   3. Fetch contact (phone, name, consent_status) — ANTES do insert (G5: sem survey órfão)
+//   4. LGPD guard: consent_status != 'opt_out' (G7/F12)
+//   5. Dedup: survey já existe p/ (contact, conversation) ou cooldown 30d (G3/F6)
+//   6. Fetch whatsapp_connections.instance_name
+//   7. Render template — variável primária {nome}; retrocompat {name}/{{nome}}/{{name}} (G4/F1)
+//   8. Insert csat_surveys com send_at = now + delay, status='scheduled', message_text
+//      — NÃO enfileira em evolution_message_queue (G2/F2: fila sem consumidor;
+//        envio real acontece na edge csat-dispatch via evolutionClient.sendText)
+//   9. Return { success, survey_id, send_at, instance_name }
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import {
@@ -32,22 +36,26 @@ interface CsatAutoSendBody {
   delay_minutes?: number | null;
 }
 
-/** Render basic template variables: {{nome}}, {{name}} */
+const CSAT_COOLDOWN_DAYS = 30;
+
+/**
+ * Render template CSAT (G4/F1):
+ *  - Primário: `{nome}` (variável documentada na UI — CSATAutoConfig).
+ *  - Retrocompat: `{name}`, `{{nome}}`, `{{name}}`.
+ *  - Tokens desconhecidos (`{agent}`, `{queue}`, `{{...}}`) são removidos —
+ *    nunca deixam placeholder literal na mensagem.
+ */
 function renderTemplate(template: string, contactName: string): string {
   const firstName = (contactName ?? "").split(" ")[0] || "Cliente";
   return template
     .replace(/\{\{\s*nome\s*\}\}/gi, firstName)
     .replace(/\{\{\s*name\s*\}\}/gi, firstName)
-    .replace(/\{\{\s*\w+\s*\}\}/g, "")
+    .replace(/\{\s*nome\s*\}/gi, firstName)
+    .replace(/\{\s*name\s*\}/gi, firstName)
+    .replace(/\{\{\s*[a-zA-Z0-9_]+\s*\}\}/g, "")
+    .replace(/\{\s*[a-zA-Z0-9_]+\s*\}/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();
-}
-
-/** Normalize a phone string to a WhatsApp JID. */
-function toRemoteJid(phone: string): string {
-  if (phone.includes("@")) return phone;
-  const digits = phone.replace(/\D/g, "").replace(/^\+/, "");
-  return `${digits}@s.whatsapp.net`;
 }
 
 /** Verify the request carries a valid Supabase user JWT (not anon). */
@@ -90,9 +98,9 @@ Deno.serve(async (req: Request) => {
     return errorResponse(req, "Invalid JSON body", 400);
   }
 
-  const parsed = parseOrReject<CsatAutoSendBody>('csat-auto-send', { v1: CsatAutoSendV1Schema }, req, rawBody);
+  const parsed = parseOrReject("csat-auto-send", { v1: CsatAutoSendV1Schema }, req, rawBody);
   if (parsed.ok === false) return parsed.response;
-  const { survey_id, contact_id, agent_id, connection_id, conversation_id, delay_minutes } = parsed.data;
+  const { contact_id, agent_id, connection_id, conversation_id, delay_minutes } = parsed.data as CsatAutoSendBody;
 
   try {
     // ── 1. Query csat_auto_config ─────────────────────────────────────────────
@@ -111,32 +119,10 @@ Deno.serve(async (req: Request) => {
       return jsonResponse(req, { success: false, reason: "csat_disabled" });
     }
 
-    // ── 2. Ensure survey record exists ────────────────────────────────────────
-    let finalSurveyId: string | null = survey_id ?? null;
-
-    if (!finalSurveyId) {
-      const { data: newSurvey, error: surveyErr } = await admin
-        .from("csat_surveys")
-        .insert({
-          agent_id: agent_id ?? null,
-          contact_id,
-          conversation_resolved_at: new Date().toISOString(),
-        })
-        .select("id")
-        .maybeSingle();
-
-      if (surveyErr) {
-        // Non-fatal: log and continue — message delivery takes priority
-        console.warn("[csat-auto-send] survey insert error:", surveyErr.message);
-      } else {
-        finalSurveyId = newSurvey?.id ?? null;
-      }
-    }
-
-    // ── 3. Fetch contact phone ────────────────────────────────────────────────
+    // ── 2. Fetch contact — ANTES de qualquer insert (G5: survey órfão) ────────
     const { data: contact, error: contactErr } = await admin
       .from("contacts")
-      .select("phone, name")
+      .select("phone, name, consent_status")
       .eq("id", contact_id)
       .maybeSingle();
 
@@ -146,10 +132,52 @@ Deno.serve(async (req: Request) => {
     }
     if (!contact?.phone) {
       console.error("[csat-auto-send] contact not found or missing phone, contact_id:", contact_id);
-      return errorResponse(req, "Contact not found or missing phone number", 404);
+      return jsonResponse(req, { success: false, reason: "contact_without_phone" }, 404);
     }
 
-    // ── 4. Fetch instance_name from whatsapp_connections ─────────────────────
+    // ── 3. LGPD guard (G7/F12): nunca enviar pesquisa para contato opt-out ────
+    if (contact.consent_status === "opt_out") {
+      console.log(`[csat-auto-send] LGPD opt-out — survey skipped contact=${contact_id}`);
+      return jsonResponse(req, { success: false, reason: "lgpd_opt_out" });
+    }
+
+    // ── 4. Dedup 1 pesquisa/conversa + cooldown 30d (G3/F6) ───────────────────
+    const cooldownCutoff = new Date(Date.now() - CSAT_COOLDOWN_DAYS * 86_400_000).toISOString();
+
+    let existingQuery = admin
+      .from("csat_surveys")
+      .select("id, send_at")
+      .eq("contact_id", contact_id)
+      .limit(1);
+
+    if (conversation_id) {
+      // Conversa conhecida: já existe survey para ESTA conversa (qualquer
+      // idade — UNIQUE parcial conversation_id) OU cooldown 30d por contato.
+      existingQuery = existingQuery.or(`conversation_id.eq.${conversation_id},created_at.gte.${cooldownCutoff}`);
+    } else {
+      // Sem conversa: cooldown 30d por contato.
+      existingQuery = existingQuery.gte("created_at", cooldownCutoff);
+    }
+
+    const { data: existingSurveys, error: dedupErr } = await existingQuery;
+
+    if (dedupErr) {
+      console.error("[csat-auto-send] dedup query error:", dedupErr.message);
+      return errorResponse(req, "Failed to check existing surveys", 500);
+    }
+
+    if (existingSurveys && existingSurveys.length > 0) {
+      console.log(
+        `[csat-auto-send] dedup hit — contact=${contact_id} conversation=${conversation_id ?? "-"} survey=${existingSurveys[0].id}`,
+      );
+      return jsonResponse(req, {
+        success: false,
+        reason: "already_surveyed",
+        survey_id: existingSurveys[0].id ?? null,
+      });
+    }
+
+    // ── 5. Fetch instance_name from whatsapp_connections (antes do insert) ────
     const { data: conn, error: connErr } = await admin
       .from("whatsapp_connections")
       .select("instance_name")
@@ -162,10 +190,10 @@ Deno.serve(async (req: Request) => {
     }
     if (!conn?.instance_name) {
       console.error("[csat-auto-send] connection not found, connection_id:", connection_id);
-      return errorResponse(req, "WhatsApp connection not found", 404);
+      return jsonResponse(req, { success: false, reason: "connection_not_found" }, 404);
     }
 
-    // ── 5. Render message template ────────────────────────────────────────────
+    // ── 6. Render message template (G4: {nome} primário) ──────────────────────
     const renderedMessage = renderTemplate(
       csatConfig.message_template ?? "",
       contact.name ?? "",
@@ -173,88 +201,53 @@ Deno.serve(async (req: Request) => {
 
     if (!renderedMessage) {
       console.error("[csat-auto-send] message_template is empty after rendering, connection_id:", connection_id);
-      return errorResponse(req, "CSAT message template is empty", 400);
+      return jsonResponse(req, { success: false, reason: "empty_template" }, 400);
     }
 
-    // ── 6. Calculate scheduled_at ─────────────────────────────────────────────
+    // ── 7. Delay → send_at (o dispatch envia quando send_at <= now()) ─────────
     // Priority: body.delay_minutes → config.delay_minutes → 0 (immediate)
     const effectiveDelay = Math.max(
       0,
       Number(delay_minutes ?? csatConfig.delay_minutes ?? 0) || 0,
     );
-    const scheduledAt = new Date(Date.now() + effectiveDelay * 60_000).toISOString();
+    const sendAt = new Date(Date.now() + effectiveDelay * 60_000).toISOString();
 
-    // ── 6.5 Enqueue-guard idempotente ──────────────────────────────────────────
-    // Double-fire/retry da UI não pode enfileirar CSAT duplicado: se já existe
-    // item CSAT pendente para o mesmo contact+connection nas últimas 24h
-    // (scheduled_at tem índice idx_msg_queue_scheduled), responde de forma
-    // idempotente com o agendamento original em vez de inserir de novo.
-    const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: existingQueued, error: dupErr } = await admin
-      .from("evolution_message_queue")
-      .select("id, scheduled_at")
-      .eq("source", "csat_auto_send")
-      .eq("status", "pending")
-      .gte("scheduled_at", since24h)
-      .filter("metadata->>contact_id", "eq", contact_id)
-      .filter("metadata->>connection_id", "eq", connection_id)
+    // ── 8. Insert survey (status='scheduled' — o dispatch faz o envio real) ───
+    const { data: newSurvey, error: surveyErr } = await admin
+      .from("csat_surveys")
+      .insert({
+        agent_id: agent_id ?? null,
+        contact_id,
+        conversation_id: conversation_id ?? null,
+        whatsapp_connection_id: connection_id,
+        conversation_resolved_at: new Date().toISOString(),
+        send_at: sendAt,
+        status: "scheduled",
+        message_text: renderedMessage,
+      })
+      .select("id, send_at")
       .maybeSingle();
 
-    if (dupErr) {
-      console.error("[csat-auto-send] evolution_message_queue dedupe query error:", dupErr.message);
-      return errorResponse(req, "Failed to check CSAT queue", 500);
-    }
-
-    if (existingQueued) {
-      console.log(
-        `[csat-auto-send] duplicate enqueue skipped — contact=${contact_id} already queued (id=${existingQueued.id})`,
-      );
-      return jsonResponse(req, {
-        success: true,
-        survey_id: finalSurveyId,
-        scheduled_at: existingQueued.scheduled_at ?? scheduledAt,
-        instance_name: conn.instance_name,
-        deduped: true,
-      });
-    }
-
-    // ── 7. Enqueue message ────────────────────────────────────────────────────
-    const remoteJid = toRemoteJid(contact.phone);
-
-    const { error: queueErr } = await admin
-      .from("evolution_message_queue")
-      .insert({
-        remote_jid: remoteJid,
-        instance_name: conn.instance_name,
-        message_type: "text",
-        content: renderedMessage,
-        priority: 3,
-        status: "pending",
-        scheduled_at: scheduledAt,
-        source: "csat_auto_send",
-        metadata: {
-          survey_id: finalSurveyId ?? null,
-          contact_id,
-          agent_id: agent_id ?? null,
-          connection_id,
-          conversation_id: conversation_id ?? null,
-          csat: true,
-        },
-      });
-
-    if (queueErr) {
-      console.error("[csat-auto-send] evolution_message_queue insert error:", queueErr.message);
-      return errorResponse(req, "Failed to queue CSAT message", 500);
+    if (surveyErr || !newSurvey?.id) {
+      // 23505 = unique_violation (uq_csat_surveys_conversation) — corrida de
+      // double-fire da UI: responde idempotente em vez de 500.
+      if (surveyErr?.code === "23505") {
+        console.warn(`[csat-auto-send] unique_violation on insert — dedup race, contact=${contact_id}`);
+        return jsonResponse(req, { success: false, reason: "already_surveyed" });
+      }
+      console.error("[csat-auto-send] survey insert error:", surveyErr?.message);
+      return errorResponse(req, "Failed to create survey", 500);
     }
 
     console.log(
-      `[csat-auto-send] queued CSAT message — contact=${contact_id} survey=${finalSurveyId} instance=${conn.instance_name} jid=${remoteJid.slice(0, 8)}*** scheduled=${scheduledAt}`,
+      `[csat-auto-send] survey scheduled — contact=${contact_id} survey=${newSurvey.id} ` +
+      `instance=${conn.instance_name} send_at=${sendAt} (direct send via csat-dispatch, NOT queue)`,
     );
 
     return jsonResponse(req, {
       success: true,
-      survey_id: finalSurveyId,
-      scheduled_at: scheduledAt,
+      survey_id: newSurvey.id,
+      send_at: newSurvey.send_at ?? sendAt,
       instance_name: conn.instance_name,
     });
   } catch (e) {
