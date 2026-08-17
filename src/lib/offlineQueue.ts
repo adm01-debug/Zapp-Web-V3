@@ -217,8 +217,22 @@ export function setupOnlineListener(): () => void {
     log.info('Offline — messages will be queued');
   };
 
+  // Background Sync: o SW acorda as janelas com PROCESS_OFFLINE_QUEUE
+  // (public/sw.js: sendQueuedMessages) — a página é quem tem o cliente Supabase.
+  const handleSwMessage = (event: MessageEvent) => {
+    if (event.data && (event.data as { type?: string }).type === 'PROCESS_OFFLINE_QUEUE') {
+      log.info('ServiceWorker requested offline queue processing');
+      void processQueue().catch((err: unknown) => {
+        log.error('Failed to process offline queue from SW sync:', err);
+      });
+    }
+  };
+
   window.addEventListener('online', handleOnline);
   window.addEventListener('offline', handleOffline);
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', handleSwMessage);
+  }
 
   // Process queue on initial load if online
   if (navigator.onLine) {
@@ -230,5 +244,8 @@ export function setupOnlineListener(): () => void {
   return () => {
     window.removeEventListener('online', handleOnline);
     window.removeEventListener('offline', handleOffline);
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.removeEventListener('message', handleSwMessage);
+    }
   };
 }
