@@ -150,3 +150,37 @@ Contagens iniciais da 1ª passada (heurística): ver seção Fase 1 do triagem.c
 - **E99** ✅: BOUNDARY-evolution.md com seção 'estado final' (contagens por camada + achados vivos).
 - **E100** ✅: RELATORIO_FINAL.md com contagens, EXCLUI executados, MIGRA origem→destino, 12 pendências REVISAR, verificação pós-merge.
 - **Onda de verificação final**: 5 validadores read-only (v1 deploy, v2 main zapp, v3 links quebrados, v4 evostack, v5 CI) — deleg_5d959c78.
+
+---
+
+## Rodada 2 (2026-08-16 ~23:00 BRT) — simulação 10 cenários + execução das pendências
+
+**Simulação (deleg_20b01d73, 10 agentes read-only):** 9 LIBERADO + 1 BLOQUEADO (p1) com plano de 5 passos.
+
+**Executado (9 PRs mergeados):**
+- zapp #1122: destrava deploy (concurrency group v2→v3 — bug do lock corrompido; produção atualizada 00:01Z)
+- zapp #1123: migration rpc_log_evolution_health alinhada ao corpo 9-arg do banco (ML-008 ignore justificado)
+- zapp #1124: contract.zod 2.4.x (docs, schemas intactos)
+- zapp #1125: BOUNDARY — contratos reversos evo→zapp (9 contratos, 0 STALE comprovado no banco vivo)
+- zapp #1126: lint rule no-direct-evo-url reescrita (API oficial de plugins) + report-only no CI — validada: 0 violações em 255 arquivos
+- evostack #14: digest do consumer alinhado ao runtime (file-only)
+- evostack #15: stack file do consumer alinhado ao runtime (STATS_HTTP_URL/CHANNEL/secret — evita regressão GitOps)
+- evostack #16: README — digest atual vs rollback
+
+**Descoberta crítica (impediu migration destrutiva):** os '6 STALE' do E74 são TODOS vivos no banco — handle_updated_at serve 133 triggers; a análise anterior usou pg_class sem pg_proc. Migration de 'correção' do evostack abortada; docs corrigidos.
+
+**Causa raiz do bug consumer-stats:** secret stats_http_hmac_v1 não montado no serviço functions (stack 35) → 401 fail-closed a cada 30s. Fix pronto (compose + redeploy) — AGUARDANDO aval do dono.
+
+**Pendências novas (registradas pelos dossiês):**
+1. RPCs de fronteira (rpc_boundary_raise_alert/resolve_alert) sem DDL versionada no zapp — risco em restore/PITR (p6)
+2. Pacote GHCR evolution-stack está PRIVATE apesar do step de publicização (p8)
+3. consumer.py:153 não loga status code no warning de stats (p2 — fix menor)
+4. requireEnv('EVOLUTION_API_URL') em connection-health-check — candidato a padrão da rule na fase 2 (p1)
+5. fn_autofix_security_invoker pula views com security_invoker=false EXPLÍCITO (causa raiz do acúmulo das 7 views) — p7
+6. Autofix: gap de auto-bump do digest do consumer no pipeline gitops (p8)
+
+**Decisões de produção com dossiê completo (aguardando aval):**
+- ① consumer-stats HMAC (redeploy stack 35, janela de segundos)
+- ② 7 views security_invoker (migration pronta: ALTER VIEW + GRANTs nas 6 bases evo + policy media_scan_log; validação JWT antes/depois)
+- ③ aposentar evolution-bitrix-sync (1-2h; write-back quebrado, fila vazia, negócio coberto por bitrix-api)
+- ④ manter Dockerfile 2.3.7 como Plano B (custo zero)
