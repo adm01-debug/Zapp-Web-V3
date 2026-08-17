@@ -1,5 +1,3 @@
-      0 [main] bash 38058 dofork: child -1 - forked process 26184 died unexpectedly, retry 0, exit code 0xC000012D, errno 11
-/usr/bin/bash: fork: retry: Resource temporarily unavailable
 import { useState } from 'react';
 import { useAutoExportJobs, type AutoExportJob } from '@/hooks/useAutoExportJobs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
