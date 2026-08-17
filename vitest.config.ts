@@ -29,7 +29,7 @@ export default defineConfig({
       // Categorias:
       //   ORPHAN: hook removido do codebase (teste obsoleto)
       //   FAILING: hook existe mas teste referencia API refatorada
-      //   DENO: imports incompatíveis com vitest (rodam via deno test)
+      //   DENO: imports incompatíveis com vitest (quarentenados, sem suíte ativa)
       //   NEEDS-ENV: requerem vars de ambiente externas
       //
       // Un-quaranteados nesta sessão (2026-07-28, passam 100%):
@@ -63,8 +63,9 @@ export default defineConfig({
       'src/hooks/__tests__/useRealtimeSentimentAlerts.test.ts',
       'src/hooks/__tests__/useWarRoomAlerts.integration.test.tsx',
       'src/components/settings/__tests__/MediaLibraryAdmin.test.tsx',
-      // DENO — use https://deno.land/ imports incompatíveis com Node/vitest.
-      // Rodam apenas com `deno test` (suíte separada).
+      // DENO — imports https://deno.land/ incompatíveis com Node/vitest.
+      // QUARENTENADOS: não rodam no vitest nem em suíte Deno ativa (CI deno-contract-tests
+      // cobre apenas supabase/functions). Reescrita p/ vitest é o caminho para reativá-los.
       'src/hooks/__tests__/useAudioRecorder.cleanup.test.ts',
       'src/lib/__tests__/clientRateLimiter.test.ts',
       'src/lib/__tests__/healthCheck.test.ts',
