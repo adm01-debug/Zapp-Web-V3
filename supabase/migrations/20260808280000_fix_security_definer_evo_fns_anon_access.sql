@@ -1,3 +1,6 @@
+-- SUPERSEDED (rodada 4, 2026-08-17): as funcoes alvo nao existem mais (3/4 dropadas;
+-- fn_shadow_snapshot_daily movida para zapp com grants corretos authenticated+service_role).
+-- Historico documental — NAO reaplicar (REVOKE/GRANT em funcao inexistente = erro).
 -- Auditoria de segurança 2026-08-08: funções SECURITY DEFINER no schema evo
 -- com acesso ao role anon identificadas em evo.v_security_audit (D-8 gate).
 --

@@ -1,0 +1,7 @@
+-- ============================================================================
+-- Migration: 20260817140000_fix_autofix_invoker_filter.sql
+-- Fix (rodada 4): o filtro do autofix era CEGO — ILIKE '%security_invoker%' pulava
+-- views com security_invoker=false EXPLICITO (causa raiz do acumulo das 7 views).
+-- Novo filtro: captura reloptions NULL, outros reloptions, =false, =off;
+-- pula apenas as DUAS grafias validas (=true, =on). APLICADO em prod 2026-08-17.
+-- ============================================================================
