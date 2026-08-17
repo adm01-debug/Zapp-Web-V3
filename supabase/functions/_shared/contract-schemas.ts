@@ -478,6 +478,8 @@ export const ZappAutoExportV1Schema = z.object({
   jobId: z.string().uuid("jobId deve ser um UUID válido"),
   /** 'run' (padrão): gera/regenera o arquivo. 'link': só renova a signed URL do arquivo existente. */
   action: z.enum(["run", "link"]).optional(),
+}).strict();
+
 /**
  * send-scheduled-report@v2 — modo batch (cron dispatch chama sem body):
  * claima runs pendentes da outbox (rpc_claim_pending_report_runs), faz
@@ -1022,6 +1024,7 @@ export const SentrySyncV1Schema = z.object({
   action: z.enum(['save', 'test']).optional(),
 }).strict();
 
+/**
  * zapp-google-calendar-sync@v1 — status/sync do contrato Google Calendar
  * (G1, 2026-08-17). GET (status) ou POST com body opcional { dryRun }.
  * Resposta SEMPRE 200: { synced:false, reason:'not_configured'|'disabled'|
