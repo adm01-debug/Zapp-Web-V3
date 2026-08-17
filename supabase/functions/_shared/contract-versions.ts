@@ -25,6 +25,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "evolution-consumer-stats":     { current: "v1", supported: ["v1"] },
   "whatsapp-cloud-webhook":       { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-06-01" } },
   "whatsapp-cloud-webhook-verify":{ current: "v1", supported: ["v1"] },
+  "zapp-get-sip-credentials":     { current: "v1", supported: ["v1"] },
   "gmail-webhook":                { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-06-01" } },
   "sicoob-bridge":                { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-06-01" } },
   "sicoob-bridge-reply":          { current: "v2", supported: ["v1", "v2"], sunset: { v1: "2027-06-01" } },

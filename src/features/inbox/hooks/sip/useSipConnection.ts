@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { getLogger } from '@/lib/logger';
-import { UserAgent, Registerer } from 'sip.js';
+import { UserAgent, Registerer, type Invitation } from 'sip.js';
 import { toast } from 'sonner';
 
 const log = getLogger('SipConnection');
@@ -18,6 +18,9 @@ interface SipConfig {
   wsPort?: number;
 }
 
+/** Handler registrado pelo useSipClient para INVITE entrante (ua.delegate.onInvite). */
+export type SipInviteHandler = (invitation: Invitation) => void;
+
 /** Manages a SIP.js UserAgent connection lifecycle: registers with the server, handles exponential back-off reconnection, and exposes connect/disconnect callbacks with mounted-ref safety. */
 export function useSipConnection() {
   const [sipStatus, setSipStatus] = useState<SipStatus>('disconnected');
@@ -26,6 +29,8 @@ export function useSipConnection() {
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useMountedRef();
+  /** Handler de INVITE entrante — setado pelo useSipClient via setInviteHandler (ref: estável entre connects). */
+  const inviteHandlerRef = useRef<SipInviteHandler | null>(null);
 
   useEffect(
     () => () => {
@@ -91,6 +96,15 @@ export function useSipConnection() {
           logLevel: 'warn',
           displayName: config.user,
         });
+
+        // INVITE entrante: repassa para o handler registrado pelo useSipClient
+        // (atendimento real de chamadas recebidas — fechava o gap documentado em
+        // voip-security-gaps.test.ts: "GAP: No incoming call support").
+        ua.delegate = {
+          onInvite: (invitation: Invitation) => {
+            inviteHandlerRef.current?.(invitation);
+          },
+        };
 
         ua.transport.onDisconnect = () => {
           if (!mountedRef.current) return;
@@ -160,5 +174,10 @@ export function useSipConnection() {
     }
   }, [mountedRef]);
 
-  return { sipStatus, uaRef, connect, disconnect };
+  /** Registra (ou remove, com null) o handler de INVITE entrante — ref estável entre connects. */
+  const setInviteHandler = useCallback((handler: SipInviteHandler | null) => {
+    inviteHandlerRef.current = handler;
+  }, []);
+
+  return { sipStatus, uaRef, connect, disconnect, setInviteHandler };
 }
