@@ -50,7 +50,6 @@ export default defineConfig({
       'src/hooks/useEmailActions.test.ts',
       // FAILING — hook existe, teste usa API refatorada
       'src/hooks/__tests__/useGlobalSearchShortcut.test.ts',
-      'src/hooks/__tests__/useTextToSpeech.test.ts',
       'src/hooks/__tests__/useContactCustomFields.test.tsx',
       'src/hooks/__tests__/useDownloadPermission.test.ts',
       'src/hooks/__tests__/useExportData.test.tsx',
