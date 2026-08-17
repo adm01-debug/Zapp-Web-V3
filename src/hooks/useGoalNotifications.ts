@@ -53,6 +53,10 @@ export function useGoalNotifications() {
 
         for (const check of checks) {
           if (check.limit == null) continue;
+          // Etapa 66: value é sempre null hoje (medição de progresso não
+          // implementada) — NÃO disparar toast de meta sem métrica real
+          // (era falso-alerta ativo em produção).
+          if (check.value == null) continue;
           const prev = lastNotifiedRef.current.get(`${goal.id}:${check.label}`) ?? -1;
           if (prev > 0) continue; // already notified this session
           lastNotifiedRef.current.set(`${goal.id}:${check.label}`, 1);

@@ -13,7 +13,8 @@ import {
   Smile,
   FileText,
 } from 'lucide-react';
-import { AnimatedBadge, LevelProgress } from './GamificationEffects';
+// (imports de AnimatedBadge/LevelProgress removidos na Etapa 66 — bloco fake removido)
+
 import { FloatingParticles } from './FloatingParticles';
 import { AuroraBorealis } from '@/components/effects/AuroraBorealis';
 import { SLAMetricsDashboard } from './SLAMetricsDashboard';
@@ -150,14 +151,10 @@ export const DashboardView = memo(function DashboardView(): JSX.Element {
               </motion.p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <AnimatedBadge value="1.250" label="XP" variant="xp" size="md" />
-            <AnimatedBadge value="89" variant="coins" size="md" />
-            <AnimatedBadge value="7" variant="streak" size="md" />
-          </div>
-        </div>
-        <div className="mt-4">
-          <LevelProgress currentXP={1250} requiredXP={2000} level={12} />
+          {/* Etapa 66: bloco de gamificação REMOVIDO — os valores eram 100%
+              hardcoded (XP=1.250, coins=89, streak=7, level=12) e 'coins' nem
+              existe no schema. A gamificação real (agent_stats) está morta
+              (provider não montado, nada alimenta) — ver issue do plano. */}
         </div>
       </motion.div>
 

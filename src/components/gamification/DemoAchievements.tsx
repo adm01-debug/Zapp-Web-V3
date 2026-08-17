@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGamification } from './GamificationProvider';
-import { Zap, Flame, Target, Star, Crown, Trophy, Rocket, TrendingUp, Award, ChevronRight } from 'lucide-react';
+import { TrendingUp, Award, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AchievementsPanel } from './AchievementsPanel';
 import { useState } from 'react';
@@ -12,66 +12,11 @@ import { useState } from 'react';
 export function DemoAchievements() {
   const [showAchievementsPanel, setShowAchievementsPanel] = useState(false);
   const {
-    triggerFastResponse, 
-    triggerStreak, 
-    triggerResolution, 
-    triggerPerfectRating,
-    triggerLevelUp,
-    triggerDailyGoal,
     stats,
     isLoading,
   } = useGamification();
 
-  const demos = [
-    {
-      label: 'Resposta < 30s',
-      icon: Rocket,
-      action: () => triggerFastResponse(25),
-      gradient: 'from-destructive to-warning',
-    },
-    {
-      label: 'Resposta < 2min',
-      icon: Zap,
-      action: () => triggerFastResponse(90),
-      gradient: 'from-primary to-info',
-    },
-    {
-      label: 'Streak 5',
-      icon: Flame,
-      action: () => triggerStreak(5),
-      gradient: 'from-warning to-warning',
-    },
-    {
-      label: 'Streak 10',
-      icon: Flame,
-      action: () => triggerStreak(10),
-      gradient: 'from-warning to-destructive',
-    },
-    {
-      label: 'Resolução',
-      icon: Target,
-      action: () => triggerResolution(),
-      gradient: 'from-success to-success',
-    },
-    {
-      label: 'Nota 5 ⭐',
-      icon: Star,
-      action: () => triggerPerfectRating(),
-      gradient: 'from-warning to-warning',
-    },
-    {
-      label: 'Level Up!',
-      icon: Crown,
-      action: () => triggerLevelUp((stats?.level || 1) + 1),
-      gradient: 'from-primary to-accent',
-    },
-    {
-      label: 'Meta Diária',
-      icon: Trophy,
-      action: () => triggerDailyGoal('50 atendimentos'),
-      gradient: 'from-info to-info',
-    },
-  ];
+  // Etapa 66: array `demos` (botões de teste) removido — ver comentário no JSX.
 
   if (showAchievementsPanel) {
     return (
@@ -171,40 +116,10 @@ export function DemoAchievements() {
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground mb-3">
-        Teste as conquistas clicando nos botões abaixo:
-      </p>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {demos.map((demo, index) => (
-          <motion.button
-            key={demo.label}
-            onClick={demo.action}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: index * 0.05 }}
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            className={`
-              relative overflow-hidden p-3 rounded-xl
-              bg-gradient-to-br ${demo.gradient}
-              text-primary-foreground font-semibold text-sm
-              shadow-lg hover:shadow-xl transition-shadow
-            `}
-          >
-            <motion.div
-              className="absolute inset-0 bg-background/20"
-              initial={{ x: '-100%' }}
-              whileHover={{ x: '100%' }}
-              transition={{ duration: 0.5 }}
-            />
-            <div className="relative flex items-center gap-2 justify-center">
-              <demo.icon className="w-4 h-4" />
-              <span>{demo.label}</span>
-            </div>
-          </motion.button>
-        ))}
-      </div>
+      {/* Etapa 66: botões de teste REMOVIDOS — gravavam XP/conquistas/streak
+          FALSOS em agent_stats/agent_achievements de produção, inflando o
+          leaderboard real. A gamificação real está desligada (provider não
+          montado) — ver issue do plano 100 etapas. */}
     </motion.div>
   );
 }

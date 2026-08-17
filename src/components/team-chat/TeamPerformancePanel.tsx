@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,28 +30,16 @@ interface Props {
 
 /** Team Performance Panel component for the team chat section. */
 export function TeamPerformancePanel({ conversationId }: Props) {
-  const [metrics, setMetrics] = useState<{ lcp: Metric[]; inp: Metric[]; renderTime: Metric[] }>({
+  const [metrics] = useState<{ lcp: Metric[]; inp: Metric[]; renderTime: Metric[] }>({
     lcp: [],
     inp: [],
     renderTime: [],
   });
 
-  // Mock initial data if empty to show the dashboard style
-  useEffect(() => {
-    const generateMock = (base: number, variance: number) => {
-      return Array.from({ length: 10 }).map((_, i) => ({
-        timestamp: Date.now() - (10 - i) * 60000,
-        value: base + Math.random() * variance,
-        label: format(Date.now() - (10 - i) * 60000, 'HH:mm'),
-      }));
-    };
-
-    setMetrics({
-      lcp: generateMock(1200, 400),
-      inp: generateMock(100, 50),
-      renderTime: generateMock(16, 20),
-    });
-  }, [conversationId]);
+  // Etapa 66: REMOVIDO o mock com Math.random (LCP/INP fabricados enganavam
+  // o usuário e o export JSON exportava o fake). Sem fonte de dados real de
+  // web-vitals por conversa, o painel fica com estado vazio honesto até a
+  // telemetria real ser ligada (issue do plano 100 etapas).
 
   const exportData = () => {
     const data = JSON.stringify(metrics, null, 2);
