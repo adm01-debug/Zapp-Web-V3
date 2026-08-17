@@ -1,26 +1,11 @@
-// TODO(2026-08-14) — 401 no browser / feature de sincronização quebrada (plano desacoplamento V4, etapa #31).
-// CAUSA RAIZ EXATA: o gate requireServiceRoleOrCron() (logo abaixo) exige service-role
-// bearer OU header x-cron-secret. O browser chama esta edge via
-// src/hooks/useWhatsAppTemplates.ts → supabase.functions.invoke('evolution-templates', { method: 'GET' }),
-// que envia APENAS o JWT do usuário autenticado (Authorization: Bearer <user jwt> + apikey anon) —
-// nenhum dos dois é aceito → 401 "Unauthorized: internal endpoint". A função é, na prática,
-// interna (cron/service-role), mas o único chamador é o browser. O hook tolera o 401
-// (fallback local + toast), então não há quebra silenciosa — porém syncFromEvolution nunca funciona.
-// CORREÇÃO PROPOSTA (NÃO aplicada — decisão de segurança pendente, não trivial): dividir o gate
-// por ação, alinhando ao padrão das outras functions:
-//   - GET (listar templates ativos) e POST action=preview → requireUser(req) (mesmo padrão de
-//     instance-pause-control). Dados expostos: nome/categoria/conteúdo de templates ativos —
-//     aceitável para qualquer usuário autenticado.
-//   - POST action=send → NÃO relaxar: manter requireServiceRoleOrCron OU passar a
-//     requireAdminOrSupervisor. Enviar mensagem WhatsApp para remote_jid ARBITRÁRIO usando a
-//     instância da empresa com apenas JWT de usuário comum = risco de abuso/spam (número oficial).
-// DECISÃO PENDENTE do plano #31: rotear via gateway com auth OU aposentar com banner.
-// Antes de aplicar: inventariar chamadores (hoje só o hook GET), validar no staging e testar
-// GET/POST com JWT real (anon→401, user→200, service_role→200).
+// CORREÇÃO APLICADA (2026-08-17, Etapa 24 do plano 100 etapas): gate dividido por ação —
+// GET = requireUser (chamador real é o browser via useWhatsAppTemplates) · POST send/preview
+// segue requireServiceRoleOrCron. Pendência restante: rotear o send via gateway (evolutionClient)
+// em vez de vault+fetch direto — ver Etapa 25/E87 do plano (aposentação/aprovação do dono).
 // Evolution Templates v5.0
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createZappAdminClient } from '../_shared/db-client.ts';
-import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { requireServiceRoleOrCron, requireUser } from "../_shared/auth.ts";
 import { parseOrReject, buildContractErrorBody } from "../_shared/contract-kit.ts";
 import { EvolutionTemplatesV1Schema } from "../_shared/contract-schemas.ts";
 
@@ -97,9 +82,19 @@ function validate(tpl: TemplateRow | null | undefined) {
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
-  // Internal endpoint — require service role or cron secret
-  const authErr = requireServiceRoleOrCron(req);
-  if (authErr) return authErr;
+  // Gate dividido por ação (Etapa 24 do plano 100 etapas — fix do 401):
+  // - GET (listar templates ativos): usuário autenticado — é o ÚNICO chamador
+  //   real (useWhatsAppTemplates → invoke GET com JWT de usuário). Era 401 100%.
+  //   Dados expostos: nome/categoria/conteúdo de templates ativos — ok p/ usuário.
+  // - POST (send/preview): mantém service-role/cron — enviar WhatsApp para
+  //   remote_jid arbitrário com o número oficial exige privilégio.
+  if (req.method === "GET") {
+    const userOrErr = await requireUser(req);
+    if (userOrErr instanceof Response) return userOrErr;
+  } else {
+    const authErr = requireServiceRoleOrCron(req);
+    if (authErr) return authErr;
+  }
 
   try {
     const url = new URL(req.url);
