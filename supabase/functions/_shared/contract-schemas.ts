@@ -395,9 +395,20 @@ export const StatusV1Schema = EmptyStrictV1Schema;
 /** metrics@v1 — scrape Prometheus GET; sem body. */
 export const MetricsV1Schema = EmptyStrictV1Schema;
 
-/** send-scheduled-report@v1 — cron/UI envia { reportId }. */
+/** send-scheduled-report@v1 — UI/manual envia { reportId } (compat). */
 export const SendScheduledReportV1Schema = z.object({
   reportId: z.string().min(1, "reportId é obrigatório").max(200),
+}).strict();
+
+/**
+ * send-scheduled-report@v2 — modo batch (cron dispatch chama sem body):
+ * claima runs pendentes da outbox (rpc_claim_pending_report_runs), faz
+ * upload do artefato p/ storage zapp-reports, gera signed URL 7d e envia
+ * email. `limit` opcional (1..100), `dryRun` só conta sem enviar.
+ */
+export const SendScheduledReportV2Schema = z.object({
+  limit: z.number().int().min(1).max(100).optional(),
+  dryRun: z.boolean().optional(),
 }).strict();
 
 /** auto-close-conversations@v1 — cron; sem body. */
@@ -921,7 +932,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "health":                        { v1: HealthV1Schema },
   "status":                        { v1: StatusV1Schema },
   "metrics":                       { v1: MetricsV1Schema },
-  "send-scheduled-report":         { v1: SendScheduledReportV1Schema },
+  "send-scheduled-report":         { v1: SendScheduledReportV1Schema, v2: SendScheduledReportV2Schema },
   "auto-close-conversations":      { v1: AutoCloseConversationsV1Schema },
   "elevenlabs-voice":              { v1: ElevenLabsVoiceV1Schema },
   "elevenlabs-tts":                { v1: ElevenLabsTtsV1Schema },
