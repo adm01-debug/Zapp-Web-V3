@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, PhoneOff, Video } from 'lucide-react';
+import { Info, Phone, PhoneOff, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { CallDialog } from './CallDialog';
 import { useIncomingCallListener } from '@/hooks/useIncomingCallListener';
-import { useIncomingCallBroadcast } from '@/features/inbox';
+import { useIncomingCallBroadcast, useSipClient } from '@/features/inbox';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { cn } from '@/lib/utils';
+import { getInboundAnswerNotice } from './inboundAnswerNotice';
 
 import { getLogger } from '@/lib/logger';
 const log = getLogger('IncomingCallAlert');
@@ -22,6 +22,7 @@ export const IncomingCallAlert = forwardRef<HTMLDivElement, Record<string, never
     const { incomingCall: legacyCall, dismissCall: dismissLegacy } = useIncomingCallListener();
     const { incomingCall: broadcastCall, dismissCall: dismissBroadcast } =
       useIncomingCallBroadcast();
+    const { sipStatus } = useSipClient();
     // Broadcast wins (arrives first); legacy is fallback
     const incomingCall = broadcastCall ?? legacyCall;
     const dismissCall = useCallback(() => {
@@ -29,11 +30,14 @@ export const IncomingCallAlert = forwardRef<HTMLDivElement, Record<string, never
       dismissLegacy();
     }, [dismissBroadcast, dismissLegacy]);
     const { settings: notifSettings, isQuietHours } = useNotificationSettings();
-    const [showDialog, setShowDialog] = useState(false);
+    // Aviso honesto do "Atender": não existe caminho de áudio para chamadas
+    // recebidas (SIP outbound-only + alerta via webhook WhatsApp/Evolution).
+    // Em vez de abrir uma UI de chamada falsa, exibimos a limitação real.
+    const [answerNotice, setAnswerNotice] = useState<string | null>(null);
     // Play ringtone only if sound is enabled and not in quiet hours
     useEffect(() => {
       const soundAllowed = notifSettings.soundEnabled && !isQuietHours();
-      if (incomingCall && !showDialog && soundAllowed) {
+      if (incomingCall && soundAllowed) {
         try {
           const AudioContextCtor =
             window.AudioContext ?? (window as BrowserAudioWindow).webkitAudioContext;
@@ -65,7 +69,6 @@ export const IncomingCallAlert = forwardRef<HTMLDivElement, Record<string, never
       return undefined;
     }, [
       incomingCall,
-      showDialog,
       notifSettings.soundEnabled,
       notifSettings.soundVolume,
       isQuietHours,
@@ -78,16 +81,20 @@ export const IncomingCallAlert = forwardRef<HTMLDivElement, Record<string, never
       return () => clearTimeout(timeout);
     }, [incomingCall, dismissCall]);
 
+    // Nova chamada recebida → limpa o aviso honesto anterior
+    useEffect(() => {
+      setAnswerNotice(null);
+    }, [incomingCall]);
+
     const handleAnswer = () => {
-      setShowDialog(true);
+      // HONEST: nunca no-op e nunca UI de chamada falsa. Sem INVITE SIP de
+      // entrada, o máximo honesto é informar a limitação real.
+      const notice = getInboundAnswerNotice(sipStatus);
+      setAnswerNotice(notice);
+      log.warn('Atendimento de chamada recebida indisponível — aviso honesto exibido:', notice);
     };
 
     const handleDecline = () => {
-      dismissCall();
-    };
-
-    const handleDialogEnd = () => {
-      setShowDialog(false);
       dismissCall();
     };
 
@@ -101,26 +108,6 @@ export const IncomingCallAlert = forwardRef<HTMLDivElement, Record<string, never
     };
 
     if (!incomingCall) return null;
-
-    if (showDialog) {
-      return (
-        <CallDialog
-          open={true}
-          onOpenChange={(open) => {
-            if (!open) handleDialogEnd();
-          }}
-          contact={{
-            id: incomingCall.contact_id || undefined,
-            name: incomingCall.contact_name,
-            phone: incomingCall.contact_phone,
-          }}
-          direction="inbound"
-          whatsappConnectionId={incomingCall.whatsapp_connection_id || undefined}
-          onAnswer={() => {}}
-          onEnd={handleDialogEnd}
-        />
-      );
-    }
 
     return (
       <AnimatePresence>
@@ -190,11 +177,25 @@ export const IncomingCallAlert = forwardRef<HTMLDivElement, Record<string, never
                     : 'bg-success hover:bg-success/90'
                 )}
                 onClick={handleAnswer}
+                title={getInboundAnswerNotice(sipStatus)}
+                aria-describedby={answerNotice ? 'incoming-call-answer-notice' : undefined}
               >
                 <Phone className="h-4 w-4" />
                 Atender
               </Button>
             </div>
+
+            {/* Honest notice (nunca no-op): explica a limitação real do atendimento */}
+            {answerNotice && (
+              <div
+                id="incoming-call-answer-notice"
+                role="alert"
+                className="mx-4 mb-4 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-600"
+              >
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{answerNotice}</span>
+              </div>
+            )}
           </div>
         </motion.div>
       </AnimatePresence>
