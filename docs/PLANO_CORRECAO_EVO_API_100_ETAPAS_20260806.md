@@ -68,7 +68,7 @@ Adicionar ao CI: falhar o build se `grep -rn '\*\*\*' src/ supabase/functions/` 
 `alert_dispatch_state`, `processed_webhook_events` (payloads de mensagens!), `webhook_health_alerts`, `restore_test_log`, `rpc_rate_limits` (`auth_full_access`) + `cookie_probe_log`/`cookie_probe_pending` (`rls_cookie_probe_service_only` — **nome diz service-only mas role=authenticated** — bug de role). Restringir a admin/service_role. **Evidência:** A8-P1-1.
 
 ### 14. **P1** — Decisão crowdsec: anexar bouncer OU desativar
-Engine detecta (2,35M linhas processadas, 12 bans ativos) mas **nenhum bloqueio é aplicado** (bouncer sem pull desde 15/07; middleware definido, não anexado). ⚠️ **O IP do escritório 186.207.138.55 está BANIDO agora** (expira ~4h) — `cscli decisions delete` + whitelist em `evo-mgr` e no crowdsec antes de anexar. **Evidência:** A8-P1-2.
+Engine detecta (2,35M linhas processadas, 12 bans ativos) mas **nenhum bloqueio é aplicado** (bouncer sem pull desde 15/07; middleware definido, não anexado). ⚠️ **O IP do escritório <IP-ESCRITORIO> está BANIDO agora** (expira ~4h) — `cscli decisions delete` + whitelist em `evo-mgr` e no crowdsec antes de anexar. **Evidência:** A8-P1-2.
 
 ### 15. **P2** — Mover `CROWDSEC_BOUNCER_API_KEY` para secret Swarm
 Literal `"atomicabr-traefik-bouncer-2026"` no compose do stack 154 (stacks 25/113 estão limpos). **Evidência:** A8-P2-2.
@@ -114,7 +114,7 @@ Entrypoint lê `OCI_DIGEST` mas nenhum env existe → auditoria A-8 grava `image
 Fonte histórica dos 401s (`627×401 vs 326×200` em connectionState). A v5 está íntegra em todos os consumidores (verificado); a v4 não deve mais existir como credencial. Auditar referências remanescentes antes. **Evidência:** A2-2 (P1).
 
 ### 28. **P2** — Re-apontar callers com chave stale
-UI manager (186.207.138.55 — relogar, 15×401 pós-fix) e edge fn cloud (etapa 31). **Evidência:** A9-P3.
+UI manager (<IP-ESCRITORIO> — relogar, 15×401 pós-fix) e edge fn cloud (etapa 31). **Evidência:** A9-P3.
 
 ### 29. **P3** — Tag semântica no GHCR para o digest atual
 `9d110bc7…` está sem tag (pin por digest); tags existentes (`2.3.7`, `d950fc194301`, etc.) não apontam para ele. Facilitar rollback rastreável. **Evidência:** A2-8.
