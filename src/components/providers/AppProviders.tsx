@@ -15,6 +15,7 @@ import {
 import { tanstackRetry } from '@/lib/errors/queryErrors';
 import { supabase } from '@/integrations/supabase/client';
 import { loadFeatureFlags } from '@/lib/featureFlags';
+import { GamificationProvider } from '@/components/gamification/GamificationProvider';
 
 const log = getLogger('AppProviders');
 
@@ -143,12 +144,16 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <ValidationProvider>
           <AuthProvider>
-            <ThemeSync />
-            <HighContrastProvider>
-              <TooltipProvider delayDuration={100} skipDelayDuration={50}>
-                {children}
-              </TooltipProvider>
-            </HighContrastProvider>
+            {/* Etapa 66: gamificação REAL montada no boot — alimentada pelos
+                eventos zapp:message-sent / zapp:conversation-resolved. */}
+            <GamificationProvider>
+              <ThemeSync />
+              <HighContrastProvider>
+                <TooltipProvider delayDuration={100} skipDelayDuration={50}>
+                  {children}
+                </TooltipProvider>
+              </HighContrastProvider>
+            </GamificationProvider>
           </AuthProvider>
         </ValidationProvider>
       </QueryClientProvider>

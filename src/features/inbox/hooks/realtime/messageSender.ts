@@ -216,6 +216,10 @@ export async function sendMessageToContact(
   const effectiveId = opts.optimisticId || data.id;
   emitSendStatus(effectiveId, { status: 'sending' }, { contactId, source: 'messageSender' });
 
+  // Etapa 66: alimenta a gamificação REAL (GamificationProvider escuta este
+  // evento e incrementa XP/mensagens). Fire-and-forget — não afeta o envio.
+  window.dispatchEvent(new CustomEvent('zapp:message-sent'));
+
   try {
     if (opts.conversationId) {
       // F4-15: audit de send_attempt entra no batcher (fire-and-forget,
