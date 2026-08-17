@@ -64,6 +64,8 @@ export default defineConfig({
       'src/components/settings/__tests__/MediaLibraryAdmin.test.tsx',
       // DENO — use https://deno.land/ imports incompatíveis com Node/vitest.
       // Rodam apenas com `deno test` (suíte separada).
+      // (useAudioRecorder.cleanup.test.ts removido da quarentena em 2026-08-17:
+      //  reescrito em vitest puro testando o cleanup real.)
       // (clientRateLimiter/healthCheck/queryTimeout/sanitize-extra convertidos
       // para vitest em 2026-08-17 — removidos da quarentena.)
       // DENO — imports https://deno.land/ incompatíveis com Node/vitest.

@@ -1,147 +1,267 @@
 /**
- * Tests para useAudioRecorder - validação de cleanup
+ * useAudioRecorder — testes de cleanup (vitest puro)
  *
- * Cobertura:
- * - Cleanup de MediaStream em unmount
- * - Cleanup de AudioContext
- * - Cleanup de animation frame
- * - Cleanup de interval
- * - Cleanup de SpeechRecognition
+ * Exercita o cleanup REAL do hook em unmount/cancel, cobrindo:
+ * - revogação da ObjectURL do blob (URL.revokeObjectURL)
+ * - stop de todas as tracks do MediaStream
+ * - close do AudioContext + cancel do animation frame
+ * - clear do interval de duração
+ * - stop do SpeechRecognition e do MediaRecorder ativo (handlers/listeners)
+ *
+ * O hook em produção é `useAudioRecorder` exportado por `@/hooks/useAudioManagement`
+ * (usado via `useAudioRecorderUI` → `AudioRecorder.tsx`).
  */
-import { assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
 
-// Mock navigator.mediaDevices
-const mockTracks: { stop: () => void }[] = [];
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const originalGetUserMedia = navigator.mediaDevices;
+vi.mock('@/integrations/supabase/client', () => ({
+  isSupabaseConfigured: true,
+  SUPABASE_RESOLVED_URL: 'http://localhost:54321',
+  SUPABASE_RESOLVED_ANON_KEY: 'test-anon-key',
+  supabase: {
+    functions: {
+      invoke: vi.fn().mockResolvedValue({ data: null, error: null }),
+    },
+    storage: {
+      from: vi.fn().mockReturnValue({
+        upload: vi.fn().mockResolvedValue({ data: { path: 'test.webm' }, error: null }),
+        createSignedUrl: vi
+          .fn()
+          .mockResolvedValue({ data: { signedUrl: 'https://example.com/test.webm' }, error: null }),
+        getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://example.com/test.webm' } }),
+      }),
+    },
+  },
+}));
 
-Deno.test("useAudioRecorder: cleanup function exists", () => {
-  // O hook deve expor cleanupRecordingResources via useEffect cleanup
-  // Esta validação é apenas estrutural
-  const cleanupFn = () => {
-    // Simula o que cleanupRecordingResources faz
-    mockTracks.forEach((track) => track.stop());
-  };
-  assertExists(cleanupFn);
-});
+vi.mock('@/hooks/use-toast', () => ({
+  toast: vi.fn(),
+  useToast: () => ({ toast: vi.fn() }),
+}));
 
-Deno.test("useAudioRecorder: media stream tracks must be stopped on unmount", () => {
-  let stopped = false;
-  const mockStream = {
-    getTracks: () => [{ stop: () => { stopped = true; } }]
-  };
+vi.mock('@/lib/logger', () => ({
+  getLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+  log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+  generateRequestTag: vi.fn(),
+}));
 
-  // Simula cleanup
-  mockStream.getTracks().forEach((track) => track.stop());
+import { useAudioRecorder } from '@/hooks/useAudioManagement';
 
-  assertEquals(stopped, true);
-});
+/* ------------------------------------------------------------------ */
+/* Mocks de APIs de browser                                            */
+/* ------------------------------------------------------------------ */
 
-Deno.test("useAudioRecorder: audio context must be closed on unmount", () => {
-  let closed = false;
-  const mockAudioContext = {
-    close: () => { closed = true; }
-  };
-
-  // Simula cleanup
-  mockAudioContext.close();
-
-  assertEquals(closed, true);
-});
-
-Deno.test("useAudioRecorder: animation frame must be cancelled on unmount", () => {
-  let cancelled = false;
-  const rafId = 42;
-
-  // Simula cancelAnimationFrame
-  const cancelRAF = (id: number) => {
-    if (id === rafId) cancelled = true;
-  };
-
-  cancelRAF(rafId);
-  assertEquals(cancelled, true);
-});
-
-Deno.test("useAudioRecorder: interval must be cleared on unmount", () => {
-  let cleared = false;
-  let intervalId: ReturnType<typeof setInterval> | null = null;
-
-  // Simula setInterval e clearInterval
-  intervalId = setInterval(() => {}, 1000);
-  if (intervalId) {
-    clearInterval(intervalId);
-    cleared = true;
-  }
-
-  assertEquals(cleared, true);
-});
-
-Deno.test("useAudioRecorder: speech recognition must be stopped on unmount", () => {
-  let stopped = false;
-  const mockRecognition = {
-    stop: () => { stopped = true; }
-  };
-
-  // Simula cleanup
-  mockRecognition.stop();
-
-  assertEquals(stopped, true);
-});
-
-Deno.test("useAudioRecorder: media recorder must be stopped on unmount if active", () => {
-  let stopped = false;
-  const mockMediaRecorder = {
-    state: "recording",
-    stop: () => { stopped = true; }
-  };
-
-  // Simula cleanup
-  if (mockMediaRecorder.state !== "inactive") {
-    mockMediaRecorder.stop();
-  }
-
-  assertEquals(stopped, true);
-});
-
-Deno.test("useAudioRecorder: media recorder must NOT throw if already inactive", () => {
-  let threw = false;
-  const mockMediaRecorder = {
-    state: "inactive",
-    stop: () => { throw new Error("InvalidStateError"); }
-  };
-
-  try {
-    if (mockMediaRecorder.state !== "inactive") {
-      mockMediaRecorder.stop();
+class MockMediaRecorder {
+  static instances: MockMediaRecorder[] = [];
+  state = 'recording';
+  ondataavailable: ((e: { data: Blob }) => void) | null = null;
+  onstop: (() => void) | null = null;
+  start = vi.fn();
+  pause = vi.fn();
+  resume = vi.fn();
+  stop = vi.fn(() => {
+    if (this.state !== 'inactive') {
+      this.state = 'inactive';
+      this.onstop?.();
     }
-  } catch {
-    threw = true;
+  });
+  constructor(public stream: MediaStream, public options?: MediaRecorderOptions) {
+    MockMediaRecorder.instances.push(this);
   }
+}
 
-  assertEquals(threw, false);
+class MockSpeechRecognition {
+  static instances: MockSpeechRecognition[] = [];
+  lang = '';
+  continuous = false;
+  interimResults = false;
+  onresult: unknown = null;
+  onerror: unknown = null;
+  start = vi.fn();
+  stop = vi.fn();
+  constructor() {
+    MockSpeechRecognition.instances.push(this);
+  }
+}
+
+class MockAudioContext {
+  static instances: MockAudioContext[] = [];
+  state = 'running';
+  close = vi.fn().mockResolvedValue(undefined);
+  resume = vi.fn().mockResolvedValue(undefined);
+  createMediaStreamSource = vi.fn(() => ({ connect: vi.fn() }));
+  createAnalyser = vi.fn(() => ({
+    fftSize: 0,
+    frequencyBinCount: 256,
+    getByteFrequencyData: vi.fn(),
+  }));
+  constructor() {
+    MockAudioContext.instances.push(this);
+  }
+}
+
+let tracks: { stop: ReturnType<typeof vi.fn> }[];
+let mockStream: MediaStream;
+let createObjectURL: ReturnType<typeof vi.fn>;
+let revokeObjectURL: ReturnType<typeof vi.fn>;
+let cancelAnimationFrameMock: ReturnType<typeof vi.fn>;
+let clearIntervalSpy: ReturnType<typeof vi.spyOn>;
+
+beforeEach(() => {
+  vi.clearAllMocks();
+
+  // MediaStream fake com 2 tracks rastreáveis
+  tracks = [{ stop: vi.fn() }, { stop: vi.fn() }];
+  mockStream = { getTracks: () => tracks } as unknown as MediaStream;
+
+  Object.defineProperty(navigator, 'mediaDevices', {
+    configurable: true,
+    value: { getUserMedia: vi.fn().mockResolvedValue(mockStream) },
+  });
+
+  // MediaRecorder
+  MockMediaRecorder.instances = [];
+  vi.stubGlobal('MediaRecorder', MockMediaRecorder);
+
+  // AudioContext (o hook lê window.AudioContext)
+  MockAudioContext.instances = [];
+  vi.stubGlobal('AudioContext', MockAudioContext);
+
+  // Animation frame controlado (id fixo 42 para rastrear o cancel)
+  vi.stubGlobal('requestAnimationFrame', vi.fn(() => 42));
+  cancelAnimationFrameMock = vi.fn();
+  vi.stubGlobal('cancelAnimationFrame', cancelAnimationFrameMock);
+
+  // SpeechRecognition
+  MockSpeechRecognition.instances = [];
+  vi.stubGlobal('SpeechRecognition', MockSpeechRecognition);
+
+  // URL.createObjectURL / revokeObjectURL rastreados
+  createObjectURL = vi.fn(() => 'blob:mock-url');
+  revokeObjectURL = vi.fn();
+  Object.defineProperty(URL, 'createObjectURL', {
+    configurable: true,
+    writable: true,
+    value: createObjectURL,
+  });
+  Object.defineProperty(URL, 'revokeObjectURL', {
+    configurable: true,
+    writable: true,
+    value: revokeObjectURL,
+  });
+
+  clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
 });
 
-Deno.test("useAudioRecorder: handle error case in stopRecording when stream is null", () => {
-  // Simula stream null após cleanup
-  const trackStopped = false;
-  const streamRef: { current: { getTracks: () => { stop: () => void }[] } | null } = { current: null };
-
-  // Deve ser no-op quando stream é null
-  if (streamRef.current) {
-    streamRef.current.getTracks().forEach((track) => track.stop());
-  }
-
-  assertEquals(trackStopped, false); // Nunca chamado, sem erro
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
-Deno.test("useAudioRecorder: state updates must be guarded by mountedRef", () => {
-  let setStateCalled = false;
-  const mountedRef = { current: false };
+/** Monta o hook e inicia uma gravação (getUserMedia mockada). */
+async function renderWithRecording() {
+  const rendered = renderHook(() => useAudioRecorder());
+  await act(async () => {
+    await rendered.result.current.startRecording();
+  });
+  return rendered;
+}
 
-  // Simula check mountedRef.current antes de setState
-  if (mountedRef.current) {
-    setStateCalled = true;
-  }
+describe('useAudioRecorder cleanup', () => {
+  it('é no-op seguro no unmount quando nada foi gravado (sem revoke, sem throw)', () => {
+    const { unmount } = renderHook(() => useAudioRecorder());
+    expect(() => act(() => unmount())).not.toThrow();
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+    expect(tracks[0].stop).not.toHaveBeenCalled();
+    expect(clearIntervalSpy).not.toHaveBeenCalled();
+  });
 
-  assertEquals(setStateCalled, false); // Não deve chamar setState após unmount
+  it('revoga a ObjectURL do blob no unmount após a gravação concluída', async () => {
+    const { result, unmount } = await renderWithRecording();
+
+    // stop → onstop do MediaRecorder cria o blob URL
+    await act(async () => {
+      result.current.stopRecording();
+    });
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURL).not.toHaveBeenCalled(); // ainda montado
+
+    act(() => unmount());
+    expect(revokeObjectURL).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+  });
+
+  it('para todas as tracks do MediaStream no unmount', async () => {
+    const { unmount } = await renderWithRecording();
+    act(() => unmount());
+    expect(tracks[0].stop).toHaveBeenCalled();
+    expect(tracks[1].stop).toHaveBeenCalled();
+  });
+
+  it('fecha o AudioContext e cancela o animation frame no unmount', async () => {
+    const { unmount } = await renderWithRecording();
+    const audioCtx = MockAudioContext.instances[0];
+    expect(audioCtx).toBeDefined();
+
+    act(() => unmount());
+
+    expect(cancelAnimationFrameMock).toHaveBeenCalledWith(42);
+    // AudioContext fechado (pelo cleanup do unmount e/ou pelo onstop do recorder)
+    expect(audioCtx.close).toHaveBeenCalled();
+  });
+
+  it('limpa o interval de duração no unmount', async () => {
+    const { unmount } = await renderWithRecording();
+    act(() => unmount());
+    expect(clearIntervalSpy).toHaveBeenCalled();
+  });
+
+  it('para o SpeechRecognition e o MediaRecorder ativo no unmount (handlers/listeners)', async () => {
+    const { unmount } = await renderWithRecording();
+    const recorder = MockMediaRecorder.instances[0];
+    const recognition = MockSpeechRecognition.instances[0];
+    expect(recorder).toBeDefined();
+    expect(recognition).toBeDefined();
+
+    act(() => unmount());
+
+    // Objetos que carregam listeners/eventos são encerrados
+    expect(recorder.stop).toHaveBeenCalled(); // state era 'recording'
+    expect(recognition.stop).toHaveBeenCalled();
+    // E o hook não tenta stopar de novo (recorder já inactive)
+    expect(recorder.stop).toHaveBeenCalledTimes(1);
+  });
+
+  it('onstop do MediaRecorder dispara uma única vez (sem revogação dupla da URL)', async () => {
+    const { result, unmount } = await renderWithRecording();
+
+    await act(async () => {
+      result.current.stopRecording();
+    });
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+
+    act(() => unmount());
+    expect(createObjectURL).toHaveBeenCalledTimes(1); // nenhum novo URL pós-unmount
+    expect(revokeObjectURL).toHaveBeenCalledTimes(1); // revogação única
+  });
+
+  it('cancelRecording libera o stream, limpa o interval e revoga a URL', async () => {
+    const { result, unmount } = await renderWithRecording();
+
+    await act(async () => {
+      result.current.cancelRecording();
+    });
+
+    expect(tracks[0].stop).toHaveBeenCalled();
+    expect(tracks[1].stop).toHaveBeenCalled();
+    expect(clearIntervalSpy).toHaveBeenCalled();
+    // cancel → onstop cria URL → setBlobUrl(null) revoga
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+    expect(result.current.isRecording).toBe(false);
+    expect(result.current.audioUrl).toBeNull();
+
+    // unmount posterior é limpo (URL já revogada, sem nova revogação)
+    act(() => unmount());
+    expect(revokeObjectURL).toHaveBeenCalledTimes(1);
+  });
 });

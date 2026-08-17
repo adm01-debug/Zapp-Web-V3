@@ -343,6 +343,7 @@ describe('E65 [C3] idempotência do dispatcher (2 runs não duplicam)', () => {
     ).not.toHaveLength(0);
 
     for (const file of files) {
+      void file;
       const sql = loadMigrations().find((m) => m.file === file)!.sql;
       const stmt = extractDispatchUpdate(sql);
       expect(stmt).not.toBeNull();
