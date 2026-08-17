@@ -391,6 +391,7 @@ const specificEdgeFunctionSchemas = {
       .object({
         jobId: z.string().uuid(),
         action: z.enum(['run', 'link']).optional(),
+      }).passthrough() },
   // zapp-sentry-sync@v1 — config Sentry persistida em zapp.sentry_config.
   // Espelho inline do SentrySyncV1Schema (contract-schemas.ts) — nunca importar
   // de contract-schemas.ts (ciclo). Estrito: endpoint interno da UI.
