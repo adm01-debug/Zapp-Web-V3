@@ -386,6 +386,7 @@ const specificEdgeFunctionSchemas = {
           .optional(),
       })
       .passthrough(),
+  },
   'zapp-auto-export': {
     v1: z
       .object({
