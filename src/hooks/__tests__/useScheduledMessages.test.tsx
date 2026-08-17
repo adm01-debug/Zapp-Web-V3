@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import React from 'react';
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockFrom = vi.hoisted(() => vi.fn());
+const mockToast = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -28,8 +29,8 @@ vi.mock('@/features/auth/hooks/useAuth', () => ({
 }));
 
 vi.mock('@/hooks/use-toast', () => ({
-  toast: vi.fn(),
-  useToast: () => ({ toast: vi.fn() }),
+  toast: mockToast,
+  useToast: () => ({ toast: mockToast }),
 }));
 
 vi.mock('@/lib/logger');
@@ -64,59 +65,84 @@ const mockMessages = [
   },
 ];
 
+/** Mock do fetch de lista seguindo a ordem real do hook:
+ *  from().select().order() → (contactId ? .eq() : await direto). */
+function mockFetchList(listResult: { data: unknown; error: unknown }) {
+  const eq = vi.fn().mockResolvedValue(listResult);
+  mockFrom.mockReturnValue({
+    select: vi.fn().mockReturnValue({
+      order: vi.fn().mockReturnValue(Object.assign(Promise.resolve(listResult), { eq })),
+    }),
+  });
+  return { eq };
+}
+
+/** Mock de agendamento (profiles lookup + insert com maybeSingle). */
+function mockScheduleFlow(insertResult: { data: unknown; error: unknown }) {
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'profiles') {
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'p1' }, error: null }),
+          }),
+        }),
+      };
+    }
+    if (table === 'scheduled_messages') {
+      return {
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue(insertResult),
+          }),
+        }),
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      };
+    }
+    return {};
+  });
+}
+
+const futureDate = () => new Date(Date.now() + 86_400_000);
+const rlsError = { code: '42501', message: 'new row violates row-level security policy' };
+// UUID válido — o hook só busca com contactId se for UUID real (isValidUUID).
+const VALID_CONTACT = '11111111-1111-1111-1111-111111111111';
+
 describe('useScheduledMessages', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({ user: { id: 'u1' } });
-    mockFrom.mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: mockMessages, error: null }),
-        }),
-        order: vi.fn().mockResolvedValue({ data: mockMessages, error: null }),
-      }),
-      insert: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: mockMessages[0], error: null }),
-        }),
-      }),
-      update: vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      }),
-      delete: vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      }),
-    });
   });
 
   it('fetches scheduled messages', async () => {
-    const { result } = renderHook(() => useScheduledMessages('c1'), { wrapper: createWrapper() });
+    mockFetchList({ data: mockMessages, error: null });
+
+    const { result } = renderHook(() => useScheduledMessages(VALID_CONTACT), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
     expect(result.current.messages).toBeDefined();
+    expect(result.current.messages).toHaveLength(2);
   });
 
   it('handles fetch error', async () => {
-    mockFrom.mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: null, error: new Error('Network error') }),
-        }),
-        order: vi.fn().mockResolvedValue({ data: null, error: new Error('Network error') }),
-      }),
-    });
+    mockFetchList({ data: null, error: new Error('Network error') });
 
-    const { result } = renderHook(() => useScheduledMessages('c1'), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useScheduledMessages(VALID_CONTACT), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
+    expect(result.current.isError).toBe(true);
   });
 
   it('fetches all scheduled messages without contactId (calendar view)', async () => {
+    mockFetchList({ data: mockMessages, error: null });
+
     const { result } = renderHook(() => useScheduledMessages(), { wrapper: createWrapper() });
 
     await waitFor(() => {
@@ -124,5 +150,97 @@ describe('useScheduledMessages', () => {
     });
 
     expect(result.current.messages).toHaveLength(mockMessages.length);
+  });
+
+  // ── CAMPANHAS-09: toast REAL em 403 (RLS), sem silêncio ──────────────────
+
+  it('toasts real RLS error when schedule insert is denied (403/42501)', async () => {
+    mockFetchList({ data: mockMessages, error: null });
+    mockScheduleFlow({ data: null, error: rlsError });
+
+    const { result } = renderHook(() => useScheduledMessages(VALID_CONTACT), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await expect(
+        result.current.scheduleMessage({
+          contactId: VALID_CONTACT,
+          content: 'Oi',
+          scheduledAt: futureDate(),
+        })
+      ).rejects.toThrow();
+    });
+
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Erro ao agendar mensagem',
+        variant: 'destructive',
+        description: expect.stringContaining('Acesso negado'),
+      })
+    );
+  });
+
+  it('toasts real RLS error when cancel update is denied (403/42501)', async () => {
+    mockFetchList({ data: mockMessages, error: null });
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'scheduled_messages') {
+        return {
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: rlsError }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const { result } = renderHook(() => useScheduledMessages(VALID_CONTACT), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await expect(result.current.cancelMessage('sm1')).rejects.toThrow();
+    });
+
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Erro ao cancelar',
+        variant: 'destructive',
+        description: expect.stringContaining('Acesso negado'),
+      })
+    );
+  });
+
+  it('surfaces list RLS 403 with a real toast (calendar not silently empty)', async () => {
+    mockFetchList({ data: null, error: rlsError });
+
+    renderHook(() => useScheduledMessages(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Não foi possível carregar os agendamentos',
+          variant: 'destructive',
+        })
+      );
+    });
+  });
+
+  it('shows success toast when scheduling works', async () => {
+    mockFetchList({ data: mockMessages, error: null });
+    mockScheduleFlow({ data: { id: 'sm3', status: 'pending' }, error: null });
+
+    const { result } = renderHook(() => useScheduledMessages(VALID_CONTACT), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.scheduleMessage({
+        contactId: VALID_CONTACT,
+        content: 'Oi',
+        scheduledAt: futureDate(),
+      });
+    });
+
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Mensagem agendada com sucesso!' })
+    );
   });
 });
