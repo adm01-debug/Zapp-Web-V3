@@ -453,8 +453,12 @@ const specificEdgeFunctionSchemas: Partial<
       })
       .strict(),
   },
-  ...WebhookContractSchemas,
 };
+
+// [FIX 2026-08-17] Deno 2.1.4 (edge-runtime 1.74) rejeita spread de objeto no fim
+// de objeto com anotação multiline (parse "Expected ',' got ';'") — Object.assign
+// tem semântica idêntica e parseia em qualquer versão.
+Object.assign(specificEdgeFunctionSchemas, WebhookContractSchemas);
 
 /**
  * Registro paralelo LEGADO (espelho): EdgeFunctionContractSchemas.
