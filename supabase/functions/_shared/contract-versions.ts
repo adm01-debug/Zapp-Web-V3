@@ -141,6 +141,8 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "voice-changer":                { current: "v1", supported: ["v1"] },
   "warroom-monthly-test":         { current: "v1", supported: ["v1"] },
   "zapp-n8n-sync":                { current: "v1", supported: ["v1"] },
+  "zapp-google-calendar-sync":    { current: "v1", supported: ["v1"] },
+  "warroom-monthly-test":         { current: "v1", supported: ["v1"] },
 
   // CRM plugável (Etapa 66)
   "zapp-crm-sync":                { current: "v1", supported: ["v1"] },
