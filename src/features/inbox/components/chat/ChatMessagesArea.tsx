@@ -52,7 +52,7 @@ interface ChatMessagesAreaProps extends LoadOlderProps {
   /** Etapa 41: adia a conversa (snooze) — repassado do ChatPanel. */
   onSnoozeConversation?: (duration: '1h' | '3h' | 'tomorrow' | 'nextweek') => void;
   /** Etapa 44: ações de mensagem (favoritar/fixar/reportar) — repassado do ChatPanel. */
-  messageActions?: import('./chat/MessageHoverToolbar').MessageHoverToolbarProps['messageActions'];
+  messageActions?: import('./MessageHoverToolbar').MessageHoverToolbarProps['messageActions'];
   highlightedMessageIds?: Set<string>;
   activeHighlightId?: string | null;
   onAudioVoiceChange?: (messageId: string, newBlob: Blob) => void;
