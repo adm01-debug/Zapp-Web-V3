@@ -4,8 +4,7 @@ import { renderHook, act } from '@testing-library/react';
 // Mock logger
 vi.mock('@/lib/logger');
 
-// Mock useRealtimeMessages type
-vi.mock('@/hooks/useRealtimeMessages', () => ({}));
+
 
 import { useOfflineCache } from '@/hooks/useOfflineCache';
 
