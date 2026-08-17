@@ -245,7 +245,7 @@ export function VideoCallDialog({ open, onOpenChange, contact }: VideoCallDialog
             </div>
           )}
 
-          {/* Local (mini, espelhado) */}
+          {/* Local (mini, espelhado) — @ds-ignore: PiP local — borda/fundo sobre vídeo */}
           {callActive && (
             <video
               ref={attachLocalVideo}
@@ -253,7 +253,7 @@ export function VideoCallDialog({ open, onOpenChange, contact }: VideoCallDialog
               playsInline
               muted
               data-testid="video-call-local"
-              className="absolute right-3 top-3 h-24 w-36 -scale-x-100 rounded-lg border border-white/20 bg-black object-cover" {/* @ds-ignore: PiP local — borda/fundo sobre vídeo */}
+              className="absolute right-3 top-3 h-24 w-36 -scale-x-100 rounded-lg border border-white/20 bg-black object-cover"
             />
           )}
 
