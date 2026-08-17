@@ -22,7 +22,7 @@ vi.mock('@/lib/logger', () => ({
   }),
 }));
 
-import { offlineQueue, setupOnlineListener } from '@/lib/offlineQueue';
+import { offlineQueue, setupOnlineListener, processQueue } from '@/lib/offlineQueue';
 
 describe('setupOnlineListener — fila offline (ADR-005)', () => {
   const windowListeners = new Map<string, EventListener>();
@@ -117,5 +117,26 @@ describe('setupOnlineListener — fila offline (ADR-005)', () => {
     setupOnlineListener();
     expect(swListeners.size).toBe(0);
     expect(windowListeners.has('online')).toBe(true);
+  });
+
+  it('mutex: dois gatilhos simultâneos não duplicam o processamento', async () => {
+    vi.stubGlobal('navigator', { onLine: true });
+    let resolveGetAll: ((v: never[]) => void) | undefined;
+    const gate = new Promise<never[]>((r) => {
+      resolveGetAll = r;
+    });
+    (offlineQueue.getAll as ReturnType<typeof vi.fn>).mockImplementationOnce(() => gate);
+
+    // 1º disparo: boot (navigator.onLine=true → processQueue inicia e trava no gate)
+    setupOnlineListener();
+    // 2º disparo imediato (ex.: evento online) enquanto o 1º ainda roda
+    const p2 = processQueue();
+
+    resolveGetAll?.([]);
+    await p2;
+    await new Promise((r) => setTimeout(r, 0));
+
+    // getAll deve ter sido chamado uma única vez (o mutex barrou o 2º)
+    expect(offlineQueue.getAll).toHaveBeenCalledTimes(1);
   });
 });
