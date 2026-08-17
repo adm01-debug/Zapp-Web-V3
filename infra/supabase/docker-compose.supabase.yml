@@ -257,7 +257,7 @@ services:
         order: stop-first
 
   realtime:
-    image: supabase/realtime:v2.128.3
+    image: supabase/realtime:v2.124.2
     entrypoint: ["/usr/bin/tini", "-s", "-g", "--"]
     command:
       - "/bin/sh"
