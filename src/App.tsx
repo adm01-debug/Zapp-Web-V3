@@ -44,6 +44,9 @@ const RealtimeSentimentAlertProvider = lazyWithRetry(() =>
 const IncomingCallAlert = lazyWithRetry(() =>
   import('@/components/calls/IncomingCallAlert').then((m) => ({ default: m.IncomingCallAlert }))
 );
+const VideoCallLauncher = lazyWithRetry(() =>
+  import('@/components/calls/VideoCallDialog').then((m) => ({ default: m.VideoCallLauncher }))
+);
 const EasterEggsProvider = lazyWithRetry(() =>
   import('@/components/effects/EasterEggs').then((m) => ({ default: m.EasterEggsProvider }))
 );
@@ -64,6 +67,7 @@ function DeferredProviders() {
       <Suspense fallback={null}>
         <RealtimeSentimentAlertProvider />
         <IncomingCallAlert />
+        <VideoCallLauncher />
         <InAppNotificationProvider>
           <EasterEggsProvider />
         </InAppNotificationProvider>
