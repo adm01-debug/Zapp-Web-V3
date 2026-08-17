@@ -1022,6 +1022,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "file-security-scanner":  { v1: InfraSchemas.FileSecurityScannerV1Schema },
   "get-mapbox-token":  { v1: InfraSchemas.GetMapboxTokenV1Schema },
   "get-sip-password":  { v1: InfraSchemas.GetSipPasswordV1Schema },
+  "zapp-get-sip-credentials":  { v1: InfraSchemas.ZappGetSipCredentialsV1Schema },
   "lgpd-scheduled-jobs":  { v1: InfraSchemas.LgpdScheduledJobsV1Schema },
   "login-attempts":  { v1: InfraSchemas.LoginAttemptsV1Schema },
   "main":  { v1: InfraSchemas.MainV1Schema },
