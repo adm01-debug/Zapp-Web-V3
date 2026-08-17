@@ -7,9 +7,10 @@ import {
   isRecord, normalizeEventName, toEventRecords,
   handleReactionEvent, redactJid, generateRequestId,
   sha256Hex, markEventProcessed, unmarkEventProcessed, auditWebhookEvent,
-  routeToDeadLetter, instanceOrFilter,
+  routeToDeadLetter, instanceOrFilter, logLedgerRejection,
   type WebhookPayload,
 } from "../_shared/evolution-helpers.ts";
+import { EVO_EVENT_TYPES_SET, EVO_PROTOBUF_MESSAGE_TYPE_MAP } from "../_shared/evolution-event-types.ts";
 import { parseMessageContent } from "../_shared/evolution-media.ts";
 import {
   handleConnectionUpdate, handleSendMessage, handleMessagesUpdate, handleMessagesDelete,
@@ -131,6 +132,17 @@ Deno.serve(async (req) => {
         error_message: result.error ?? 'invalid_signature',
         duration_ms: Date.now() - startedAt,
       });
+      // [PATCH 23] HMAC falha ANTES do parse (rawBody indisponível). Seguro:
+      // grava SÓ quando assinatura foi apresentada (produtor com chave errada);
+      // scanners anônimos (sem assinatura) não gravam — evita flood de INSERT
+      // com service_role (audit + auto-pause já cobrem).
+      if (result.signatureFound) {
+        logLedgerRejection(supabase, {
+          instanceName: headerInstance ?? 'unknown',
+          rejectReason: result.error ?? 'invalid_signature',
+          latencyMs: Date.now() - startedAt,
+        });
+      }
       return new Response(
         JSON.stringify({ error: 'unauthorized', reason: result.error ?? 'invalid_signature', requestId }),
         { status: 401, headers: corsHeaders },
@@ -162,6 +174,11 @@ Deno.serve(async (req) => {
       error_message: 'webhook_secret_unconfigured',
       duration_ms: Date.now() - startedAt,
     });
+    logLedgerRejection(supabase, {
+      instanceName: headerInstance ?? 'unknown',
+      rejectReason: 'webhook_secret_unconfigured',
+      latencyMs: Date.now() - startedAt,
+    });
     return new Response(
       JSON.stringify({ error: 'webhook_misconfigured', reason: 'no_secret_configured', requestId }),
       { status: 503, headers: { ...corsHeaders, 'Retry-After': '120' } },
@@ -187,6 +204,12 @@ Deno.serve(async (req) => {
         request_id: requestId, status: 'rejected', status_code: 422, error_message: parsed.body.code,
         duration_ms: Date.now() - startedAt,
       });
+      logLedgerRejection(supabase, {
+        instanceName: typeof json.instance === 'string' ? json.instance : headerInstance ?? 'unknown',
+        eventType: isRecord(json) && typeof json.event === 'string' ? normalizeEventName(json.event) : null,
+        rejectReason: `contract_violation:${parsed.body.code}`,
+        latencyMs: Date.now() - startedAt,
+      });
       return parsed.response;
     }
     payload = parsed.data as WebhookPayload;
@@ -194,6 +217,11 @@ Deno.serve(async (req) => {
     await auditWebhookEvent(supabase, {
       request_id: requestId, status: 'rejected', status_code: 422, error_message: 'invalid_json',
       duration_ms: Date.now() - startedAt,
+    });
+    logLedgerRejection(supabase, {
+      instanceName: headerInstance ?? 'unknown',
+      rejectReason: 'invalid_json',
+      latencyMs: Date.now() - startedAt,
     });
     // Falha de validação SEMPRE com envelope 422 canônico (contract-kit) —
     // correção 2026-08-06 (gap A1-B1): antes era 400 {error} incompleto.
@@ -210,6 +238,28 @@ Deno.serve(async (req) => {
   const instance = payload.instance;
   const data = payload.data ?? {};
   const baseData = isRecord(data) ? data : {};
+  // [PATCH 24] Whitelist compartilhada com o consumer (18 tipos). Gate por
+  // PROVENIÊNCIA: tráfego 'consumer' (RabbitMQ→HMAC) fora da whitelist é rejeitado
+  // (defesa em profundidade — o consumer só declara filas dos 18). Tráfego
+  // 'evolution-native' (shared-secret, webhook nativo Evolution) NÃO é bloqueado:
+  // envia eventos legítimos fora dos 18 (messages.set, chats.set, contacts.set,
+  // presence.update, messages.reaction, application.startup, new.jwt.token, typebot.*).
+  if (webhookSource === 'consumer' && !EVO_EVENT_TYPES_SET.has(event)) {
+    await auditWebhookEvent(supabase, {
+      request_id: requestId, instance, event_type: event, status: 'rejected', status_code: 200,
+      error_message: 'event_type_not_in_whitelist',
+      duration_ms: Date.now() - startedAt,
+    });
+    logLedgerRejection(supabase, {
+      instanceName: instance, eventType: event,
+      rejectReason: 'event_type_not_in_whitelist',
+      latencyMs: Date.now() - startedAt,
+    });
+    return new Response(
+      JSON.stringify({ success: true, ignored: true, reason: 'event_type_not_in_whitelist', requestId }),
+      { status: 200, headers: corsHeaders },
+    );
+  }
 
   // Pause guard: se a instância foi pausada (manual ou auto), descarta o evento
   // com 503 e audit 'rejected'. A Evolution costuma retry-arr, mas durante a
@@ -219,6 +269,11 @@ Deno.serve(async (req) => {
       request_id: requestId, instance, event_type: event, status: 'rejected', status_code: 503,
       error_message: 'instance_paused',
       duration_ms: Date.now() - startedAt,
+    });
+    logLedgerRejection(supabase, {
+      instanceName: instance, eventType: event,
+      rejectReason: 'instance_paused',
+      latencyMs: Date.now() - startedAt,
     });
     console.warn(`[webhook][${requestId}] instance=${instance} is paused — skipping event ${event}`);
     return new Response(
@@ -236,6 +291,11 @@ Deno.serve(async (req) => {
       request_id: requestId, instance, event_type: event, status: 'rejected', status_code: 200,
       error_message: 'unknown_instance',
       duration_ms: Date.now() - startedAt,
+    });
+    logLedgerRejection(supabase, {
+      instanceName: instance, eventType: event,
+      rejectReason: 'unknown_instance',
+      latencyMs: Date.now() - startedAt,
     });
     console.warn(`[webhook][${requestId}] SECURITY unknown_instance='${instance}' event=${event} - ignored`);
     return new Response(
@@ -307,6 +367,11 @@ Deno.serve(async (req) => {
       error_message: rollbackOk ? 'rate_limit_exceeded' : 'rate_limit_exceeded_rollback_failed',
       duration_ms: Date.now() - startedAt,
     });
+    logLedgerRejection(supabase, {
+      instanceName: instance, eventType: event,
+      rejectReason: rollbackOk ? 'rate_limit_exceeded' : 'rate_limit_exceeded_rollback_failed',
+      latencyMs: Date.now() - startedAt,
+    });
     if (!rollbackOk) {
       console.error(`[webhook][${requestId}] CRITICAL: idempotency rollback FAILED for event_id=${eventId.slice(0,48)}… — event will be silently lost on re-delivery`);
     } else {
@@ -371,6 +436,11 @@ Deno.serve(async (req) => {
 
           if (!externalId) {
             console.log(`[webhook][${requestId}][msg.upsert] ignored: missing id`);
+            logLedgerRejection(supabase, {
+              instanceName: instance, eventType: event,
+              rejectReason: 'missing_message_id',
+              payloadSha256: bodyHash, latencyMs: Date.now() - startedAt,
+            });
             continue;
           }
 
@@ -405,6 +475,19 @@ Deno.serve(async (req) => {
           console.log(`[webhook][${requestId}][msg.upsert] id=${externalId} fromMe=${key.fromMe} jid=${redactJid(key.remoteJid)} reaction=${hasReaction}`);
 
           const msg = (entry.message || baseData.message) as Record<string, unknown> | undefined;
+          // [PATCH 23/28] Tipos protobuf sem conteúdo útil: filtrados ANTES do parse —
+          // antes caíam no default 'text' com content='' e o inbound INSERIA
+          // mensagem vazia em evolution_messages (R13 do edge-report).
+          if (msg && (msg.secretEncryptedMessage || msg.protocolMessage)) {
+            logLedgerRejection(supabase, {
+              instanceName: instance, eventType: event, messageId: externalId,
+              remoteJid: key.remoteJid ?? null,
+              messageType: msg.secretEncryptedMessage ? 'secretEncryptedMessage' : 'protocolMessage',
+              fromMe: key.fromMe, rejectReason: 'unsupported_message_type',
+              payloadSha256: bodyHash, latencyMs: Date.now() - startedAt,
+            });
+            continue;
+          }
           if (msg?.reactionMessage) {
             // [FIX 2026-08-09] Pass pushName for raw log; add ingest_ledger entry
             const pushNameStr = (typeof entry.pushName === 'string' ? entry.pushName : undefined)
@@ -428,7 +511,12 @@ Deno.serve(async (req) => {
           // [FIX 2026-08-09] Fire-and-forget: log each processed message to ingest_ledger
           {
             const msgObj = (entry.message || baseData.message) as Record<string, unknown> | undefined;
-            const mtype = msgObj ? (Object.keys(msgObj)[0] || 'unknown') : 'unknown';
+            // [PATCH 28] message_type normalizado (chave protobuf → tipo canônico):
+            // 'conversation' → 'text' (espelha parseMessageContent/evolution_messages);
+            // desconhecido → 'unknown' (não mascarar com 'text').
+            const mtype = msgObj
+              ? (EVO_PROTOBUF_MESSAGE_TYPE_MAP[Object.keys(msgObj)[0] as string] ?? 'unknown')
+              : 'unknown';
             supabase.from('ingest_ledger').insert({
               instance_name: instance, event_type: event, message_id: externalId,
               remote_jid: key.remoteJid ?? null, message_type: mtype,
@@ -443,6 +531,14 @@ Deno.serve(async (req) => {
             event_type: event, instance, payload: entry,
             error_message: entryDetail, error_stack: entryError instanceof Error ? entryError.stack ?? null : null,
             request_id: requestId,
+          });
+          logLedgerRejection(supabase, {
+            instanceName: instance, eventType: event,
+            messageId: typeof entry.id === 'string' ? entry.id
+              : isRecord(entry.key) && typeof entry.key.id === 'string' ? entry.key.id : null,
+            remoteJid: typeof entry.remoteJid === 'string' ? entry.remoteJid : null,
+            rejectReason: 'entry_error',
+            payloadSha256: bodyHash, latencyMs: Date.now() - startedAt,
           });
         }
       }
@@ -526,6 +622,11 @@ Deno.serve(async (req) => {
       event_type: event, instance, payload,
       error_message: detail, error_stack: error instanceof Error ? error.stack ?? null : null,
       request_id: requestId,
+    });
+    logLedgerRejection(supabase, {
+      instanceName: instance, eventType: event,
+      rejectReason: 'handler_error',
+      payloadSha256: bodyHash, latencyMs: Date.now() - startedAt,
     });
     await auditWebhookEvent(supabase, {
       request_id: requestId, instance, event_type: event, status: 'error', status_code: 200,

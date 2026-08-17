@@ -148,6 +148,7 @@ export const EDGE_FUNCTION_NAMES = [
   'whatsapp-cloud-webhook',
   'whatsapp-cloud-webhook-verify',
   'zapp-sentry-sync',
+  'zapp-get-sip-credentials',
   'zapp-crm-sync',
 ] as const;
 
@@ -314,6 +315,8 @@ const specificEdgeFunctionSchemas: Partial<
   'chatbot-l1': { v1: ChatbotL1V1Schema },
   'automation-suggest-reply': { v1: AutomationSuggestReplyV1Schema },
   'speech-to-text': { v1: SpeechToTextV1Schema },
+  // GET autenticado sem body (credenciais SIP por perfil — fallback legado flag)
+  'zapp-get-sip-credentials': { v1: z.object({}).strict() },
   // Demais endpoints internos com schema específico
   'create-user': { v1: z.object({ email: z.string().email() }).passthrough() },
   'evolution-notification-dispatcher': {

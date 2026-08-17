@@ -10,6 +10,7 @@
  */
 
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { EVO_PROTOBUF_MESSAGE_TYPE_MAP } from "./evolution-event-types.ts";
 
 export interface IngestMessage {
   provider: 'evolution' | 'cloud';
@@ -60,7 +61,7 @@ export async function ingestMessage(
       p_message_id:        msg.messageId,
       p_instance:          msg.instanceRef,
       p_remote_jid:        msg.remoteJid,
-      p_message_type:      msg.messageType,
+      p_message_type:      EVO_PROTOBUF_MESSAGE_TYPE_MAP[msg.messageType] ?? msg.messageType,
       p_content:           msg.content,
       p_from_me:           msg.fromMe,
       p_direction:         msg.direction ?? null,

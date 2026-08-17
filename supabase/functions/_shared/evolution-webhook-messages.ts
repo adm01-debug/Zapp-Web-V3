@@ -5,7 +5,7 @@ import { evolutionClient } from "./providers/evolution/index.ts";
 import {
   isRecord, normalizePhone, resolveEventJid,
   getConnectionByInstance, getContactByPhone, fetchProfilePicFromApi, persistProfilePicture,
-  generatePhoneVariants,
+  generatePhoneVariants, logLedgerRejection,
 } from "./evolution-helpers.ts";
 import { persistMediaToStorage, persistMediaViaApi, parseMessageContent, isSafeMediaCdnUrl } from "./evolution-media.ts";
 import { getStoragePublicUrl } from "./storage-url.ts";
@@ -63,8 +63,23 @@ export async function handleOutgoingWhatsAppMessage(
 
   const message = data.message as Record<string, unknown> | undefined;
   const parsed = parseMessageContent(message, data);
-  if (parsed.messageType === 'reaction') return;
-  if (!parsed.content && parsed.messageType === 'text') return;
+  // [PATCH 23] Descarte explícito + ledger rejected (antes: return silencioso).
+  if (parsed.messageType === 'reaction') {
+    logLedgerRejection(supabase, {
+      instanceName: instance, eventType: 'messages.upsert', messageId: externalId,
+      remoteJid: bestJid ?? null, messageType: 'reaction', fromMe: true,
+      rejectReason: 'outgoing_reaction',
+    });
+    return;
+  }
+  if (!parsed.content && parsed.messageType === 'text') {
+    logLedgerRejection(supabase, {
+      instanceName: instance, eventType: 'messages.upsert', messageId: externalId,
+      remoteJid: bestJid ?? null, messageType: 'text', fromMe: true,
+      rejectReason: 'outgoing_text_empty',
+    });
+    return;
+  }
   const { ingestMeta: outIngestMeta, quotedMessageId: outQuotedId, captionText: outCaption } = parsed;
 
   let { mediaUrl } = parsed;
@@ -170,6 +185,12 @@ export async function handleIncomingMessage(
   const phone = normalizePhone(bestJid ?? undefined);
   if (!phone || bestJid?.includes('@g.us')) {
     console.log(`[INCOMING] Ignored message ${key.id}: unresolved sender`, { bestJid });
+    // [PATCH 23] Descarte explícito + ledger rejected (antes: return silencioso).
+    logLedgerRejection(supabase, {
+      instanceName: instance, eventType: 'messages.upsert', messageId: key.id,
+      remoteJid: bestJid ?? null, fromMe: false,
+      rejectReason: bestJid?.includes('@g.us') ? 'group_message_inbound' : 'unresolved_sender',
+    });
     return;
   }
   const message = data.message as Record<string, unknown> | undefined;

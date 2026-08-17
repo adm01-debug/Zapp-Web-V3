@@ -280,6 +280,7 @@ export const queryKeys = {
     all: () => ['followup-sequences'] as const,
     executionsRoot: () => ['followup-executions'] as const,
     executions: (contactId?: string) => ['followup-executions', contactId] as const,
+    pendingRoot: () => ['followup-pending'] as const,
   },
 
   // Evolution Fallback Stats

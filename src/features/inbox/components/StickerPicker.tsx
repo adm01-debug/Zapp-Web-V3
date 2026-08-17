@@ -223,7 +223,7 @@ export function StickerPicker({ onSendSticker, disabled }: StickerPickerProps) {
         <div className="flex items-center justify-between border-t border-border/30 px-3 py-2">
           <span className="text-[10px] text-muted-foreground">
             {filtered.length}/{stickers.length} figurinhas
-            {showRecent && ' · Mais usadas'}
+            {showRecent && ' · Recentes'}
             {showFavorites && ' · Favoritas'}
             {activeCategory && ` · ${CATEGORY_LABELS[activeCategory]?.label}`}
           </span>

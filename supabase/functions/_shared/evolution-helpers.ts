@@ -56,6 +56,44 @@ export async function sha256Hex(input: string): Promise<string> {
 // quando o caller fornecer (opts opcionais — backward compatible com todos os callers existentes).
 // deno-lint-ignore no-explicit-any
 /** mark Event Processed function. */
+// [PATCH 23] Ledger de rejeição (evo.ingest_ledger, outcome='rejected').
+// Fire-and-forget como os INSERTs 'processed' existentes (index.ts:414/432).
+// Nunca lança; falha só loga. Campos null quando o descarte precede o parse.
+// deno-lint-ignore no-explicit-any
+/** log Ledger Rejection function. */
+export function logLedgerRejection(
+  supabase: any,
+  opts: {
+    instanceName: string;
+    rejectReason: string;
+    eventType?: string | null;
+    messageId?: string | null;
+    remoteJid?: string | null;
+    messageType?: string | null;
+    fromMe?: boolean | null;
+    payloadSha256?: string | null;
+    latencyMs?: number;
+  },
+): void {
+  try {
+    supabase.from('ingest_ledger').insert({
+      instance_name: opts.instanceName,
+      event_type: opts.eventType ?? null,
+      message_id: opts.messageId ?? null,
+      remote_jid: opts.remoteJid ?? null,
+      message_type: opts.messageType ?? null,
+      from_me: opts.fromMe ?? null,
+      outcome: 'rejected',
+      reject_reason: opts.rejectReason,
+      payload_sha256: opts.payloadSha256 ?? null,
+      latency_ms: opts.latencyMs ?? 0,
+    }).then(() => {}, (e: unknown) =>
+      console.warn('[ingest_ledger] rejected err:', e instanceof Error ? e.message : String(e)));
+  } catch (e) {
+    console.warn('[ingest_ledger] rejected exception:', e instanceof Error ? e.message : String(e));
+  }
+}
+
 export async function markEventProcessed(
   supabase: any,
   eventId: string,

@@ -47,6 +47,7 @@ const EMPTY_STRICT_NAMES = [
   "nps-scheduler",
   "provider-healthcheck",
   "talkx-scheduler",
+  "zapp-get-sip-credentials",
 ] as const;
 
 for (const name of EMPTY_STRICT_NAMES) {
@@ -416,10 +417,10 @@ for (const m of MULTIPART_MATRICES) {
   }
 }
 
-// ─── Sanity — todos os 32 nomes estão registrados com v1 no registro canônico ─
-Deno.test("infra: os 32 nomes de infra estão registrados com v1 no CONTRACT_SCHEMAS", () => {
+// ─── Sanity — todos os 33 nomes estão registrados com v1 no registro canônico ─
+Deno.test("infra: os 33 nomes de infra estão registrados com v1 no CONTRACT_SCHEMAS", () => {
   const all = [...EMPTY_STRICT_NAMES, ...MATRICES.map((m) => m.name.split("@")[0]), ...MULTIPART_MATRICES.map((m) => m.name.split("@")[0])];
-  assertEquals(new Set(all).size, 32, "esperava exatamente 32 nomes de infra distintos");
+  assertEquals(new Set(all).size, 33, "esperava exatamente 33 nomes de infra distintos");
   for (const name of all) {
     assert(CONTRACT_SCHEMAS[name], `CONTRACT_SCHEMAS não registra '${name}'`);
     assert(CONTRACT_SCHEMAS[name].v1, `'${name}' não tem versão v1`);
