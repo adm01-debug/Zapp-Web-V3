@@ -1,49 +1,49 @@
 /**
- * Tests para queryTimeout.ts
+ * Tests para queryTimeout.ts (convertido de Deno → vitest)
  */
-import { assertEquals, assertExists, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { describe, it, expect } from 'vitest';
 
 import {
   withQueryTimeout,
   QueryTimeoutError,
   recommendedTimeout,
   TIMEOUTS,
-} from "../queryTimeout.ts";
+} from '../queryTimeout';
 
-Deno.test("queryTimeout: TIMEOUTS constants", () => {
-  assertEquals(TIMEOUTS.fast, 2_000);
-  assertEquals(TIMEOUTS.normal, 8_000);
-  assertEquals(TIMEOUTS.slow, 30_000);
-  assertEquals(TIMEOUTS.analytics, 120_000);
-});
+describe('queryTimeout', () => {
+  it('TIMEOUTS constants', () => {
+    expect(TIMEOUTS.fast).toBe(2_000);
+    expect(TIMEOUTS.normal).toBe(8_000);
+    expect(TIMEOUTS.slow).toBe(30_000);
+    expect(TIMEOUTS.analytics).toBe(120_000);
+  });
 
-Deno.test("queryTimeout: recommendedTimeout", () => {
-  assertEquals(recommendedTimeout('select'), 'normal');
-  assertEquals(recommendedTimeout('insert'), 'fast');
-  assertEquals(recommendedTimeout('update'), 'fast');
-  assertEquals(recommendedTimeout('delete'), 'fast');
-  assertEquals(recommendedTimeout('rpc'), 'slow');
-});
+  it('recommendedTimeout', () => {
+    expect(recommendedTimeout('select')).toBe('normal');
+    expect(recommendedTimeout('insert')).toBe('fast');
+    expect(recommendedTimeout('update')).toBe('fast');
+    expect(recommendedTimeout('delete')).toBe('fast');
+    expect(recommendedTimeout('rpc')).toBe('slow');
+  });
 
-Deno.test("queryTimeout: withQueryTimeout resolves fast query", async () => {
-  const fastQuery = Promise.resolve({ data: { id: 1 }, error: null });
-  const result = await withQueryTimeout(fastQuery, 'fast');
-  assertEquals(result.data, { id: 1 });
-  assertEquals(result.error, null);
-});
+  it('withQueryTimeout resolves fast query', async () => {
+    const fastQuery = Promise.resolve({ data: { id: 1 }, error: null });
+    const result = await withQueryTimeout(fastQuery, 'fast');
+    expect(result.data).toEqual({ id: 1 });
+    expect(result.error).toBeNull();
+  });
 
-Deno.test("queryTimeout: withQueryTimeout handles errors gracefully", async () => {
-  const failingQuery = Promise.reject(new Error('Database error'));
-  await assertRejects(
-    () => withQueryTimeout(failingQuery as never, 'fast'),
-    Error,
-    'Database error'
-  );
-});
+  it('withQueryTimeout handles errors gracefully', async () => {
+    const failingQuery = Promise.reject(new Error('Database error'));
+    await expect(
+      withQueryTimeout(failingQuery, 'fast')
+    ).rejects.toThrow('Database error');
+  });
 
-Deno.test("QueryTimeoutError: contains timeout info", () => {
-  const error = new QueryTimeoutError(5000);
-  assertEquals(error.timeoutMs, 5000);
-  assertEquals(error.name, 'QueryTimeoutError');
-  assertExists(error.message);
+  it('QueryTimeoutError contains timeout info', () => {
+    const error = new QueryTimeoutError(5000);
+    expect(error.timeoutMs).toBe(5000);
+    expect(error.name).toBe('QueryTimeoutError');
+    expect(error.message).toBeDefined();
+  });
 });

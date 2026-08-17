@@ -980,6 +980,22 @@ export const CsatDispatchV1Schema = z.object({
   dryRun: z.boolean().optional(),
 }).strict();
 
+/**
+ * zapp-google-calendar-sync@v1 — status/sync do contrato Google Calendar
+ * (G1, 2026-08-17). GET (status) ou POST com body opcional { dryRun }.
+ * Resposta SEMPRE 200: { synced:false, reason:'not_configured'|'disabled'|
+ * 'not_implemented'|'error' } — nunca 500.
+ */
+export const ZappGoogleCalendarSyncV1Schema = z.object({
+  dryRun: z.boolean().optional(),
+}).strict();
+
+/**
+ * warroom-monthly-test@v1 — teste mensal do pipeline de alerta Warroom.
+ * Sem parâmetros de entrada: o handler IGNORA o body (saída fixa).
+ */
+export const ZappWarroomMonthlyTestV1Schema = z.object({}).strict();
+
 export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Webhooks externos
   "evolution-webhook":       { v1: EvolutionWebhookV1Schema, v2: EvolutionWebhookV2Schema },
@@ -1123,6 +1139,11 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "csat-auto-send":  { v1: CsatAutoSendV1Schema },
   "csat-dispatch":   { v1: CsatDispatchV1Schema },
 
+  // ─── GOOGLE CALENDAR (contrato real desligado, G1) ────────────────────────
+  "zapp-google-calendar-sync": { v1: ZappGoogleCalendarSyncV1Schema },
+
+  // ─── OUTROS ────────────────────────────────────────────────────────────────
+  "warroom-monthly-test": { v1: ZappWarroomMonthlyTestV1Schema },
   // ─── CRM plugável (Etapa 66) ──────────────────────────────────────────────
   "zapp-crm-sync":   { v1: ZappCrmSyncV1Schema },
 };
