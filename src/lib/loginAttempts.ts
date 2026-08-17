@@ -8,7 +8,9 @@ export type LoginBlockReason =
   | 'ip_blocked'
   | 'ip_not_whitelisted'
   | 'country_blocked'
-  | 'country_not_allowed';
+  | 'country_not_allowed'
+  /** Etapa 9.4: serviço de lock indisponível/erro (fail-closed). */
+  | 'lock_check_failed';
 
 interface LockStatus {
   isLocked: boolean;
@@ -44,6 +46,22 @@ const DEFAULT_LOCK_STATUS: LockStatus = {
   country: null,
 };
 
+/**
+ * FAIL-CLOSED (Etapa 9.4 / findings-22:119): quando o serviço de lock falha,
+ * NUNCA declarar desbloqueado. Erro de verificação/arquivamento não pode
+ * desproteger lockout, blocklist de IP nem geo-blocking — o login é negado
+ * (degradação intencional) até o serviço voltar.
+ */
+const FAIL_CLOSED_LOCK_STATUS: LockStatus = {
+  isLocked: true,
+  lockedUntil: null,
+  attempts: 0,
+  remainingTime: 0,
+  blocked: true,
+  blockReason: 'lock_check_failed',
+  country: null,
+};
+
 function toLockStatus(payload: LoginAttemptsPayload | null | undefined, fallbackAttempts = 0): LockStatus {
   if (!payload) {
     return { ...DEFAULT_LOCK_STATUS, attempts: fallbackAttempts };
@@ -76,6 +94,8 @@ export function blockReasonMessage(reason: LoginBlockReason | null): string {
       return 'Acesso negado: seu país está na lista de bloqueio desta plataforma.';
     case 'country_not_allowed':
       return 'Acesso negado: seu país não está na lista de países permitidos.';
+    case 'lock_check_failed':
+      return 'Não foi possível verificar o bloqueio da conta. Tente novamente em instantes.';
     default:
       return 'Acesso bloqueado pela política de segurança.';
   }
@@ -119,7 +139,8 @@ export async function checkAccountLock(email: string): Promise<LockStatus> {
     return toLockStatus(await invokeLoginAttempts('check', email));
   } catch (error) {
     log.error('Error checking account lock:', error);
-    return DEFAULT_LOCK_STATUS;
+    // FAIL-CLOSED (Etapa 9.4): serviço indisponível NÃO desprotege o login.
+    return FAIL_CLOSED_LOCK_STATUS;
   }
 }
 
@@ -129,7 +150,8 @@ export async function recordFailedLogin(email: string): Promise<LockStatus> {
     return toLockStatus(await invokeLoginAttempts('record_failed', email), 1);
   } catch (error) {
     log.error('Error recording failed login:', error);
-    return DEFAULT_LOCK_STATUS;
+    // FAIL-CLOSED: falha ao registrar = estado do lock desconhecido; não afirmar desbloqueado.
+    return { ...FAIL_CLOSED_LOCK_STATUS, attempts: 1 };
   }
 }
 

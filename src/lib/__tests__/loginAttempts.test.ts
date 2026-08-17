@@ -51,14 +51,13 @@ describe('loginAttempts', () => {
       expect(result.lockedUntil).toBeTruthy();
     });
 
-    it('handles RPC error gracefully', async () => {
-      mockInvoke.mockResolvedValue({
-        data: null,
-        error: new Error('Network failure'),
-      });
+    it('is fail-closed when the lock service errors (does not unprotect)', async () => {
+      mockInvoke.mockRejectedValue(new Error('Network failure'));
 
       const result = await checkAccountLock('test@test.com');
-      expect(result.isLocked).toBe(false);
+      expect(result.isLocked).toBe(true);
+      expect(result.blocked).toBe(true);
+      expect(result.blockReason).toBe('lock_check_failed');
     });
 
     it('handles empty result data', async () => {
@@ -104,14 +103,14 @@ describe('loginAttempts', () => {
       expect(result.isLocked).toBe(true);
     });
 
-    it('handles error gracefully', async () => {
-      mockInvoke.mockResolvedValue({
-        data: null,
-        error: new Error('DB error'),
-      });
+    it('is fail-closed when recording fails (does not claim unlocked)', async () => {
+      mockInvoke.mockRejectedValue(new Error('DB error'));
 
       const result = await recordFailedLogin('test@test.com');
-      expect(result.isLocked).toBe(false);
+      expect(result.isLocked).toBe(true);
+      expect(result.blocked).toBe(true);
+      expect(result.blockReason).toBe('lock_check_failed');
+      expect(result.attempts).toBe(1);
     });
   });
 
