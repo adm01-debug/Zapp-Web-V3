@@ -56,6 +56,9 @@ export const GetMapboxTokenV1Schema = EmptyStrictV1Schema;
 /** get-sip-password@v1 — GET; não consome body. */
 export const GetSipPasswordV1Schema = EmptyStrictV1Schema;
 
+/** zapp-get-sip-credentials@v1 — GET autenticado; não consome body. */
+export const ZappGetSipCredentialsV1Schema = EmptyStrictV1Schema;
+
 /** lgpd-scheduled-jobs@v1 — cron; não consome body. */
 export const LgpdScheduledJobsV1Schema = EmptyStrictV1Schema;
 

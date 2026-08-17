@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, AlertCircle } from 'lucide-react';
 
 /** New Connection Data component for the connections section. */
 export interface NewConnectionData {
@@ -32,6 +32,8 @@ interface AddConnectionDialogProps {
   newConnection: NewConnectionData;
   onNewConnectionChange: (c: NewConnectionData) => void;
   isCreating: boolean;
+  /** Mensagem de erro honesta exibida dentro do diálogo (validação, edge ou banco). */
+  error?: string | null;
   onAdd: () => void;
 }
 
@@ -42,6 +44,7 @@ export function AddConnectionDialog({
   newConnection,
   onNewConnectionChange,
   isCreating,
+  error,
   onAdd,
 }: AddConnectionDialogProps) {
   return (
@@ -49,7 +52,7 @@ export function AddConnectionDialog({
       <DialogTrigger asChild>
         <Button className="bg-whatsapp text-primary-foreground hover:bg-whatsapp-dark">
           <Plus className="mr-2 h-4 w-4" />
-          Conectar WhatsApp
+          Nova conexão
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -118,6 +121,16 @@ export function AddConnectionDialog({
               </p>
             )}
           </div>
+          {error && (
+            <p
+              role="alert"
+              data-testid="add-connection-error"
+              className="flex items-start gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              {error}
+            </p>
+          )}
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isCreating}>
               Cancelar

@@ -93,13 +93,9 @@ export const useMessageStatus = (contactId?: string) => {
         'postgres_changes',
         {
           event: 'UPDATE',
-          // TODO(fanout): zapp.realtime_message_fanout NÃO tem contact_id nem as colunas de
-          // status (status/status_at/error_code/error_reason) — espelho inviável para este
-          // hook. Filtrar por remote_jid exigiria resolver contactId(UUID)→jid (mapa de
-          // contatos), fora do escopo da subscription. Mantido na tabela-fonte particionada
-          // (Realtime v2 não entrega) até o espelho ganhar colunas de status.
-          schema: 'evo', // tabela-fonte em schema evo (Realtime exige tabela base, não view)
-          table: 'evolution_messages',
+          // fanout v2: espelho tem contact_id + colunas de status — assinar o espelho
+          schema: 'zapp', // espelho não-particionado (Realtime v2 não entrega partições)
+          table: 'realtime_message_fanout',
           filter: `contact_id=eq.${contactId}`,
         },
         wrapMessagesHandler<{ new: Record<string, unknown>; old?: Record<string, unknown> }>(

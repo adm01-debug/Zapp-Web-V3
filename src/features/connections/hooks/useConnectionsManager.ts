@@ -33,6 +33,8 @@ export function useConnectionsManager() {
     setNewConnection,
     isCreating: _isCreating,
     setIsCreating,
+    addConnectionError: _addConnectionError,
+    setAddConnectionError,
     dialogGenRef,
     refreshInFlightRef,
     announceConnected,
@@ -235,7 +237,8 @@ export function useConnectionsManager() {
     handleShowQrCode,
     disconnectInstance,
     deleteInstance,
-    newConnection
+    newConnection,
+    setAddConnectionError
   );
 
   useConnectionsRealtime(setConnections, qrCodeDialog, setQrCodeDialog, announceConnected);

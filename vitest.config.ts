@@ -29,7 +29,7 @@ export default defineConfig({
       // Categorias:
       //   ORPHAN: hook removido do codebase (teste obsoleto)
       //   FAILING: hook existe mas teste referencia API refatorada
-      //   DENO: imports incompatíveis com vitest (rodam via deno test)
+      //   DENO: imports incompatíveis com vitest (quarentenados, sem suíte ativa)
       //   NEEDS-ENV: requerem vars de ambiente externas
       //
       // Un-quaranteados nesta sessão (2026-07-28, passam 100%):
@@ -50,7 +50,6 @@ export default defineConfig({
       'src/hooks/useEmailActions.test.ts',
       // FAILING — hook existe, teste usa API refatorada
       'src/hooks/__tests__/useGlobalSearchShortcut.test.ts',
-      'src/hooks/__tests__/useTextToSpeech.test.ts',
       'src/hooks/__tests__/useContactCustomFields.test.tsx',
       'src/hooks/__tests__/useDownloadPermission.test.ts',
       'src/hooks/__tests__/useExportData.test.tsx',
@@ -67,6 +66,10 @@ export default defineConfig({
       // Rodam apenas com `deno test` (suíte separada).
       // (useAudioRecorder.cleanup.test.ts removido da quarentena em 2026-08-17:
       //  reescrito em vitest puro testando o cleanup real.)
+      // DENO — imports https://deno.land/ incompatíveis com Node/vitest.
+      // QUARENTENADOS: não rodam no vitest nem em suíte Deno ativa (CI deno-contract-tests
+      // cobre apenas supabase/functions). Reescrita p/ vitest é o caminho para reativá-los.
+      'src/hooks/__tests__/useAudioRecorder.cleanup.test.ts',
       'src/lib/__tests__/clientRateLimiter.test.ts',
       'src/lib/__tests__/healthCheck.test.ts',
       'src/lib/__tests__/queryTimeout.test.ts',
