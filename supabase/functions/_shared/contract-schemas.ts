@@ -552,6 +552,30 @@ export const SicoobBridgeReplyV2Schema = SicoobBridgeReplyV1Schema.extend({
    filters: z.record(z.unknown()).optional(),
  }).passthrough();
 
+ /**
+  * zapp-crm-sync@v1 — contrato de sync de conversa para o CRM plugável
+  * (Etapa 66, SIM-CRM F1). Espelha o payload real do hook useSyncToCRM +
+  * entity_id (zapp_conversation_id). Endpoint INTERNO (UI chama): estrito —
+  * enum fechado de direction, UUID validado, limites — para falhar cedo com
+  * 422 consistente. Secrets NUNCA transitam aqui (settings é não-secreta).
+  */
+ export const ZappCrmSyncV1Schema = z.object({
+   entity_id: z.string().uuid().optional(),
+   entity_data: z.object({
+     phone: z.string().min(1),
+     channel: z.string().min(1),
+     direction: z.enum(["inbound", "outbound"]),
+     assunto: z.string().nullable().optional(),
+     resumo: z.string().nullable().optional(),
+     sentiment: z.string().nullable().optional(),
+     message_count: z.number().int().min(0).optional(),
+     agent_name: z.string().nullable().optional(),
+     zapp_conversation_id: z.string().nullable().optional(),
+     dry_run: z.boolean().optional(),
+   }),
+ }).strict();
+
+
 
  /**
   * whatsapp-cloud-send@v1 — schema REAL (espelha o antigo SendSchema local,
@@ -1045,6 +1069,9 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "followup-bridge": { v1: FollowupBridgeV1Schema },
   "csat-auto-send":  { v1: CsatAutoSendV1Schema },
   "csat-dispatch":   { v1: CsatDispatchV1Schema },
+
+  // ─── CRM plugável (Etapa 66) ──────────────────────────────────────────────
+  "zapp-crm-sync":   { v1: ZappCrmSyncV1Schema },
 };
 
 // ─── Re-exports de edge-contract-schemas (ponto de import unificado) ─────────

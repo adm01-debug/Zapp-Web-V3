@@ -56,7 +56,9 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/zapp-web
+  # GHCR exige minúsculas: github.repository devolve "Zapp-Web-V3" (maiúsculas)
+  # e o buildx rejeita a tag. Fix 2026-08-17: namespace fixo minúsculo.
+  IMAGE_NAME: ${{ github.repository_owner }}/zapp-web-v3/zapp-web
 
 jobs:
   build-and-push:

@@ -6,9 +6,13 @@
  *   - syncConversationAsync (retorna resultado)
  *   - isSyncing / isConfigured / lastResult / lastSyncAt
  *
- * A chamada real vai para a RPC `sync_conversation_to_crm` (schema `zapp`).
- * Se a RPC não existir na instância, `isConfigured` = false e o botão/efeito
- * ficam inertes — nada de erro em tela.
+ * A chamada real vai para a Edge Function `zapp-crm-sync` (CRM plugável,
+ * Etapa 66) — NÃO usa mais a RPC fantasma `sync_conversation_to_crm`
+ * (PGRST202/42883 → not_configured FALSO). isConfigured deixou de ser
+ * otimista: vira estado derivado (null = desconhecido → configured |
+ * not_configured), atualizado no mount via rpc_get_crm_sync_config() e na
+ * 1ª resposta da edge. Reasons preservados: duplicate/contact_not_found/error
+ * + novos do contrato: provider_not_configured/not_implemented/dry_run.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +20,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useSyncToCRM');
 
-/** Input payload for syncing a conversation to the CRM via the sync_conversation_to_crm RPC. */
+/** Input payload for syncing a conversation to the CRM via the zapp-crm-sync edge. */
 export interface SyncConversationInput {
   phone: string;
   channel: 'whatsapp' | 'email' | 'sms' | string;
@@ -29,69 +33,108 @@ export interface SyncConversationInput {
   zappConversationId?: string;
 }
 
-/** Sync Conversation Result interface definition. */
+/** Sync Conversation Result — reason é enum fechado do contrato (SIM-CRM (e)). */
 export interface SyncConversationResult {
   synced: boolean;
-  reason?: 'duplicate' | 'contact_not_found' | 'not_configured' | 'error';
+  reason?:
+    | 'duplicate'
+    | 'contact_not_found'
+    | 'not_configured'
+    | 'provider_not_configured'
+    | 'not_implemented'
+    | 'invalid_config'
+    | 'dry_run'
+    | 'error';
   new_relationship_score?: number | null;
+  provider?: string;
+  provider_error?: string;
   [key: string]: unknown;
 }
 
-/** Use Sync To C R M Return interface definition. */
 export interface UseSyncToCRMReturn {
   isSyncing: boolean;
-  isConfigured: boolean;
+  /** null = desconhecido (ainda não verificado) — NUNCA otimista. */
+  isConfigured: boolean | null;
   lastResult: SyncConversationResult | null;
   lastSyncAt: Date | null;
   syncConversation: (input: SyncConversationInput) => void;
   syncConversationAsync: (input: SyncConversationInput) => Promise<SyncConversationResult>;
 }
 
-async function callSyncRpc(input: SyncConversationInput): Promise<SyncConversationResult> {
-  // Usa `as any` só na fronteira porque a RPC pode ainda não estar tipada nos types gerados.
+/** Lê a config de CRM via RPC versionada — estado honesto já no mount. */
+async function fetchCrmConfigured(): Promise<boolean | null> {
+  // Usa `as any` na fronteira porque rpc_get_crm_sync_config pode ainda não
+  // estar tipada nos types gerados.
   const { data, error } = await (
-    supabase.rpc as unknown as (
-      // ignore-audit — sync_conversation_to_crm absent from generated DB types; typed rpc() overload rejects the call
-      fn: string,
-      params: Record<string, unknown>
-    ) => Promise<{ data: unknown; error: unknown }>
-  )('sync_conversation_to_crm', {
-    p_phone: input.phone,
-    p_channel: input.channel,
-    p_direction: input.direction,
-    p_assunto: input.assunto ?? null,
-    p_resumo: input.resumo ?? null,
-    p_sentiment: input.sentiment ?? 'neutral',
-    p_message_count: input.messageCount ?? 0,
-    p_agent_name: input.agentName ?? null,
-    p_zapp_conversation_id: input.zappConversationId ?? null,
-  });
+    supabase.rpc as unknown as (fn: string) => Promise<{ data: unknown; error: unknown }>
+  )('rpc_get_crm_sync_config');
+  if (error) {
+    // RPC indisponível (migration não aplicada) ou erro de rede: desconhecido;
+    // a 1ª resposta da edge resolve o estado honestamente.
+    log.warn('rpc_get_crm_sync_config failed', error as { message?: string });
+    return null;
+  }
+  const rows = Array.isArray(data) ? (data as Array<{ enabled?: boolean }>) : [];
+  return rows.some((r) => r?.enabled === true);
+}
+
+/** Extrai o reason do body de erro da edge (4xx/5xx ainda carregam o contrato). */
+function parseErrorContext(error: unknown): SyncConversationResult | null {
+  const ctx = (error as { context?: unknown })?.context;
+  if (ctx == null) return null;
+  try {
+    const parsed: unknown = typeof ctx === 'string' ? JSON.parse(ctx) : ctx;
+    if (parsed && typeof parsed === 'object' && 'reason' in parsed) {
+      return parsed as SyncConversationResult;
+    }
+  } catch {
+    // body não-JSON: cai no reason error genérico
+  }
+  return null;
+}
+
+/** Invoca a edge zapp-crm-sync com o contrato ZappCrmSyncV1Schema (snake_case). */
+async function callSyncEdge(input: SyncConversationInput): Promise<SyncConversationResult> {
+  const body: Record<string, unknown> = {
+    entity_data: {
+      phone: input.phone,
+      channel: input.channel,
+      direction: input.direction,
+      assunto: input.assunto ?? null,
+      resumo: input.resumo ?? null,
+      sentiment: input.sentiment ?? 'neutral',
+      message_count: input.messageCount ?? 0,
+      agent_name: input.agentName ?? null,
+      zapp_conversation_id: input.zappConversationId ?? null,
+    },
+  };
+  if (input.zappConversationId) body.entity_id = input.zappConversationId;
+
+  const { data, error } = await supabase.functions.invoke('zapp-crm-sync', { body });
 
   if (error) {
-    const err = error as { code?: string; message?: string };
-    if (err.code === 'PGRST202' || err.code === '42883') {
-      return { synced: false, reason: 'not_configured' };
-    }
-    log.error('sync_conversation_to_crm error', err);
+    const fromContext = parseErrorContext(error);
+    if (fromContext) return { ...fromContext, synced: !!fromContext.synced };
+    log.error('zapp-crm-sync invoke error', error);
     return { synced: false, reason: 'error' };
   }
 
-  const result = (
-    data && typeof data === 'object' ? data : { synced: false }
-  ) as SyncConversationResult;
+  const result = (data && typeof data === 'object' ? data : { synced: false }) as SyncConversationResult;
   return { ...result, synced: !!result.synced };
 }
 
-/** use Sync To C R M function. */
 export function useSyncToCRM(): UseSyncToCRMReturn {
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isConfigured, setIsConfigured] = useState(true); // otimista até a 1ª chamada dizer o contrário
+  const [isConfigured, setIsConfigured] = useState<boolean | null>(null); // desconhecido até verificar
   const [lastResult, setLastResult] = useState<SyncConversationResult | null>(null);
   const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
+    void fetchCrmConfigured().then((configured) => {
+      if (mountedRef.current && configured !== null) setIsConfigured(configured);
+    });
     return () => {
       mountedRef.current = false;
     };
@@ -100,11 +143,15 @@ export function useSyncToCRM(): UseSyncToCRMReturn {
   const syncConversationAsync = useCallback(async (input: SyncConversationInput) => {
     setIsSyncing(true);
     try {
-      const result = await callSyncRpc(input);
+      const result = await callSyncEdge(input);
       if (!mountedRef.current) return result;
       setLastResult(result);
-      if (result.reason === 'not_configured') setIsConfigured(false);
-      if (result.synced) setLastSyncAt(new Date());
+      if (result.reason === 'not_configured') {
+        setIsConfigured(false);
+      } else if (result.synced) {
+        setIsConfigured(true);
+        setLastSyncAt(new Date());
+      }
       return result;
     } finally {
       if (mountedRef.current) setIsSyncing(false);
