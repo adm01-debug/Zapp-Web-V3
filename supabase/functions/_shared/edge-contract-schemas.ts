@@ -147,6 +147,7 @@ export const EDGE_FUNCTION_NAMES = [
   'whatsapp-cloud-send',
   'whatsapp-cloud-webhook',
   'whatsapp-cloud-webhook-verify',
+  'zapp-sentry-sync',
 ] as const;
 
 const JsonValueSchema: z.ZodType<unknown> = z.lazy(() =>
@@ -331,6 +332,22 @@ const specificEdgeFunctionSchemas: Partial<
         device_name: z.string().min(1),
       })
       .passthrough(),
+  },
+  // zapp-sentry-sync@v1 — config Sentry persistida em zapp.sentry_config.
+  // Espelho inline do SentrySyncV1Schema (contract-schemas.ts) — nunca importar
+  // de contract-schemas.ts (ciclo). Estrito: endpoint interno da UI.
+  'zapp-sentry-sync': {
+    v1: z
+      .object({
+        dsn: z.string().max(500).optional(),
+        enabled: z.boolean().optional(),
+        environment: z.enum(['production', 'staging', 'development']).optional(),
+        traces_sample_rate: z.number().min(0).max(1).optional(),
+        replays_session_sample_rate: z.number().min(0).max(1).optional(),
+        replays_on_error_sample_rate: z.number().min(0).max(1).optional(),
+        action: z.enum(['save', 'test']).optional(),
+      })
+      .strict(),
   },
   ...WebhookContractSchemas,
 };
