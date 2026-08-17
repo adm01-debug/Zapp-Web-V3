@@ -473,6 +473,11 @@ export const SendScheduledReportV1Schema = z.object({
   reportId: z.string().min(1, "reportId é obrigatório").max(200),
 }).strict();
 
+/** zapp-auto-export@v1 — AutoExport (G4): UI/cron envia { jobId, action? }. */
+export const ZappAutoExportV1Schema = z.object({
+  jobId: z.string().uuid("jobId deve ser um UUID válido"),
+  /** 'run' (padrão): gera/regenera o arquivo. 'link': só renova a signed URL do arquivo existente. */
+  action: z.enum(["run", "link"]).optional(),
 /**
  * send-scheduled-report@v2 — modo batch (cron dispatch chama sem body):
  * claima runs pendentes da outbox (rpc_claim_pending_report_runs), faz
@@ -1097,6 +1102,8 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "health":                        { v1: HealthV1Schema },
   "status":                        { v1: StatusV1Schema },
   "metrics":                       { v1: MetricsV1Schema },
+  "send-scheduled-report":         { v1: SendScheduledReportV1Schema },
+  "zapp-auto-export":              { v1: ZappAutoExportV1Schema },
   "send-scheduled-report":         { v1: SendScheduledReportV1Schema, v2: SendScheduledReportV2Schema },
   "auto-close-conversations":      { v1: AutoCloseConversationsV1Schema },
   "elevenlabs-voice":              { v1: ElevenLabsVoiceV1Schema },
