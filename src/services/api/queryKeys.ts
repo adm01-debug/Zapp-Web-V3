@@ -439,6 +439,11 @@ export const queryKeys = {
     configs: () => ['scheduled-report-configs'] as const,
   },
 
+  // AutoExport (G4)
+  autoExport: {
+    jobs: () => ['auto-export-jobs'] as const,
+  },
+
   // Contacts extended (per-contact sub-queries)
   contactDetails: {
     notes: (contactId?: string) => ['contact-notes', contactId] as const,
