@@ -654,8 +654,9 @@ export function useRealtimeMessages() {
     logMessagesSubscribe('useRealtimeMessages', { event: 'UPDATE', table: dbTable('messages') });
     logMessagesSubscribe('useRealtimeMessages', { event: 'DELETE', table: dbTable('messages') });
 
-    // Evolution DB v6.2: Realtime na TABELA-FONTE evo.evolution_messages (views public não emitem).
-    // Adapter: a fonte usa from_me/deleted_at; o shape legado da view usa sender/is_deleted.
+    // Fanout (Realtime v2 não entrega partições): assina o ESPELHO zapp.realtime_message_fanout.
+    // TODO(fanout): o espelho NÃO tem from_me/deleted_at → adaptEvoPayload degrada para
+    // sender='contact' e is_deleted=false até o espelho ganhar essas colunas.
     const adaptEvoPayload = (
       p: RealtimePostgresChangesPayload<Record<string, unknown>>
     ): RealtimePostgresChangesPayload<RealtimeMessage> => {
@@ -676,8 +677,8 @@ export function useRealtimeMessages() {
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'evo',
-          table: 'evolution_messages',
+          schema: 'zapp',
+          table: 'realtime_message_fanout',
         },
         (payload) => {
           if (active)
@@ -698,8 +699,8 @@ export function useRealtimeMessages() {
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'evo',
-          table: 'evolution_messages',
+          schema: 'zapp',
+          table: 'realtime_message_fanout',
         },
         (payload) => {
           if (active)
@@ -719,8 +720,8 @@ export function useRealtimeMessages() {
         'postgres_changes',
         {
           event: 'DELETE',
-          schema: 'evo',
-          table: 'evolution_messages',
+          schema: 'zapp',
+          table: 'realtime_message_fanout',
         },
         (payload) => {
           if (active)

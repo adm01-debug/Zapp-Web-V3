@@ -172,7 +172,8 @@ export const ChatMessagesArea = memo(
       // (RPC rpc_get_reactions_batch → fallback .in() chunkado) e os hooks
       // por-mensagem ficam com enabled=false enquanto o batch cobre a mensagem.
 
-      // Realtime de mensagens: UPDATE e DELETE no schema 'evo' (tabela física particionada)
+      // Realtime de mensagens: assina o ESPELHO zapp.realtime_message_fanout (Realtime
+      // v2 não entrega a tabela-fonte particionada evo.evolution_messages).
       useEffect(() => {
         if (!contactJid) return;
         // Última conexão bem-sucedida do canal — classifica CHANNEL_ERROR transiente vs real.
@@ -181,7 +182,7 @@ export const ChatMessagesArea = memo(
           .channel(`chat-updates:${contactJid}:${Math.random().toString(36).slice(2, 10)}`)
           .on(
             'postgres_changes',
-            { event: 'UPDATE', schema: 'evo', table: 'evolution_messages' },
+            { event: 'UPDATE', schema: 'zapp', table: 'realtime_message_fanout' },
             () => {
               void queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
             }
@@ -190,8 +191,8 @@ export const ChatMessagesArea = memo(
             'postgres_changes',
             {
               event: 'DELETE',
-              schema: 'evo',
-              table: 'evolution_messages',
+              schema: 'zapp',
+              table: 'realtime_message_fanout',
               filter: `remote_jid=eq.${contactJid}`,
             },
             (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
