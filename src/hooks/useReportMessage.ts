@@ -45,7 +45,7 @@ export function useReportMessage() {
 
   const loadReports = useCallback(async (pid: string) => {
     const { data, error } = await supabase
-      .from('message_reports' as never)
+      .from('message_reports')
       .select('message_id')
       .eq('reporter_id', pid);
     if (error) {
@@ -80,12 +80,12 @@ export function useReportMessage() {
         return;
       }
 
-      const { error } = await supabase.from('message_reports' as never).insert({
+      const { error } = await supabase.from('message_reports').insert({
         message_id: messageId,
         reporter_id: profileId,
         reason,
         details: details?.trim() || null,
-      } as never);
+      });
 
       if (error) {
         // 23505 unique violation = já reportou

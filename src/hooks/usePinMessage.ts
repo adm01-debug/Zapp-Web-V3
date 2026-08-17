@@ -43,7 +43,7 @@ export function usePinMessage() {
 
   const loadPins = useCallback(async (pid: string) => {
     const { data, error } = await supabase
-      .from('pinned_messages' as never)
+      .from('pinned_messages')
       .select('message_id')
       .eq('pinned_by', pid);
     if (error) {
@@ -82,13 +82,13 @@ export function usePinMessage() {
     });
 
     const { error } = isPinned
-      ? await supabase.from('pinned_messages' as never).delete().eq('pinned_by', profileId).eq('message_id', messageId)
-      : await supabase.from('pinned_messages' as never).insert({
+      ? await supabase.from('pinned_messages').delete().eq('pinned_by', profileId).eq('message_id', messageId)
+      : await supabase.from('pinned_messages').insert({
           message_id: messageId,
           contact_id: contactId ?? null,
           pinned_by: profileId,
           position: pinnedIds.size + 1,
-        } as never);
+        });
 
     if (error) {
       setPinnedIds((prev) => {
