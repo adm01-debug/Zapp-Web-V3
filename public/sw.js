@@ -146,9 +146,14 @@ self.addEventListener('message', (event) => {
 });
 
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'send-messages') event.waitUntil(sendQueuedMessages());
+  // Tag registrada por src/lib/offlineQueue.ts:enqueueMessage
+  if (event.tag === 'send-queued-messages') event.waitUntil(sendQueuedMessages());
 });
 
 async function sendQueuedMessages() {
-  console.log('[ServiceWorker] Processing queued messages');
+  // O SW não tem o cliente Supabase — acorda as janelas abertas para a PÁGINA
+  // processar a fila (processQueue em src/lib/offlineQueue.ts).
+  console.log('[ServiceWorker] sync: send-queued-messages — waking clients');
+  const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
+  clients.forEach((c) => c.postMessage({ type: 'PROCESS_OFFLINE_QUEUE' }));
 }

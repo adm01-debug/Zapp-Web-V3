@@ -146,39 +146,50 @@ export async function enqueueMessage(
 /**
  * Process all queued messages (called when online).
  */
+let queueProcessing = false;
+
 export async function processQueue(): Promise<{ sent: number; failed: number }> {
   if (!navigator.onLine) {
     return { sent: 0, failed: 0 };
   }
+  // MUTEX: dois gatilhos independentes (evento 'online' + background sync via
+  // mensagem do SW + boot) podem disparar em paralelo e duplicar o envio.
+  if (queueProcessing) {
+    return { sent: 0, failed: 0 };
+  }
+  queueProcessing = true;
+  try {
+    const messages = await offlineQueue.getAll();
+    let sent = 0;
+    let failed = 0;
 
-  const messages = await offlineQueue.getAll();
-  let sent = 0;
-  let failed = 0;
-
-  for (const msg of messages) {
-    try {
-      const { sendMessageToContact } =
-        await import('@/features/inbox/hooks/realtime/messageSender');
-      await sendMessageToContact(msg.contactId, msg.content, msg.messageType, msg.mediaUrl);
-      await offlineQueue.remove(msg.id);
-      sent++;
-    } catch (err) {
-      msg.attempts++;
-      msg.lastAttemptAt = Date.now();
-      msg.error = err instanceof Error ? err.message : String(err);
-
-      if (msg.attempts >= 5) {
-        // Give up after 5 attempts
+    for (const msg of messages) {
+      try {
+        const { sendMessageToContact } =
+          await import('@/features/inbox/hooks/realtime/messageSender');
+        await sendMessageToContact(msg.contactId, msg.content, msg.messageType, msg.mediaUrl);
         await offlineQueue.remove(msg.id);
-        failed++;
-      } else {
-        await offlineQueue.update(msg);
-        failed++;
+        sent++;
+      } catch (err) {
+        msg.attempts++;
+        msg.lastAttemptAt = Date.now();
+        msg.error = err instanceof Error ? err.message : String(err);
+
+        if (msg.attempts >= 5) {
+          // Give up after 5 attempts
+          await offlineQueue.remove(msg.id);
+          failed++;
+        } else {
+          await offlineQueue.update(msg);
+          failed++;
+        }
       }
     }
-  }
 
-  return { sent, failed };
+    return { sent, failed };
+  } finally {
+    queueProcessing = false;
+  }
 }
 
 /**
@@ -217,8 +228,22 @@ export function setupOnlineListener(): () => void {
     log.info('Offline — messages will be queued');
   };
 
+  // Background Sync: o SW acorda as janelas com PROCESS_OFFLINE_QUEUE
+  // (public/sw.js: sendQueuedMessages) — a página é quem tem o cliente Supabase.
+  const handleSwMessage = (event: MessageEvent) => {
+    if (event.data && (event.data as { type?: string }).type === 'PROCESS_OFFLINE_QUEUE') {
+      log.info('ServiceWorker requested offline queue processing');
+      void processQueue().catch((err: unknown) => {
+        log.error('Failed to process offline queue from SW sync:', err);
+      });
+    }
+  };
+
   window.addEventListener('online', handleOnline);
   window.addEventListener('offline', handleOffline);
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', handleSwMessage);
+  }
 
   // Process queue on initial load if online
   if (navigator.onLine) {
@@ -230,5 +255,8 @@ export function setupOnlineListener(): () => void {
   return () => {
     window.removeEventListener('online', handleOnline);
     window.removeEventListener('offline', handleOffline);
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.removeEventListener('message', handleSwMessage);
+    }
   };
 }

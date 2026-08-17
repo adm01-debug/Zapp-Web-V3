@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { getLogger } from '@/lib/logger';
+import { setupOnlineListener } from '@/lib/offlineQueue';
 
 const log = getLogger('useServiceWorker');
 
@@ -311,5 +312,13 @@ export function useServiceWorker() {
       disposed = true;
       cleanup?.();
     };
+  }, []);
+
+  // Fila offline (ADR-005): processa mensagens enfileiradas quando a conexão
+  // volta — evento 'online', boot, e Background Sync (o SW acorda as janelas
+  // com PROCESS_OFFLINE_QUEUE; ver public/sw.js:sendQueuedMessages).
+  useEffect(() => {
+    const cleanupQueueListener = setupOnlineListener();
+    return cleanupQueueListener;
   }, []);
 }
