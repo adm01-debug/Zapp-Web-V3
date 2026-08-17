@@ -75,6 +75,9 @@ interface ChatPanelHeaderProps {
   onOpenValidation?: () => void;
   /** Etapa 42: resolve a conversa (ticketStore) — vindo do ChatPanel handlers. */
   onResolveConversation?: () => void;
+  /** Arquivar real: soft-delete do contato (useArchiveConversationActions no
+   *  ChatPanel). Ausente → item desabilitado (nunca silent-fail). */
+  onArchiveConversation?: () => void | Promise<void>;
 }
 
 /** Chat Panel Header component for the chat section. */
@@ -102,6 +105,7 @@ export function ChatPanelHeader({
   whisperCount,
   onOpenValidation,
   onResolveConversation,
+  onArchiveConversation,
 }: ChatPanelHeaderProps) {
   const isMobile = useIsMobile();
   const { avatarUrl } = useContactAvatar(conversation.contact.id, conversation.contact.avatar);
@@ -312,7 +316,19 @@ export function ChatPanelHeader({
               <CheckCircle className="mr-2 h-4 w-4" />
               Marcar como resolvido
             </DropdownMenuItem>
-            <DropdownMenuItem disabled>
+            {/* Arquivar real: soft-delete do contato (religado ao fluxo da
+                Sidebar/slash — useArchiveConversationActions). Desabilitado
+                quando o ChatPanel não fornece o handler OU o contato é JID
+                externo (não-UUID): o guard da mutation seria no-op silencioso. */}
+            <DropdownMenuItem
+              disabled={!onArchiveConversation || !validContact}
+              onClick={onArchiveConversation}
+              title={
+                !validContact
+                  ? 'Não é possível arquivar contato externo (JID sem cadastro interno)'
+                  : undefined
+              }
+            >
               <Archive className="mr-2 h-4 w-4" />
               Arquivar
             </DropdownMenuItem>
