@@ -543,6 +543,30 @@ export const SicoobBridgeReplyV2Schema = SicoobBridgeReplyV1Schema.extend({
    filters: z.record(z.unknown()).optional(),
  }).passthrough();
 
+ /**
+  * zapp-crm-sync@v1 — contrato de sync de conversa para o CRM plugável
+  * (Etapa 66, SIM-CRM F1). Espelha o payload real do hook useSyncToCRM +
+  * entity_id (zapp_conversation_id). Endpoint INTERNO (UI chama): estrito —
+  * enum fechado de direction, UUID validado, limites — para falhar cedo com
+  * 422 consistente. Secrets NUNCA transitam aqui (settings é não-secreta).
+  */
+ export const ZappCrmSyncV1Schema = z.object({
+   entity_id: z.string().uuid().optional(),
+   entity_data: z.object({
+     phone: z.string().min(1),
+     channel: z.string().min(1),
+     direction: z.enum(["inbound", "outbound"]),
+     assunto: z.string().nullable().optional(),
+     resumo: z.string().nullable().optional(),
+     sentiment: z.string().nullable().optional(),
+     message_count: z.number().int().min(0).optional(),
+     agent_name: z.string().nullable().optional(),
+     zapp_conversation_id: z.string().nullable().optional(),
+     dry_run: z.boolean().optional(),
+   }),
+ }).strict();
+
+
 
  /**
   * whatsapp-cloud-send@v1 — schema REAL (espelha o antigo SendSchema local,
@@ -693,6 +717,30 @@ export const ApprovePasswordResetV1Schema = z.object({
   request_id: z.string().optional(),
   approved: z.boolean().optional(),
   decision: z.string().optional(),
+}).passthrough();
+
+ /**
+  * zapp-auth-sessions@v1 — gestão de sessões ativas (Etapa 56). Endpoint
+  * interno (frontend autenticado). action obrigatório; userId só para
+  * admin/supervisor (alvo de outro usuário); sessionIds obrigatório para
+  * action=revoke. UUIDs validados no gate.
+  */
+export const ZappAuthSessionsV1Schema = z.object({
+  action: z.enum(["list", "revoke", "revoke_all"]),
+  userId: z.string().uuid("userId inválido").optional(),
+  sessionIds: z.array(z.string().uuid("sessionId inválido")).min(1).max(100).optional(),
+}).passthrough();
+
+/**
+ * zapp-auth-invite@v1 — convite de usuário por email (Etapa 57). Endpoint
+ * interno admin-only. action default 'invite'; resend regenera link sem
+ * recriar usuário. role whitelist explícita (dev fora do convite).
+ */
+export const ZappAuthInviteV1Schema = z.object({
+  action: z.enum(["invite", "resend"]).optional().default("invite"),
+  email: z.string().email("Email inválido").max(255),
+  name: z.string().min(1, "Nome é obrigatório").max(255).optional(),
+  role: z.enum(["admin", "supervisor", "manager", "agent"]).optional(),
 }).passthrough();
 
 /**
@@ -960,6 +1008,8 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "detect-new-device":             { v1: AISchemas.DetectNewDeviceV1Schema },
   "webauthn":                      { v1: WebauthnV1Schema },
   "evolution-api":                 { v1: EvolutionApiV1Schema },
+  "zapp-auth-sessions":            { v1: ZappAuthSessionsV1Schema },
+  "zapp-auth-invite":              { v1: ZappAuthInviteV1Schema },
 
   // ─── Onda 1 (2026-08-04): cobertura 100% — schemas reais dos workers ───
   "ai-classify-tickets":  { v1: AISchemas.AiClassifyTicketsV1Schema },
@@ -1008,6 +1058,9 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "followup-bridge": { v1: FollowupBridgeV1Schema },
   "csat-auto-send":  { v1: CsatAutoSendV1Schema },
   "csat-dispatch":   { v1: CsatDispatchV1Schema },
+
+  // ─── CRM plugável (Etapa 66) ──────────────────────────────────────────────
+  "zapp-crm-sync":   { v1: ZappCrmSyncV1Schema },
 };
 
 // ─── Re-exports de edge-contract-schemas (ponto de import unificado) ─────────

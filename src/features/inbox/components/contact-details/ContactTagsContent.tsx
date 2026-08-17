@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useTags, useContactTags } from '@/hooks/useTags';
-import { isValidUUID } from '@/features/inbox/utils/contactRef';
+import { isValidUUID } from '@/utils/uuid';
 
 interface ContactTagsContentProps {
   contact: Contact;
