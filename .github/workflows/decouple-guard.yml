@@ -32,7 +32,7 @@ jobs:
     name: Block infra/evolution recreation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Verify no Evolution infra in zapp-web-v3
         run: |
           # E22: qualquer arquivo em infra/evolution* viola o split do evo-stack
@@ -58,7 +58,7 @@ jobs:
     name: Check coupling inventory
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
