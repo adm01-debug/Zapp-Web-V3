@@ -52,6 +52,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   // Envio
   "whatsapp-cloud-send":          { current: "v1", supported: ["v1"] },
   "gmail-send":                   { current: "v1", supported: ["v1"] },
+  "revoke-session":         { current: "v1", supported: ["v1"] },
   "send-email":                   { current: "v1", supported: ["v1"] },
   "talkx-send":                   { current: "v1", supported: ["v1"] },
   "public-api":                   { current: "v1", supported: ["v1"] },
@@ -98,6 +99,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "status":                       { current: "v1", supported: ["v1"] },
   "metrics":                      { current: "v1", supported: ["v1"] },
   "zapp-auto-export":             { current: "v1", supported: ["v1"] },
+  "zapp-auth-sessions":        { current: "v1", supported: ["v1"] },
   "send-scheduled-report":        { current: "v2", supported: ["v1", "v2"] },
   "auto-close-conversations":     { current: "v1", supported: ["v1"] },
   "csat-auto-send":               { current: "v1", supported: ["v1"] },
