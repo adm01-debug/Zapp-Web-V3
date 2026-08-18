@@ -167,12 +167,6 @@ describe('useAgents', () => {
     expect(result.current.agents).toHaveLength(2);
   });
 
-  it('getAgentStatus utility works correctly', () => {
-    // Import the module to test the status logic indirectly
-    // The hook assigns status based on is_active / updated_at
-    // We test through the hook output
-    expect(true).toBe(true); // placeholder - status tested via integration
-  });
 
   it('returns correct counts', async () => {
     const { result } = renderHook(() => useAgents(), { wrapper: createWrapper() });

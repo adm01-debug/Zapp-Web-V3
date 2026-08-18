@@ -1122,12 +1122,12 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
   // ─── Duration Constraints ─────────────────────────────
 
   describe('Duration Constraints', () => {
-    it('SFX min is 1s', () => expect(1).toBe(1));
-    it('SFX max is 22s', () => expect(22).toBe(22));
-    it('SFX default is 5s', () => expect(5).toBe(5));
-    it('Music min is 5s', () => expect(5).toBe(5));
-    it('Music max is 60s', () => expect(60).toBe(60));
-    it('Music default is 15s', () => expect(15).toBe(15));
+    it.todo('SFX min is 1s');
+    it.todo('SFX max is 22s');
+    it.todo('SFX default is 5s');
+    it.todo('Music min is 5s');
+    it.todo('Music max is 60s');
+    it.todo('Music default is 15s');
     it('SFX default within range', () => {
       expect(5).toBeGreaterThanOrEqual(1);
       expect(5).toBeLessThanOrEqual(22);
