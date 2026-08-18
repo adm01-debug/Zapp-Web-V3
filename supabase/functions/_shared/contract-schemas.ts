@@ -80,7 +80,7 @@ export const EmailTrackPixelV1Schema = z.object({}).passthrough();
 export const TalkxSendV1Schema = z.object({
   campaignId: z.string().uuid({ message: "campaignId deve ser UUID" }),
   action: z.enum(["start", "pause", "cancel"]).optional(),
-}).strict();
+}.strict();
 
 /**
  * send-email@v1 — duas formas válidas:
