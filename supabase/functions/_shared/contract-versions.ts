@@ -98,6 +98,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "status":                       { current: "v1", supported: ["v1"] },
   "metrics":                      { current: "v1", supported: ["v1"] },
   "zapp-auto-export":             { current: "v1", supported: ["v1"] },
+  "zapp-auth-sessions":        { current: "v1", supported: ["v1"] },
   "send-scheduled-report":        { current: "v2", supported: ["v1", "v2"] },
   "auto-close-conversations":     { current: "v1", supported: ["v1"] },
   "csat-auto-send":               { current: "v1", supported: ["v1"] },
