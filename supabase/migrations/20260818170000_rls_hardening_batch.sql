@@ -43,9 +43,18 @@ CREATE POLICY csat_surveys_delete ON zapp.csat_surveys
   FOR DELETE TO authenticated
   USING (zapp.is_admin_or_supervisor(auth.uid()));
 
--- [10/11] zapp.voice_conversion_queue: INSERT/UPDATE dono (requested_by)
+-- [10/11] zapp.voice_conversion_queue: INSERT/UPDATE/SELECT dono (requested_by)
 --     (fato real: coluna é requested_by, não user_id; schema é zapp)
+--     [validação 2026-08-18] 3 policies LEGADAS para public (voice_select,
+--     voice_update, voice_queue_all — auth.uid() IS NOT NULL) anulavam o
+--     hardening — DROP + SELECT substituto escopado:
+DROP POLICY IF EXISTS voice_queue_all ON zapp.voice_conversion_queue;
+DROP POLICY IF EXISTS voice_select ON zapp.voice_conversion_queue;
+DROP POLICY IF EXISTS voice_update ON zapp.voice_conversion_queue;
 DROP POLICY IF EXISTS voice_insert ON zapp.voice_conversion_queue;
+CREATE POLICY voice_conversion_queue_select ON zapp.voice_conversion_queue
+  FOR SELECT TO authenticated
+  USING (requested_by = auth.uid() OR zapp.is_admin_or_supervisor(auth.uid()));
 CREATE POLICY voice_conversion_queue_insert ON zapp.voice_conversion_queue
   FOR INSERT TO authenticated
   WITH CHECK (requested_by = auth.uid() OR zapp.is_admin_or_supervisor(auth.uid()));
