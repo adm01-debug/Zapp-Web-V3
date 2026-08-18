@@ -153,7 +153,7 @@ export function QueuesView() {
               variant="outline"
               className="border-border/30 hover:bg-muted/30"
               // E67 (67.7): rota SLA única — navegação view-based dentro do
-              // shell (antes: navigate('/sla') para a página standalone).
+              // shell (antes: navegação direta para a página standalone).
               onClick={() =>
                 window.dispatchEvent(
                   new CustomEvent('navigate-view', { detail: 'sla' })

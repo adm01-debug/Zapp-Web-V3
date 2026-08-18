@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSLARules, SLARule, SLARuleScope } from '@/features/sla';
-import { useSLAScopeNames } from '@/hooks/useSLAScopeNames';
+import { useSLAScopeNames } from '@/features/sla/hooks/useSLAScopeNames';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
