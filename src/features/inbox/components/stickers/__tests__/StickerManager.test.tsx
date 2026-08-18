@@ -36,16 +36,16 @@ const mockLogger = vi.hoisted(() => ({
 const mockToast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), info: vi.fn() }));
 const mockFetchStickers = vi.hoisted(() => vi.fn());
 const mockUpdateFavorite = vi.hoisted(() =>
-  vi.fn(() => Promise.resolve({ data: null, error: null }))
+  vi.fn((..._args: unknown[]) => Promise.resolve({ data: null, error: null as Error | null }))
 );
 const mockDeleteSticker = vi.hoisted(() =>
-  vi.fn(() => Promise.resolve({ data: null, error: null }))
+  vi.fn((..._args: unknown[]) => Promise.resolve({ data: null, error: null as Error | null }))
 );
 const mockUpdateCategory = vi.hoisted(() =>
-  vi.fn(() => Promise.resolve({ data: null, error: null }))
+  vi.fn((..._args: unknown[]) => Promise.resolve({ data: null, error: null as Error | null }))
 );
 const mockIncrementUseCount = vi.hoisted(() =>
-  vi.fn(() => Promise.resolve({ data: null, error: null }))
+  vi.fn((..._args: unknown[]) => Promise.resolve({ data: null, error: null as Error | null }))
 );
 // Etapa 44/A8: helper canônico de upload (mockado para isolar o wiring).
 const mockUploadStickerFile = vi.hoisted(() => vi.fn());
