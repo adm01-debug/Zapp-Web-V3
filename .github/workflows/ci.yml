@@ -588,9 +588,12 @@ jobs:
           # o timeout matar (124). Exit rápido != 124 = falha real (imagem/mount/
           # crash de boot). Erros de parse são caçados no log COMPLETO — sem head,
           # que truncaria a mensagem de erro e mataria o pipe com SIGPIPE (141).
+          VOL="evo-gate6-$GITHUB_RUN_ID"
+          docker volume create "$VOL" >/dev/null
+          tar -C "$GITHUB_WORKSPACE/supabase/functions" -cf - . | docker run --rm -i -v "$VOL:/data" alpine:3.19 sh -c 'rm -rf /data/* /data/.* 2>/dev/null || true; tar -xf - -C /data'
           set +e
           timeout 90 docker run --rm \
-            -v "$GITHUB_WORKSPACE/supabase/functions:/home/deno/functions:ro" \
+            -v "$VOL:/home/deno/functions:ro" \
             -e SUPABASE_URL=http://localhost:8000 \
             -e SUPABASE_ANON_KEY=test-anon-key \
             -e SUPABASE_SERVICE_ROLE_KEY=test-service-role-key \
@@ -614,6 +617,7 @@ jobs:
             exit 1
           fi
           echo "Gate 6 OK: boot-check do main (closure do boot) sem erros de parse."
+          docker volume rm "$VOL" >/dev/null 2>&1 || true
 
       - name: Parse-check de TODAS as functions (fora do grafo do main)
         run: |
@@ -621,10 +625,14 @@ jobs:
           cd "$GITHUB_WORKSPACE"
           COUNT=$(find supabase/functions -name '*.ts' -not -path '*/__tests__/*' -not -name '*.spec.ts' -not -name '*.test.ts' | wc -l)
           echo "Parse de $COUNT arquivos .ts (deno cache, sem type-check)"
+          VOL="evo-deno-$GITHUB_RUN_ID"
+          docker volume create "$VOL" >/dev/null
+          trap 'docker volume rm "$VOL" >/dev/null 2>&1 || true' EXIT
+          tar -C "$GITHUB_WORKSPACE/supabase/functions" -cf - . | docker run --rm -i -v "$VOL:/data" alpine:3.19 sh -c 'rm -rf /data/* /data/.* 2>/dev/null || true; tar -xf - -C /data'
           for attempt in 1 2; do
             set +e
             timeout 240 docker run --rm \
-              -v "$GITHUB_WORKSPACE/supabase/functions:/home/deno/functions:ro" \
+              -v "$VOL:/home/deno/functions:ro" \
               denoland/deno:2.2.8 cache --no-config --no-lock \
               $(find supabase/functions -name '*.ts' -not -path '*/__tests__/*' -not -name '*.spec.ts' -not -name '*.test.ts' | sed 's|^supabase/functions/|/home/deno/functions/|') \
               >"$RUNNER_TEMP/deno-cache.log" 2>&1
