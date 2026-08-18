@@ -23,8 +23,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # [PG14-HARDENING 2026-08-18] Gate de parse: impede que o deploy copie código
+  # que o runtime não carrega (incidente 17/08 — _shared quebrado na main derrubou
+  # o supabase_functions). Usa a MESMA imagem do runtime de produção.
+  parse-gate:
+    name: Parse gate (edge-runtime v1.74.0)
+    runs-on: ubuntu-latest
+    container:
+      image: supabase/edge-runtime:v1.74.0
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Bundle do main/index.ts (cobre _shared transitivo)
+        run: |
+          set -euo pipefail
+          cd supabase/functions
+          deno bundle --check main/index.ts --output=/tmp/main.bundle.js
+
   deploy:
     name: Deploy edge functions (--apply --restart)
+    needs: [parse-gate]
     # Runner self-hosted da VPS (labels: self-hosted, linux, x64, vps-zapp;
     # a variante docker do runner também carrega a label 'docker').
     runs-on: [Linux, X64, vps-zapp]
