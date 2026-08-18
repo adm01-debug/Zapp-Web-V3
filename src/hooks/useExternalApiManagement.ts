@@ -70,14 +70,21 @@ export function useExternalContact360(phone: string | undefined) {
 
   return useQuery<Contact360Data | null>({
     queryKey: queryKeys.external.contact360(cleanedPhone),
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!cleanedPhone || cleanedPhone.length < 8) return null;
 
-      const { data, error } = await dbGet(RPC.getContact360ByPhone, {
-        p_phone: cleanedPhone,
-        // FIX 2026-08-03: partition pruning — reduz 23→1 partição em evolution_conversations
-        p_instance: ACTIVE_WHATSAPP_INSTANCE,
-      });
+      const { data, error } = await dbGet(
+        RPC.getContact360ByPhone,
+        {
+          p_phone: cleanedPhone,
+          // FIX 2026-08-03: partition pruning — reduz 23→1 partição em evolution_conversations
+          p_instance: ACTIVE_WHATSAPP_INSTANCE,
+        },
+        // Abort plumbing end-to-end: o signal do TanStack Query chega ao fetch
+        // PostgREST via dbGet/dbRpc — RPCs de conversas abandonadas são
+        // abortadas no cancelamento da query (não ficam na fila do browser).
+        { signal }
+      );
 
       if (error) {
         log.error('Error fetching external 360:', error);
@@ -107,12 +114,16 @@ export function useExternalContact360Batch(phones: string[]) {
 
   const query = useQuery<Map<string, CRMBatchResult>>({
     queryKey: queryKeys.external.contact360Batch(batchPhoneKey),
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (cleanedPhones.length === 0) return new Map();
 
-      const { data, error } = await dbRpc(RPC.getCompaniesByPhonesBatch, {
-        p_phones: cleanedPhones,
-      });
+      const { data, error } = await dbRpc(
+        RPC.getCompaniesByPhonesBatch,
+        {
+          p_phones: cleanedPhones,
+        },
+        { signal }
+      );
 
       if (error) {
         log.error('Batch CRM lookup error:', error);
