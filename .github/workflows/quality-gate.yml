@@ -41,7 +41,7 @@ jobs:
 
       - name: Install dependencies
         # HUSKY=0: husky v9 e ESM-only, quebra no Node antigo do runner self-hosted (E2E-04)
-        run: HUSKY=0 bun install
+        run: bun install --ignore-scripts  # HUSKY=0 nao funciona: node v10 em PATH crasha no ESM antes de ler env (E2E-04)
 
       - name: Lint (blocking — E02/F1-10)
         run: bun run lint
