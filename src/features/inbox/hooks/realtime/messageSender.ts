@@ -166,6 +166,25 @@ async function flushAuditBatch(): Promise<void> {
   await auditFlushInFlight;
 }
 
+// ── E34: dedup in-flight do envio ────────────────────────────────────────────
+// Duas chamadas simultâneas para a MESMA mensagem lógica (contato + tipo +
+// conteúdo + mídia — a mesma base do fingerprint de idempotência, + mediaPayload
+// para não colapsar áudios distintos sem mediaUrl) passam a compartilhar UMA
+// promise: 1 insert no zapp.messages e 1 fetch à Evolution. O registro é
+// removido no settle (finally) para que um reenvio intencional posterior
+// (retry manual, fila) nunca seja engolido — o dedup é APENAS in-flight.
+const sendInflight = new Map<string, Promise<SendMessageResult>>();
+
+function buildSendInflightKey(
+  contactId: string,
+  content: string,
+  messageType: string,
+  mediaUrl?: string,
+  mediaPayload?: string
+): string {
+  return [contactId, messageType, content, mediaUrl ?? '', mediaPayload ?? ''].join('\u0000');
+}
+
 /**
  * Sends a message: saves to DB, dispatches via Evolution API, updates status.
  */
@@ -173,6 +192,33 @@ export async function sendMessageToContact(
   contactId: string,
   content: string,
   messageType = 'text',
+  mediaUrl?: string,
+  mediaPayload?: string,
+  opts: { optimisticId?: string; conversationId?: string } = {}
+): Promise<SendMessageResult> {
+  // E34: coalesce envios simultâneos da mesma mensagem lógica (1 insert + 1
+  // fetch à Evolution); ambos os callers resolvem com o mesmo resultado.
+  const inflightKey = buildSendInflightKey(contactId, content, messageType, mediaUrl, mediaPayload);
+  const inflight = sendInflight.get(inflightKey);
+  if (inflight) return inflight;
+  const promise = sendMessageToContactInner(
+    contactId,
+    content,
+    messageType,
+    mediaUrl,
+    mediaPayload,
+    opts
+  ).finally(() => {
+    sendInflight.delete(inflightKey);
+  });
+  sendInflight.set(inflightKey, promise);
+  return promise;
+}
+
+async function sendMessageToContactInner(
+  contactId: string,
+  content: string,
+  messageType: string,
   mediaUrl?: string,
   mediaPayload?: string,
   opts: { optimisticId?: string; conversationId?: string } = {}
@@ -415,7 +461,12 @@ export async function sendMessageToContact(
           { contactId, source: 'messageSender' }
         );
       }
-      throw new Error(reason);
+      // E34: marca o erro como já persistido/emitido/auditado — o catch
+      // abaixo NÃO pode re-update (senão clobbera error_code e transforma
+      // 'failed' em 'failed_retries' com retry_attempt=3 espúrio).
+      const handledError = new Error(reason);
+      (handledError as Error & { __apiErrorHandled?: boolean }).__apiErrorHandled = true;
+      throw handledError;
     }
 
     const externalId = extractEvolutionMessageId(apiResult);
@@ -450,6 +501,11 @@ export async function sendMessageToContact(
     emitSendStatus(finalSid, { status: 'sent' }, { contactId, source: 'messageSender' });
   } catch (evolutionError) {
     log.error('Error sending via Evolution API:', evolutionError);
+    // E34: erro de API já persistido/emitido/auditado no branch acima —
+    // apenas repassa (evita double-update de status e perda do error_code).
+    if ((evolutionError as Error & { __apiErrorHandled?: boolean })?.__apiErrorHandled) {
+      throw evolutionError;
+    }
     const auth = classifyAuthError(evolutionError);
     const reason =
       evolutionError instanceof Error ? evolutionError.message : 'Falha ao enviar mensagem';

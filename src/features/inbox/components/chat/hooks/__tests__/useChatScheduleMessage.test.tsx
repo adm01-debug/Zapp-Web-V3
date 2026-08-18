@@ -155,3 +155,48 @@ describe('useChatScheduleMessage (CAMPANHAS-09)', () => {
     expect(result.current).toBe(first);
   });
 });
+
+describe('useChatScheduleMessage — E39: prazo máximo de agendamento (signed URL 7d)', () => {
+  it('E39.8 RED: agendamento com mídia para mais de 7 dias cria URL inválida — deve ser rejeitado', async () => {
+    mockUpload.mockResolvedValue({ error: null });
+    mockCreateSignedUrl.mockResolvedValue({ data: { signedUrl: 'https://signed/url' } });
+    const { result, onDone } = render();
+    const file = new File(['x'], 'a.png', { type: 'image/png' });
+    // 8 dias à frente > TTL da signed URL (604800s = 7 dias) → URL expira
+    // antes do envio agendado. O hook deve REJEITAR com erro claro.
+    const farFuture = new Date(Date.now() + 8 * 24 * 60 * 60 * 1000);
+
+    await act(async () => {
+      await result.current('Legenda', farFuture, file);
+    });
+
+    // RED (bug documentado): hoje agenda e cria URL quebrada.
+    expect(mockUpload).not.toHaveBeenCalled();
+    expect(mockCreateSignedUrl).not.toHaveBeenCalled();
+    expect(mockScheduleMessage).not.toHaveBeenCalled();
+    expect(onDone).not.toHaveBeenCalled();
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: expect.stringContaining('7 dias'),
+        variant: 'destructive',
+      })
+    );
+  });
+
+  it('E39.9 pin: agendamento com mídia DENTRO de 7 dias continua funcionando', async () => {
+    mockUpload.mockResolvedValue({ error: null });
+    mockCreateSignedUrl.mockResolvedValue({ data: { signedUrl: 'https://signed/ok' } });
+    const { result, onDone } = render();
+    const file = new File(['x'], 'a.png', { type: 'image/png' });
+    const within7d = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000);
+
+    await act(async () => {
+      await result.current('Legenda', within7d, file);
+    });
+
+    expect(mockScheduleMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ messageType: 'image', mediaUrl: 'https://signed/ok' })
+    );
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+});

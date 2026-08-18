@@ -21,6 +21,7 @@ import { dbInsert } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { sendText, sendMedia, sendPtv } from '@/lib/whatsappAdapter';
 import { buildSendIdempotencyKeyFromFingerprint } from '@/lib/sendIdempotency';
+import { emitSendStatus } from './sendStatusBus';
 import {
   DEFAULT_INSTANCE,
   SendError,
@@ -54,6 +55,8 @@ export async function sendExternalText(
   const optimistic = makeOptimisticBubble(remoteJid, content, {
     contactAvatar: opts.contactAvatar,
   });
+  // Status transitório no bus — a UI troca a bolha para "enviando" imediatamente.
+  emitSendStatus(optimistic.id, { status: 'sending' }, { contactId: remoteJid, source: 'send-text' });
 
   // Log de auditoria (Evolution DB)
   logAudit(RPC.rpc_log_service_event, {
@@ -82,6 +85,11 @@ export async function sendExternalText(
   if (error) {
     log.error('evolution-api send-text failed', error);
     const info = parseEvolutionError(error);
+    emitSendStatus(
+      optimistic.id,
+      { status: 'failed', errorCode: info.status, errorReason: info.reason },
+      { contactId: remoteJid, source: 'send-text' }
+    );
 
     logAudit(RPC.rpc_log_service_event, {
       p_instance: instance,
@@ -106,6 +114,11 @@ export async function sendExternalText(
   if (envelope?.error) {
     log.error('evolution-api send-text error envelope', envelope);
     const info = parseEvolutionError(envelope);
+    emitSendStatus(
+      optimistic.id,
+      { status: 'failed', errorCode: info.status, errorReason: info.reason },
+      { contactId: remoteJid, source: 'send-text' }
+    );
 
     logAudit(RPC.rpc_log_service_event, {
       p_instance: instance,
@@ -122,6 +135,7 @@ export async function sendExternalText(
   const externalId = envelope?.key?.id ?? null;
   optimistic.external_id = externalId;
   optimistic.status = 'sent';
+  emitSendStatus(optimistic.id, { status: 'sent' }, { contactId: remoteJid, source: 'send-text' });
   return { optimistic, externalId };
 }
 

@@ -4,7 +4,7 @@
 // Evolution (`version` + `key.{id,remoteJid,fromMe}` / `{error:true,status,message,details}`),
 // e envios outbound persistem no mesmo ledger (`evolution_send_idempotency`) e na
 // mesma fila (DLQ `failed_messages`) que o proxy Evolution.
-import { createZappClient } from '../_shared/db-client.ts';
+import { createZappClient, createZappAdminClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
@@ -121,6 +121,27 @@ Deno.serve(async (req) => {
   const parsed = parseOrReject('whatsapp-cloud-send', CONTRACT_SCHEMAS['whatsapp-cloud-send'], req, raw, { extraHeaders: getCorsHeaders(req) });
   if (parsed.ok === false) return parsed.response;
   const p = parsed.data as Record<string, any>;
+
+  // [R1-EXT/F2] Gate de alvo com exceção de bootstrap (Regra A/E): contato
+  // EXISTE no banco e não é visível/fila/admin → 403 SEND_FORBIDDEN;
+  // contato INEXISTENTE → permite (número novo/não sincronizado).
+  if (typeof p.to === "string" && p.to.trim()) {
+    const admin = createZappAdminClient();
+    const isJid = p.to.includes("@");
+    let q = admin.from("evolution_contacts").select("id").eq("deleted_at", null);
+    q = isJid ? q.eq("remote_jid", p.to) : q.eq("phone_number", p.to.replace(/[^0-9]/g, ""));
+    const { data: contato } = await q.maybeSingle();
+    if (contato) {
+      const [{ data: visivel }, { data: naFila }, { data: isAdmin }] = await Promise.all([
+        admin.rpc("is_contact_visible_to_user", { _contact_id: contato.id, _user_id: authedUserId }),
+        admin.rpc("is_queue_member_of_contact", { _contact_id: contato.id, _user_id: authedUserId }),
+        admin.rpc("is_admin_or_supervisor", { _user_id: authedUserId }),
+      ]);
+      if (!(visivel || naFila || isAdmin)) {
+        return jsonResponse({ version: EVOLUTION_ENVELOPE_VERSION, contract: "whatsapp-cloud-send@v1", error: true, status: 403, code: "SEND_FORBIDDEN", message: "Você não tem acesso a esta conversa.", details: [{ path: "to", message: "Acesso negado: conversa não visível ao usuário" }] }, 403);
+      }
+    }
+  }
 
   // Special case: marking messages as read uses the same /messages endpoint
   // but with a different payload shape (no `to`, requires status=read + message_id).
