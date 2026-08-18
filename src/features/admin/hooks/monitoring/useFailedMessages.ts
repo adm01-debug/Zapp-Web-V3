@@ -2,7 +2,7 @@ import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database } from '@/integrations/supabase/schema';
 
 import { useUserRole } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
@@ -33,6 +33,16 @@ const log = getLogger('useFailedMessages');
 type _CursorArgs = Database['zapp']['Functions']['rpc_list_failed_messages_cursor']['Args'];
 type _CursorArgsNullable = {
   [K in keyof _CursorArgs]: _CursorArgs[K] | null;
+};
+// Contrato wide: a RPC viva aceita filtros além dos modelados no types gerado
+// (p_status/p_instance/p_search/p_from/p_to — espelho do pg_get_functiondef real).
+type _CursorArgsWide = _CursorArgsNullable & {
+  p_status?: string[] | null;
+  p_instance?: string | null;
+  p_search?: string | null;
+  p_from?: string | null;
+  p_to?: string | null;
+  p_cursor_id?: string | null;
 };
 
 const ADMIN_ONLY_MSG = 'Ação restrita a administradores.';
@@ -88,7 +98,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     queryKey,
     queryFn: async () => {
       // E60: `_CursorArgsNullable` documenta o contrato real da SQL (NULL = sem filtro).
-      const args: _CursorArgsNullable = {
+      const args: _CursorArgsWide = {
         p_status: status ? [status] : null,
         p_instance: instance,
         p_search: search,
