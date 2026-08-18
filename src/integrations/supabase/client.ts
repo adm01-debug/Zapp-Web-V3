@@ -405,29 +405,139 @@ function reportRealFailure(err: unknown): void {
  *
  * Requisições de auth NUNCA passam pelo semáforo (já são bypass no retryFetch). */
 const SUPABASE_MAX_CONCURRENT = 8; // 2026-08-04: 4→8 (semáforo saturado em prod)
+
+// ---------------------------------------------------------------------------
+// Timeout de espera na fila do semáforo (FIX incidente 18/08 22:09Z).
+//
+// O incidente de referência mostrou 104 RPCs com durations 4→39s lineares:
+// a cauda da fila esperava dezenas de segundos por um slot (48+ RPCs na fila,
+// 8 slots, dreno serial). O DB estava rápido (EXPLAIN ≤13ms) — o gargalo era
+// a ESPERA na fila JS, não a query.
+//
+// Com QUEUE_WAIT_TIMEOUT_MS, qualquer acquire que espere mais de 15s por um
+// slot rejeita com SupabaseQueueTimeoutError (falha rápida) e SAI da fila —
+// a cauda de 39s vira erro em 15s. O erro NÃO é retentado pelo withRetry
+// (não é TypeError/TimeoutError/RetryableHttpError) e NÃO acusa o monitor de
+// conectividade (reportRealFailure só trata TimeoutError/TypeError); o retry
+// natural vem do TanStack Query, que re-dispara a query com backoff quando a
+// fila drena.
+//
+// O timeout NÃO libera slot: a entrada na fila nunca teve slot (só resume()
+// incrementa _supabaseInFlight) — ela é apenas removida da fila e rejeitada.
+// ---------------------------------------------------------------------------
+export const QUEUE_WAIT_TIMEOUT_MS = 15_000;
+
 let _supabaseInFlight = 0;
-const _supabaseQueue: Array<{ resume: () => void; priority: 'normal' | 'high' }> = [];
+
+interface SupabaseQueueEntry {
+  resume: () => void;
+  reject: (err: unknown) => void;
+  priority: 'normal' | 'high';
+  timer: ReturnType<typeof setTimeout> | undefined;
+  /** Guarda de duplo-settle: resume/timeout/abort marcam settled UMA vez. */
+  settled: boolean;
+}
+
+const _supabaseQueue: SupabaseQueueEntry[] = [];
+
+/** Erro sintético de abort compatível com DOMException onde disponível. */
+const makeAbortError = (reason: string): Error =>
+  typeof DOMException !== 'undefined'
+    ? new DOMException(reason, 'AbortError')
+    : Object.assign(new Error(reason), { name: 'AbortError' });
+
+/** Erro sintético de timeout de fila — NÃO é AbortError nem TimeoutError (sem retry). */
+const makeQueueTimeoutError = (): Error =>
+  Object.assign(new Error('Supabase queue wait timed out'), {
+    name: 'SupabaseQueueTimeoutError',
+  });
 
 // Cleanup on page unload: evita memory leak por promises órfãs
 // e garante que a fila não cresça sem limite em SPAs com navegação rápida.
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
+    const unloadError = makeAbortError('Page unload');
+    for (const entry of _supabaseQueue) {
+      if (entry.settled) continue;
+      if (entry.timer !== undefined) clearTimeout(entry.timer);
+      // entry.reject marca settled internamente — NÃO setar settled antes,
+      // senão o guard do reject engole o erro e a Promise fica pendurada.
+      entry.reject(unloadError);
+    }
     _supabaseQueue.length = 0;
     _supabaseInFlight = 0;
   }, { once: true });
 }
 
-function _acquireSupabaseSlot(opts?: { priority?: 'normal' | 'high' }): Promise<void> {
+function _acquireSupabaseSlot(opts?: {
+  priority?: 'normal' | 'high';
+  signal?: AbortSignal | null;
+}): Promise<void> {
   const priority = opts?.priority ?? 'normal';
+  const signal = opts?.signal ?? null;
+
+  // Signal já abortado ANTES do acquire: rejeita imediatamente, sem consumir
+  // slot nem criar timer (caller cancelado não pode ocupar capacidade).
+  if (signal?.aborted) {
+    return Promise.reject(makeAbortError('Supabase slot acquire aborted'));
+  }
+
   if (_supabaseInFlight < SUPABASE_MAX_CONCURRENT) {
     _supabaseInFlight++;
     return Promise.resolve();
   }
-  return new Promise<void>((resolve) => {
-    const entry = {
-      resume: () => { _supabaseInFlight++; resolve(); },
+
+  return new Promise<void>((resolve, reject) => {
+    const entry: SupabaseQueueEntry = {
+      resume: () => {
+        // settled guard: se timeout/abort já settleou (mesmo tick do timer),
+        // este resume é de uma entrada morta — no-op.
+        if (entry.settled) return;
+        entry.settled = true;
+        if (entry.timer !== undefined) clearTimeout(entry.timer);
+        signal?.removeEventListener('abort', onAbort);
+        _supabaseInFlight++;
+        resolve();
+      },
+      reject: (err: unknown) => {
+        // settled guard: se o release já resumiu, reject é no-op (evita
+        // duplo-settle e unhandled rejection de entrada viva).
+        if (entry.settled) return;
+        entry.settled = true;
+        if (entry.timer !== undefined) clearTimeout(entry.timer);
+        signal?.removeEventListener('abort', onAbort);
+        reject(err);
+      },
       priority,
+      timer: undefined,
+      settled: false,
     };
+
+    /** Remove a entrada da fila por identidade — preserva a ordem dos demais. */
+    const removeFromQueue = () => {
+      const idx = _supabaseQueue.indexOf(entry);
+      if (idx >= 0) _supabaseQueue.splice(idx, 1);
+    };
+
+    /** Abort do caller durante a espera: mesma semântica do timeout. */
+    const onAbort = () => {
+      entry.reject(makeAbortError('Supabase slot acquire aborted'));
+      removeFromQueue();
+    };
+
+    // Timeout de espera na fila: rejeita e REMOVE a entrada. NÃO libera slot
+    // (a entrada nunca teve slot — só resume() incrementa _supabaseInFlight).
+    entry.timer = setTimeout(() => {
+      entry.reject(makeQueueTimeoutError());
+      removeFromQueue();
+    }, QUEUE_WAIT_TIMEOUT_MS);
+
+    if (signal) {
+      // AbortError de fila NÃO é retentado (TanStack não retenta abort e
+      // shouldRetryFetchError retorna false para AbortError).
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+
     if (priority === 'high') {
       // Fura a fila: insere após o último high-priority (antes dos normal).
       // Usa loop reverso manual em vez de findLastIndex() para compatibilidade
@@ -467,9 +577,10 @@ function _releaseSupabaseSlot(): void {
 // ---------------------------------------------------------------------------
 /** Adquire um slot do semáforo de concorrência; retorna a função de release (chamar UMA vez, em finally). */
 export async function acquireSupabaseSlot(
-  priority: 'normal' | 'high' = 'normal'
+  priority: 'normal' | 'high' = 'normal',
+  signal?: AbortSignal | null
 ): Promise<() => void> {
-  await _acquireSupabaseSlot({ priority });
+  await _acquireSupabaseSlot({ priority, signal });
   // Guarda de idempotência (FIX validação 2026-08-07): release duplicado
   // decrementaria o contador 2x e corromperia o semáforo (8 slots → 7 → ...).
   // Chamadas adicionais ao release são no-op.
@@ -552,7 +663,15 @@ export const retryFetch: typeof fetch = async (input, init) => {
   // Evita que 10+ RPCs simultâneas saturem o pool TCP e o Supavisor.
   // Prioridade high (contexto withSupabaseHighPriority, contador de
   // profundidade) fura a fila FIFO.
-  await _acquireSupabaseSlot({ priority: _highPriorityDepth > 0 ? 'high' : 'normal' });
+  // O signal do caller é repassado ao acquire: se o caller abortar durante a
+  // ESPERA NA FILA, o acquire rejeita com AbortError (sem retry). O fetch em
+  // si continua sem o signal do caller (ver BUG FIX 2026-08-03 no boundedFetch).
+  // Se o acquire rejeitar (timeout de fila/abort), o try abaixo não roda e o
+  // finally não libera slot — correto, a entrada nunca teve slot.
+  await _acquireSupabaseSlot({
+    priority: _highPriorityDepth > 0 ? 'high' : 'normal',
+    signal: init?.signal,
+  });
   try {
     return await withRetry(
       async () => {

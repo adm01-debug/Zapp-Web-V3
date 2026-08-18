@@ -81,6 +81,20 @@ interface ListMessagesLiteParams {
   p_before_date?: string | null;
 }
 
+interface SLATimelineAggregateParams {
+  p_remote_jid: string;
+  /** Omitir (null) para agregar msgs de TODAS as instâncias do JID. */
+  p_instance?: string | null;
+}
+
+/** Linha de zapp.rpc_sla_timeline_aggregate — sempre 1 linha (NULLs quando vazio). */
+export interface SLATimelineAggregateRow {
+  first_inbound_at: string | null;
+  first_outbound_at: string | null;
+  last_message_at: string | null;
+  total_messages: number;
+}
+
 interface ListConversationsParams {
   /** Omitir (null) para retornar conversas de TODAS as instâncias. */
   p_instance?: string | null;
@@ -448,6 +462,12 @@ export const RPC = {
     name: 'rpc_list_messages_lite',
     client: 'lovable',
     // sem default — passe p_instance do contexto da conversa
+  }),
+
+  slaTimelineAggregate: def<SLATimelineAggregateParams, SLATimelineAggregateRow>({
+    name: 'rpc_sla_timeline_aggregate',
+    client: 'lovable',
+    // sem default — passe p_instance do contexto da conversa quando quiser pruning
   }),
 
   inboxPreviewBatch: def<InboxPreviewBatchParams, unknown>({

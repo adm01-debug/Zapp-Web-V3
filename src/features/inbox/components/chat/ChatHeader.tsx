@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { isFeatureEnabled } from '@/lib/featureFlags';
 import { VisionIcon } from '../ai-tools/VisionIcon';
@@ -87,6 +87,48 @@ export const ChatHeader = memo(function ChatHeader({
   const { avatarUrl } = useContactAvatar(conversation.contact.remote_jid, conversation.contact.avatar);
   const { density, cycleDensity } = useDensity();
 
+  // ─── A4: retry de avatar (1 tentativa após ~800ms, depois placeholder) ─────
+  // idle → backoff (AvatarImage desmontado → iniciais visíveis) → retrying
+  // (remount com key nova força novo preload) → failed (estado final = fallback
+  // de iniciais preservado, sem <img>). NOTA (radix-avatar 1.2.x): o preload é
+  // via `new Image()` e o onError inline antigo nunca disparava — o gatilho real
+  // é onLoadingStatusChange('error') + remount via key. Retry só nasce desse
+  // callback (re-render não re-dispara); troca de conversa (URL nova) reseta.
+  const [avatarPhase, setAvatarPhase] = useState<'idle' | 'backoff' | 'retrying' | 'failed'>('idle');
+  const [avatarSrc, setAvatarSrc] = useState<string | undefined>(avatarUrl || undefined);
+  const avatarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setAvatarPhase('idle');
+    setAvatarSrc(avatarUrl || undefined);
+    return () => {
+      if (avatarTimerRef.current) {
+        clearTimeout(avatarTimerRef.current);
+        avatarTimerRef.current = null;
+      }
+    };
+  }, [avatarUrl]);
+
+  const handleAvatarStatus = (status: string) => {
+    if (status !== 'error' || !avatarUrl) return;
+    if (avatarPhase === 'failed' || avatarPhase === 'backoff') return;
+    if (avatarPhase === 'retrying') {
+      // 2º erro: placeholder explícito — sem <img>, AvatarFallback (iniciais).
+      setAvatarPhase('failed');
+      setAvatarSrc(undefined);
+      return;
+    }
+    // 1º erro: fallback imediato + 1 retry agendado (~800ms).
+    setAvatarPhase('backoff');
+    setAvatarSrc(undefined);
+    if (avatarTimerRef.current) clearTimeout(avatarTimerRef.current);
+    avatarTimerRef.current = setTimeout(() => {
+      avatarTimerRef.current = null;
+      setAvatarPhase('retrying');
+      setAvatarSrc(avatarUrl || undefined);
+    }, 800);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -111,15 +153,17 @@ export const ChatHeader = memo(function ChatHeader({
         )}
         <motion.div whileHover={{ scale: 1.05 }} className="group relative cursor-pointer">
           <Avatar className="h-[44px] w-[44px] border border-border/10 shadow-xl ring-2 ring-background transition-shadow group-hover:shadow-primary/20">
-            <AvatarImage
-              src={avatarUrl || undefined}
-              alt={conversation.contact.name ?? undefined}
-              referrerPolicy="no-referrer"
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).removeAttribute('src');
-              }}
-            />
+            {avatarPhase !== 'failed' && avatarPhase !== 'backoff' && (
+              <AvatarImage
+                key={avatarPhase === 'retrying' ? 'avatar-retry' : 'avatar-initial'}
+                src={avatarSrc}
+                alt={conversation.contact.name ?? undefined}
+                referrerPolicy="no-referrer"
+                className="h-full w-full object-cover"
+                onError={() => handleAvatarStatus('error')}
+                onLoadingStatusChange={handleAvatarStatus}
+              />
+            )}
             <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-[11px] font-black uppercase text-primary">
               {(conversation.contact.name ?? '')
                 .split(' ')

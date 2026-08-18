@@ -1,4 +1,4 @@
-import { useState, memo, useMemo } from 'react';
+import { useState, memo, useMemo, useEffect, useRef } from 'react';
 import { AnimatePresence } from '@/components/ui/motion';
 import { cn } from '@/lib/utils';
 import { Reply, Forward, Copy } from 'lucide-react';
@@ -84,6 +84,50 @@ export const MessageBubble = memo(function MessageBubble({
   const isSent = message.sender === 'agent';
   const senderName = isSent ? 'Você' : message.senderName || 'Contato';
   const { avatarUrl } = useContactAvatar(contactJid, message.contactAvatar || contactAvatar);
+
+  // ─── A4: retry de avatar (1 tentativa após ~800ms, depois placeholder) ─────
+  // Máquina de estados por URL: idle → backoff (AvatarImage desmontado →
+  // fallback de iniciais visível) → retrying (remount com key nova força novo
+  // preload) → failed (estado final = sem <img>, iniciais preservadas).
+  // NOTA (radix-avatar 1.2.x): o AvatarImage pré-carrega via `new Image()` e só
+  // renderiza o <img> quando `loaded` — o antigo onError inline nunca disparava
+  // (era código morto). O gatilho real é onLoadingStatusChange('error') +
+  // remount via key para re-disparar o preload. Re-render não re-dispara nada;
+  // troca de URL/mensagem/conversa reseta via efeito.
+  const [avatarPhase, setAvatarPhase] = useState<'idle' | 'backoff' | 'retrying' | 'failed'>('idle');
+  const [avatarSrc, setAvatarSrc] = useState<string | undefined>(avatarUrl || undefined);
+  const avatarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setAvatarPhase('idle');
+    setAvatarSrc(avatarUrl || undefined);
+    return () => {
+      if (avatarTimerRef.current) {
+        clearTimeout(avatarTimerRef.current);
+        avatarTimerRef.current = null;
+      }
+    };
+  }, [avatarUrl]);
+
+  const handleAvatarStatus = (status: string) => {
+    if (status !== 'error' || !avatarUrl) return;
+    if (avatarPhase === 'failed' || avatarPhase === 'backoff') return;
+    if (avatarPhase === 'retrying') {
+      // 2º erro: placeholder explícito — AvatarImage desmontado, iniciais.
+      setAvatarPhase('failed');
+      setAvatarSrc(undefined);
+      return;
+    }
+    // 1º erro: fallback imediato + 1 retry agendado (~800ms).
+    setAvatarPhase('backoff');
+    setAvatarSrc(undefined);
+    if (avatarTimerRef.current) clearTimeout(avatarTimerRef.current);
+    avatarTimerRef.current = setTimeout(() => {
+      avatarTimerRef.current = null;
+      setAvatarPhase('retrying');
+      setAvatarSrc(avatarUrl || undefined);
+    }, 800);
+  };
 
   const isFailedTerminal =
     isSent &&
@@ -173,12 +217,16 @@ export const MessageBubble = memo(function MessageBubble({
           <div className="w-[36px] shrink-0">
             {isLastInGroup && (
               <Avatar className="h-[36px] w-[36px] border border-border/10 shadow-sm ring-2 ring-background">
-                <AvatarImage
-                  src={avatarUrl || undefined}
-                  alt={senderName}
-                  referrerPolicy="no-referrer"
-                  onError={(e) => (e.target as HTMLImageElement).removeAttribute('src')}
-                />
+                {avatarPhase !== 'failed' && avatarPhase !== 'backoff' && (
+                  <AvatarImage
+                    key={avatarPhase === 'retrying' ? 'avatar-retry' : 'avatar-initial'}
+                    src={avatarSrc}
+                    alt={senderName}
+                    referrerPolicy="no-referrer"
+                    onError={() => handleAvatarStatus('error')}
+                    onLoadingStatusChange={handleAvatarStatus}
+                  />
+                )}
                 <AvatarFallback className="bg-gradient-to-br from-muted to-muted/60 text-[10px] font-bold uppercase text-muted-foreground">
                   {senderName.slice(0, 2)}
                 </AvatarFallback>

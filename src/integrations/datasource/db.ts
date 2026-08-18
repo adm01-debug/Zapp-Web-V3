@@ -106,12 +106,34 @@ function rpcClient(client: DatasourceClient): SupabaseClient {
 }
 
 type DynamicRpcClient = {
-  rpc(name: string, params: Record<string, unknown>): Promise<{ data: unknown; error: unknown }>;
+  rpc(name: string, params: Record<string, unknown>): DynamicRpcBuilder;
 };
+
+/**
+ * Builder PostgREST retornado por `supabase.rpc(...)` (supabase-js >= 2.38 /
+ * postgrest-js >= 1.8): é thenable (`Promise<{data, error}>`) e expõe
+ * `abortSignal(signal)` para abortar o fetch. Mocks de teste e clients que
+ * retornam Promise pura não têm `abortSignal` — o guard no call site cobre isso.
+ */
+type DynamicRpcBuilder = {
+  abortSignal?: (signal: AbortSignal) => Promise<{ data: unknown; error: unknown }>;
+} & Promise<{ data: unknown; error: unknown }>;
+
+export interface DbRpcOptions {
+  /**
+   * AbortSignal do TanStack Query (queryFn `({ signal })`). Ao cancelar a query
+   * (unmount + GC, cancelQueries, refetch com cancelRefetch), o TanStack aborta
+   * este signal → o fetch PostgREST é abortado de verdade. Sem isto, RPCs de
+   * conversas abandonadas continuavam na fila do browser (incidente: navegação
+   * rápida enfileirou 100+ RPCs órfãs).
+   */
+  signal?: AbortSignal;
+}
 
 export async function dbRpc<P extends object, R>(
   def: RpcDefinition<P, R>,
-  params: P
+  params: P,
+  opts?: DbRpcOptions
 ): Promise<DbRpcResult<R>> {
   validateRpcAccess(def.name, def.client);
   const client = rpcClient(def.client);
@@ -124,10 +146,18 @@ export async function dbRpc<P extends object, R>(
   const source = def.client === 'external' ? 'selfHosted' : 'lovableCloud';
 
   try {
-    const { data, error } = await (client as unknown as DynamicRpcClient).rpc(
+    const builder = (client as unknown as DynamicRpcClient).rpc(
       def.name,
       merged as Record<string, unknown>
     );
+    // Abort plumbing end-to-end: aplica o signal ao builder PostgREST quando
+    // disponível (supabase-js >= 2.38). Sem signal (backward compat) ou com
+    // builder sem `abortSignal` (mocks/Promise pura), mantém o caminho antigo.
+    const request =
+      opts?.signal && typeof builder.abortSignal === 'function'
+        ? builder.abortSignal(opts.signal)
+        : builder;
+    const { data, error } = await request;
     const durationMs = Math.round(performance.now() - startedAt);
     const errorMessage = error
       ? ((error as { message?: string }).message ?? 'rpc error')
@@ -153,7 +183,12 @@ export async function dbRpc<P extends object, R>(
     const durationMs = Math.round(performance.now() - startedAt);
     const message = (err as Error)?.message ?? 'rpc error';
     const isTimeout = (err as Error)?.name === 'TimeoutError' || /timeout/i.test(message);
-
+    // AbortError (cancelamento de query via signal / page unload): NÃO existe
+    // categoria 'abort' em Severity ('ok' | 'slow' | 'very_slow' | 'timeout' |
+    // 'error'). A classificação fica a cargo do recordQueryEvent (Etapa 24):
+    // mensagens contendo /abort/i são rebaixadas para 'ok' — abort NUNCA vira
+    // telemetria 'error'. O erro é re-lançado para o TanStack Query tratá-lo
+    // como cancelamento silencioso (sem retry, sem estado de erro).
     recordQueryEvent({
       operation: 'rpc',
       source,
@@ -175,17 +210,20 @@ export async function dbRpc<P extends object, R>(
 /** Lista (RPC que retorna array). Alias semântico de `dbRpc`. */
 export const dbList = <P extends object, R>(
   def: RpcDefinition<P, R[]>,
-  params: P
-): Promise<DbRpcResult<R[]>> => dbRpc<P, R[]>(def, params);
+  params: P,
+  opts?: DbRpcOptions
+): Promise<DbRpcResult<R[]>> => dbRpc<P, R[]>(def, params, opts);
 
 /** Busca individual (RPC que retorna single row). Alias semântico de `dbRpc`. */
 export const dbGet = <P extends object, R>(
   def: RpcDefinition<P, R>,
-  params: P
-): Promise<DbRpcResult<R>> => dbRpc<P, R>(def, params);
+  params: P,
+  opts?: DbRpcOptions
+): Promise<DbRpcResult<R>> => dbRpc<P, R>(def, params, opts);
 
 /** Inserção/escrita (RPC mutation). Alias semântico de `dbRpc`. */
 export const dbInsert = <P extends object, R>(
   def: RpcDefinition<P, R>,
-  params: P
-): Promise<DbRpcResult<R>> => dbRpc<P, R>(def, params);
+  params: P,
+  opts?: DbRpcOptions
+): Promise<DbRpcResult<R>> => dbRpc<P, R>(def, params, opts);

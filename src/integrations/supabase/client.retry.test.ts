@@ -122,6 +122,10 @@ describe('retryFetch — retry policy (F9-04)', () => {
     await vi.advanceTimersByTimeAsync(10_000);
 
     await assertion;
-    expect(calls.filter((u) => u.includes('/rest/v1/contacts'))).toHaveLength(1);
+    // Signal pré-abortado nem chega ao fetch: o acquire do semáforo rejeita
+    // imediato com AbortError (FIX 18/08 — entrada abortada não consome slot
+    // nem dispara request). Antes, o fetch disparava 1x e o AbortError era
+    // filtrado no retry.
+    expect(calls.filter((u) => u.includes('/rest/v1/contacts'))).toHaveLength(0);
   });
 });

@@ -32,8 +32,13 @@ interface LoginAttemptStatus {
   attempts: number;
 }
 
-const MAX_ATTEMPTS = 5;
-const MAX_LOCK_EXPONENT = 10;
+/** Resultado da RPC atômica zapp.fn_login_attempt_record_failed (jsonb). */
+interface AtomicRecordResult {
+  attempt_count: number;
+  locked_until: string | null;
+  last_attempt_at: string;
+  is_locked: boolean;
+}
 
 const normalizeEmail = (value: unknown): string | null => {
   const email = sanitizeString(value, 255)?.toLowerCase();
@@ -52,12 +57,6 @@ const toStatus = (row: LoginAttemptRow | null): LoginAttemptStatus => {
     locked_until: isLocked ? row.locked_until : null,
     attempts: row.attempt_count,
   };
-};
-
-const nextLockUntil = (attempts: number): string | null => {
-  if (attempts < MAX_ATTEMPTS) return null;
-  const minutes = 2 ** Math.min(attempts - MAX_ATTEMPTS, MAX_LOCK_EXPONENT);
-  return new Date(Date.now() + minutes * 60_000).toISOString();
 };
 
 Deno.serve(async (req) => {
@@ -124,17 +123,18 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: true }, 200, req);
     }
 
-    const { data: existing, error: selectError } = await admin
-      .from("login_attempts")
-      .select("attempt_count, locked_until, last_attempt_at")
-      .eq("email", email)
-      .maybeSingle<LoginAttemptRow>();
-
-    if (selectError) {
-      return errorResponse("Não foi possível verificar tentativas", 500, req);
-    }
-
     if (action === "check") {
+      // Leitura pura (sem race): SELECT direto preservado.
+      const { data: existing, error: selectError } = await admin
+        .from("login_attempts")
+        .select("attempt_count, locked_until, last_attempt_at")
+        .eq("email", email)
+        .maybeSingle<LoginAttemptRow>();
+
+      if (selectError) {
+        return errorResponse("Não foi possível verificar tentativas", 500, req);
+      }
+
       // Resposta estendida (SEGURANCA-04/05): `country`/`geo_unavailable` para
       // observabilidade do gate de segurança (contrato de request inalterado).
       return jsonResponse(
@@ -148,36 +148,38 @@ Deno.serve(async (req) => {
       );
     }
 
-    // FIX 2026-07-16: NAO resetar attempt_count quando o lock expira.
-    // Bug anterior: `previousLockExpired=true` resetava para 1, quebrando
-    // a escalacao exponencial. O lock sempre durava 1 minuto.
-    // Fix: incrementar sempre se o row existir; reset so via action='clear'
-    // (chamada apos login bem-sucedido que deleta o row).
-    // Resultado: Ciclo1->1min, Ciclo2->32min, Ciclo3->1024min (~17h).
-    const attempts = existing ? existing.attempt_count + 1 : 1;
-    const lockedUntil = nextLockUntil(attempts);
+    // ── record_failed (ação padrão do fluxo) ────────────────────────────────
+    // AGENTE A3 (2026-08-19): caminho antigo SELECT → compute(+1) → upsert
+    // removido (race: 2 falhas simultâneas contavam 1). Agora a gravação é uma
+    // RPC atômica no DB: zapp.fn_login_attempt_record_failed faz
+    // INSERT ... ON CONFLICT (email) DO UPDATE SET attempt_count = +1
+    // (lock de linha — CADA chamada conta, mesmo concorrente).
+    //
+    // Regras preservadas (agora no SQL, copiadas da edge FIX 2026-07-16):
+    //   • lock só a partir da 5ª falha; escalação 2^(n-5) min, teto 2^10;
+    //   • lock expirado NÃO reseta o contador (incremento sempre);
+    //   • reset só via action='clear' (deleta a linha).
+    // Fail-closed preservado: erro de RPC → 500 → front trata como
+    // lock_check_failed (bloqueia login — nunca declara desbloqueado).
     const userAgent = sanitizeString(body.userAgent, 500);
+    const { data, error: rpcError } = await admin.rpc("fn_login_attempt_record_failed", {
+      p_email: email,
+      p_ip_address: ip === "unknown" ? null : ip,
+      p_user_agent: userAgent,
+    });
 
-    const { error: upsertError } = await admin.from("login_attempts").upsert(
-      {
-        email,
-        ip_address: ip === "unknown" ? null : ip,
-        user_agent: userAgent,
-        attempt_count: attempts,
-        last_attempt_at: new Date().toISOString(),
-        locked_until: lockedUntil,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "email" },
-    );
-
-    if (upsertError) {
+    if (rpcError) {
+      console.error(`[login-attempts] record_failed rpc error: ${rpcError.message}`);
       return errorResponse("Não foi possível registrar tentativa", 500, req);
     }
 
+    const result = (data ?? null) as AtomicRecordResult | null;
+    const attempts = result?.attempt_count ?? 0;
+    const lockedUntil = result?.locked_until ?? null;
+
     return jsonResponse(
       {
-        is_locked: lockedUntil !== null,
+        is_locked: result?.is_locked ?? (lockedUntil !== null),
         locked_until: lockedUntil,
         attempts,
         country: gate.country,
