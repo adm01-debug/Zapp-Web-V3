@@ -610,6 +610,8 @@ Arquivos externos a `src/features/inbox/hooks/` que importam diretamente:
 | `useInboxDeepLinks.ts` | PARCIAL | URL params `?contact=`/`?message=`; `window.__pendingOpenContactId`; consumo único com guard (E40); coberto por `useInboxDeepLinks.test.ts` |
 | `useInboxFilters.ts` | PARCIAL | Pipeline de filtros; STORAGE_KEY='inbox_filters_v1'; preset sync |
 | `useInboxHeartbeat.ts` | PARCIAL | THROTTLE_MS=240s; profiles.online_status + last_seen |
+| `useInboxShortcuts.ts` | PARCIAL | react-hotkeys-hook; atalhos de teclado |
+| `useInboxSource.ts` | COMPLETA | Dual-path zapp×evo por configuração (VITE_INBOX_SOURCE_MODE: evo/zapp/auto+fallback telemetrado) — ADR `docs/adr/dual-path-inbox.md`; testado em `__tests__/useInboxSource.test.tsx` (E36) |
 | `useInboxShortcuts.ts` | PARCIAL | react-hotkeys-hook; atalhos de teclado; '/' com useKey (E40, bug do code 'Slash'); coberto por `useInboxShortcuts.test.ts` |
 | `useInboxSource.ts` | PARCIAL | Wraps useRealtimeMessages + useMessages; interface unificada |
 | `useInboxStatusPref.ts` | COMPLETA | localStorage; STORAGE_KEY='inbox-status-label-visible'; custom DOM event |
@@ -687,8 +689,8 @@ Arquivos externos a `src/features/inbox/hooks/` que importam diretamente:
 
 ### A2 — Dual-path de mensagens: schema `zapp.messages` vs `evo.evolution_messages`
 **Arquivo:** `useMessages.ts:1`, `useMessagesCursor.ts:1`, `useInboxSource.ts:1`
-**O que é:** O hook `useMessages` (legado) lê de `zapp.messages` via `messageService/messageRepository`, enquanto `useMessagesCursor` lê de `evo.evolution_messages` via `rpc_list_messages_lite`. `useInboxSource` tenta unificar as duas fontes.
-**Por que importa:** Risco de exibir dados inconsistentes se uma conversa possui registros em ambas as tabelas. Sem mecanismo claro de migração ou fallback documentado no código.
+**O que é:** O hook `useMessages` (legado) lê de `zapp.messages` via `messageService/messageRepository`, enquanto `useMessagesCursor` lê de `evo.evolution_messages` via `rpc_list_messages_lite`. `useInboxSource` unifica as duas fontes.
+**DECISÃO (E36, 2026-08-18):** dual-path resolvido — seleção por configuração `VITE_INBOX_SOURCE_MODE` (`evo` | `zapp` | `auto`), default `auto` com fallback automático telemetrado (`source_fallback`/`source_switch` em `reconciliationTelemetry`). Ver `docs/adr/dual-path-inbox.md` e `__tests__/useInboxSource.test.tsx` (verde). Sem migração de dados nesta fase.
 
 ### A3 — Orquestradores de alta complexidade sem cobertura de testes
 **Arquivo:** `useRealtimeMessages.ts` (1019 linhas), `useRealtimeInbox.ts` (513 linhas)
