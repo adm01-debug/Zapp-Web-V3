@@ -190,7 +190,7 @@ export const IncomingCallAlert = forwardRef<HTMLDivElement, Record<string, never
               <div
                 id="incoming-call-answer-notice"
                 role="alert"
-                className="mx-4 mb-4 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-600"
+                className="mx-4 mb-4 flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning"
               >
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>{answerNotice}</span>

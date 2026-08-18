@@ -208,7 +208,7 @@ export function useEvolutionApiIntegration() {
 
     try {
       // Escrita via edge function (service_role) — a física está em evo; a view zapp não aceita api_key.
-      const { data, error } = await evolutionCredentials({
+      const { data, error } = await evolutionCredentials<{ ok?: boolean; error?: string }>({
           action: 'save',
           instance_name: formData.instance_name,
           api_url: normalizedUrl,
@@ -239,7 +239,7 @@ export function useEvolutionApiIntegration() {
       return;
 
     try {
-      const { data, error } = await evolutionCredentials({ action: 'delete', id });
+      const { data, error } = await evolutionCredentials<{ ok?: boolean; error?: string }>({ action: 'delete', id });
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.error ?? 'Falha ao excluir');
       toast.success('Credenciais excluídas');

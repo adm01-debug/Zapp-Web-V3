@@ -20,13 +20,13 @@ const mockLogger = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 const mockUpload = vi.hoisted(() =>
-  vi.fn(() => Promise.resolve({ data: { path: 'sticker_1_x.webp' }, error: null }))
+  vi.fn((..._a: unknown[]) => Promise.resolve({ data: null as { path: string } | null, error: null as Error | null }))
 );
-const mockRemove = vi.hoisted(() => vi.fn(() => Promise.resolve({ error: null })));
+const mockRemove = vi.hoisted(() => vi.fn((..._a: unknown[]) => Promise.resolve({ error: null as Error | null })));
 const mockFrom = vi.hoisted(() => vi.fn());
 const mockStorageFrom = vi.hoisted(() => vi.fn());
 const mockInsert = vi.hoisted(() =>
-  vi.fn(() => Promise.resolve({ data: null, error: null }))
+  vi.fn((..._a: unknown[]) => Promise.resolve({ data: null, error: null as Error | null }))
 );
 const mockGetSignedMediaUrl = vi.hoisted(() => vi.fn());
 
@@ -87,8 +87,8 @@ describe('stickerUpload — constantes', () => {
 // ── validateStickerFile ─────────────────────────────────────────────────────
 describe('validateStickerFile', () => {
   it('arquivo não-imagem → erro honesto com nome do arquivo', () => {
-    expect(validateStickerFile(makeFile('nota.txt', 'text/plain', 10))).toContain(
-      'nota.txt não é uma imagem'
+    expect(validateStickerFile(makeFile('nota.txt', 'text/plain', 10))).toBe(
+      '"nota.txt" não é uma imagem.'
     );
   });
 
@@ -119,7 +119,7 @@ describe('uploadStickerFile', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(mockStorageFrom).toHaveBeenCalledWith('stickers');
-    const [path, file, options] = mockUpload.mock.calls[0] as [
+    const [path, file, options] = mockUpload.mock.calls[0] as unknown as [
       string,
       File,
       { contentType: string; cacheControl: string }

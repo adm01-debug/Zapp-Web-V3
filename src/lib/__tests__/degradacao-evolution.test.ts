@@ -303,7 +303,6 @@ describe('E90 S2/S3 — DLQ enfileira após retries exaustos', () => {
 
     await vi.waitFor(() => expect(mockInsert).toHaveBeenCalledTimes(1));
     // fire-and-forget: não lança para o caller
-    expect(true).toBe(true);
   });
 });
 

@@ -36,8 +36,8 @@ describe('setupOnlineListener — fila offline (ADR-005)', () => {
     vi.spyOn(offlineQueue, 'remove').mockResolvedValue(undefined);
     vi.spyOn(offlineQueue, 'update').mockResolvedValue(undefined);
 
-    vi.spyOn(window, 'addEventListener').mockImplementation((type: string, fn: EventListener) => {
-      windowListeners.set(type, fn);
+    vi.spyOn(window, 'addEventListener').mockImplementation((type, fn) => {
+      windowListeners.set(type, fn as EventListener);
     });
     vi.spyOn(window, 'removeEventListener').mockImplementation((type: string) => {
       windowListeners.delete(type);

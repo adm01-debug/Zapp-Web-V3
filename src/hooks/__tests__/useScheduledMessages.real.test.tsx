@@ -206,7 +206,7 @@ describe('E65 [C1] RLS 403 vira toast de erro real (sem 403 silencioso)', () => 
     ).rejects.toThrow();
 
     expect(toast).toHaveBeenCalledTimes(1);
-    const call = vi.mocked(toast).mock.calls[0][0];
+    const call = vi.mocked(toast).mock.calls[0][0] as unknown as { variant?: string; title?: string; description?: string };
     expect(call.variant).toBe('destructive');
     expect(call.title).toBe('Erro ao agendar mensagem');
     // Contrato: mensagem amigável citando permissão — NUNCA o texto cru do Postgres.
@@ -224,7 +224,7 @@ describe('E65 [C1] RLS 403 vira toast de erro real (sem 403 silencioso)', () => 
     await expect(result.current.cancelMessage('sm1')).rejects.toThrow();
 
     expect(toast).toHaveBeenCalledTimes(1);
-    const call = vi.mocked(toast).mock.calls[0][0];
+    const call = vi.mocked(toast).mock.calls[0][0] as unknown as { variant?: string; title?: string; description?: string };
     expect(call.variant).toBe('destructive');
     expect(call.title).toBe('Erro ao cancelar');
     expect(call.description).toMatch(/permiss/i);
@@ -246,7 +246,7 @@ describe('E65 [C1] RLS 403 vira toast de erro real (sem 403 silencioso)', () => 
       }),
     ).rejects.toThrow();
 
-    const titles = vi.mocked(toast).mock.calls.map((c) => c[0].title);
+    const titles = vi.mocked(toast).mock.calls.map((c) => (c[0] as unknown as { title?: string }).title);
     expect(titles).not.toContain('Mensagem agendada com sucesso!');
     expect(titles).toContain('Erro ao agendar mensagem');
   });
@@ -266,7 +266,7 @@ describe('E65 [C1] RLS 403 vira toast de erro real (sem 403 silencioso)', () => 
       });
     });
 
-    const titles = vi.mocked(toast).mock.calls.map((c) => c[0].title);
+    const titles = vi.mocked(toast).mock.calls.map((c) => (c[0] as unknown as { title?: string }).title);
     expect(titles).toContain('Mensagem agendada com sucesso!');
   });
 });

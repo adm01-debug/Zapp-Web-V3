@@ -194,7 +194,7 @@ export function ConnectionsView() {
     setSyncingHistory(connection.id);
     toast({ title: 'Sincronizando histórico...', description: 'Isso pode levar alguns minutos.' });
     try {
-      const { data, error } = await evolutionSync({ action: 'sync-all-messages', instanceName: connection.instance_id });
+      const { data, error } = await evolutionSync<{ totalSynced?: number; totalContacts?: number }>({ action: 'sync-all-messages', instanceName: connection.instance_id });
       if (error) throw error;
       toast({
         title: 'Sincronização concluída!',
