@@ -103,6 +103,7 @@ export const EDGE_FUNCTION_NAMES = [
   'health',
   'health-check',
   'instance-pause-control',
+  'invite-user',
   'lgpd-scheduled-jobs',
   'login-attempts',
   'main',
@@ -442,6 +443,17 @@ const specificEdgeFunctionSchemas: Record<string, ContractVersionMap> = {
     v1: z
       .object({
         dryRun: z.boolean().optional(),
+      })
+      .strict(),
+  },
+  // invite-user — convite REAL via GoTrue admin API (ADR 2026-08-18; banco
+  // vivo sem RPC invite_user/tabela de convites). Espelho inline (sem ciclo).
+  'invite-user': {
+    v1: z
+      .object({
+        email: z.string().email().max(255),
+        role: z.enum(['admin', 'supervisor', 'agent']).optional(),
+        message: z.string().max(500).optional(),
       })
       .strict(),
   },

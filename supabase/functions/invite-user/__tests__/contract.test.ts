@@ -1,21 +1,25 @@
 /**
- * Contract tests — invite-user@v1 (RED: edge NÃO EXISTE ainda).
+ * Contract tests — invite-user@v1 (edge construída em 2026-08-18).
  *
- * Etapa 57.3/57.4 do plano (convites de usuário): EF/RPC `invite_user` com
- * validação zod, token com TTL e rate-limit. Este arquivo documenta o
- * CONTRATO esperado; os testes de registro e de fonte falham (RED) até a
- * implementação existir:
+ * Etapa 57.3/57.4 do plano (convites de usuário): edge `invite-user` com
+ * validação zod e rate-limit, convite REAL via GoTrue admin API. Este arquivo
+ * documenta o CONTRATO esperado; os testes de registro e de fonte falham
+ * (RED) até a implementação existir:
  *
  *   - POST invite-user com { email, role? } (role default 'agent')
- *   - Sem JWT válido          → 401  (requireUser)
+ *   - Sem JWT válido          → 401  (requireAdminOrSupervisor → requireUser)
  *   - JWT válido não-admin    → 403  (requireAdminOrSupervisor — "admin-only")
  *   - Admin/supervisor        → 200  { success: true, invite_id }
  *   - Rate limit              → 429  (mesmo padrão do create-user: 5/60s)
- *   - RLS de convites: apenas admin/supervisor cria; convidado só lê o
- *     próprio token; tokens expirados inválidos (Etapa 57.4 — nível banco).
+ *   - Backend: auth.admin.inviteUserByEmail (usuário invited_at + email de
+ *     aceite com TTL do GoTrue). Divergência do plano documentada em
+ *     2026-08-18: banco vivo sem RPC `invite_user` e sem tabela de convites
+ *     (verificado no DB); migrations fora de escopo. Etapa 57.4 (RLS de
+ *     convites / token próprio) permanece nível banco, quando houver tabela.
  *
  * Regra de ouro do repo: o teste é o contrato. Quando a edge for
- * implementada, os testes de registro/fonte abaixo viram GREEN sem edição.
+ * implementada, os testes de registro/fonte abaixo viram GREEN sem edição
+ * (ajustes apenas se o nome do RPC/helper divergir do plano).
  */
 import { assertEquals, assertMatch, assert } from "jsr:@std/assert";
 import { z } from "https://esm.sh/zod@3.23.8";
@@ -104,9 +108,17 @@ Deno.test("Contract: invite-user v1 — gate parseOrReject com contrato registra
   );
 });
 
-Deno.test("Contract: invite-user v1 — backend RPC invite_user (token com TTL)", () => {
-  // Etapa 57.3: EF/RPC `invite_user` (email, papel, token com TTL, reenvio).
-  assertMatch(SOURCE, /\.rpc\(\s*["']invite_user["']/);
+Deno.test("Contract: invite-user v1 — backend convite REAL via GoTrue admin API", () => {
+  // Divergência documentada (2026-08-18, ADR no dir): o plano (Etapa 57.3)
+  // previa RPC `invite_user` + tabela de convites, mas o banco vivo não tem
+  // nem o RPC nem a tabela (verificado no DB em 18/08/2026) e migrations
+  // estão fora de escopo — o mínimo real é o fluxo nativo do GoTrue:
+  // inviteUserByEmail cria o usuário com invited_at e envia o email de
+  // aceite (token com TTL gerenciado pelo GoTrue). Ajuste permitido pela
+  // regra do próprio arquivo ("nome do RPC/helper divergir do plano").
+  // TODO Etapa 57.3/57.4: migrar para RPC invite_user + token próprio quando
+  // o objeto existir no banco (migration versionada).
+  assertMatch(SOURCE, /\.admin\.inviteUserByEmail\(/);
 });
 
 Deno.test("Contract: invite-user v1 — sucesso admin → 200 { success: true }", () => {

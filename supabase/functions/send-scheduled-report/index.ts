@@ -22,6 +22,7 @@ import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { fetchWithRetry } from "../_shared/retry-with-backoff.ts";
 
 const SIGNED_URL_TTL_SECONDS = 604_800; // 7 dias (F7 do SIM-4)
 const MAX_ATTEMPTS = 5;
@@ -178,7 +179,7 @@ Deno.serve(async (req: Request) => {
 
 /** Envia email via Resend com timeout (F7). */
 async function sendEmail(apiKey: string, to: string, reportName: string, html: string): Promise<void> {
-  const response = await fetch("https://api.resend.com/emails", {
+  const response = await fetchWithRetry("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -190,7 +191,9 @@ async function sendEmail(apiKey: string, to: string, reportName: string, html: s
       subject: `📊 ${reportName} - ${new Date().toLocaleDateString("pt-BR")}`,
       html,
     }),
-    signal: AbortSignal.timeout(15_000),
+  }, {
+    timeoutMs: 15_000,
+    label: "Resend",
   });
   if (!response.ok) {
     const errText = await response.text();

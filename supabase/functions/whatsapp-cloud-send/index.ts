@@ -10,6 +10,7 @@ import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { EVOLUTION_ENVELOPE_VERSION } from "../_shared/evolution-api-proxy.ts";
 import { enqueueFailedMessage } from "../_shared/enqueue-failed-message.ts";
+import { fetchWithRetry } from "../_shared/retry-with-backoff.ts";
 import { isValidIdemKey, lookupSendCache, storeSendCache } from "../_shared/send-idempotency.ts";
 
 const corsHeaders = getCorsHeaders();
@@ -54,14 +55,16 @@ function dlqPathForType(type: string): string {
 
 async function callGraph(path: string, payload: Record<string, unknown>) {
   const url = `https://graph.facebook.com/${GRAPH_VERSION}/${PHONE_NUMBER_ID}/${path}`;
-  const r = await fetch(url, {
+  const r = await fetchWithRetry(url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${ACCESS_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(15_000),
+  }, {
+    timeoutMs: 15_000,
+    label: "WhatsAppCloud",
   });
 
   let data: unknown;

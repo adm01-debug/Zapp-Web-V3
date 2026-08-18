@@ -4,6 +4,7 @@ import { parseOrReject } from '../_shared/contract-kit.ts';
 import { SendEmailV1Schema } from '../_shared/contract-schemas.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { fetchWithRetry } from '../_shared/retry-with-backoff.ts';
 /**
  * send-email — Endpoint unificado legado (mantido para compatibilidade)
  *
@@ -103,14 +104,16 @@ Deno.serve(async (req) => {
 
     let resendData: unknown;
     try {
-      const resendRes = await fetch('https://api.resend.com/emails', {
+      const resendRes = await fetchWithRetry('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${resendKey}`,
         },
         body: JSON.stringify({ from, to: toArray, subject: subjectVal, html: htmlVal }),
-        signal: AbortSignal.timeout(15_000),
+      }, {
+        timeoutMs: 15_000,
+        label: 'Resend',
       });
 
       resendData = await resendRes.json().catch(() => ({}));

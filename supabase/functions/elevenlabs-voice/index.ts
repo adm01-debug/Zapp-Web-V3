@@ -18,6 +18,7 @@ import {
 import { requireUser } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { ElevenLabsVoiceV1Schema } from "../_shared/contract-schemas.ts";
+import { fetchWithRetry } from "../_shared/retry-with-backoff.ts";
 
 /** Codifica ArrayBuffer em base64 em chunks (evita estouro de call stack). */
 function bufferToBase64(buf: ArrayBuffer): string {
@@ -53,9 +54,11 @@ Deno.serve(async (req) => {
     const ELEVENLABS_API_KEY = requireEnv("ELEVENLABS_API_KEY");
 
     if (action === "listVoices") {
-      const resp = await fetch("https://api.elevenlabs.io/v1/voices", {
+      const resp = await fetchWithRetry("https://api.elevenlabs.io/v1/voices", {
         headers: { "xi-api-key": ELEVENLABS_API_KEY },
-        signal: AbortSignal.timeout(10_000),
+      }, {
+        timeoutMs: 10_000,
+        label: "ElevenLabs",
       });
       if (!resp.ok) {
         const detail = (await resp.text().catch(() => "")).substring(0, 200);
@@ -83,7 +86,7 @@ Deno.serve(async (req) => {
       // or camelCase (similarityBoost, useSpeakerBoost) depending on the caller version
       const similarityBoost = s.similarityBoost ?? s.similarity_boost;
       const useSpeakerBoost = s.useSpeakerBoost ?? s.use_speaker_boost;
-      const resp = await fetch(
+      const resp = await fetchWithRetry(
         `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
         {
           method: "POST",
@@ -98,7 +101,10 @@ Deno.serve(async (req) => {
               use_speaker_boost: useSpeakerBoost !== false,
             },
           }),
-          signal: AbortSignal.timeout(30_000),
+        },
+        {
+          timeoutMs: 30_000,
+          label: "ElevenLabs",
         },
       );
 

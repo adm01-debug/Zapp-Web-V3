@@ -2,6 +2,7 @@ import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHea
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { fetchWithRetry } from "../_shared/retry-with-backoff.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -34,7 +35,7 @@ Deno.serve(async (req) => {
 
     log.info(`Generating dialogue with ${script.length} lines`);
 
-    const response = await fetch(
+    const response = await fetchWithRetry(
       'https://api.elevenlabs.io/v1/text-to-dialogue?output_format=mp3_44100_128',
       {
         method: 'POST',
@@ -47,8 +48,11 @@ Deno.serve(async (req) => {
           script,
           language_code: languageCode,
         }),
-        signal: AbortSignal.timeout(30_000),
-      }
+      },
+      {
+        timeoutMs: 30_000,
+        label: 'ElevenLabs',
+      },
     );
 
     if (!response.ok) {
