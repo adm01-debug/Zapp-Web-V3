@@ -5,6 +5,7 @@ import { useWebAuthn } from '@/hooks/useWebAuthn';
 import { toast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
 import {
   checkAccountLock,
   recordFailedLogin,
@@ -21,6 +22,8 @@ const passwordSchema = z
   .regex(/[a-z]/, 'Deve conter pelo menos uma letra minúscula')
   .regex(/[0-9]/, 'Deve conter pelo menos um número')
   .regex(/[^A-Za-z0-9]/, 'Deve conter pelo menos um caractere especial');
+
+const log = getLogger('useAuthForm');
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -84,8 +87,10 @@ export function useAuthForm() {
     };
   }, []);
 
-  // SEGURANCA-01: pós-auth o usuário com 2FA verificado (fator TOTP ativo) mas
+  // SEGURANCA-01/E52: pós-auth o usuário com 2FA verificado (fator TOTP ativo) mas
   // ainda sem challenge na sessão (aal1 → aal2) vai para /2fa antes do destino.
+  // E52: fail-closed COM preservação de acesso — em erro, decide pelo fator real:
+  // se o usuário tem fator TOTP verified, exige /2fa; senão segue (evita lockout).
   const redirectAfterAuth = useCallback(
     async (path: string) => {
       try {
@@ -94,8 +99,31 @@ export function useAuthForm() {
           navigate('/2fa', { replace: true });
           return;
         }
-      } catch {
-        // Falha na checagem de MFA — segue o fluxo normal (não bloquear login).
+        if (error) {
+          // Falha na checagem de MFA: fail-closed condicional — só bloqueia quem
+          // TEM fator verificado (nunca lockout de quem não configurou MFA).
+          const { data: factors } = await supabase.auth.mfa.listFactors();
+          const hasVerifiedTotp = (factors?.totp ?? []).some((f) => f.status === 'verified');
+          if (hasVerifiedTotp) {
+            log.warn('[useAuthForm] MFA check falhou com fator verified — exigindo /2fa (E52)');
+            navigate('/2fa', { replace: true });
+            return;
+          }
+          log.warn('[useAuthForm] MFA check falhou sem fator verified — seguindo fluxo (E52)');
+        }
+      } catch (err) {
+        // Exceção de rede/GoTrue: mesmo critério (fator verified → /2fa; senão segue).
+        try {
+          const { data: factors } = await supabase.auth.mfa.listFactors();
+          const hasVerifiedTotp = (factors?.totp ?? []).some((f) => f.status === 'verified');
+          if (hasVerifiedTotp) {
+            log.warn('[useAuthForm] MFA exception com fator verified — exigindo /2fa (E52)', { err });
+            navigate('/2fa', { replace: true });
+            return;
+          }
+        } catch {
+          log.warn('[useAuthForm] MFA check indisponível sem fatores — seguindo fluxo (E52)', { err });
+        }
       }
       navigate(path, { replace: true });
     },

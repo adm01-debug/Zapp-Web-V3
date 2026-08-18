@@ -1,5 +1,4 @@
-# =============================================================================
-# DRAFT — deploy-vps-selfhosted.yml  (item 92 — AG-EX-20, governança wave 2)
+# ======================================================================# DRAFT — deploy-vps-selfhosted.yml  (item 92 — AG-EX-20, governança wave 2)
 # -----------------------------------------------------------------------------
 # ⚠️  DRAFT PARA REVISÃO — NÃO ativar antes de aprovação.
 # Objetivo: formalizar Git → CI → deploy Swarm com CONVERGÊNCIA VERIFICADA,
@@ -18,12 +17,22 @@
 #      do stack; divergência ⇒ falha o job (padrão guardrail-reconcile).
 #   4. Fim dos stacks `updated:1970`: todo deploy passa a ter trilha
 #      commit → run → digest → runtime.
-# =============================================================================
-
+# ======================================================================
 name: 🚀 Deploy VPS — Git→CI→Swarm (convergência verificada) [DRAFT]
 
 on:
   # push: disabled (DRAFT — não duplica o deploy-vps.yml)
+  # ATIVADO apenas manualmente (workflow_dispatch). O trigger push foi desativado
+  # em 2026-08-18 (E92): o DRAFT duplicava o deploy canônico (deploy-vps.yml) com
+  # concurrency diferente (double-deploy no stack 157) — reativar SÓ após convergência
+  # verificada e teste em janela.
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - 'infra/stacks/**'
+  #     - '.github/workflows/deploy-vps*.yml'
+  #     - 'supabase/**'
+  #     - 'Dockerfile'
   workflow_dispatch:
     inputs:
       stack_id:
@@ -143,14 +152,12 @@ jobs:
           ignore-versions: ${{ steps.protect.outputs.regex }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  # ===========================================================================
-  # DEPLOY — runner SELF-HOSTED (stack 210, myoung34/github-runner)
+  # ====================================================================  # DEPLOY — runner SELF-HOSTED (stack 210, myoung34/github-runner)
   # ---------------------------------------------------------------------------
   # Labels do runner: conferir com a env LABELS do stack 210 (ex. "vps").
   # Ajuste `runs-on` para bater com o registro real:
   #   gh api repos/<owner>/<repo>/actions/runners | jq '.runners[].labels'
-  # ===========================================================================
-  deploy:
+  # ====================================================================  deploy:
     name: Deploy Swarm + convergência verificada
     runs-on: [Linux, X64, vps-zapp]
     needs: build-and-push
