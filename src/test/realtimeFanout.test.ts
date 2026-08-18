@@ -28,7 +28,6 @@ const EXPECTED_REALTIME_CONSUMERS: string[] = [
   'src/components/monitoring/hooks/useEvolutionMonitoring.ts',
   'src/features/inbox/components/useAudioMessagePlayer.ts',
   'src/features/inbox/hooks/realtime/useRetryResolutionAlerts.ts',
-  'src/hooks/useRealtimeMessages.ts',
   'src/hooks/useTranscriptionNotifications.ts',
   'src/features/inbox/components/chat/ChatMessagesArea.tsx',
 ];
@@ -77,9 +76,10 @@ function walk(dir: string, acc: string[] = []): string[] {
 
 // Aceita literal `table: 'messages'|'evolution_messages'` e helper `table: dbTable(...)`,
 // independentemente de o channel vir de `supabase.channel(...)` ou `dbChannel(...)`.
-// 'evolution_messages' é o nome da tabela no schema 'evo' (Evolution DB v6.2).
+// Fanout v2: 'realtime_message_fanout' é o ESPELHO não-particionado que os consumidores
+// assinam no lugar de messages/evolution_messages (Realtime v2 não entrega partições).
 const MESSAGES_CHANNEL_RE =
-  /(?:supabase\s*\.channel|dbChannel)\([\s\S]*?table:\s*(?:dbTable\(\s*)?['"](?:messages|evolution_messages)['"]/;
+  /(?:supabase\s*\.channel|dbChannel)\([\s\S]*?table:\s*(?:dbTable\(\s*)?['"](?:messages|evolution_messages|realtime_message_fanout)['"]/;
 
 function findMessagesListeners(): string[] {
   const srcDir = join(REPO_ROOT, 'src');

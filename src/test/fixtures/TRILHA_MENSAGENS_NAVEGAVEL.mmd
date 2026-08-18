@@ -106,7 +106,8 @@ flowchart LR
   UMS ==> DB
 
   %% =====================================================================
-  %% FAN-OUT REALTIME — quem escuta postgres_changes na tabela 'messages'
+  %% FAN-OUT REALTIME — quem escuta postgres_changes no canal de mensagens
+  %% (messages/evolution_messages direto ou o ESPELHO zapp.realtime_message_fanout)
   %% =====================================================================
   DB -.->|INSERT/UPDATE/DELETE| URM
   DB -.->|INSERT/UPDATE/DELETE| UM
@@ -170,6 +171,7 @@ flowchart LR
 %%   ==>   escrita persistente em DB
 %%   -.->  evento realtime / pub-sub in-memory
 %%   -..-> enqueue assincrona (DLQ)
-%% Fan-out realtime (postgres_changes 'messages'): 1 consumidor direto
+%% Fan-out realtime (postgres_changes): consumidores assinam messages/
+%% evolution_messages direto ou o espelho zapp.realtime_message_fanout (fanout v2)
 %% Gerado por scripts/regen-trilha-mensagens.ts em 2026-07-16T18:58:13.683Z
 %% AUTO:LEGEND:END

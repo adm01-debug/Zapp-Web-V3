@@ -19,6 +19,7 @@ import type { MessageReaction } from './realtime/types';
 import { useMessageUpdateBatcher } from './realtime/useMessageUpdateBatcher';
 import { touchLastSeen } from '../services/touchLastSeen';
 import { logMessagesSubscribe, wrapMessagesHandler } from '@/lib/devRealtimeLogger';
+import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
 import { isValidUUID } from '@/utils/uuid';
 export type { MessageBatcherStatus } from './realtime/useMessageUpdateBatcher';
 
@@ -438,6 +439,12 @@ export function useRealtimeMessages() {
         return;
       }
 
+      // E31 dedup: reentrega do realtime (reconnect, fanout TTL overlap) manda
+      // o MESMO INSERT mais de uma vez. Se a mensagem já está na conversa, sai
+      // ANTES do commitConversations E da notificação — o estado não duplica e
+      // o toast/som não re-dispara (bug: notify rodava incondicionalmente).
+      if (existingConversation.messages.some((m) => m.id === newMessage.id)) return;
+
       commitConversations((prev) => {
         const idx = prev.findIndex((c) => c.contact.id === newMessage.contact_id);
         if (idx < 0) return prev;
@@ -645,6 +652,8 @@ export function useRealtimeMessages() {
 
   useEffect(() => {
     let active = true;
+    // Última conexão bem-sucedida do canal — classifica CHANNEL_ERROR transiente vs real.
+    let lastConnectedAtMs: number | null = null;
     void fetchConversations();
 
     log.info('Subscribing to realtime', { source: 'dbTable' });
@@ -655,8 +664,8 @@ export function useRealtimeMessages() {
     logMessagesSubscribe('useRealtimeMessages', { event: 'DELETE', table: dbTable('messages') });
 
     // Fanout (Realtime v2 não entrega partições): assina o ESPELHO zapp.realtime_message_fanout.
-    // TODO(fanout): o espelho NÃO tem from_me/deleted_at → adaptEvoPayload degrada para
-    // sender='contact' e is_deleted=false até o espelho ganhar essas colunas.
+    // Fanout v2 (2026-08-17): o espelho ganhou from_me/deleted_at/contact_id/status —
+    // adaptEvoPayload mapeia from_me → sender e deleted_at → is_deleted corretamente.
     const adaptEvoPayload = (
       p: RealtimePostgresChangesPayload<Record<string, unknown>>
     ): RealtimePostgresChangesPayload<RealtimeMessage> => {
@@ -737,7 +746,18 @@ export function useRealtimeMessages() {
         }
       )
       .subscribe((status) => {
-        if (active) log.debug('Subscription status', { status });
+        if (!active) return;
+        if (status === 'SUBSCRIBED') {
+          lastConnectedAtMs = Date.now();
+          log.debug('Subscription status', { status });
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          // E31: classifica CHANNEL_ERROR/TIMED_OUT (transiente vs real) com o
+          // mesmo padrão dos hooks irmãos (useMessagesCursor/useIncomingCallBroadcast).
+          void logChannelError(log, '[useRealtimeMessages] subscription status:', lastConnectedAtMs, status);
+          log.debug('Subscription status', { status });
+        } else {
+          log.debug('Subscription status', { status });
+        }
       });
 
     return () => {
