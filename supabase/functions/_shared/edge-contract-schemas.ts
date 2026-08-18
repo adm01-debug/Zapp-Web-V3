@@ -145,7 +145,6 @@ export const EDGE_FUNCTION_NAMES = [
   'webhook-diagnostic',
   'webhook-hmac-selftest',
   'webhook-secret-status',
-  'warroom-monthly-test',
   'whatsapp-cloud-api',
   'whatsapp-cloud-secrets-status',
   'whatsapp-cloud-send',
@@ -455,8 +454,6 @@ const specificEdgeFunctionSchemas: Record<string, ContractVersionMap> = {
       })
       .strict(),
   },
-  // warroom-monthly-test — sem parâmetros de entrada (body ignorado pelo handler).
-  'warroom-monthly-test': { v1: z.object({}).strict() },
   // CRM plugável (Etapa 66) — schema INLINE (nunca importar de contract-schemas.ts: ciclo)
   'zapp-crm-sync': {
     v1: z

@@ -27,20 +27,25 @@ jobs:
   # que o runtime não carrega (incidente 17/08 — _shared quebrado na main derrubou
   # o supabase_functions). Usa a MESMA imagem do runtime de produção.
   parse-gate:
-    name: Parse gate (edge-runtime v1.74.0)
+    # A imagem edge-runtime NÃO carrega o CLI 'deno' (só o binário do runtime) —
+    # o gate usa o Deno CLI (setup-deno, padrão do deno-contract-tests) com
+    # 'deno check' no main/index.ts: cobre o closure do boot inteiro (incluindo
+    # _shared/, causa do incidente 17/08). Boot com a imagem REAL fica no Gate 6
+    # do ci.yml (docker run + edge-runtime start).
+    name: Parse gate (deno check — closure do boot)
     runs-on: ubuntu-latest
-    container:
-      image: supabase/edge-runtime:v1.74.0
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Bundle do main/index.ts (cobre _shared transitivo)
-        # shell do container edge-runtime é dash — 'pipefail' não existe (e não há pipe aqui)
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: deno check do main/index.ts (cobre _shared transitivo)
         run: |
           set -eu
           cd supabase/functions
-          deno bundle --check main/index.ts --output=/tmp/main.bundle.js
+          deno check main/index.ts
 
   deploy:
     name: Deploy edge functions (--apply --restart)

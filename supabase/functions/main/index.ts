@@ -1,3 +1,4 @@
+/// <reference path="./edge-runtime.d.ts" />
 // IMPORTANTE: o config.toml (verify_jwt, limites de memória/timeout por função)
 // NÃO é honrado pelo runtime edge self-hosted (supabase/edge-runtime) quando este
 // arquivo é o entrypoint. Esta allowlist (PUBLIC_FNS) é a FONTE DE VERDADE:
