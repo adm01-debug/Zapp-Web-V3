@@ -175,7 +175,7 @@ vi.mock('@/hooks/use-toast', () => ({
 const supabaseFromMock = vi.mocked(supabase.from);
 
 function chainsFor(table: string): Record<string, unknown>[] {
-  return chainRegistry[table] ?? [];
+  return (chainRegistry[table] ?? []) as Record<string, unknown>[];
 }
 
 function chainMethodCalls(table: string, index: number, method: string): unknown[][] {

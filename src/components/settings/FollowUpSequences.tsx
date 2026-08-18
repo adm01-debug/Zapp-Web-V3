@@ -49,7 +49,7 @@ export function FollowUpSequences() {
   const { mutation: bridgeMutation } = useFollowupBridge();
   const [triggerFor, setTriggerFor] = useState<FollowUpSequence | null>(null);
   const [triggerPhone, setTriggerPhone] = useState('');
-  const [triggerInstance, setTriggerInstance] = useState(DEFAULT_WHATSAPP_INSTANCE);
+  const [triggerInstance, setTriggerInstance] = useState<string>(DEFAULT_WHATSAPP_INSTANCE);
   const [triggerError, setTriggerError] = useState<string | null>(null);
 
   const openTriggerDialog = (seq: FollowUpSequence) => {

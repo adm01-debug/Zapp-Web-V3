@@ -25,11 +25,11 @@ vi.mock('@/integrations/supabase/client', async (importOriginal) => {
     supabase: {
       ...actual.supabase,
       auth: {
-        ...(actual.supabase as typeof actual.supabase).auth,
+        ...(actual.supabase as unknown as typeof actual.supabase).auth,
         exchangeCodeForSession: exchangeMock,
       },
     },
-  } as typeof actual;
+  } as unknown as typeof actual;
 });
 
 vi.mock('@/hooks/use-toast', () => ({ toast: vi.fn() }));
