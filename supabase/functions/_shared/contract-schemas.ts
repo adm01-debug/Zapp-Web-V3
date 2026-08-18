@@ -854,6 +854,16 @@ export const ZappAuthSessionsV1Schema = z.object({
 }).passthrough();
 
 /**
+ * revoke-session@v1 — revogação de sessão ativa (Etapa 56, PR #1179). Endpoint
+ * interno (frontend autenticado) → estrito. sessionId obrigatório UUID de
+ * auth.sessions; dono só revoga as próprias; admin/supervisor revoga de
+ * outros (ownership revalidado no backend).
+ */
+export const RevokeSessionV1Schema = z.object({
+  sessionId: z.string().uuid("sessionId deve ser um UUID de auth.sessions"),
+}).strict();
+
+/**
  * zapp-auth-invite@v1 — convite de usuário por email (Etapa 57). Endpoint
  * interno admin-only. action default 'invite'; resend regenera link sem
  * recriar usuário. role whitelist explícita (dev fora do convite).
@@ -1183,6 +1193,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "approve-password-reset":        { v1: ApprovePasswordResetV1Schema },
   "request-password-reset":        { v1: RequestPasswordResetV1Schema },
   "detect-new-device":             { v1: AISchemas.DetectNewDeviceV1Schema },
+  "revoke-session":                { v1: RevokeSessionV1Schema },
   "webauthn":                      { v1: WebauthnV1Schema },
   "evolution-api":                 { v1: EvolutionApiV1Schema },
   "zapp-auth-sessions":            { v1: ZappAuthSessionsV1Schema },
