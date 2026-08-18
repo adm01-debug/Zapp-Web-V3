@@ -1,27 +1,29 @@
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP, getCorsHeaders } from "../_shared/validation.ts";
+/**
+ * Edge Function: invite-user — Convite de usuário por email (Etapa 57).
+ *
+ * Fluxo (admin/supervisor → convite com token TTL):
+ *   1. Rate limit 5/60s por IP (antes da auth, padrão create-user).
+ *   2. requireAdminOrSupervisor: sem JWT → 401; não-admin/supervisor → 403.
+ *   3. Contrato invite-user@v1 (zod, registrado em CONTRACT_SCHEMAS):
+ *        { email: string, role?: 'admin'|'supervisor'|'agent' (default 'agent'),
+ *          message?: string (max 500) }  — .strict()
+ *   4. Duplicado honesto:
+ *        a. email já tem conta auth → 409 "Email already registered";
+ *        b. RPC zapp.invite_user re-checa atomicamente (conta auth + convite
+ *           pendente) e sobe exceção → mapeada para 409, nunca 500;
+ *        c. RPC ausente no banco (PGRST202) → 503 honesto (migration pendente).
+ *   5. RPC grava zapp.invites (token 32 bytes hex, TTL 7 dias) e retorna o id.
+ *   6. Sucesso → 200 { success: true, invite_id }.
+ *
+ * Segurança: service_role (createZappAdminClient); RLS de zapp.invites
+ * permite SELECT apenas a admin/supervisor ou ao dono do email (Etapa 57.4).
+ */
+import { handleCors, errorResponse, jsonResponse, Logger, sanitizeString, checkRateLimit, getClientIP, getCorsHeaders } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
-/**
- * invite-user@v1 — convite de usuário por email (Etapa 57 do plano 100 etapas).
- *
- * Convite REAL via GoTrue admin API: `auth.admin.inviteUserByEmail` cria o
- * usuário com `invited_at` e envia o email de aceite (link com TTL gerenciado
- * pelo GoTrue). O papel é gravado em zapp.user_roles no momento do convite
- * (mesmo padrão do create-user); se a gravação falhar, o convite é revertido.
- *
- * Decisão 2026-08-18 (ADR): o plano previa RPC `invite_user` + tabela de
- * convites, mas o banco vivo NÃO tem nem o RPC nem a tabela (verificado no DB
- * em 18/08/2026) e migrations estão fora de escopo desta rodada — o mínimo
- * real é o fluxo nativo do GoTrue. Quando a Etapa 57.3/57.4 (token próprio
- * com TTL + tabela) for implementada no banco, esta edge migra sem quebrar o
- * contrato de entrada (email/role/message).
- *
- * Autorização: admin/supervisor (requireAdminOrSupervisor) — 401 sem JWT,
- * 403 não-admin. Rate limit 5/60s por IP ANTES da auth (padrão create-user).
- */
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -41,41 +43,46 @@ Deno.serve(async (req) => {
     const raw = await req.json().catch(() => null);
     const parsed = parseOrReject('invite-user', CONTRACT_SCHEMAS['invite-user'], req, raw, { extraHeaders: getCorsHeaders(req) });
     if (parsed.ok === false) return parsed.response;
-    const body = parsed.data as { email: string; role?: string; message?: string };
-    const role = body.role ?? "agent";
+    const body = parsed.data as Record<string, any>;
 
-    // Convite real: GoTrue cria o usuário (invited_at) e envia o email de
-    // aceite. user_metadata carrega o papel + mensagem para o aceite.
-    const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
-      body.email,
-      { data: { role, invite_message: body.message ?? null } },
-    );
+    const { email, role, message } = body;
+    const cleanEmail = sanitizeString(email)?.trim().toLowerCase() || email;
 
-    if (inviteError) {
-      log.error("Invite failed", { error: inviteError.message });
-      const msg = inviteError.message.toLowerCase();
-      if (msg.includes("already registered") || msg.includes("already invited") || msg.includes("duplicate")) {
-        return errorResponse("Email already registered or invited", 409, req);
-      }
-      return errorResponse("Invite failed", 400, req);
+    // Duplicate (honest, antes do RPC): email com conta auth existente → 409.
+    // auth.users é tabela de plataforma (schema auth), lida via service_role.
+    const { data: existingUser, error: lookupError } = await adminClient
+      .schema("auth")
+      .from("users")
+      .select("id")
+      .eq("email", cleanEmail)
+      .maybeSingle();
+    if (!lookupError && existingUser) {
+      log.warn("duplicate email (already registered)", { email: cleanEmail });
+      return errorResponse("Email already registered", 409, req);
     }
 
-    // Papel no momento do convite (upsert cobre trigger race pós-create).
-    if (invited.user) {
-      const { error: roleError } = await adminClient
-        .from("user_roles")
-        .upsert({ user_id: invited.user.id, role }, { onConflict: 'user_id' });
+    // Criação atômica via RPC (valida role, token TTL, unique por email).
+    const { data: inviteId, error: rpcError } = await adminClient.rpc("invite_user", {
+      p_email: cleanEmail,
+      p_role: role,
+      p_message: message ?? null,
+      p_invited_by: authed.user.id,
+    });
 
-      if (roleError) {
-        log.error("Role assignment failed", { error: roleError.message });
-        // Convite ainda não aceito → deletar é seguro (rollback completo).
-        await adminClient.auth.admin.deleteUser(invited.user.id).catch(() => {});
-        return errorResponse("Invite created but role assignment failed — invite rolled back", 500, req);
+    if (rpcError) {
+      log.error("invite_user RPC failed", { error: rpcError.message, code: rpcError.code });
+      const msg = rpcError.message ?? "";
+      if (/already registered|already invited|já convidado|já cadastrado/i.test(msg)) {
+        return errorResponse("Email already registered", 409, req);
       }
+      if (rpcError.code === "PGRST202") {
+        return errorResponse("Invite backend not available", 503, req);
+      }
+      return errorResponse("Failed to create invite", 400, req);
     }
 
-    log.done(200, { inviteId: invited.user?.id });
-    return jsonResponse({ success: true, invite_id: invited.user?.id, email: body.email }, 200, req);
+    log.done(200, { inviteId });
+    return jsonResponse({ success: true, invite_id: inviteId ?? null }, 200, req);
   } catch (err: unknown) {
     log.error("Unhandled error", { error: err instanceof Error ? err.message : String(err) });
     return errorResponse("Internal server error", 500, req);

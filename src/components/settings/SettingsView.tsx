@@ -28,7 +28,6 @@ import {
   Bot,
   Brain,
   Users,
-  ShieldAlert,
   Mail,
   Wallet,
 } from 'lucide-react';
@@ -193,10 +192,11 @@ export function SettingsView() {
                   <Users className="h-4 w-4" />
                   Roteamento
                 </TabsTrigger>
-                <TabsTrigger value="sla" className="gap-2 whitespace-nowrap">
-                  <ShieldAlert className="h-4 w-4" />
-                  SLA
-                </TabsTrigger>
+                {/* E67 (67.3): aba SLA de SettingsView REMOVIDA — o dono único
+                    da configuração SLA é o SLADashboard (CRUD de
+                    sla_configurations). A seção duplicada (SLASettings)
+                    escrevia thresholds write-only em user_settings que
+                    nenhum consumidor lia. */}
                 <TabsTrigger value="email" className="gap-2 whitespace-nowrap">
                   <Mail className="h-4 w-4" />
                   E-mail
@@ -310,9 +310,7 @@ export function SettingsView() {
             <SkillBasedRoutingSettings />
           </TabsContent>
 
-          <TabsContent value="sla">
-            <SLASettings settings={settings} updateSettings={updateSettings} />
-          </TabsContent>
+          {/* E67 (67.3): conteúdo da aba SLA removido — dono único = SLADashboard */}
 
           <TabsContent value="ai-providers">
             <AIProvidersManager />

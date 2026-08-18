@@ -135,8 +135,7 @@ export function useRateLimitLogs(initial?: Partial<RateLimitLogsFilters>): UseRa
       const ep = (filters.endpoint ?? '').trim();
       if (ip) q = q.ilike('ip_address', `%${sanitizePostgrestFilter(ip)}%`);
       if (ep) q = q.ilike('endpoint', `%${sanitizePostgrestFilter(ep)}%`);
-      if (filters.blockedOnly)
-        q = (q as unknown as { eq: (c: string, v: unknown) => typeof q }).eq('blocked', true);
+      if (filters.blockedOnly) q = q.eq('blocked', true);
 
       q = q.order(filters.sortBy, { ascending: filters.sortDir === 'asc' }).range(from, to);
 

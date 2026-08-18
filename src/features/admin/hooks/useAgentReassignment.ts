@@ -25,7 +25,7 @@ export function useAgentReassignment() {
         inactive_minutes: inactiveMinutes,
       });
       if (error) throw error;
-      return (data as unknown as number); // RPC returns bigint mapped to number
+      return data;
     },
     onSuccess: (count) => {
       invalidateAfterReassignment();
@@ -42,7 +42,7 @@ export function useAgentReassignment() {
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('reassign_overloaded_agents');
       if (error) throw error;
-      return (data as unknown as number); // RPC returns bigint mapped to number
+      return data;
     },
     onSuccess: (count) => {
       invalidateAfterReassignment();

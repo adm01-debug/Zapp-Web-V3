@@ -41,6 +41,16 @@ export type ManualZappTables = Record<never, never>;
  * prioriza Extra) — manter em sincronia com a migration F-06.
  */
 export type ManualZappFunctions = {
+  rpc_list_failed_messages_cursor: {
+    Args: { p_limit?: number; p_cursor?: string; p_error_code?: string; p_instance_name?: string };
+    Returns: {
+      id: string; instance_name: string | null; remote_jid: string | null; payload: Json | null;
+      error_code: string | null; error_message: string | null; http_status: number | null;
+      retry_count: number | null; max_retries: number | null; status: string | null;
+      last_attempt_at: string | null; next_attempt_at: string | null; succeeded_at: string | null;
+      created_at: string | null; updated_at: string | null; total_count: number | null;
+    }[];
+  };
   rpc_schema_tables: {
     Args: { p_schema?: string };
     Returns: { table_name: string; table_type: string }[];
@@ -91,6 +101,40 @@ export type ManualZappFunctions = {
   fn_demand_forecast: {
     Args: { p_days?: number; p_forecast_days?: number };
     Returns: { d: string; kind: string; dow: number; value: number }[];
+  };
+  // E59 (migration 20260818190000_etapa67_gamification_atomic_xp.sql) — escrita
+  // TRANSACIONAL de XP: o banco soma o delta (xp = xp + $1, FOR UPDATE), nunca
+  // valor absoluto vindo do cliente (fim da race read-modify-write).
+  rpc_add_xp: {
+    Args: { p_profile_id: string; p_xp_delta: number; p_reason?: string | null };
+    Returns: {
+      profile_id: string;
+      xp_delta: number;
+      xp: number;
+      level: number;
+      previous_level: number;
+      leveled_up: boolean;
+      reason: string | null;
+    };
+  };
+  rpc_grant_achievement: {
+    Args: {
+      p_profile_id: string;
+      p_type: string;
+      p_name: string;
+      p_description?: string | null;
+      p_xp_reward?: number;
+    };
+    Returns:
+      | { already_had: true }
+      | {
+          already_had: false;
+          achievement_id: string;
+          xp: number;
+          level: number;
+          previous_level: number;
+          leveled_up: boolean;
+        };
   };
 };
 
