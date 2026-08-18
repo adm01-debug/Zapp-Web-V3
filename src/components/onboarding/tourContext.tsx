@@ -31,7 +31,10 @@ export const TourContextProvider = TourContext.Provider;
 export function useTour(): TourContextType {
   const context = useContext(TourContext);
   if (!context) {
-    throw new Error('useTour must be used within a TourProvider');
+    // E70.3: mensagem amigável de diagnóstico (antes: exceção genérica).
+    throw new Error(
+      'useTour must be used within a TourProvider — verifique se o componente está montado sob <TourProvider> (src/components/onboarding/OnboardingTour.tsx).'
+    );
   }
   return context;
 }

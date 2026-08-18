@@ -1,7 +1,6 @@
 import { queryKeys } from '@/services/api/queryKeys';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { calculateLevel } from './levelUtils';
 import type { AgentStats } from './types';
 
 /** Hook: use Gamification Mutations. */
@@ -18,18 +17,29 @@ export function useGamificationMutations(
   };
 
   const addXpMutation = useMutation({
-    mutationFn: async ({ xp }: { xp: number; reason: string }) => {
+    mutationFn: async ({ xp, reason }: { xp: number; reason: string }) => {
       if (!profileId) throw new Error('No profile ID');
-      const newXp = (currentStats?.xp || 0) + xp;
-      const newLevel = calculateLevel(newXp);
-      const leveledUp = newLevel > (currentStats?.level || 1);
-
-      const { error } = await supabase
-        .from('agent_stats')
-        .update({ xp: newXp, level: newLevel, updated_at: new Date().toISOString() })
-        .eq('profile_id', profileId);
+      // E70: XP transacional — RPC SECURITY DEFINER grava ledger + estado
+      // atomicamente (fim da race condition client-side). Nível recalculado
+      // no banco (FLOOR(SQRT(xp/50))+1, espelho de levelUtils).
+      const { data, error } = await supabase.rpc('rpc_grant_xp', {
+        p_profile_id: profileId,
+        p_amount: xp,
+        p_reason: reason,
+      });
       if (error) throw error;
-      return { newXp, newLevel, leveledUp, previousLevel: currentStats?.level || 1 };
+      const r = data as {
+        new_xp: number;
+        new_level: number;
+        leveled_up: boolean;
+        previous_level: number;
+      };
+      return {
+        newXp: r.new_xp,
+        newLevel: r.new_level,
+        leveledUp: r.leveled_up,
+        previousLevel: r.previous_level,
+      };
     },
     onSuccess: () => invalidateGamificationCaches(),
   });
@@ -48,47 +58,42 @@ export function useGamificationMutations(
     }) => {
       if (!profileId) throw new Error('No profile ID');
 
-      const { data: existing } = await supabase
-        .from('agent_achievements')
-        .select('id')
-        .eq('profile_id', profileId)
-        .eq('achievement_type', type)
-        .maybeSingle();
-
-      const allowDuplicates = ['daily_goal', 'streak', 'message_milestone'];
-      if (existing && !allowDuplicates.includes(type)) return { alreadyHad: true };
-
-      const { error: achievementError } = await supabase
-        .from('agent_achievements')
-        .insert({
-          profile_id: profileId,
-          achievement_type: type,
-          achievement_name: name,
-          achievement_description: description,
-          xp_earned: xpReward,
-        });
-      if (achievementError) throw achievementError;
-
-      const newXp = (currentStats?.xp || 0) + xpReward;
-      const newLevel = calculateLevel(newXp);
-      const newAchievementsCount = (currentStats?.achievements_count || 0) + 1;
-
-      const { error: statsError } = await supabase
-        .from('agent_stats')
-        .update({
-          xp: newXp,
-          level: newLevel,
-          achievements_count: newAchievementsCount,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('profile_id', profileId);
-      if (statsError) throw statsError;
-
+      // E70: dedupe transacional no banco (ON CONFLICT DO NOTHING sobre o
+      // índice único da E66) — achievement desbloqueia 1x, sem TOCTOU.
+      const { data, error } = await supabase.rpc('rpc_unlock_achievement', {
+        p_profile_id: profileId,
+        p_type: type,
+        p_name: name,
+        p_description: description ?? null,
+        p_xp_reward: xpReward,
+      });
+      if (error) {
+        // Defensivo: corrida de unique que escapar do ON CONFLICT (ex.: banco
+        // sem a migration aplicada ainda) vira alreadyHad, nunca throw.
+        if ((error as { code?: string }).code === '23505') {
+          return {
+            alreadyHad: true,
+            newXp: 0,
+            newLevel: currentStats?.level ?? 1,
+            leveledUp: false,
+            previousLevel: currentStats?.level ?? 1,
+          };
+        }
+        throw error;
+      }
+      const r = data as {
+        already_unlocked: boolean;
+        new_xp: number | null;
+        new_level: number | null;
+        leveled_up: boolean;
+        previous_level: number | null;
+      };
       return {
-        alreadyHad: false,
-        newXp,
-        newLevel,
-        leveledUp: newLevel > (currentStats?.level || 1),
+        alreadyHad: r.already_unlocked,
+        newXp: r.new_xp ?? 0,
+        newLevel: r.new_level ?? currentStats?.level ?? 1,
+        leveledUp: r.leveled_up,
+        previousLevel: r.previous_level ?? currentStats?.level ?? 1,
       };
     },
     onSuccess: () => {

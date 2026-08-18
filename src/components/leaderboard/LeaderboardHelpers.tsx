@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { AchievementBadgeMini } from '@/components/gamification/AchievementBadge';
 import type { LeaderboardAgent } from '@/hooks/useLeaderboard';
 import {
   Trophy, Medal, Crown, Star, Flame, TrendingUp, TrendingDown, Minus,
@@ -60,15 +61,20 @@ export function RankBadge({ rank, previousRank }: { rank: number; previousRank: 
   );
 }
 
-/** Achievement Badge component for the leaderboard section. */
-export function AchievementBadge({ achievementKey }: { achievementKey: string }) {
-  const achievement = achievementIcons[achievementKey] || achievementIcons['daily_goal'];
-  const Icon = achievement.icon;
-  return (
-    <motion.div whileHover={{ scale: 1.15 }} className={`w-6 h-6 rounded-full bg-muted/50 flex items-center justify-center ${achievement.color}`} title={achievement.label}>
-      <Icon className="w-3 h-3" />
-    </motion.div>
-  );
+/**
+ * Normaliza chaves legadas (hifenizadas do leaderboard) para o catálogo único
+ * de achievements (ACHIEVEMENT_TYPES, sublinhado) — E70.8: um único
+ * AchievementBadge (AchievementBadgeMini) em uso, sem duplicação.
+ */
+const LEGACY_ACHIEVEMENT_KEYS: Record<string, string> = {
+  'speed-demon': 'speed_demon',
+  'streak-master': 'streak_master',
+  'team-player': 'team_player',
+  'problem-solver': 'resolution',
+};
+
+function normalizeAchievementKey(key: string): string {
+  return LEGACY_ACHIEVEMENT_KEYS[key] ?? key;
 }
 
 /** Celebration Particles component for the leaderboard section. */
@@ -144,7 +150,13 @@ export function LeaderboardRow({ agent, index }: { agent: LeaderboardAgent; inde
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {agent.achievements.slice(0, 2).map((a, idx) => <AchievementBadge key={`${a}-${idx}`} achievementKey={a} />)}
+          {agent.achievements.slice(0, 2).map((a, idx) => (
+            <AchievementBadgeMini
+              key={`${a}-${idx}`}
+              type={normalizeAchievementKey(a)}
+              name={achievementIcons[a]?.label ?? a}
+            />
+          ))}
           {agent.achievementsCount > 2 && <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-muted/50">+{agent.achievementsCount - 2}</Badge>}
         </div>
         <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
