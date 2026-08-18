@@ -14,6 +14,9 @@ export interface EvolutionErrorInfo {
 }
 
 const HUMANIZED: Array<{ test: RegExp; reason: string }> = [
+  // R1/R1-EXT: 403 de ACESSO (envelope evolution-api@v1 com code *_FORBIDDEN)
+  // é falta de permissão à conversa — NUNCA "sessão expirada".
+  { test: /_FORBIDDEN|não tem acesso a esta conversa|conversa não visível/i, reason: 'Você não tem permissão para acessar esta conversa.' },
   { test: /invalid\s*number|number.*invalid|not.*on.*whatsapp/i, reason: 'Número inválido ou sem WhatsApp ativo.' },
   { test: /unauthor|forbidden|401|403/i, reason: 'Sessão da instância expirou — reconecte o WhatsApp.' },
   { test: /not\s*found|404/i, reason: 'Instância ou recurso não encontrado.' },
