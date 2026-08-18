@@ -262,12 +262,11 @@ services:
     command:
       - "/bin/sh"
       - "-c"
-      - "export SECRET_KEY_BASE=$$(cat /run/secrets/secret_key_base_v2) && export METRICS_JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v2) && export DB_PASSWORD=$$(cat /run/secrets/supabase_db_password_v1) && export API_JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && exec /app/run.sh /app/bin/server"
+      - "export SECRET_KEY_BASE=$$(cat /run/secrets/secret_key_base_v2) && export METRICS_JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && export DB_PASSWORD=$$(cat /run/secrets/supabase_db_password_v1) && export API_JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && exec /app/run.sh /app/bin/server"
     secrets:
       - supabase_db_password_v1
       - supabase_jwt_secret_v1
       - secret_key_base_v2
-      - supabase_jwt_secret_v2
     networks:
       - AtomicaBRNet
     environment:
@@ -279,10 +278,33 @@ services:
       - DB_NAME=postgres
       - DB_AFTER_CONNECT_QUERY=SET search_path TO _realtime
       - DB_ENC_KEY=supabaserealtime
+      - REDIS_URL=redis://redis:6379
       - ERL_AFLAGS=-proto_dist inet_tcp
       - DNS_NODES="''"
       - RLIMIT_NOFILE=10000
       - SEED_SELF_HOST=true
+      - ERL_CRASH_DUMP=/tmp/erl_crash.dump
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:4000/healthcheck || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - NET_RAW
+      - SYS_ADMIN
+      - SYS_MODULE
+      - SYS_PTRACE
+      - SYS_RAWIO
+      - SYS_BOOT
+      - SYS_TIME
+      - NET_ADMIN
+      - AUDIT_WRITE
+      - AUDIT_CONTROL
+      - MKNOD
+      - NET_BIND_SERVICE
     deploy:
       mode: replicated
       replicas: 1
@@ -291,7 +313,7 @@ services:
           - node.role == manager
       resources:
         limits:
-          memory: 1g
+          memory: 2g
       update_config:
         failure_action: rollback
         order: stop-first
