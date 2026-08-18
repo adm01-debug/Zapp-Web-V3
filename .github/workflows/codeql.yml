@@ -40,6 +40,11 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           queries: security-extended
+          # TRAP cache desabilitado: a chave inclui hash do source, que muda a
+          # cada commit → o cache nunca acerta e cada run grava ~13MB de lixo
+          # (203 caches / 2.7GB acumulados em 1 semana, 08/2026). O repo é
+          # grande e mutável; o custo do upload supera o benefício do hit.
+          trap-caching: false
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v4.37.7
