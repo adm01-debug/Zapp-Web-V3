@@ -453,13 +453,6 @@ export const EvolutionRetryMetricsV1Schema = EmptyStrictV1Schema;
 /** db-health-monitor@v1 — cron de health check; sem body. */
 export const DbHealthMonitorV1Schema = EmptyStrictV1Schema;
 
-/**
- * warroom-monthly-test@v1 — POST service_role (cron mensal, self-contained).
- * Sem entrada: o handler IGNORA o body (payload de saída fixo). Registrado
- * para fechar o drift do espelho de diretórios (dir existia sem registro).
- */
-export const WarroomMonthlyTestV1Schema = EmptyStrictV1Schema;
-
 /** connection-health-check@v1 — GET (todas) ou POST { instanceName?, connectionId? } (verificar agora). */
 export const ConnectionHealthCheckV1Schema = z.object({
   instanceName: z.string().min(1).max(100).optional(),
@@ -1130,7 +1123,6 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "evolution-templates":           { v1: EvolutionTemplatesV1Schema },
   "evolution-retry-metrics":       { v1: EvolutionRetryMetricsV1Schema },
   "db-health-monitor":             { v1: DbHealthMonitorV1Schema },
-  "warroom-monthly-test":          { v1: WarroomMonthlyTestV1Schema },
   "connection-health-check":       { v1: ConnectionHealthCheckV1Schema },
   "health-check":                  { v1: HealthCheckV1Schema },
   "health":                        { v1: HealthV1Schema },

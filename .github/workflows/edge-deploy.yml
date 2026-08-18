@@ -36,8 +36,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Bundle do main/index.ts (cobre _shared transitivo)
+        # shell do container edge-runtime é dash — 'pipefail' não existe (e não há pipe aqui)
         run: |
-          set -euo pipefail
+          set -eu
           cd supabase/functions
           deno bundle --check main/index.ts --output=/tmp/main.bundle.js
 
