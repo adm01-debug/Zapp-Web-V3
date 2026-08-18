@@ -42,7 +42,7 @@ DECLARE v_user uuid := '00000000-0000-0000-0000-00000000c001';
 DECLARE v_profile uuid;
 BEGIN
   SET LOCAL ROLE authenticated;
-  SET LOCAL request.jwt.claims = json_build_object('sub', v_user, 'role', 'authenticated');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_user, 'role', 'authenticated')::text, true);
   SELECT zapp.get_profile_id_for_user(v_user) INTO v_profile;
   INSERT INTO zapp.message_reports (message_id, reporter_id, reason)
     VALUES (gen_random_uuid(), v_profile, 'spam');

@@ -18,6 +18,12 @@
  *   (b) WARN (não-fail) em FUTURO — timestamp no nome do arquivo (YYYYMMDDHHMMSS)
  *       maior que o relógio atual (UTC). Padrão da casa: migrations com versão
  *       futura para ordenar a fila de apply (documentado no AGENTS.md — AG-EX-14).
+ *   (c) FAIL (exit 1) em SET-EXPRESSAO — `SET [LOCAL|SESSION] <guc.com.ponto> =
+ *       <chamada de função>` (ex.: SET LOCAL request.jwt.claims = json_build_object(...)).
+ *       SET não aceita expressão — só literal — e o erro só estoura em RUNTIME,
+ *       pulando canários inteiros (classe que invalidou 7 migrations em
+ *       2026-08-17/18). Correto: PERFORM set_config('<guc>', <expr>::text, true).
+ *       Linhas de comentário (--) são ignoradas; allowlist vale como em (a).
  *
  * Uso:
  *   node scripts/check-migration-gates.mjs                          # varre supabase/migrations
@@ -61,6 +67,21 @@ const SWALLOW_RE = /EXCEPTION\s+WHEN\s+OTHERS\s+THEN[\s\S]{0,120}?RAISE\s+NOTICE
 // statement = próximo ';') vem um re-raise (`RAISE;` ou `RAISE EXCEPTION ...`).
 const RE_RAISE_RE = /RAISE\s*;|RAISE\s+EXCEPTION\b/i;
 
+// (c) SET-EXPRESSAO: SET [LOCAL|SESSION] <guc com ponto> = <chamada de função>.
+//     LHS com ponto discrimina GUC custom (request.jwt.claims) de UPDATE ... SET
+//     coluna = f(...) e de SET search_path/statement_timeout. Avaliado POR LINHA
+//     com comentário -- removido (menções em comentário não sinalizam).
+const SET_EXPR_RE = /\bSET\s+(?:LOCAL\s+|SESSION\s+)?"?[a-z_][\w$]*"?\.[\w$.]+"?\s*=\s*[a-z_][\w$.]*\s*\(/i;
+
+function findSetExprLine(content) {
+  const lines = content.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const code = lines[i].replace(/--.*$/, '');
+    if (SET_EXPR_RE.test(code)) return { line: i + 1, text: lines[i].trim() };
+  }
+  return null;
+}
+
 function hasImmediateReRaise(content, fromIdx) {
   const semi = content.indexOf(';', fromIdx);
   if (semi === -1) return false;
@@ -94,6 +115,17 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) {
       warns.push({ file, kind: 'ANTIPADRAO-ALLOWLIST', msg });
     } else {
       fails.push({ file, kind: 'ANTIPADRAO', msg });
+    }
+  }
+
+  // (c) SET com expressão em GUC — fora da allowlist = FAIL; na allowlist = WARN
+  const mSet = findSetExprLine(content);
+  if (mSet) {
+    const msg = `SET com expressão em GUC (linha ${mSet.line}): ${mSet.text.slice(0, 120)} — SET só aceita literal; use PERFORM set_config('<guc>', <expr>::text, true)`;
+    if (allowlist.has(file)) {
+      warns.push({ file, kind: 'SET-EXPRESSAO-ALLOWLIST', msg });
+    } else {
+      fails.push({ file, kind: 'SET-EXPRESSAO', msg });
     }
   }
 

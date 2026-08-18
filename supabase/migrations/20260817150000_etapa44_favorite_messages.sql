@@ -34,7 +34,7 @@ DO $$
 DECLARE v_user uuid := '00000000-0000-0000-0000-00000000c001';
 BEGIN
   SET LOCAL ROLE authenticated;
-  SET LOCAL request.jwt.claims = json_build_object('sub', v_user, 'role', 'authenticated');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_user, 'role', 'authenticated')::text, true);
   -- INSERT como dono deve passar; DELETE de outro usuário deve falhar (0 rows).
   INSERT INTO zapp.favorite_messages (message_id, user_id, contact_id)
     VALUES (gen_random_uuid(), v_user, NULL);
