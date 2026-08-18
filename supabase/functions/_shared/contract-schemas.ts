@@ -1038,6 +1038,12 @@ export const ZappGoogleCalendarSyncV1Schema = z.object({
  */
 export const ZappWarroomMonthlyTestV1Schema = z.object({}).strict();
 
+/** revoke-session@v1 — POST { sessionId } (UUID de auth.sessions). */
+export const RevokeSessionV1Schema = z.object({
+  sessionId: z.string().uuid("sessionId deve ser um UUID de auth.sessions"),
+}).strict();
+
+
 export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Webhooks externos
   "evolution-webhook":       { v1: EvolutionWebhookV1Schema, v2: EvolutionWebhookV2Schema },
@@ -1046,6 +1052,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
 
   // Internos / UI / cron
   "talkx-send":                 { v1: TalkxSendV1Schema },
+  "revoke-session":       { v1: RevokeSessionV1Schema },
   "send-email":                 { v1: SendEmailV1Schema },
   // evolution-proxy (2026-08-14): proxy server-side — envelope validado manualmente
   // (allowlist de method + path); contrato registrado para o gate de cobertura.

@@ -52,6 +52,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   // Envio
   "whatsapp-cloud-send":          { current: "v1", supported: ["v1"] },
   "gmail-send":                   { current: "v1", supported: ["v1"] },
+  "revoke-session":         { current: "v1", supported: ["v1"] },
   "send-email":                   { current: "v1", supported: ["v1"] },
   "talkx-send":                   { current: "v1", supported: ["v1"] },
   "public-api":                   { current: "v1", supported: ["v1"] },
