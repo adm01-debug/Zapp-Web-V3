@@ -92,6 +92,40 @@ export type ManualZappFunctions = {
     Args: { p_days?: number; p_forecast_days?: number };
     Returns: { d: string; kind: string; dow: number; value: number }[];
   };
+  // E59 (migration 20260818190000_etapa67_gamification_atomic_xp.sql) — escrita
+  // TRANSACIONAL de XP: o banco soma o delta (xp = xp + $1, FOR UPDATE), nunca
+  // valor absoluto vindo do cliente (fim da race read-modify-write).
+  rpc_add_xp: {
+    Args: { p_profile_id: string; p_xp_delta: number; p_reason?: string | null };
+    Returns: {
+      profile_id: string;
+      xp_delta: number;
+      xp: number;
+      level: number;
+      previous_level: number;
+      leveled_up: boolean;
+      reason: string | null;
+    };
+  };
+  rpc_grant_achievement: {
+    Args: {
+      p_profile_id: string;
+      p_type: string;
+      p_name: string;
+      p_description?: string | null;
+      p_xp_reward?: number;
+    };
+    Returns:
+      | { already_had: true }
+      | {
+          already_had: false;
+          achievement_id: string;
+          xp: number;
+          level: number;
+          previous_level: number;
+          leveled_up: boolean;
+        };
+  };
 };
 
 /**
