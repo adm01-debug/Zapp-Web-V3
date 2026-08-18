@@ -167,6 +167,41 @@ describe('useAgents', () => {
     expect(result.current.agents).toHaveLength(2);
   });
 
+  it('classifica o status REAL via getAgentStatus (profiles.updated_at) no render do hook', async () => {
+    // getAgentStatus (agentService) deriva o status de profiles.updated_at:
+    //   <5 min → 'online' · 5–30 min → 'away' · ≥30 min → 'offline' · sem valor → 'offline'
+    // Aqui testamos a utilidade pelo render do hook (padrão do arquivo): o mock
+    // de supabase devolve estes perfis e o fluxo real agentService.getAgentsWithStats
+    // roda por completo. Margens largas (4/20/90 min dos limites) evitam flake
+    // com o relógio real — fake timers quebrariam o waitFor do react-query.
+    const now = Date.now();
+    tableData.profiles = [
+      { id: 'p1', user_id: 'u1', name: 'Agent Alpha', is_active: true, role: 'agent', max_chats: 5, email: null, avatar_url: null, job_title: null, department: null, phone: null, created_at: '', updated_at: new Date(now - 60_000).toISOString() },
+      { id: 'p2', user_id: 'u2', name: 'Agent Beta', is_active: false, role: 'agent', max_chats: 10, email: null, avatar_url: null, job_title: null, department: null, phone: null, created_at: '', updated_at: new Date(now - 10 * 60_000).toISOString() },
+      { id: 'p3', user_id: 'u3', name: 'Agent Gamma', is_active: true, role: 'agent', max_chats: 2, email: null, avatar_url: null, job_title: null, department: null, phone: null, created_at: '', updated_at: new Date(now - 2 * 3_600_000).toISOString() },
+    ];
+
+    try {
+      const { result } = renderHook(() => useAgents(), { wrapper: createWrapper() });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const statusById = Object.fromEntries(
+        result.current.agents.map((agent) => [agent.id, agent.status])
+      );
+      // agente ativo (última atividade há 1 min) → status esperado 'online'
+      expect(statusById.p1).toBe('online');
+      // inativo há pouco (10 min) → status intermediário 'away'
+      expect(statusById.p2).toBe('away');
+      // inativo há muito (2 h) → 'offline'
+      expect(statusById.p3).toBe('offline');
+    } finally {
+      // restaura o fixture default para não vazar estado entre testes
+      tableData.profiles = mockProfiles;
+    }
+  });
 
   it('returns correct counts', async () => {
     const { result } = renderHook(() => useAgents(), { wrapper: createWrapper() });

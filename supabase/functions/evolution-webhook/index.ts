@@ -11,7 +11,6 @@ import {
   type WebhookPayload,
 } from "../_shared/evolution-helpers.ts";
 import { EVO_EVENT_TYPES_SET, EVO_PROTOBUF_MESSAGE_TYPE_MAP } from "../_shared/evolution-event-types.ts";
-import { parseMessageContent } from "../_shared/evolution-media.ts";
 import {
   handleConnectionUpdate, handleSendMessage, handleMessagesUpdate, handleMessagesDelete,
   handleContactsUpsert, handlePresenceUpdate, handleChatsUpdate,

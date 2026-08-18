@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useEmailSignature, type EmailSignature } from '@/hooks/email/useEmailSignature';
+import { sanitizeHtmlStrict } from '@/lib/sanitize';
 import { toast } from 'sonner';
 
 /**
@@ -121,7 +122,9 @@ export function EmailSignaturesSettings() {
                     </div>
                     <div
                       className="mt-1 max-h-16 overflow-hidden text-xs text-muted-foreground opacity-70"
-                      dangerouslySetInnerHTML={{ __html: sig.html_content }}
+                      dangerouslySetInnerHTML={{
+                        __html: sanitizeHtmlStrict(sig.html_content).html,
+                      }}
                     />
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
