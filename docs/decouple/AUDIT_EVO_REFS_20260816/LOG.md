@@ -187,6 +187,12 @@ Contagens iniciais da 1ª passada (heurística): ver seção Fase 1 do triagem.c
 
 ---
 
+## Rodada 3 (2026-08-17) — execução aprovada: consumer-stats (já resolvido em prod por outro agente; repo alinhado #1130), 7 views security_invoker (aplicada + registrada + canários admin 49k/sem-role 0; #1132), bitrix-sync aposentada (repo #1131 + runtime volume/registry). Canários: admin vê 43.471, sem-papel 0.
+
+## Rodada 4 (2026-08-17) — pendências do relatório: compose sync repo←runtime (#1134; realtime v2.128.3 — REVERTIDO na rodada 7 p/ v2.124.2 após crash), policy webhook admin-only (#1136, canário 43.471→0), autofix filtro cego corrigido em função+event trigger (#1137/#1147), RPCs fronteira versionadas (#1135), GHCR step removido (evo#17/#18).
+
+## Rodada 5 (2026-08-17) — working tree local resgatado (branch backup/resgate-r5-wip-20260817: seção VPS, docs PITR/secrets, compose canônico stack 25), espelho realtime alinhado (#1150), manifesto RPCs (#1151).
+
 ## Rodada 6 (2026-08-17 ~09:00 BRT) — promoção VPS + revisão stack 25 + autofix
 
 - **Seção VPS promovida** ao AGENTS.md (PR #1154): as 5 regras do incidente 15/08 estavam só na branch de resgate (rodada 5). R4 corrigida: API >= 1.44 (não 1.40). Sem contradições com o AGENTS.md vigente (t1/t7/t8).
