@@ -615,7 +615,7 @@ Arquivos externos a `src/features/inbox/hooks/` que importam diretamente:
 | `useInboxStatusPref.ts` | COMPLETA | localStorage; STORAGE_KEY='inbox-status-label-visible'; custom DOM event |
 | `useIncomingCallBroadcast.ts` | COMPLETA | Canal broadcast `incoming-calls:{instance}`; guard @broadcast |
 | `useMediaRefresh.ts` | PARCIAL | No-op wrapper sobre useMediaUrl; propagates messageType |
-| `useMediaUrl.ts` | PARCIAL | Auto-refresh URLs expiradas; max 2 tentativas; toast anti-flood |
+| `useMediaUrl.ts` | PARCIAL | Auto-refresh URLs expiradas; max 2 tentativas (persistem entre montagens); toast anti-flood; AbortSignal no invoke (E39); rate-limit 30s por messageId; signed URL 1h renovada por onError; buckets públicos sem refresh |
 | `useMentionableProfilesData.ts` | COMPLETA | `fetchMentionableProfiles` — NÃO hook |
 | `useMessageDetails.ts` | COMPLETA | `rpc_get_message_details`; staleTime=5min, gcTime=10min |
 | `useMessageQueue.ts` | PARCIAL | Queue + retry; maxRetries=3; baseDelay=1s; maxDelay=30s; MAX_CONCURRENT=5 |
