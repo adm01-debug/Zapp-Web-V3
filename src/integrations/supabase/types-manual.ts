@@ -102,6 +102,24 @@ export type ManualZappFunctions = {
     Args: { p_days?: number; p_forecast_days?: number };
     Returns: { d: string; kind: string; dow: number; value: number }[];
   };
+  // Etapa 70 (migration 20260818190000) — gamificação real: XP transacional.
+  // rpc_grant_xp: ledger xp_transactions + upsert atômico em agent_stats
+  // (soma do delta), nível recalculado (FLOOR(SQRT(xp/50))+1). SECURITY
+  // DEFINER com guard auth.uid() + perfil do próprio usuário.
+  rpc_grant_xp: {
+    Args: { p_profile_id: string; p_amount: number; p_reason?: string };
+    Returns: {
+      new_xp: number;
+      new_level: number;
+      leveled_up: boolean;
+      previous_level: number;
+    };
+  };
+  // rpc_unlock_achievement: dedupe transacional via ON CONFLICT
+  // (profile_id, achievement_type) DO NOTHING — desbloqueia 1x; tipos
+  // repetíveis (daily_goal/streak/message_milestone) seguem permitidos;
+  // XP creditado via rpc_grant_xp quando desbloqueio é novo.
+  rpc_unlock_achievement: {
   // E59 (migration 20260818190000_etapa67_gamification_atomic_xp.sql) — escrita
   // TRANSACIONAL de XP: o banco soma o delta (xp = xp + $1, FOR UPDATE), nunca
   // valor absoluto vindo do cliente (fim da race read-modify-write).
@@ -124,6 +142,13 @@ export type ManualZappFunctions = {
       p_name: string;
       p_description?: string | null;
       p_xp_reward?: number;
+    };
+    Returns: {
+      already_unlocked: boolean;
+      new_xp: number | null;
+      new_level: number | null;
+      leveled_up: boolean;
+      previous_level: number | null;
     };
     Returns:
       | { already_had: true }

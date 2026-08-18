@@ -19,6 +19,26 @@ export function useGamificationMutations(
   const addXpMutation = useMutation({
     mutationFn: async ({ xp, reason }: { xp: number; reason: string }) => {
       if (!profileId) throw new Error('No profile ID');
+      // E70: XP transacional — RPC SECURITY DEFINER grava ledger + estado
+      // atomicamente (fim da race condition client-side). Nível recalculado
+      // no banco (FLOOR(SQRT(xp/50))+1, espelho de levelUtils).
+      const { data, error } = await supabase.rpc('rpc_grant_xp', {
+        p_profile_id: profileId,
+        p_amount: xp,
+        p_reason: reason,
+      });
+      if (error) throw error;
+      const r = data as {
+        new_xp: number;
+        new_level: number;
+        leveled_up: boolean;
+        previous_level: number;
+      };
+      return {
+        newXp: r.new_xp,
+        newLevel: r.new_level,
+        leveledUp: r.leveled_up,
+        previousLevel: r.previous_level,
       // E59 — escrita TRANSACIONAL: o banco soma o delta (xp = xp + $1, FOR
       // UPDATE) e recalcula o nível (trigger update_level_on_xp_change).
       // NUNCA computar newXp a partir do cache (race read-modify-write:
@@ -54,6 +74,9 @@ export function useGamificationMutations(
     }) => {
       if (!profileId) throw new Error('No profile ID');
 
+      // E70: dedupe transacional no banco (ON CONFLICT DO NOTHING sobre o
+      // índice único da E66) — achievement desbloqueia 1x, sem TOCTOU.
+      const { data, error } = await supabase.rpc('rpc_unlock_achievement', {
       // E59 — dedupe + incremento ATOMICO no banco (ON CONFLICT DO NOTHING via
       // índice único agent_achievements_unique + xp/achievements_count
       // incrementais no mesmo UPDATE). Sem read-then-insert client-side.
@@ -64,6 +87,33 @@ export function useGamificationMutations(
         p_description: description ?? null,
         p_xp_reward: xpReward,
       });
+      if (error) {
+        // Defensivo: corrida de unique que escapar do ON CONFLICT (ex.: banco
+        // sem a migration aplicada ainda) vira alreadyHad, nunca throw.
+        if ((error as { code?: string }).code === '23505') {
+          return {
+            alreadyHad: true,
+            newXp: 0,
+            newLevel: currentStats?.level ?? 1,
+            leveledUp: false,
+            previousLevel: currentStats?.level ?? 1,
+          };
+        }
+        throw error;
+      }
+      const r = data as {
+        already_unlocked: boolean;
+        new_xp: number | null;
+        new_level: number | null;
+        leveled_up: boolean;
+        previous_level: number | null;
+      };
+      return {
+        alreadyHad: r.already_unlocked,
+        newXp: r.new_xp ?? 0,
+        newLevel: r.new_level ?? currentStats?.level ?? 1,
+        leveledUp: r.leveled_up,
+        previousLevel: r.previous_level ?? currentStats?.level ?? 1,
       if (error) throw error;
       if (!data) throw new Error('rpc_grant_achievement: resposta vazia');
 

@@ -1,7 +1,26 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { TourProvider, useTour, DEFAULT_ONBOARDING_STEPS, TourStep } from '../OnboardingTour';
 import { WelcomeModal } from '../WelcomeModal';
+
+// E70.2: startTour filtra steps cujos seletores não existem no DOM — a
+// fixture precisa semear os alvos usados pelos testes (6 data-tour + #a/#b).
+beforeEach(() => {
+  document.body.innerHTML = [
+    '<div data-tour="inbox"></div>',
+    '<div data-tour="contacts"></div>',
+    '<div data-tour="dashboard"></div>',
+    '<div data-tour="queues"></div>',
+    '<div data-tour="notifications"></div>',
+    '<div data-tour="theme"></div>',
+    '<div id="a"></div>',
+    '<div id="b"></div>',
+  ].join('');
+});
+
+afterEach(() => {
+  document.body.innerHTML = '';
+});
 
 // Helper component to access tour context
 function TourConsumer({

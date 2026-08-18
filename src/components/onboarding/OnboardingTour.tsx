@@ -2,6 +2,7 @@
 import { useState, useCallback, useMemo, ReactNode } from 'react';
 import { TourOverlay } from './TourOverlay';
 import { TourContextProvider } from './tourContext';
+import { filterAvailableSteps } from './defaultTourSteps';
 import type { TourStep } from './tourContext';
 /** Re-export of the TourStep type from tourContext for consumer convenience. */
 export type { TourStep } from './tourContext';
@@ -20,7 +21,9 @@ export function TourProvider({ children, onComplete }: TourProviderProps) {
   const [steps, setSteps] = useState<TourStep[]>([]);
 
   const startTour = useCallback((tourSteps: TourStep[]) => {
-    setSteps(tourSteps);
+    // E70.2: steps com seletor ausente no DOM são pulados (com aviso) — o tour
+    // só progride pelos steps realmente disponíveis e nunca quebra.
+    setSteps(filterAvailableSteps(tourSteps));
     setCurrentStep(0);
     setIsActive(true);
   }, []);

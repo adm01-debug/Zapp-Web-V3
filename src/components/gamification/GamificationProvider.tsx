@@ -149,6 +149,9 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
         }
 
         const result = await grantAchievement({ type: dbType, name, description: message, xpReward });
+        // E70: achievement desbloqueia 1x — já desbloqueado não re-exibe toast
+        // nem re-credita XP (dedupe transacional no banco).
+        if (result.alreadyHad) return;
         // E59: dedupe atômico no banco — conquista repetida não re-toasta.
         if (result?.alreadyHad) return;
         showAchievement(toastType, message, xpReward);
@@ -188,6 +191,7 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
           description: message,
           xpReward,
         });
+        if (result.alreadyHad) return;
         // E59: dedupe atômico no banco — conquista repetida não re-toasta.
         if (result?.alreadyHad) return;
         showAchievement('streak', message, xpReward);
@@ -207,6 +211,7 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
         description: 'Cliente satisfeito! Problema resolvido!',
         xpReward: 40,
       });
+      if (result.alreadyHad) return;
       // E59: dedupe atômico no banco — conquista repetida não re-toasta.
       if (result?.alreadyHad) return;
       showAchievement('resolution', 'Cliente satisfeito! Problema resolvido!', 40);
@@ -223,6 +228,7 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
         description: 'O cliente deu nota máxima! ⭐⭐⭐⭐⭐',
         xpReward: 75,
       });
+      if (result.alreadyHad) return;
       // E59: dedupe atômico no banco — conquista repetida não re-toasta.
       if (result?.alreadyHad) return;
       showAchievement('perfect_rating', 'O cliente deu nota máxima! ⭐⭐⭐⭐⭐', 75);
@@ -240,6 +246,7 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
           description: `Você alcançou o Nível ${level}!`,
           xpReward: 100,
         });
+        if (result.alreadyHad) return;
         // E59: dedupe atômico no banco — conquista repetida não re-toasta.
         if (result?.alreadyHad) return;
         showAchievement('level_up', `Você alcançou o Nível ${level}!`, 100);
@@ -259,6 +266,7 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
           description: `Meta "${goal}" concluída!`,
           xpReward: 60,
         });
+        if (result.alreadyHad) return;
         // E59: dedupe atômico no banco — conquista repetida não re-toasta.
         if (result?.alreadyHad) return;
         showAchievement('daily_goal', `Meta "${goal}" concluída!`, 60);
@@ -275,12 +283,14 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
       await updateStreak(true);
       const totalMessages = result.newSent + (dbStats?.messages_received || 0);
       if ([10, 50, 100, 500, 1000].includes(totalMessages)) {
+        const grantResult = await grantAchievement({
         const milestoneResult = await grantAchievement({
           type: ACHIEVEMENT_TYPES.MESSAGE_MILESTONE,
           name: `${totalMessages} Mensagens`,
           description: `Você enviou/recebeu ${totalMessages} mensagens!`,
           xpReward: Math.min(100, totalMessages / 10),
         });
+        if (grantResult.alreadyHad) return;
         // E59: dedupe atômico no banco — conquista repetida não re-toasta.
         if (milestoneResult?.alreadyHad) return;
         showAchievement(
