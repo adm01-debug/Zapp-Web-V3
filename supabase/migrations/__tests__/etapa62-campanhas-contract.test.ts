@@ -12,7 +12,7 @@
  *
  * Rodar: deno test --allow-read supabase/migrations/__tests__/etapa62-campanhas-contract.test.ts
  */
-import { assert, assertMatch, assertNotMatch } from "jsr:@std/assert";
+import { assertMatch, assertNotMatch } from "jsr:@std/assert";
 
 const M1 = await Deno.readTextFile(
   new URL("../20260818210000_etapa62_campanhas_rls_escrita.sql", import.meta.url),

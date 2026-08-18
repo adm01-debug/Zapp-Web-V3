@@ -42,7 +42,7 @@ export type ManualZappTables = Record<never, never>;
  */
 export type ManualZappFunctions = {
   rpc_list_failed_messages_cursor: {
-    Args: { p_limit?: number; p_cursor?: string; p_error_code?: string; p_instance_name?: string };
+    Args: { p_cursor_id?: string; p_error_code?: string; p_from: string; p_instance: string; p_limit: number; p_search: string; p_status: string[]; p_to: string };
     Returns: {
       id: string; instance_name: string | null; remote_jid: string | null; payload: Json | null;
       error_code: string | null; error_message: string | null; http_status: number | null;
