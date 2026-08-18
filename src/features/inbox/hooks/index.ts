@@ -8,6 +8,7 @@ export * from './useContactSummaryBatch';
 export * from './useFailureMetricsBatch';
 export * from './useFailureReason';
 export * from './useInboxBulkActions';
+export * from './useInboxDeepLinks';
 export * from './useInboxFilters';
 export * from './useInboxStatusPref';
 export * from './useInboxShortcuts';
