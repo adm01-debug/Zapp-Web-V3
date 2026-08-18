@@ -1,7 +1,7 @@
 /**
  * E62 — Campanhas: RLS de escrita + dedup atômico + engine A/B.
  *
- * Contrato estático das migrations 20260818210000/220000/230000 (sem banco, sem MCP):
+ * Contrato estático das migrations 20260818210002/220002/230000 (sem banco, sem MCP):
  *  - Filename YYYYMMDDHHMMSS snake_case.
  *  - Policies de escrita presentes com guard de dono/admin.
  *  - Dedup atômico: UNIQUE (campaign_id, contact_id) com guard + pré-dedupe.
