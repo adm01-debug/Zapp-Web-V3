@@ -7,8 +7,12 @@
 import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { useAuth } from '@/features/auth';
+
+/** Tabela fora do types gerado (auto_export_jobs) — client não tipado (padrão da casa). */
+const getDynamicClient = () => supabase as unknown as SupabaseClient;
 
 export interface AutoExportJob {
   id: string;
@@ -45,7 +49,7 @@ export function useAutoExportJobs() {
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: queryKeys.autoExport.jobs(),
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await getDynamicClient()
         .from('auto_export_jobs')
         .select('*')
         .order('created_at', { ascending: false });
@@ -66,7 +70,7 @@ export function useAutoExportJobs() {
       format: 'csv' | 'json';
       filters?: Record<string, unknown>;
     }) => {
-      const { error } = await supabase.from('auto_export_jobs').insert({
+      const { error } = await getDynamicClient().from('auto_export_jobs').insert({
         name,
         source_table: sourceTable,
         format,
@@ -85,7 +89,7 @@ export function useAutoExportJobs() {
 
   const deleteJob = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('auto_export_jobs').delete().eq('id', id);
+      const { error } = await getDynamicClient().from('auto_export_jobs').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {

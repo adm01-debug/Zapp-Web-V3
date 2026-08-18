@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGamification } from './GamificationProvider';
-import { TrendingUp, Award, ChevronRight } from 'lucide-react';
+import { TrendingUp, Award, ChevronRight, Trophy, Zap, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AchievementsPanel } from './AchievementsPanel';
 import { useState } from 'react';
