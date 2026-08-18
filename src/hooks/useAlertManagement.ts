@@ -193,14 +193,11 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
   }, [queryClient, playAlertSound, pushPermission]);
 
   const dismissAlert = async (alertId: string) => {
-    // RPC SECURITY DEFINER com check de member (R3 2026-08-18): o update direto
-    // era filtrado silenciosamente pelo RLS (0 rows) para não-admin desde o
-    // hardening de 05/08 — alerta nunca marcava como lido.
-    const { data: dismissed, error } = await supabase.rpc('rpc_dismiss_warroom_alert' as never, {
-      p_alert_id: alertId,
-    } as never);
+    const { error } = await supabase
+      .from('warroom_alerts')
+      .update({ is_read: true })
+      .eq('id', alertId);
     if (error) log.error('Failed to dismiss warroom alert', error);
-    else if (dismissed === false) log.warn('Dismiss warroom alert negado (sem permissão de member)', { alertId });
     queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
   };
 
