@@ -1,0 +1,44 @@
+name: db-migrate
+
+# Aplicador de migrations no Supabase self-hosted (causa-raiz do incidente
+# 2026-08-18: 19 migrations commitadas via fluxo Lovable GitHub-first e nunca
+# aplicadas -> drift repo x DB, 400/404 no front). Mesmo padrao do
+# edge-deploy.yml: runner self-hosted da VPS com /var/run/docker.sock;
+# aplica via docker exec supabase_db psql -U postgres (peer local, sem secret).
+#
+# Dispara em push na main que toque supabase/migrations/** e em dispatch
+# manual (dry_run default true — util p/ auditar pendencias sem aplicar).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'So listar migrations pendentes (nao aplica)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-migrate
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: Apply pending migrations (self-hosted DB)
+    runs-on: [Linux, X64, vps-zapp]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Apply pending migrations
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '0' }}
+        run: bash infra/db-migrate/apply-migrations.sh
