@@ -18,6 +18,7 @@ import { parseEvolutionError } from '@/features/inbox';
 import { dbInsert } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { buildFileHash as calculateFileHash } from '@/lib/crypto';
+import { emitSendStatus } from './sendStatusBus';
 import {
   DEFAULT_INSTANCE,
   SendError,
@@ -71,6 +72,8 @@ export async function sendExternalAudio(
     contactAvatar: opts.contactAvatar,
     media_meta: { ptt: opts.isPtt ?? true, conversation_id: convId },
   });
+  // Status transitório no bus — a UI troca a bolha para "enviando" imediatamente.
+  emitSendStatus(optimistic.id, { status: 'sending' }, { contactId: remoteJid, source: 'send-audio' });
 
   if (convId) {
     void safeClient
@@ -122,6 +125,11 @@ export async function sendExternalAudio(
   if (error) {
     log.error('evolution-api send-audio failed', error);
     const info = parseEvolutionError(error);
+    emitSendStatus(
+      optimistic.id,
+      { status: 'failed', errorCode: info.status, errorReason: info.reason },
+      { contactId: remoteJid, source: 'send-audio' }
+    );
 
     logAudit(RPC.logOutboundEvent, {
       p_conversation_id: remoteJid,
@@ -147,6 +155,11 @@ export async function sendExternalAudio(
   if (envelope?.error) {
     log.error('evolution-api send-audio error envelope', envelope);
     const info = parseEvolutionError(envelope);
+    emitSendStatus(
+      optimistic.id,
+      { status: 'failed', errorCode: info.status, errorReason: info.reason },
+      { contactId: remoteJid, source: 'send-audio' }
+    );
 
     logAudit(RPC.logOutboundEvent, {
       p_conversation_id: remoteJid,
@@ -175,6 +188,7 @@ export async function sendExternalAudio(
 
   optimistic.external_id = externalId;
   optimistic.status = 'sent';
+  emitSendStatus(optimistic.id, { status: 'sent' }, { contactId: remoteJid, source: 'send-audio' });
 
   if (convId) {
     void safeClient
