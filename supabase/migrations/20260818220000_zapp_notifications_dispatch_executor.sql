@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260817270000_zapp_notifications_dispatch_executor.sql
+-- 20260818220000_zapp_notifications_dispatch_executor.sql (renomeado de 20260817270000 — colisão de versão com etapa66_crm_sync_config; DDL aplicado em prod como 20260818220000)
 -- DASHBOARD-08 / Etapa 68 — executor real de notificações
 -- (edge zapp-notifications-dispatch): estado do canal + dedup + cron de disparo.
 -- ----------------------------------------------------------------------------
@@ -75,12 +75,12 @@ SELECT cron.schedule(
 
 -- Registro de migration (aplicado no DB via INSERT idempotente)
 -- INSERT INTO supabase_migrations.schema_migrations (version, name)
--- VALUES ('20260817270000', 'zapp_notifications_dispatch_executor')
+-- VALUES ('20260818220000', 'zapp_notifications_dispatch_executor')
 -- ON CONFLICT (version) DO NOTHING;
 
 -- Rollback:
 --   SELECT cron.unschedule('zapp-notifications-dispatch-5m');
 --   DROP TABLE zapp.notification_delivery_log;
 --   ALTER TABLE zapp.notification_channels_config DROP COLUMN IF EXISTS last_sent_at, DROP COLUMN IF EXISTS error;
---   DELETE FROM supabase_migrations.schema_migrations WHERE version = '20260817270000';
+--   DELETE FROM supabase_migrations.schema_migrations WHERE version = '20260818220000';
 -- ============================================================================

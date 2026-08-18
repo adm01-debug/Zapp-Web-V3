@@ -60630,6 +60630,10 @@ export type Database = {
         Args: { p_days?: number; p_limit?: number }
         Returns: Json
       }
+      rpc_dismiss_warroom_alert: {
+        Args: { p_alert_id: string }
+        Returns: boolean
+      }
       rpc_email_update_delivery: {
         Args: {
           p_bounce_type?: string
