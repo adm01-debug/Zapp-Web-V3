@@ -57,11 +57,7 @@ Deno.serve(async (req) => {
       return errorResponse("Invite email failed", 400, req);
     }
 
-    return jsonResponse(
-      { success: true, invite_id: inviteId, go_true_id: gtuInvite?.user?.id ?? null },
-      200,
-      req,
-    );
+    return jsonResponse({ success: true, invite_id: inviteId, go_true_id: gtuInvite?.user?.id ?? null }, 200, req);
   } catch (e) {
     log.error("invite-user erro inesperado", { error: String(e) });
     return errorResponse("Internal error", 500, req);
