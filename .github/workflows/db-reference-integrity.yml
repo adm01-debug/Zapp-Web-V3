@@ -27,7 +27,7 @@ concurrency:
 jobs:
   reference-integrity:
     name: Reference Integrity (Q-1/Q-2)
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     steps:
       - name: Checkout
         uses: actions/checkout@v7

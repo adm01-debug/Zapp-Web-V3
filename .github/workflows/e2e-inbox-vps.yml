@@ -34,7 +34,7 @@ jobs:
     permissions: {}
     name: VPS E2E Inbox — skipped on PR (requires live VPS)
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     steps:
       - run: echo "VPS E2E Inbox skipped on PRs — run manually via workflow_dispatch against the live VPS."
 
@@ -89,7 +89,7 @@ jobs:
 
       - name: Instalar dependências
         # HUSKY=0: husky v9 é ESM-only e quebra no Node antigo do container do runner self-hosted (E2E-04, 2026-08-06)
-        run: HUSKY=0 bun install --frozen-lockfile
+        run: HUSKY=0 bun install
 
       - name: Instalar Chromium do Playwright
         run: bunx playwright install --with-deps chromium

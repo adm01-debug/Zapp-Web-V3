@@ -20,7 +20,7 @@ concurrency:
 jobs:
   check-security-invoker:
     name: Verify security_invoker on all views
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     env:
       META_URL: ${{ secrets.ZAPP_META_URL }}
       META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}

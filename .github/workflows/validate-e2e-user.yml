@@ -10,7 +10,7 @@ on:
 jobs:
   validate:
     name: Validar permissões CRM do E2E_USER_EMAIL
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     timeout-minutes: 10
     steps:
       # E2E-05 (2026-08-07): porta 22 da VPS fechada p/ internet — SSH morto.

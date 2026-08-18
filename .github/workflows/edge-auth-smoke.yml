@@ -25,7 +25,7 @@ concurrency:
 jobs:
   smoke:
     name: edge-auth-smoke
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     env:
       SUPABASE_URL: "${{ inputs.supabase_url || secrets.SUPABASE_URL || 'https://supabase.atomicabr.com.br' }}"
       VERIFY_JWT_ENABLED: "${{ inputs.verify_jwt_enabled == true }}"
