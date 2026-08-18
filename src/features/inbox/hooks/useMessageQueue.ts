@@ -30,6 +30,9 @@ export interface QueueItem {
   type: 'text' | 'attachment' | 'audio';
   attachments?: File[];
   onProgress?: (p: number) => void;
+  /** E33: chave de idempotência — enfileiramentos duplicados (mesma chave,
+   *  ainda pending/sending) são ignorados, garantindo UM único envio. */
+  idempotencyKey?: string;
   status: 'pending' | 'sending' | 'failed' | 'confirmed';
   error?: unknown;
   retryCount: number;
@@ -63,7 +66,8 @@ export interface MessageQueueController {
     content: string,
     attachments?: File[],
     type?: QueueItem['type'],
-    onProgress?: (p: number) => void
+    onProgress?: (p: number) => void,
+    idempotencyKey?: string
   ) => void;
   retryMessage: (id: string) => void;
   updateProgress: (id: string, progress: number) => void;
@@ -76,7 +80,9 @@ export interface MessageQueueController {
   removeFromQueue: (id: string) => void;
 }
 
-const MAX_CONCURRENT_SENDS = 5;
+// E33: constante exportada — o teste de concorrência a referenda (única fonte
+// do cap; grep MAX_CONCURRENT_SENDS em src/ deve apontar só para cá + o teste).
+export const MAX_CONCURRENT_SENDS = 5;
 
 // F4-10: cap do dedupe de entregas processadas — o Set crescia sem limite
 // (memory leak). Com o cap, a entrada mais antiga é evictada (Set preserva
@@ -129,11 +135,15 @@ export function useMessageQueue(
   const activeTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
   const processedDeliveriesRef = useRef<Set<string>>(new Set());
   const currentlySendingRef = useRef<number>(0);
+  // E33: após unmount nenhum timer/processamento novo pode nascer (finally
+  // agenda t3 mesmo com o envio em voo falhando depois do unmount).
+  const disposedRef = useRef(false);
 
   useEffect(() => {
     const activeTimers = activeTimersRef.current;
     const processedDeliveries = processedDeliveriesRef.current;
     return () => {
+      disposedRef.current = true;
       activeTimers.forEach(clearTimeout);
       processedDeliveries.clear();
       currentlySendingRef.current = 0;
@@ -284,6 +294,8 @@ export function useMessageQueue(
   // Versão corrigida e simplificada do processamento
   const processNextInQueue = useCallback(
     async (contactId: string) => {
+      if (disposedRef.current) return;
+
       // Controle de concorrência global: máximo de MAX_CONCURRENT_SENDS simultâneos
       if (currentlySendingRef.current >= MAX_CONCURRENT_SENDS) {
         log.debug(
@@ -301,6 +313,18 @@ export function useMessageQueue(
 
         if (!itemToProcess) return currentQueue;
 
+        // E33: reserva atômica do slot DENTRO do updater. Vários
+        // processNextInQueue do mesmo flush (efeito da fila) liam o guard
+        // externo antes de QUALQUER incremento — todos passavam e estouravam
+        // o cap (10 envios simultâneos). Os updaters rodam em ordem no mesmo
+        // render, então o check aqui é a fonte da verdade da concorrência.
+        if (currentlySendingRef.current >= MAX_CONCURRENT_SENDS) {
+          log.debug(
+            `[concurrency] Max concurrent sends (${MAX_CONCURRENT_SENDS}) reached inside updater, deferring`
+          );
+          return currentQueue;
+        }
+
         // Se achamos um item, marcamos como enviando e iniciamos o processo fora do setQueue
         isProcessingRef.current[contactId] = true;
         currentlySendingRef.current += 1;
@@ -315,6 +339,7 @@ export function useMessageQueue(
             if (itemToProcess.nextRetryAt && itemToProcess.nextRetryAt > Date.now()) {
               isProcessingRef.current[contactId] = false;
               currentlySendingRef.current = Math.max(0, currentlySendingRef.current - 1);
+              if (disposedRef.current) return;
               // Agendar verificação para o tempo exato do retry
               const t1 = setTimeout(
                 () => {
@@ -406,8 +431,12 @@ export function useMessageQueue(
 
             // F4-13: classifica o erro — 5xx/timeout/rede são retryable; 4xx é
             // permanente e não deve gastar tentativas com backoff inútil.
+            // E33: `retryCount < maxRetries - 1` — total de tentativas = maxRetries
+            // (1 envio + maxRetries-1 retries). Antes (rc < maxRetries) o hook
+            // fazia 1 envio + 3 retries = 4 tentativas com maxRetries=3.
             const retryable = isRetryableSendError(err);
-            const shouldAutoRetry = retryable && itemToProcess.retryCount < config.maxRetries;
+            const shouldAutoRetry =
+              retryable && itemToProcess.retryCount < config.maxRetries - 1;
             const delay = shouldAutoRetry
               ? calculateNextRetryDelay(itemToProcess.retryCount, config)
               : 0;
@@ -488,12 +517,17 @@ export function useMessageQueue(
           } finally {
             isProcessingRef.current[contactId] = false;
             currentlySendingRef.current = Math.max(0, currentlySendingRef.current - 1);
-            // Tentar processar o próximo após um pequeno delay ou o tempo do retry
-            const t3 = setTimeout(() => {
-              activeTimersRef.current.delete(t3);
-              processNextInQueue(contactId);
-            }, 500);
-            activeTimersRef.current.add(t3);
+            // E33: após unmount não agenda mais nada (o timer vazio só
+            // re-processaria um hook desmontado). Bloco condicional em vez de
+            // return para não engolir a exceção original (no-unsafe-finally).
+            if (!disposedRef.current) {
+              // Tentar processar o próximo após um pequeno delay ou o tempo do retry
+              const t3 = setTimeout(() => {
+                activeTimersRef.current.delete(t3);
+                processNextInQueue(contactId);
+              }, 500);
+              activeTimersRef.current.add(t3);
+            }
           }
         })();
 
@@ -521,7 +555,8 @@ export function useMessageQueue(
       content: string,
       attachments?: File[],
       type: 'text' | 'attachment' | 'audio' = 'text',
-      onProgress?: (p: number) => void
+      onProgress?: (p: number) => void,
+      idempotencyKey?: string
     ) => {
       const newItem: QueueItem = {
         id: `queue:${uuidv4()}`,
@@ -530,6 +565,7 @@ export function useMessageQueue(
         type,
         attachments,
         onProgress,
+        idempotencyKey,
         status: 'pending',
         retryCount: 0,
         progress: 0,
@@ -537,7 +573,24 @@ export function useMessageQueue(
         attempts: [],
       };
 
-      setQueue((prev) => [...prev, newItem]);
+      // E33: dedupe por idempotencyKey DENTRO do updater — dois addToQueue no
+      // mesmo tick (duplo clique no send) veem o MESMO prev e o segundo é
+      // ignorado, garantindo UM único envio por chave enquanto o item ainda
+      // está pending/sending. Chaves diferentes (ou ausentes) seguem livres.
+      setQueue((prev) => {
+        if (
+          idempotencyKey &&
+          prev.some(
+            (i) =>
+              i.idempotencyKey === idempotencyKey &&
+              (i.status === 'pending' || i.status === 'sending')
+          )
+        ) {
+          log.debug('[dedup] Duplicate enqueue ignored', { idempotencyKey });
+          return prev;
+        }
+        return [...prev, newItem];
+      });
       log.info(`Added message to queue: ${newItem.id} (type: ${type})`);
     },
     []
