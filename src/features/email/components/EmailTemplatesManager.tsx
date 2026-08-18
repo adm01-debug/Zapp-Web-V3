@@ -51,10 +51,10 @@ const CATEGORIES = [
 ] as const;
 
 const CATEGORY_BADGE_VARIANT: Record<string, string> = {
-  transactional: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  marketing: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-  notification: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
-  other: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+  transactional: 'bg-primary text-primary dark:bg-primary/30 dark:text-primary',
+  marketing: 'bg-accent text-accent dark:bg-accent/30 dark:text-accent',
+  notification: 'bg-warning text-warning dark:bg-warning/30 dark:text-warning',
+  other: 'bg-muted text-muted dark:bg-muted dark:text-muted',
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
