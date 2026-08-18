@@ -22,7 +22,10 @@ const TwoFactorAuth = lazyWithRetry(() => import('@/pages/TwoFactorAuth'));
 const DesignSystem = lazyWithRetry(() => import('@/pages/DesignSystem'));
 const QueueDetails = lazyWithRetry(() => import('@/pages/QueueDetails'));
 const QueuesComparison = lazyWithRetry(() => import('@/pages/QueuesComparison'));
-const SLADashboard = lazyWithRetry(() => import('@/pages/SLADashboard'));
+// E67 (67.7): rota SLA única — a navegação canônica de SLA é view-based
+// (ViewRouter 'sla' → SLADashboardView). A rota URL `/sla` (pages/SLADashboard,
+// página standalone com Sidebar própria) foi REMOVIDA; deep-links usam
+// `?view=sla` (useIndexNavigation) ou o evento `navigate-view`.
 const SLAHistory = lazyWithRetry(() => import('@/pages/SLAHistory'));
 const SLAAlertPreferences = lazyWithRetry(() => import('@/pages/SLAAlertPreferences'));
 const SLAAlertHistory = lazyWithRetry(() => import('@/pages/SLAAlertHistory'));
@@ -124,14 +127,8 @@ export function AppRoutes() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/sla"
-            element={
-              <ProtectedRoute>
-                <SLADashboard />
-              </ProtectedRoute>
-            }
-          />
+          {/* E67 (67.7): rota URL `/sla` REMOVIDA — canônica é view-based
+              (ViewRouter 'sla' / `?view=sla` / evento `navigate-view`). */}
           <Route
             path="/sla/history"
             element={

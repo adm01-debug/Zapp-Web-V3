@@ -152,7 +152,13 @@ export function QueuesView() {
             <Button
               variant="outline"
               className="border-border/30 hover:bg-muted/30"
-              onClick={() => navigate('/sla')}
+              // E67 (67.7): rota SLA única — navegação view-based dentro do
+              // shell (antes: navigate('/sla') para a página standalone).
+              onClick={() =>
+                window.dispatchEvent(
+                  new CustomEvent('navigate-view', { detail: 'sla' })
+                )
+              }
             >
               <Clock className="mr-2 h-4 w-4" />
               Dashboard SLA
