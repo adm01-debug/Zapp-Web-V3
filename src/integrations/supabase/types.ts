@@ -27,273 +27,6 @@ export type Database = {
         }
         Relationships: []
       }
-      _snap_pre_upgrade_evolution_contacts_wpp2_lid_20260811: {
-        Row: {
-          assigned_to: string | null
-          company: string | null
-          created_at: string | null
-          dedup_hash: string | null
-          deleted_at: string | null
-          deleted_reason: string | null
-          email: string | null
-          first_contact_at: string | null
-          first_name: string | null
-          full_name: string | null
-          id: string
-          instance_name: string | null
-          is_on_whatsapp: boolean | null
-          last_message_at: string | null
-          last_name: string | null
-          last_presence_at: string | null
-          last_seen_at: string | null
-          lead_score: number | null
-          lead_source: string | null
-          lead_status: string | null
-          lgpd_consent_at: string | null
-          lgpd_consent_channel: string | null
-          lgpd_data_sharing: boolean | null
-          lgpd_deletion_requested_at: string | null
-          lgpd_last_updated_at: string | null
-          lgpd_marketing_consent: boolean | null
-          lgpd_opt_out_at: string | null
-          lgpd_profiling: boolean | null
-          merge_source_id: string | null
-          message_count: number | null
-          nickname: string | null
-          notes: string | null
-          phone_number: string | null
-          pii_masked_at: string | null
-          presence_status: string | null
-          profile_picture_url: string | null
-          push_name: string | null
-          queue_id: string | null
-          raw_data: Json | null
-          remote_jid: string | null
-          role_title: string | null
-          search_vector: unknown
-          tags: string[] | null
-          total_messages: number | null
-          total_purchases: number | null
-          updated_at: string | null
-          version: number | null
-          whatsapp_checked_at: string | null
-          whatsapp_labels: string[] | null
-        }
-        Insert: {
-          assigned_to?: string | null
-          company?: string | null
-          created_at?: string | null
-          dedup_hash?: string | null
-          deleted_at?: string | null
-          deleted_reason?: string | null
-          email?: string | null
-          first_contact_at?: string | null
-          first_name?: string | null
-          full_name?: string | null
-          id: string
-          instance_name?: string | null
-          is_on_whatsapp?: boolean | null
-          last_message_at?: string | null
-          last_name?: string | null
-          last_presence_at?: string | null
-          last_seen_at?: string | null
-          lead_score?: number | null
-          lead_source?: string | null
-          lead_status?: string | null
-          lgpd_consent_at?: string | null
-          lgpd_consent_channel?: string | null
-          lgpd_data_sharing?: boolean | null
-          lgpd_deletion_requested_at?: string | null
-          lgpd_last_updated_at?: string | null
-          lgpd_marketing_consent?: boolean | null
-          lgpd_opt_out_at?: string | null
-          lgpd_profiling?: boolean | null
-          merge_source_id?: string | null
-          message_count?: number | null
-          nickname?: string | null
-          notes?: string | null
-          phone_number?: string | null
-          pii_masked_at?: string | null
-          presence_status?: string | null
-          profile_picture_url?: string | null
-          push_name?: string | null
-          queue_id?: string | null
-          raw_data?: Json | null
-          remote_jid?: string | null
-          role_title?: string | null
-          search_vector?: unknown
-          tags?: string[] | null
-          total_messages?: number | null
-          total_purchases?: number | null
-          updated_at?: string | null
-          version?: number | null
-          whatsapp_checked_at?: string | null
-          whatsapp_labels?: string[] | null
-        }
-        Update: {
-          assigned_to?: string | null
-          company?: string | null
-          created_at?: string | null
-          dedup_hash?: string | null
-          deleted_at?: string | null
-          deleted_reason?: string | null
-          email?: string | null
-          first_contact_at?: string | null
-          first_name?: string | null
-          full_name?: string | null
-          id?: string
-          instance_name?: string | null
-          is_on_whatsapp?: boolean | null
-          last_message_at?: string | null
-          last_name?: string | null
-          last_presence_at?: string | null
-          last_seen_at?: string | null
-          lead_score?: number | null
-          lead_source?: string | null
-          lead_status?: string | null
-          lgpd_consent_at?: string | null
-          lgpd_consent_channel?: string | null
-          lgpd_data_sharing?: boolean | null
-          lgpd_deletion_requested_at?: string | null
-          lgpd_last_updated_at?: string | null
-          lgpd_marketing_consent?: boolean | null
-          lgpd_opt_out_at?: string | null
-          lgpd_profiling?: boolean | null
-          merge_source_id?: string | null
-          message_count?: number | null
-          nickname?: string | null
-          notes?: string | null
-          phone_number?: string | null
-          pii_masked_at?: string | null
-          presence_status?: string | null
-          profile_picture_url?: string | null
-          push_name?: string | null
-          queue_id?: string | null
-          raw_data?: Json | null
-          remote_jid?: string | null
-          role_title?: string | null
-          search_vector?: unknown
-          tags?: string[] | null
-          total_messages?: number | null
-          total_purchases?: number | null
-          updated_at?: string | null
-          version?: number | null
-          whatsapp_checked_at?: string | null
-          whatsapp_labels?: string[] | null
-        }
-        Relationships: []
-      }
-      _snap_pre_upgrade_lid_maps_50_50_20260812: {
-        Row: {
-          _row_id: number
-          confidence: string | null
-          created_at: string | null
-          instance_name: string | null
-          lid_jid: string | null
-          phone_jid: string | null
-          phone_number: string | null
-          source: string | null
-        }
-        Insert: {
-          _row_id?: number
-          confidence?: string | null
-          created_at?: string | null
-          instance_name?: string | null
-          lid_jid?: string | null
-          phone_jid?: string | null
-          phone_number?: string | null
-          source?: string | null
-        }
-        Update: {
-          _row_id?: number
-          confidence?: string | null
-          created_at?: string | null
-          instance_name?: string | null
-          lid_jid?: string | null
-          phone_jid?: string | null
-          phone_number?: string | null
-          source?: string | null
-        }
-        Relationships: []
-      }
-      _snap_pre_upgrade_lid_phone_map_20260811: {
-        Row: {
-          _row_id: number
-          confidence: string | null
-          created_at: string | null
-          instance_name: string | null
-          lid_jid: string | null
-          phone_jid: string | null
-          phone_number: string | null
-          raw_signal: Json | null
-          source: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          _row_id?: number
-          confidence?: string | null
-          created_at?: string | null
-          instance_name?: string | null
-          lid_jid?: string | null
-          phone_jid?: string | null
-          phone_number?: string | null
-          raw_signal?: Json | null
-          source?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          _row_id?: number
-          confidence?: string | null
-          created_at?: string | null
-          instance_name?: string | null
-          lid_jid?: string | null
-          phone_jid?: string | null
-          phone_number?: string | null
-          raw_signal?: Json | null
-          source?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      _snap_pre_upgrade_t22n_stable_20260812: {
-        Row: {
-          _row_id: number
-          confidence: string | null
-          created_at: string | null
-          instance_name: string | null
-          lid_jid: string | null
-          phone_jid: string | null
-          phone_number: string | null
-          raw_signal: Json | null
-          source: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          _row_id?: number
-          confidence?: string | null
-          created_at?: string | null
-          instance_name?: string | null
-          lid_jid?: string | null
-          phone_jid?: string | null
-          phone_number?: string | null
-          raw_signal?: Json | null
-          source?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          _row_id?: number
-          confidence?: string | null
-          created_at?: string | null
-          instance_name?: string | null
-          lid_jid?: string | null
-          phone_jid?: string | null
-          phone_number?: string | null
-          raw_signal?: Json | null
-          source?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       _snapshot_version_state: {
         Row: {
           current_version: number
@@ -27694,6 +27427,17 @@ export type Database = {
       fn_boundary_audit: { Args: never; Returns: Json }
       fn_check_n8n_app_privileges_local: { Args: never; Returns: Json }
       fn_jwt_secret_ref: { Args: never; Returns: string }
+      fn_media_queue_health_check: {
+        Args: never
+        Returns: {
+          failed_exhausted_count: number
+          oldest_stuck_min: number
+          pending_count: number
+          processing_stuck_count: number
+          queue_status: string
+          recommendation: string
+        }[]
+      }
       generate_transfer_ticket: { Args: never; Returns: string }
       get_contact_intelligence_by_phone: {
         Args: { p_phone: string }
@@ -30757,6 +30501,7 @@ export type Database = {
           response_count: number | null
           send_count: number | null
           variant_name: string
+          variant_weight: number
         }
         Insert: {
           campaign_id: string
@@ -30770,6 +30515,7 @@ export type Database = {
           response_count?: number | null
           send_count?: number | null
           variant_name: string
+          variant_weight?: number
         }
         Update: {
           campaign_id?: string
@@ -30783,6 +30529,7 @@ export type Database = {
           response_count?: number | null
           send_count?: number | null
           variant_name?: string
+          variant_weight?: number
         }
         Relationships: [
           {
@@ -30804,6 +30551,7 @@ export type Database = {
           id: string
           sent_at: string | null
           status: string
+          variant: string | null
         }
         Insert: {
           campaign_id: string
@@ -30814,6 +30562,7 @@ export type Database = {
           id?: string
           sent_at?: string | null
           status: string
+          variant?: string | null
         }
         Update: {
           campaign_id?: string
@@ -30824,6 +30573,7 @@ export type Database = {
           id?: string
           sent_at?: string | null
           status?: string
+          variant?: string | null
         }
         Relationships: [
           {
@@ -30900,6 +30650,8 @@ export type Database = {
           target_type: string
           total_contacts: number
           updated_at: string
+          variant: string | null
+          variant_weight: number | null
           whatsapp_connection_id: string | null
         }
         Insert: {
@@ -30924,6 +30676,8 @@ export type Database = {
           target_type: string
           total_contacts: number
           updated_at?: string
+          variant?: string | null
+          variant_weight?: number | null
           whatsapp_connection_id?: string | null
         }
         Update: {
@@ -30948,6 +30702,8 @@ export type Database = {
           target_type?: string
           total_contacts?: number
           updated_at?: string
+          variant?: string | null
+          variant_weight?: number | null
           whatsapp_connection_id?: string | null
         }
         Relationships: [
@@ -40121,6 +39877,42 @@ export type Database = {
         }
         Relationships: []
       }
+      invites: {
+        Row: {
+          created_at: string
+          created_by: string
+          email: string
+          expires_at: string
+          id: string
+          message: string | null
+          role: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          email: string
+          expires_at: string
+          id?: string
+          message?: string | null
+          role?: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          message?: string | null
+          role?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       ip_whitelist: {
         Row: {
           added_by: string | null
@@ -40701,7 +40493,9 @@ export type Database = {
           config: Json
           created_at: string | null
           enabled: boolean
+          error: string | null
           id: number
+          last_sent_at: string | null
           min_severity: string
           updated_at: string | null
         }
@@ -40710,7 +40504,9 @@ export type Database = {
           config?: Json
           created_at?: string | null
           enabled?: boolean
+          error?: string | null
           id?: number
+          last_sent_at?: string | null
           min_severity?: string
           updated_at?: string | null
         }
@@ -40719,11 +40515,48 @@ export type Database = {
           config?: Json
           created_at?: string | null
           enabled?: boolean
+          error?: string | null
           id?: number
+          last_sent_at?: string | null
           min_severity?: string
           updated_at?: string | null
         }
         Relationships: []
+      }
+      notification_delivery_log: {
+        Row: {
+          channel_id: number
+          created_at: string
+          error: string | null
+          event_key: string
+          id: number
+          status: string
+        }
+        Insert: {
+          channel_id: number
+          created_at?: string
+          error?: string | null
+          event_key: string
+          id?: never
+          status?: string
+        }
+        Update: {
+          channel_id?: number
+          created_at?: string
+          error?: string | null
+          event_key?: string
+          id?: never
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_delivery_log_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "notification_channels_config"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_templates: {
         Row: {
@@ -45724,6 +45557,7 @@ export type Database = {
           sent_at: string | null
           status: string
           updated_at: string | null
+          variant: string | null
         }
         Insert: {
           campaign_id: string
@@ -45737,6 +45571,7 @@ export type Database = {
           sent_at?: string | null
           status: string
           updated_at?: string | null
+          variant?: string | null
         }
         Update: {
           campaign_id?: string
@@ -45750,6 +45585,7 @@ export type Database = {
           sent_at?: string | null
           status?: string
           updated_at?: string | null
+          variant?: string | null
         }
         Relationships: [
           {
@@ -48001,6 +47837,30 @@ export type Database = {
           plan?: string | null
           slug?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      xp_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          profile_id: string
+          reason: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          profile_id: string
+          reason: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          profile_id?: string
+          reason?: string
         }
         Relationships: []
       }
@@ -60288,6 +60148,14 @@ export type Database = {
         }[]
       }
       initiate_gmail_oauth: { Args: never; Returns: Json }
+      invite_user: {
+        Args: { p_email: string; p_message?: string; p_role?: string }
+        Returns: {
+          expires_at: string
+          invite_id: string
+          token: string
+        }[]
+      }
       is_account_locked: {
         Args: { check_email: string }
         Returns: {
@@ -60620,6 +60488,14 @@ export type Database = {
           p_batch_size?: number
           p_dry_run?: boolean
           p_instance_name?: string
+        }
+        Returns: Json
+      }
+      rpc_campaign_assign_variant: {
+        Args: {
+          p_campaign_id: string
+          p_contact_id: string
+          p_variant_id: string
         }
         Returns: Json
       }
@@ -61218,6 +61094,15 @@ export type Database = {
           p_xp_reward?: number
         }
         Returns: Json
+      }
+      rpc_grant_xp: {
+        Args: { p_amount: number; p_profile_id: string; p_reason?: string }
+        Returns: {
+          leveled_up: boolean
+          new_level: number
+          new_xp: number
+          previous_level: number
+        }[]
       }
       rpc_inbox_preview_batch: {
         Args: { p_instance?: string; p_limit?: number; p_remote_jids: string[] }
@@ -62510,6 +62395,22 @@ export type Database = {
         Args: { p_channel_id: string; p_queue_id: string }
         Returns: boolean
       }
+      rpc_unlock_achievement: {
+        Args: {
+          p_description?: string
+          p_name: string
+          p_profile_id: string
+          p_type: string
+          p_xp_reward?: number
+        }
+        Returns: {
+          already_unlocked: boolean
+          leveled_up: boolean
+          new_level: number
+          new_xp: number
+          previous_level: number
+        }[]
+      }
       rpc_update_email_health_state: {
         Args: { p_failure_count?: number; p_metadata?: Json; p_status: string }
         Returns: Json
@@ -62893,6 +62794,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      sessions_owner: { Args: { p_session_id: string }; Returns: string }
       sessions_revoke: {
         Args: {
           p_admin?: boolean
