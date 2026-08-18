@@ -60,7 +60,21 @@ export const agentService = {
 
       const membersData = (membersResult.data ?? []) as Array<{ profile_id: string; queue_id: string }>;
       const queuesData = (queuesResult.data ?? []) as Array<{ id: string; name: string; color: string }>;
-      const profilesData = (profilesResult.data ?? []) as unknown as AgentProfile[];
+      const profilesData: AgentProfile[] = (profilesResult.data ?? []).map((p) => ({
+        id: p.id ?? '',
+        user_id: p.user_id ?? '',
+        name: p.name ?? '',
+        email: p.email,
+        avatar_url: p.avatar_url,
+        role: p.role,
+        job_title: p.job_title,
+        department: p.department,
+        phone: p.phone,
+        is_active: p.is_active ?? false,
+        max_chats: p.max_chats ?? 0,
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+      }));
 
       return profilesData.map((profile) => {
         const agentQueues = membersData
