@@ -8,11 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   Crown, UserCog, User, Briefcase, Building, Lock,
-  UserCheck, UserX, Edit, Code,
+  UserCheck, UserX, Edit, Code, MonitorSmartphone,
 } from 'lucide-react';
 import { ForceLogoutButton } from './ForceLogoutButton';
+import { AdminUserSessionsDialog } from './AdminUserSessionsDialog';
 import { accessLevelConfig, type UserWithRole } from '../hooks/useAdminData';
 import type { AppRole } from '@/features/auth';
+import { useState } from 'react';
 import { isAppRole } from '../lib/appRole';
 
 const roleIconMap: Record<AppRole, typeof Code> = { dev: Code, admin: Crown, supervisor: UserCog, manager: Briefcase, agent: User };
@@ -29,6 +31,7 @@ interface AdminUsersTableProps {
 
 /** Admin Users Table component. */
 export function AdminUsersTable({ users, isAdmin, onRoleChange, onToggleActive, onEditUser }: AdminUsersTableProps) {
+  const [sessionsUser, setSessionsUser] = useState<UserWithRole | null>(null);
   return (
     <Card className="border border-secondary/20 bg-card">
       <CardHeader><CardTitle className="text-lg">Usuários</CardTitle></CardHeader>
@@ -102,6 +105,16 @@ export function AdminUsersTable({ users, isAdmin, onRoleChange, onToggleActive, 
                         <Button aria-label="Editar usuário" variant="ghost" size="icon" className="w-8 h-8" onClick={() => onEditUser(user)}>
                           <Edit className="w-4 h-4" />
                         </Button>
+                        <Button
+                          aria-label="Ver sessões"
+                          variant="ghost"
+                          size="icon"
+                          className="w-8 h-8"
+                          title="Sessões ativas"
+                          onClick={() => setSessionsUser(user)}
+                        >
+                          <MonitorSmartphone className="w-4 h-4" />
+                        </Button>
                         <ForceLogoutButton userId={user.user_id} userName={user.name} />
                         <Switch checked={user.is_active !== false} onCheckedChange={() => onToggleActive(user)} />
                       </div>
@@ -113,6 +126,16 @@ export function AdminUsersTable({ users, isAdmin, onRoleChange, onToggleActive, 
           </TableBody>
         </Table>
       </CardContent>
+      {sessionsUser && (
+        <AdminUserSessionsDialog
+          userId={sessionsUser.user_id}
+          userName={sessionsUser.name}
+          open={!!sessionsUser}
+          onOpenChange={(open) => {
+            if (!open) setSessionsUser(null);
+          }}
+        />
+      )}
     </Card>
   );
 }

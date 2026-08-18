@@ -50,13 +50,32 @@ export interface UserDevice {
 
 export interface UserSession {
   id: string;
-  device_id: string | null;
-  ip_address: string | null;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  last_active: string;
   user_agent: string | null;
-  is_active: boolean | null;
-  started_at: string;
-  last_activity_at: string;
-  expires_at: string;
+  ip: string | null;
+  aal: string | null;
+  tag: string | null;
+  factor_id: string | null;
+}
+
+/**
+ * Extrai o id da sessão atual do claim `session_id` do access token (GoTrue).
+ * Retorna null para tokens inválidos/ausentes (nunca lança).
+ */
+export function extractSessionIdFromToken(token: string | null | undefined): string | null {
+  if (!token) return null;
+  try {
+    const [, payload] = token.split('.');
+    if (!payload) return null;
+    const padded = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=');
+    const claims = JSON.parse(atob(padded)) as { session_id?: unknown };
+    return typeof claims.session_id === 'string' ? claims.session_id : null;
+  } catch {
+    return null;
+  }
 }
 
 export interface SidebarState {
@@ -322,6 +341,7 @@ export function useDeviceDetectionManagement() {
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -395,6 +415,10 @@ export function useDeviceDetectionManagement() {
       } = await supabase.auth.getSession();
       if (!session?.access_token) return;
 
+      if (mountedRef.current) {
+        setCurrentSessionId(extractSessionIdFromToken(session.access_token));
+      }
+
       const response = await supabase.functions.invoke('detect-new-device', {
         body: { device_fingerprint: fingerprint, browser, os, device_name: deviceName },
       });
@@ -434,14 +458,14 @@ export function useDeviceDetectionManagement() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('user_sessions')
-        .select('*')
-        .eq('is_active', true)
-        .order('last_activity_at', { ascending: false });
+      // Sessões REAIS de auth.sessions (RPC SECURITY DEFINER, Etapa 56) —
+      // a tabela local user_sessions não reflete o estado do GoTrue.
+      const { data, error } = await supabase.rpc('sessions_list', {
+        p_target_user_id: user.id,
+      });
 
       if (error) throw error;
-      if (mountedRef.current) setSessions(data || []);
+      if (mountedRef.current) setSessions((data as UserSession[] | null) ?? []);
     } catch (error) {
       if (mountedRef.current) {
         deviceDetectionLog.error('Error fetching sessions:', error);
@@ -493,10 +517,12 @@ export function useDeviceDetectionManagement() {
   const endSession = useCallback(
     async (sessionId: string) => {
       try {
-        const { error } = await supabase
-          .from('user_sessions')
-          .update({ is_active: false, ended_at: new Date().toISOString() })
-          .eq('id', sessionId);
+        // Revogação REAL via edge revoke-session (auth.sessions + refresh
+        // tokens). Erro (403 de outro usuário, 404, 500) é repassado para o
+        // caller mostrar toast de falha.
+        const { error } = await supabase.functions.invoke('revoke-session', {
+          body: { sessionId },
+        });
 
         if (error) throw error;
         await fetchSessions();
@@ -504,29 +530,32 @@ export function useDeviceDetectionManagement() {
         if (mountedRef.current) {
           deviceDetectionLog.error('Error ending session:', error);
         }
+        throw error;
       }
     },
     [fetchSessions, mountedRef]
   );
 
   const endAllOtherSessions = useCallback(async () => {
-    if (!currentDeviceId) return;
-
     try {
-      const { error } = await supabase
-        .from('user_sessions')
-        .update({ is_active: false, ended_at: new Date().toISOString() })
-        .neq('device_id', currentDeviceId)
-        .eq('is_active', true);
-
-      if (error) throw error;
+      const toRevoke = sessions.filter((s) => s.id !== currentSessionId);
+      const results = await Promise.all(
+        toRevoke.map((s) =>
+          supabase.functions.invoke('revoke-session', {
+            body: { sessionId: s.id },
+          })
+        )
+      );
+      const failed = results.find((r) => r.error);
+      if (failed?.error) throw failed.error;
       await fetchSessions();
     } catch (error) {
       if (mountedRef.current) {
         deviceDetectionLog.error('Error ending sessions:', error);
       }
+      throw error;
     }
-  }, [currentDeviceId, fetchSessions, mountedRef]);
+  }, [sessions, currentSessionId, fetchSessions, mountedRef]);
 
   useEffect(() => {
     if (user) {
@@ -544,6 +573,7 @@ export function useDeviceDetectionManagement() {
     sessions,
     loading,
     currentDeviceId,
+    currentSessionId,
     trustDevice,
     removeDevice,
     endSession,

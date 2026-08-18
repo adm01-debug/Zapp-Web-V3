@@ -24,6 +24,7 @@ export function DevicesPanel() {
     sessions,
     loading,
     currentDeviceId,
+    currentSessionId,
     trustDevice,
     removeDevice,
     endSession,
@@ -150,8 +151,7 @@ export function DevicesPanel() {
                 <SessionCard
                   key={session.id}
                   session={session}
-                  device={devices.find((d) => d.id === session.device_id)}
-                  isCurrentSession={session.device_id === currentDeviceId}
+                  isCurrentSession={session.id === currentSessionId}
                   isProcessing={processingSession === session.id}
                   onEndSession={handleEndSession}
                 />

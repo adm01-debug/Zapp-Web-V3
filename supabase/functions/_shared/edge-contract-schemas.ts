@@ -364,6 +364,14 @@ const specificEdgeFunctionSchemas: Record<string, ContractVersionMap> = {
       })
       .passthrough(),
   },
+  // Etapa 56 — revogação de sessão ativa. Estrito: sessionId UUID obrigatório.
+  'revoke-session': {
+    v1: z
+      .object({
+        sessionId: z.string().uuid('sessionId deve ser um UUID de auth.sessions'),
+      })
+      .strict(),
+  },
   // Email viável (pós EMAIL-02, 2026-08-17): envio Resend + webhook inbound.
   'zapp-email-send': {
     v1: z
