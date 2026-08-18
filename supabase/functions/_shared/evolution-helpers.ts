@@ -1,6 +1,6 @@
 // Shared helpers for Evolutmon API webhook and sync functions
 declare const Deno: { env: { get(key: string): string | undefined } };
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getStoragePublicUrl } from "./storage-url.ts";
 import { evolutionClient } from "./providers/evolution/index.ts";
 
@@ -285,6 +285,55 @@ export function normalizePhone(rawJid?: string): string | null {
   // (número puro mascarado de @s.whatsapp.net) — rejeita como PN falso.
   if (!/^\d{10,14}$/.test(digitsOnly)) return null;
   return digitsOnly;
+}
+
+/**
+ * LID → PN: resolve um JID @lid (ou LID puro de 15 dígitos) para o telefone
+ * canônico usando o mapa `evo.contact_identity`/`evo.lid_phone_map`
+ * (PLANO-EVO-BAILEYS 2026-08, etapa 24 — downstream LID).
+ * Usado pelos handlers quando normalizePhone() rejeita @lid (guarda anti-fake).
+ * Nunca lança: falha de lookup retorna null (caminho antigo preservado).
+ */
+export async function resolveLidToPhone(
+  supabase: SupabaseClient<any, any>,
+  rawJid?: string | null,
+): Promise<string | null> {
+  if (!rawJid) return null;
+  const trimmed = rawJid.trim();
+  if (!trimmed) return null;
+  const digits = trimmed.replace(/\D/g, '');
+  const isLidJid = /@lid$/i.test(trimmed);
+  const isBareLid = !trimmed.includes('@') && digits.length === 15;
+  if (!isLidJid && !isBareLid) return null;
+  const lidKey = isLidJid ? trimmed : `${digits}@lid`;
+  try {
+    const { data, error } = await supabase
+      .from('evo_contact_identity')
+      .select('pn_jid, phone_number')
+      .eq('lid_jid', lidKey)
+      .order('last_seen', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!error && data?.phone_number) return data.phone_number;
+    if (!error && data?.pn_jid) {
+      const pn = data.pn_jid.replace('@s.whatsapp.net', '');
+      if (/^\d{10,14}$/.test(pn)) return pn;
+    }
+    const { data: map, error: mapError } = await supabase
+      .from('evo_lid_phone_map')
+      .select('phone_number, phone_jid')
+      .eq('lid_jid', lidKey)
+      .limit(1)
+      .maybeSingle();
+    if (!mapError && map?.phone_number) return map.phone_number;
+    if (!mapError && map?.phone_jid) {
+      const pn = map.phone_jid.replace('@s.whatsapp.net', '');
+      if (/^\d{10,14}$/.test(pn)) return pn;
+    }
+  } catch {
+    /* lookup falhou — retorna null (não quebra o fluxo) */
+  }
+  return null;
 }
 
 /** resolve Best Jid function. */
