@@ -155,3 +155,26 @@ Deno.test("Contract: approve-password-reset v1 — sem vazamento de existência 
   // Nunca confirma qual email/usuário falhou (anti-enumeração).
   assertMatch(SOURCE, /Reset request not found/);
 });
+
+// ─── Email com link REAL (Etapa 55 — gap fechado nesta rodada) ──────────────
+
+Deno.test("Contract: approve-password-reset v1 — aprovação ENVIA email com o link real (Resend)", () => {
+  // O link gerado (action_link) precisa chegar ao usuário — antes, a EF
+  // devolvia o link ao caller e NINGUÉM enviava email (toast mentia).
+  assertMatch(SOURCE, /api\.resend\.com\/emails/);
+  assertMatch(SOURCE, /action_link|actionLink/);
+  assertMatch(SOURCE, /RESEND_API_KEY/);
+  // O email usa o endereço do solicitante (resetRequest.email), nunca outro.
+  assertMatch(SOURCE, /resetRequest\.email/);
+});
+
+Deno.test("Contract: approve-password-reset v1 — falha de email NÃO derruba a aprovação (emailSent: false)", () => {
+  // Modo de falha documentado no header da EF: aprovação persiste mesmo sem
+  // email — resposta carrega emailSent para o caller decidir o UX.
+  assertMatch(SOURCE, /let emailSent = false/); // default: não enviado
+  const emailBlock = extractBlock(SOURCE, "let emailSent = false", { until: "log.done", maxSize: 4000 });
+  assertMatch(emailBlock, /try\s*\{/); // envio protegido
+  assertMatch(emailBlock, /catch/); // falha capturada, não lançada
+  // Aprovação persiste: resposta ainda é success com a flag emailSent.
+  assertMatch(SOURCE, /success: true,?\s*emailSent/);
+});

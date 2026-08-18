@@ -1,15 +1,14 @@
 /**
- * NOTA (CAMPANHAS-02): teste A/B é SÓ dado — verificado em 2026-08-04.
- *  - O CRUD de variantes (addVariant/deleteVariant/declareWinner) persiste em
- *    zapp.campaign_ab_variants e o componente CampaignABTesting está íntegro no UI.
- *  - PORÉM: RLS campaign_ab_variants (canonical 20260804000000) tem SÓ `campaign_ab_select`
- *    (SELECT). Policies INSERT/UPDATE/DELETE FALTAM → addVariant/deleteVariant/declareWinner
- *    falham com 403. Sinalizado ao maestro: criar policies.
- *  - Engine estatístico INEXISTENTE: nenhum edge lê campaign_ab_variants (talkx-send ignora
- *    variantes; não há edge de disparo de campanha clássica — ver NOTA CAMPANHAS-01). Não há
- *    split de audiência nem coleta de send/delivered/read/response por variante no backend.
- *    Sinalizado ao maestro: engine estatístico + dispatch por variante quando o motor de
- *    disparo (CAMPANHAS-01) existir.
+ * NOTA (CAMPANHAS-02, atualizada E62 2026-08-18): teste A/B agora é engine real.
+ *  - RLS de escrita em campaign_ab_variants (INSERT/UPDATE/DELETE dono/admin)
+ *    entregue pela migration 20260818210000 (era só SELECT → 403 em
+ *    addVariant/deleteVariant/declareWinner).
+ *  - Engine A/B: seleção ponderada por destinatário (weights) + persistência
+ *    atômica/idempotente via RPC `rpc_campaign_assign_variant`
+ *    (migration 20260818230000; coluna variant em campaign_contacts/
+ *    talkx_recipients na 20260818220000).
+ *  - Agregação por variante: colunas send_count/delivered_count/read_count/
+ *    response_count de campaign_ab_variants, atualizadas pelo dispatcher.
  */
 // Re-export from consolidated useBusinessLogicManagement module (ETAPA 25 consolidation)
 import { useBusinessLogicCampaignsManagement } from '@/features/business-logic/hooks/useBusinessLogicManagement';

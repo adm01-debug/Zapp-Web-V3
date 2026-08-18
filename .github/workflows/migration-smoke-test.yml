@@ -39,22 +39,8 @@ concurrency:
 jobs:
   smoke:
     name: Apply migrations from scratch
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
 
-    services:
-      postgres:
-        image: postgres:16-bullseye
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
 
     env:
       PGHOST: localhost
@@ -64,9 +50,6 @@ jobs:
       PGDATABASE: postgres
 
     steps:
-      - name: Initialize containers
-        run: echo "Postgres service started"
-
       - name: Checkout
         uses: actions/checkout@v7
         with:
@@ -97,11 +80,17 @@ jobs:
           echo "$changed"
           CHANGED_FILES="$changed" node scripts/lint-migrations.mjs
 
-      - name: Wait for Postgres
+      - name: Start Postgres (docker run — vps-zapp sem services:)
         run: |
-          until pg_isready -h localhost -U postgres; do
-            echo "Waiting for postgres..."; sleep 1
-          done
+          docker rm -f pg-smoke 2>/dev/null || true
+          docker run -d --name pg-smoke \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_DB=postgres \
+            -p 5432:5432 \
+            postgres:16-bullseye
+          timeout 60 sh -c 'until docker exec pg-smoke pg_isready -U postgres; do sleep 1; done'
+          echo "Postgres ready"
 
       - name: Apply Supabase compatibility bootstrap
         run: |
@@ -119,42 +108,38 @@ jobs:
         run: |
           MIGRATION_DIR="supabase/migrations"
           APPLIED=0
-          ERRORS=()
+          FIRST_ERROR=''
+          TOTAL=0
 
-          # Collect migrations matching timestamp pattern, sorted
-          mapfile -t MIGRATIONS < <(
-            find "$MIGRATION_DIR" -maxdepth 1 -name '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*.sql' \
-              | sort
-          )
-
-          echo "Found ${#MIGRATIONS[@]} migration files."
-          echo "NOTE: Migrations are incremental (depend on existing prod schema)."
-          echo "Baseline is documentary. Full apply-from-scratch may fail by design."
-
-          for f in "${MIGRATIONS[@]}"; do
+          # POSIX-safe (sem mapfile/arrays bash): find + sort
+          while IFS= read -r f; do
+            TOTAL=$((TOTAL + 1))
             echo "Applying: $f"
             if ! psql -v ON_ERROR_STOP=1 -f "$f" 2>&1; then
-              echo "::warning file=$f::Migration apply failed (incremental schema - may be expected): $f"
-              ERRORS+=("$f")
-              # Stop on first failure to preserve error context
+              echo "::warning file=$f::Migration apply failed (incremental schema - expected): $f"
+              FIRST_ERROR="$f"
               break
             fi
             APPLIED=$((APPLIED + 1))
-          done
+          done < $(find "$MIGRATION_DIR" -maxdepth 1 -name '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*.sql' | sort > /tmp/migrations.txt && echo /tmp/migrations.txt)
 
-          echo ""
-          echo "------------------------------------"
-          echo "Applied: $APPLIED / ${#MIGRATIONS[@]}"
-          if [ "${#ERRORS[@]}" -gt 0 ]; then
-            echo "First failure (incremental schema dependency):"
-            for e in "${ERRORS[@]}"; do echo "  - $e"; done
-            echo "NOTE: This is expected for incremental schemas. Static linter is the gate."
+          TOTAL=$(wc -l < /tmp/migrations.txt || echo 0)
+          echo ''
+          echo '------------------------------------'
+          echo "Applied: $APPLIED / $TOTAL"
+          if [ -n "$FIRST_ERROR" ]; then
+            echo "First failure (incremental schema dependency): $FIRST_ERROR"
+            echo 'NOTE: This is expected for incremental schemas. Static linter is the gate.'
           else
-            echo "All migrations applied successfully. v"
+            echo 'All migrations applied successfully. v'
           fi
-          # Always exit 0 - static linter is the real gate, not apply-from-scratch
+          # Always exit 0 - static linter is the real gate
           exit 0
 
+
+      - name: Stop Postgres container
+        if: always()
+        run: docker rm -f pg-smoke 2>/dev/null || true
       - name: Verify expected schemas exist
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'

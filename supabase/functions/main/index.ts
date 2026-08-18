@@ -1,3 +1,4 @@
+/// <reference path="./edge-runtime.d.ts" />
 // IMPORTANTE: o config.toml (verify_jwt, limites de memória/timeout por função)
 // NÃO é honrado pelo runtime edge self-hosted (supabase/edge-runtime) quando este
 // arquivo é o entrypoint. Esta allowlist (PUBLIC_FNS) é a FONTE DE VERDADE:
@@ -50,6 +51,10 @@ const PUBLIC_FNS = new Set<string>([
   'bitrix-api',
   'send-rate-limit-alert',
   'evolution-sync',
+  // DASHBOARD-08 (2026-08-17): executor de notificações — cron/evento interno
+  // com CRON_SECRET (requireServiceRoleOrCron fail-closed, espelho do
+  // evolution-notification-dispatcher).
+  'zapp-notifications-dispatch',
   // service-to-service com secret próprio (sem JWT de usuário)
   'sicoob-bridge',
   'sicoob-bridge-reply',

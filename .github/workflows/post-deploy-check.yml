@@ -44,7 +44,7 @@ permissions:
 jobs:
   health-check:
     name: Health check pós-deploy
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     steps:
       - name: "🔧 Preparação — garante bc no runner (fail-closed)"
         run: |

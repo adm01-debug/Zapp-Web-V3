@@ -16,7 +16,7 @@ on:
 jobs:
   schema-ownership:
     name: "Schema ownership — Zapp não grava em evo Grupo A"
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

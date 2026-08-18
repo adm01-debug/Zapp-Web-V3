@@ -11,7 +11,7 @@ concurrency:
 jobs:
   regression-test-gate:
     name: Regression Test Requirement
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     steps:
       - uses: actions/checkout@v7
         with:

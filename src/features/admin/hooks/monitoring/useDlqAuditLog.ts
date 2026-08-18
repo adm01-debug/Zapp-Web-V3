@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/features/auth';
+import { toRecordOrNull } from './monitoringSchemas';
 
 /**
  * Histórico de auditoria das operações da DLQ (Dead-Letter Queue).
@@ -63,7 +64,18 @@ export function useDlqAuditLog(opts: UseDlqAuditLogOptions = {}) {
         p_offset: currentPage * limit,
       });
       if (error) throw error;
-      return (data ?? []) as unknown as DlqAuditEntry[];
+      // E60: RPC tipada (rpc_dlq_list_audit) — mapping sem cast; Json → Record via guard.
+      const list = data ?? [];
+      return list.map((r): DlqAuditEntry => ({
+        id: r.id,
+        action: r.action,
+        entity_id: r.entity_id,
+        details: toRecordOrNull(r.details),
+        created_at: r.created_at,
+        user_id: r.user_id,
+        user_name: r.user_name,
+        user_email: r.user_email,
+      }));
     },
     staleTime: 15_000,
     refetchInterval: 60_000,

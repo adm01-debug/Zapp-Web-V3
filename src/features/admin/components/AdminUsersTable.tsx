@@ -13,6 +13,7 @@ import {
 import { ForceLogoutButton } from './ForceLogoutButton';
 import { accessLevelConfig, type UserWithRole } from '../hooks/useAdminData';
 import type { AppRole } from '@/features/auth';
+import { isAppRole } from '../lib/appRole';
 
 const roleIconMap: Record<AppRole, typeof Code> = { dev: Code, admin: Crown, supervisor: UserCog, manager: Briefcase, agent: User };
 const roleLabelMap: Record<AppRole, string> = { dev: 'Desenvolvedor', admin: 'Administrador', supervisor: 'Supervisor', manager: 'Gerente', agent: 'Atendente' };
@@ -71,7 +72,7 @@ export function AdminUsersTable({ users, isAdmin, onRoleChange, onToggleActive, 
                   </TableCell>
                   <TableCell>
                     {isAdmin ? (
-                      <Select value={user.role} onValueChange={(v) => onRoleChange(user.user_id, v as AppRole /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
+                      <Select value={user.role} onValueChange={(v) => onRoleChange(user.user_id, isAppRole(v) ? v : user.role)}>
                         <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="admin">Admin</SelectItem>

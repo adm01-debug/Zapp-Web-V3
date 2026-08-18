@@ -15,9 +15,10 @@ import { PermissionMatrix } from '@/features/auth';
 import AdminQueuesPage from '@/pages/admin/AdminQueuesPage';
 import {
   Shield, Users, Search, Crown, UserCog, User, History, RefreshCw,
-  UserPlus, Building, Eye, Loader2, Brain, QrCode, Code, GitBranch,
+  UserPlus, Building, Eye, Loader2, Brain, QrCode, Code, GitBranch, MailPlus,
 } from 'lucide-react';
 import { useUserRole, AppRole } from '@/features/auth';
+import { isAppRole } from '../lib/appRole';
 import { AdminCRMDashboard } from './AdminCRMDashboard';
 import { PlaybooksManager } from './PlaybooksManager';
 import { SupervisorCopilot } from './SupervisorCopilot';
@@ -29,6 +30,7 @@ import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 import { useAdminData, accessLevelConfig, type UserWithRole } from '../hooks/useAdminData';
 import { AdminUsersTable } from './AdminUsersTable';
 import { AdminAuditTable } from './AdminAuditTable';
+import { InviteUserDialog } from './InviteUserDialog';
 import { InboxScopeConfig } from './InboxScopeConfig';
 import { AgentVersionsPanel } from './AgentVersionsPanel';
 
@@ -44,6 +46,7 @@ export function AdminView() {
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
   const [savingUser, setSavingUser] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', nickname: '', signature: '', jobTitle: '', email: '', password: '', role: 'agent' as AppRole, dropboxEmail: '' });
@@ -51,7 +54,7 @@ export function AdminView() {
   const [newUserGoogleServices, setNewUserGoogleServices] = useState({ google_sheets: false, google_docs: false, google_calendar: false, google_drive: false });
   const [creatingUser, setCreatingUser] = useState(false);
 
-  const { users, auditLogs, loading, fetchData, handleRoleChange, handleToggleActive, handleSaveUser, handleCreateUser } = useAdminData(activeTab as 'users' | 'audit' | 'crm');
+  const { users, auditLogs, loading, fetchData, handleRoleChange, handleToggleActive, handleSaveUser, handleCreateUser, handleInviteUser } = useAdminData(activeTab as 'users' | 'audit' | 'crm');
 
   useEffect(() => { if (isSupervisor) fetchData(); }, [isSupervisor, activeTab, fetchData]);
 
@@ -120,6 +123,11 @@ export function AdminView() {
         </div>
         <div className="flex gap-2">
           {isAdmin && <Button onClick={() => setIsAddDialogOpen(true)} className="bg-whatsapp hover:bg-whatsapp-dark"><UserPlus className="w-4 h-4 mr-2" /> Adicionar Usuário</Button>}
+          {(isAdmin || isSupervisor) && (
+            <Button variant="outline" onClick={() => setIsInviteDialogOpen(true)}>
+              <MailPlus className="w-4 h-4 mr-2" /> Convidar Usuário
+            </Button>
+          )}
           <Button variant="outline" onClick={fetchData}><RefreshCw className="w-4 h-4 mr-2" /> Atualizar</Button>
         </div>
       </motion.div>
@@ -228,7 +236,7 @@ export function AdminView() {
             <div className="space-y-2"><Label htmlFor="new-password">Senha *</Label><Input id="new-password" type="password" placeholder="Mínimo 6 caracteres" value={newUser.password} onChange={(e) => setNewUser(p => ({ ...p, password: e.target.value }))} /></div>
             <div className="space-y-2">
               <Label htmlFor="new-role">Role</Label>
-              <Select value={newUser.role} onValueChange={(v) => setNewUser(p => ({ ...p, role: v as AppRole  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */}))}>
+              <Select value={newUser.role} onValueChange={(v) => setNewUser(p => ({ ...p, role: isAppRole(v) ? v : p.role }))}>
                 <SelectTrigger id="new-role"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(roleIconMap) as AppRole[]).map((key) => {
@@ -267,6 +275,13 @@ export function AdminView() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Invite User Dialog (Etapa 57.5) */}
+      <InviteUserDialog
+        open={isInviteDialogOpen}
+        onOpenChange={setIsInviteDialogOpen}
+        onInvite={handleInviteUser}
+      />
 
       {/* Content */}
       {loading ? (

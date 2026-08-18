@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { z } from 'zod';
 import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +22,33 @@ import {
 } from 'recharts';
 
 type Window = '24h' | '7d';
+
+const WINDOWS: readonly Window[] = ['24h', '7d'];
+
+function isWindow(v: string): v is Window {
+  return (WINDOWS as readonly string[]).includes(v);
+}
+
+// E60: a RPC rpc_instance_auth_event_summary devolve o shape agregado em runtime,
+// mas o overload gerado cobre só a variante por-event_type — validação zod real.
+const summaryRespSchema = z.object({
+  window_hours: z.number(),
+  total: z.number(),
+  invalid_signature: z.number(),
+  auth_401: z.number(),
+  auth_403: z.number(),
+  first_event_at: z.string().nullable(),
+  last_event_at: z.string().nullable(),
+  top_instances: z.array(
+    z.object({
+      instance_name: z.string(),
+      total: z.number(),
+      invalid_signature: z.number(),
+      auth_401: z.number(),
+      auth_403: z.number(),
+    })
+  ),
+});
 
 interface TrendRow {
   bucket: string;
@@ -91,9 +119,21 @@ export function AuthEventTrendChart() {
         p_instance: filterTrim as string,
       });
       if (error) throw error;
-      // RPC retorna shape agregado (window_hours/total/motivos); types.ts gerado
-      // expõe apenas um overload parcial — normaliza via unknown para a interface local.
-      return data as unknown as SummaryResp;
+      // E60: validação zod do shape agregado (fail-safe → zeroed summary).
+      const parsed = summaryRespSchema.safeParse(data);
+      if (!parsed.success) {
+        return {
+          window_hours: hours,
+          total: 0,
+          invalid_signature: 0,
+          auth_401: 0,
+          auth_403: 0,
+          first_event_at: null,
+          last_event_at: null,
+          top_instances: [],
+        };
+      }
+      return parsed.data;
     },
     refetchInterval: 30_000,
     staleTime: 25_000,
@@ -149,7 +189,7 @@ export function AuthEventTrendChart() {
             value={window}
             onValueChange={(v) =>
               setWindow(
-                v as Window /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+                isWindow(v) ? v : window
               )
             }
           >

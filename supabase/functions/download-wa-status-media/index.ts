@@ -2,21 +2,18 @@
  * download-wa-status-media
  * Downloads WhatsApp status media via Evolution API before URLs expire.
  * Called by pg_cron every 30min for non-expired status entries.
+ * Evolution HTTP via evolutionClient (gateway canônico — decouple gate m2).
  */
+
+import { evolutionClient } from '../_shared/providers/evolution/index.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,content-type' } });
   }
 
-  const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_URL') || 'https://evolution.atomicabr.com.br';
-  const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY') || '';
   const SUPABASE_URL = Deno.env.get('SELFHOSTED_SUPABASE_URL') || Deno.env.get('SUPABASE_URL') || '';
   const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') || '';
-
-  if (!EVOLUTION_API_KEY) {
-    return Response.json({ ok: false, error: 'EVOLUTION_API_KEY not configured' }, { status: 503 });
-  }
 
   let body: Record<string, unknown>;
   try {
@@ -36,31 +33,22 @@ Deno.serve(async (req) => {
     return Response.json({ ok: false, error: 'status_id, participant_jid, message_id required' }, { status: 400 });
   }
 
-  // 1. Call Evolution API to download and decrypt the status media
-  const evoRes = await fetch(`${EVOLUTION_API_URL}/chat/getBase64FromMediaMessage/wpp2`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': EVOLUTION_API_KEY,
+  // 1. Call Evolution API (gateway canônico) to download and decrypt the status media
+  const evoRes = await evolutionClient.post('chat/getBase64FromMediaMessage/wpp2', {
+    key: {
+      remoteJid: 'status@broadcast',
+      fromMe: false,
+      id: message_id,
+      participant: participant_jid,
     },
-    body: JSON.stringify({
-      key: {
-        remoteJid: 'status@broadcast',
-        fromMe: false,
-        id: message_id,
-        participant: participant_jid,
-      },
-      convertToMp4: false,
-    }),
-    signal: AbortSignal.timeout(30_000),
-  });
+    convertToMp4: false,
+  }, { timeoutMs: 30_000 });
 
   if (!evoRes.ok) {
-    const errText = await evoRes.text().catch(() => '');
-    return Response.json({ ok: false, error: `Evolution API error: ${evoRes.status}`, detail: errText.slice(0, 200) }, { status: 502 });
+    return Response.json({ ok: false, error: `Evolution API error: ${evoRes.status}`, detail: (evoRes.error ?? '').slice(0, 200) }, { status: 502 });
   }
 
-  const evoData = await evoRes.json().catch(() => ({})) as Record<string, unknown>;
+  const evoData = (evoRes.data ?? {}) as Record<string, unknown>;
   const base64Media = (evoData.base64 || evoData.data) as string | undefined;
   const mimetype = (evoData.mimetype || 'application/octet-stream') as string;
 

@@ -19,6 +19,9 @@ const MMD_PATH = resolve(__dirname, 'fixtures/TRILHA_MENSAGENS_NAVEGAVEL.mmd');
 
 // Allowlist canônica — extraída dos comentários %% no rodapé do .mmd.
 // Ao alterar consumidores realtime de 'messages', atualize AMBOS: diagrama e esta lista.
+// Fan-out v2 (2026-08): a maioria dos consumidores assina o espelho não-particionado
+// 'realtime_message_fanout' (schema zapp — Realtime v2 não entrega partições);
+// AMP/UTN/URRA seguem em 'evolution_messages' (schema evo).
 const EXPECTED_REALTIME_CONSUMERS: string[] = [
   'src/features/inbox/hooks/useRealtimeMessages.ts',
   'src/features/inbox/data-access/messageRepository.ts',
@@ -74,12 +77,13 @@ function walk(dir: string, acc: string[] = []): string[] {
   return acc;
 }
 
-// Aceita literal `table: 'messages'|'evolution_messages'` e helper `table: dbTable(...)`,
-// independentemente de o channel vir de `supabase.channel(...)` ou `dbChannel(...)`.
-// Fanout v2: 'realtime_message_fanout' é o ESPELHO não-particionado que os consumidores
-// assinam no lugar de messages/evolution_messages (Realtime v2 não entrega partições).
+// Aceita literal `table: 'messages'|'evolution_messages'|'realtime_message_fanout'` e helper
+// `table: dbTable(...)`, independentemente de o channel vir de `supabase.channel(...)` ou `dbChannel(...)`.
+// 'evolution_messages' é o nome da tabela no schema 'evo' (Evolution DB v6.2);
+// 'realtime_message_fanout' é o espelho não-particionado no schema 'zapp'
+// (Realtime v2 não entrega partições) — canal oficial do fan-out de mensagens (v2).
 const MESSAGES_CHANNEL_RE =
-  /(?:supabase\s*\.channel|dbChannel)\([\s\S]*?table:\s*(?:dbTable\(\s*)?['"](?:messages|evolution_messages|realtime_message_fanout)['"]/;
+  /(?:supabase\s*\.channel|dbChannel)\([\s\S]*?table:\s*(?:dbTable\(\s*)?['"](?:realtime_message_fanout|messages|evolution_messages)['"]/;
 
 function findMessagesListeners(): string[] {
   const srcDir = join(REPO_ROOT, 'src');

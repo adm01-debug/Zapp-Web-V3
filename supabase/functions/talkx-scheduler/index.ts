@@ -28,6 +28,17 @@ Deno.serve(async (req) => {
   try {
     const supabase = createZappAdminClient();
 
+    // URL/keys da própria instância para o dispatch interno do talkx-send
+    // (mesmo padrão de talkx-control — E61: vars eram usadas SEM declaração,
+    // ReferenceError derrubava o disparo de toda campanha agendada).
+    const supabaseUrl = (
+      Deno.env.get("SELFHOSTED_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL") ?? ""
+    ).replace(/\/+$/, "");
+    const serviceKey =
+      Deno.env.get("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY") ??
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
+      "";
+
     const now = new Date().toISOString();
     const { data: dueCampaigns, error } = await supabase
       .from("talkx_campaigns")
@@ -54,12 +65,14 @@ Deno.serve(async (req) => {
       dueCampaigns.map(async (campaign) => {
         // Atomic claim: only proceed if we can flip status from 'scheduled' → 'processing'.
         // Concurrent cron invocations will fail this update and skip the campaign.
+        // E61: count via update(values, { count: "exact" }) — o select() do
+        // transform builder (postgrest-js 1.19.2) ignora options; o padrão antigo
+        // `.select("id", { count, head })` nunca populava `count` (claim sempre 0).
         const { count: claimed, error: claimError } = await supabase
           .from("talkx_campaigns")
-          .update({ status: "processing" })
+          .update({ status: "processing" }, { count: "exact" })
           .eq("id", campaign.id)
-          .eq("status", "scheduled")
-          .select("id", { count: "exact", head: true });
+          .eq("status", "scheduled");
 
         if (claimError) {
           log.error(`Failed to claim campaign ${campaign.id}`, { error: claimError.message });

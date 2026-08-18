@@ -24,7 +24,7 @@ concurrency:
 jobs:
   pr-size:
     name: PR Size Gate
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     steps:
       - name: Check PR size and comment
         uses: actions/github-script@v9

@@ -39,6 +39,22 @@ export function useGamificationMutations(
         newLevel: r.new_level,
         leveledUp: r.leveled_up,
         previousLevel: r.previous_level,
+      // E59 — escrita TRANSACIONAL: o banco soma o delta (xp = xp + $1, FOR
+      // UPDATE) e recalcula o nível (trigger update_level_on_xp_change).
+      // NUNCA computar newXp a partir do cache (race read-modify-write:
+      // 2 eventos simultâneos perdiam 1 incremento).
+      const { data, error } = await supabase.rpc('rpc_add_xp', {
+        p_profile_id: profileId,
+        p_xp_delta: xp,
+        p_reason: reason,
+      });
+      if (error) throw error;
+      if (!data) throw new Error('rpc_add_xp: resposta vazia');
+      return {
+        newXp: data.xp,
+        newLevel: data.level,
+        leveledUp: data.leveled_up,
+        previousLevel: data.previous_level,
       };
     },
     onSuccess: () => invalidateGamificationCaches(),
@@ -61,6 +77,10 @@ export function useGamificationMutations(
       // E70: dedupe transacional no banco (ON CONFLICT DO NOTHING sobre o
       // índice único da E66) — achievement desbloqueia 1x, sem TOCTOU.
       const { data, error } = await supabase.rpc('rpc_unlock_achievement', {
+      // E59 — dedupe + incremento ATOMICO no banco (ON CONFLICT DO NOTHING via
+      // índice único agent_achievements_unique + xp/achievements_count
+      // incrementais no mesmo UPDATE). Sem read-then-insert client-side.
+      const { data, error } = await supabase.rpc('rpc_grant_achievement', {
         p_profile_id: profileId,
         p_type: type,
         p_name: name,
@@ -94,6 +114,22 @@ export function useGamificationMutations(
         newLevel: r.new_level ?? currentStats?.level ?? 1,
         leveledUp: r.leveled_up,
         previousLevel: r.previous_level ?? currentStats?.level ?? 1,
+      if (error) throw error;
+      if (!data) throw new Error('rpc_grant_achievement: resposta vazia');
+
+      if (data.already_had) {
+        return {
+          alreadyHad: true,
+          newXp: currentStats?.xp ?? 0,
+          newLevel: currentStats?.level ?? 1,
+          leveledUp: false,
+        };
+      }
+      return {
+        alreadyHad: false,
+        newXp: data.xp,
+        newLevel: data.level,
+        leveledUp: data.leveled_up,
       };
     },
     onSuccess: () => {

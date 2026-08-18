@@ -27,45 +27,6 @@ export type Database = {
         }
         Relationships: []
       }
-      _snap_pre_upgrade_contact_identity_20260811: {
-        Row: {
-          confidence: string | null
-          first_seen: string | null
-          id: string
-          instance_name: string | null
-          last_seen: string | null
-          lid_jid: string | null
-          phone_number: string | null
-          pn_jid: string | null
-          raw_signal: Json | null
-          source: string | null
-        }
-        Insert: {
-          confidence?: string | null
-          first_seen?: string | null
-          id: string
-          instance_name?: string | null
-          last_seen?: string | null
-          lid_jid?: string | null
-          phone_number?: string | null
-          pn_jid?: string | null
-          raw_signal?: Json | null
-          source?: string | null
-        }
-        Update: {
-          confidence?: string | null
-          first_seen?: string | null
-          id?: string
-          instance_name?: string | null
-          last_seen?: string | null
-          lid_jid?: string | null
-          phone_number?: string | null
-          pn_jid?: string | null
-          raw_signal?: Json | null
-          source?: string | null
-        }
-        Relationships: []
-      }
       _snap_pre_upgrade_evolution_contacts_wpp2_lid_20260811: {
         Row: {
           assigned_to: string | null
@@ -3193,6 +3154,27 @@ export type Database = {
         }
         Relationships: []
       }
+      fdw_evolution_message: {
+        Row: {
+          id: string | null
+          key: Json | null
+          message: Json | null
+          messageTimestamp: number | null
+        }
+        Insert: {
+          id?: string | null
+          key?: Json | null
+          message?: Json | null
+          messageTimestamp?: number | null
+        }
+        Update: {
+          id?: string | null
+          key?: Json | null
+          message?: Json | null
+          messageTimestamp?: number | null
+        }
+        Relationships: []
+      }
       idx_usage_audit: {
         Row: {
           captured_at: string
@@ -3571,6 +3553,54 @@ export type Database = {
           status?: string
           storage_path?: string | null
           worker_id?: string | null
+        }
+        Relationships: []
+      }
+      media_loss_archive: {
+        Row: {
+          created_at: string | null
+          id: number
+          instance_name: string | null
+          loss_class: string
+          message_id: string | null
+          message_type: string | null
+          message_uuid: string | null
+          notes: string | null
+          purged_at: string | null
+          recoverable: boolean
+          recovered_at: string | null
+          remote_jid: string | null
+          snapshot_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          instance_name?: string | null
+          loss_class: string
+          message_id?: string | null
+          message_type?: string | null
+          message_uuid?: string | null
+          notes?: string | null
+          purged_at?: string | null
+          recoverable?: boolean
+          recovered_at?: string | null
+          remote_jid?: string | null
+          snapshot_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          instance_name?: string | null
+          loss_class?: string
+          message_id?: string | null
+          message_type?: string | null
+          message_uuid?: string | null
+          notes?: string | null
+          purged_at?: string | null
+          recoverable?: boolean
+          recovered_at?: string | null
+          remote_jid?: string | null
+          snapshot_at?: string
         }
         Relationships: []
       }
@@ -23262,51 +23292,6 @@ export type Database = {
           },
         ]
       }
-      scheduled_report_configs: {
-        Row: {
-          config: Json | null
-          created_at: string | null
-          created_by: string | null
-          frequency: string | null
-          id: string | null
-          is_active: boolean | null
-          last_sent_at: string | null
-          name: string | null
-          next_send_at: string | null
-          recipients: string[] | null
-          report_type: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          config?: Json | null
-          created_at?: string | null
-          created_by?: string | null
-          frequency?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          last_sent_at?: string | null
-          name?: string | null
-          next_send_at?: string | null
-          recipients?: string[] | null
-          report_type?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          config?: Json | null
-          created_at?: string | null
-          created_by?: string | null
-          frequency?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          last_sent_at?: string | null
-          name?: string | null
-          next_send_at?: string | null
-          recipients?: string[] | null
-          report_type?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       scheduled_reports: {
         Row: {
           created_at: string | null
@@ -30077,6 +30062,76 @@ export type Database = {
           },
         ]
       }
+      auto_export_jobs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          file_path: string | null
+          filters: Json
+          format: string
+          id: string
+          last_error: string | null
+          last_run_at: string | null
+          name: string
+          row_count: number
+          source_table: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          file_path?: string | null
+          filters?: Json
+          format?: string
+          id?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          name: string
+          row_count?: number
+          source_table: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          file_path?: string | null
+          filters?: Json
+          format?: string
+          id?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          name?: string
+          row_count?: number
+          source_table?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_export_jobs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auto_export_jobs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auto_export_jobs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_rls_impact_preview"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
       automation_executions: {
         Row: {
           acted_at: string | null
@@ -33992,6 +34047,36 @@ export type Database = {
           },
         ]
       }
+      crm_sync_config: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          provider: string
+          settings: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          provider: string
+          settings?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          provider?: string
+          settings?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cron_inventory: {
         Row: {
           atualizado_em: string
@@ -35083,6 +35168,72 @@ export type Database = {
           status?: string
           updated_at?: string
           watch_registered_at?: string | null
+        }
+        Relationships: []
+      }
+      emails: {
+        Row: {
+          attachments: Json
+          cc_emails: string[]
+          created_at: string
+          direction: string
+          error_message: string | null
+          from_email: string
+          from_name: string | null
+          html_body: string | null
+          id: string
+          message_id: string | null
+          provider: string
+          raw_payload: Json | null
+          status: string
+          subject: string | null
+          text_body: string | null
+          thread_id: string | null
+          to_emails: string[]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          attachments?: Json
+          cc_emails?: string[]
+          created_at?: string
+          direction?: string
+          error_message?: string | null
+          from_email: string
+          from_name?: string | null
+          html_body?: string | null
+          id?: string
+          message_id?: string | null
+          provider?: string
+          raw_payload?: Json | null
+          status?: string
+          subject?: string | null
+          text_body?: string | null
+          thread_id?: string | null
+          to_emails?: string[]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          attachments?: Json
+          cc_emails?: string[]
+          created_at?: string
+          direction?: string
+          error_message?: string | null
+          from_email?: string
+          from_name?: string | null
+          html_body?: string | null
+          id?: string
+          message_id?: string | null
+          provider?: string
+          raw_payload?: Json | null
+          status?: string
+          subject?: string | null
+          text_body?: string | null
+          thread_id?: string | null
+          to_emails?: string[]
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -39432,6 +39583,33 @@ export type Database = {
         }
         Relationships: []
       }
+      google_calendar_config: {
+        Row: {
+          calendar_id: string | null
+          created_at: string
+          credentials_json: Json | null
+          enabled: boolean
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          calendar_id?: string | null
+          created_at?: string
+          credentials_json?: Json | null
+          enabled?: boolean
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          calendar_id?: string | null
+          created_at?: string
+          credentials_json?: Json | null
+          enabled?: boolean
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       hmac_selftest_audit: {
         Row: {
           created_at: string | null
@@ -40451,6 +40629,36 @@ export type Database = {
           new_data?: Json | null
           operation?: string
           table_name?: string | null
+        }
+        Relationships: []
+      }
+      n8n_config: {
+        Row: {
+          base_url: string | null
+          created_at: string
+          enabled: boolean
+          id: number
+          updated_at: string
+          updated_by: string | null
+          webhook_secret: string | null
+        }
+        Insert: {
+          base_url?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+          webhook_secret?: string | null
+        }
+        Update: {
+          base_url?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+          webhook_secret?: string | null
         }
         Relationships: []
       }
@@ -43348,92 +43556,124 @@ export type Database = {
           },
         ]
       }
-      scheduled_report_configs: {
+      scheduled_report_runs: {
+        Row: {
+          claimed_at: string | null
+          content: string | null
+          created_at: string
+          delivered_at: string | null
+          error: string | null
+          finished_at: string | null
+          id: string
+          report_id: string
+          row_count: number | null
+          send_attempts: number
+          send_error: string | null
+          signed_url: string | null
+          started_at: string
+          status: string
+          storage_path: string | null
+        }
+        Insert: {
+          claimed_at?: string | null
+          content?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          report_id: string
+          row_count?: number | null
+          send_attempts?: number
+          send_error?: string | null
+          signed_url?: string | null
+          started_at?: string
+          status: string
+          storage_path?: string | null
+        }
+        Update: {
+          claimed_at?: string | null
+          content?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          report_id?: string
+          row_count?: number | null
+          send_attempts?: number
+          send_error?: string | null
+          signed_url?: string | null
+          started_at?: string
+          status?: string
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_report_runs_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_reports: {
         Row: {
           config: Json
           created_at: string | null
           created_by: string | null
-          frequency: string
-          id: string
-          is_active: boolean
-          last_sent_at: string | null
-          name: string
-          next_send_at: string | null
-          recipients: string[]
-          report_type: string
-          updated_at: string | null
-        }
-        Insert: {
-          config?: Json
-          created_at?: string | null
-          created_by?: string | null
-          frequency: string
-          id?: string
-          is_active?: boolean
-          last_sent_at?: string | null
-          name: string
-          next_send_at?: string | null
-          recipients?: string[]
-          report_type: string
-          updated_at?: string | null
-        }
-        Update: {
-          config?: Json
-          created_at?: string | null
-          created_by?: string | null
-          frequency?: string
-          id?: string
-          is_active?: boolean
-          last_sent_at?: string | null
-          name?: string
-          next_send_at?: string | null
-          recipients?: string[]
-          report_type?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      scheduled_reports: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
+          fail_count: number
           format: string
           frequency: string
           id: string
           is_active: boolean | null
+          last_error: string | null
+          last_run_at: string | null
           last_sent_at: string | null
           name: string
           next_send_at: string | null
           recipients: string[]
           report_type: string
+          schedule: string | null
           updated_at: string | null
         }
         Insert: {
+          config?: Json
           created_at?: string | null
           created_by?: string | null
+          fail_count?: number
           format: string
           frequency: string
           id?: string
           is_active?: boolean | null
+          last_error?: string | null
+          last_run_at?: string | null
           last_sent_at?: string | null
           name: string
           next_send_at?: string | null
           recipients?: string[]
           report_type: string
+          schedule?: string | null
           updated_at?: string | null
         }
         Update: {
+          config?: Json
           created_at?: string | null
           created_by?: string | null
+          fail_count?: number
           format?: string
           frequency?: string
           id?: string
           is_active?: boolean | null
+          last_error?: string | null
+          last_run_at?: string | null
           last_sent_at?: string | null
           name?: string
           next_send_at?: string | null
           recipients?: string[]
           report_type?: string
+          schedule?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -43715,6 +43955,45 @@ export type Database = {
           id?: string
           message_id?: string | null
           sentiment_score?: number | null
+        }
+        Relationships: []
+      }
+      sentry_config: {
+        Row: {
+          dsn: string
+          enabled: boolean
+          environment: string
+          id: boolean
+          last_test_sent_at: string | null
+          replays_on_error_sample_rate: number
+          replays_session_sample_rate: number
+          traces_sample_rate: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          dsn?: string
+          enabled?: boolean
+          environment?: string
+          id?: boolean
+          last_test_sent_at?: string | null
+          replays_on_error_sample_rate?: number
+          replays_session_sample_rate?: number
+          traces_sample_rate?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          dsn?: string
+          enabled?: boolean
+          environment?: string
+          id?: boolean
+          last_test_sent_at?: string | null
+          replays_on_error_sample_rate?: number
+          replays_session_sample_rate?: number
+          traces_sample_rate?: number
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -46438,6 +46717,64 @@ export type Database = {
           voice_name?: string | null
         }
         Relationships: []
+      }
+      voip_profile_credentials: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          profile_id: string
+          sip_password: string
+          sip_server: string | null
+          sip_user: string
+          updated_at: string
+          ws_port: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          profile_id: string
+          sip_password: string
+          sip_server?: string | null
+          sip_user: string
+          updated_at?: string
+          ws_port?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          profile_id?: string
+          sip_password?: string
+          sip_server?: string | null
+          sip_user?: string
+          updated_at?: string
+          ws_port?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voip_profile_credentials_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voip_profile_credentials_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voip_profile_credentials_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "v_rls_impact_preview"
+            referencedColumns: ["profile_id"]
+          },
+        ]
       }
       warroom_alerts: {
         Row: {
@@ -58032,7 +58369,6 @@ export type Database = {
         Returns: Json
       }
       calculate_level: { Args: { xp_amount: number }; Returns: number }
-      can_see_pii: { Args: never; Returns: boolean }
       can_supervise_profile: {
         Args: { _target_profile_id: string; _user_id: string }
         Returns: boolean
@@ -58117,6 +58453,16 @@ export type Database = {
       }
       current_user_is_privileged: { Args: never; Returns: boolean }
       current_user_role: { Args: never; Returns: string }
+      debug_lid_case: { Args: { p_json: Json }; Returns: string }
+      debug_lid_flow: {
+        Args: { p_json: Json }
+        Returns: {
+          case_phone: string
+          jid: string
+          resolved: string
+        }[]
+      }
+      debug_lid_lookup: { Args: { p_lid: string }; Returns: string }
       decode_html_entities: { Args: { p_input: string }; Returns: string }
       decrypt_gmail_token: { Args: { p_encrypted: string }; Returns: string }
       deduplicate_campaign_contacts_atomically: {
@@ -58414,6 +58760,10 @@ export type Database = {
         Args: { p_date?: string }
         Returns: undefined
       }
+      fn_calculate_next_send: {
+        Args: { p_from?: string; p_schedule: string }
+        Returns: string
+      }
       fn_call_stats: {
         Args: { p_days?: number }
         Returns: {
@@ -58687,6 +59037,30 @@ export type Database = {
         Returns: Json
       }
       fn_detect_swarm_task_duplication: { Args: never; Returns: Json }
+      fn_dispatch_scheduled_messages: {
+        Args: never
+        Returns: {
+          contact_id: string
+          content: string
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          media_url: string | null
+          message_type: string
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+          whatsapp_connection_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "scheduled_messages"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       fn_dlq_compute_next_retry: {
         Args: { p_attempt: number }
         Returns: string
@@ -58714,6 +59088,7 @@ export type Database = {
           last_health_check: string
         }[]
       }
+      fn_edge_get_n8n_config: { Args: never; Returns: Json }
       fn_edge_upsert_evolution_credentials: {
         Args: {
           p_api_key: string
@@ -58723,6 +59098,10 @@ export type Database = {
           p_instance_name: string
           p_is_active: boolean
         }
+        Returns: Json
+      }
+      fn_edge_upsert_n8n_config: {
+        Args: { p_base_url: string; p_enabled?: boolean }
         Returns: Json
       }
       fn_enqueue_message_dispatch: {
@@ -59239,6 +59618,7 @@ export type Database = {
           tabela: string
         }[]
       }
+      fn_report_to_csv: { Args: { p_data: Json }; Returns: string }
       fn_reprocess_pending_webhook_events: {
         Args: { p_limit?: number }
         Returns: Json
@@ -59289,6 +59669,15 @@ export type Database = {
       }
       fn_rollback_to_minio: { Args: never; Returns: string }
       fn_run_media_health_alert: { Args: never; Returns: undefined }
+      fn_run_scheduled_reports: {
+        Args: { p_limit?: number }
+        Returns: {
+          failed: number
+          processed: number
+          skipped: number
+          success: number
+        }[]
+      }
       fn_safe_audit_log: {
         Args: {
           p_action: string
@@ -59517,6 +59906,7 @@ export type Database = {
           qtd_inserts: number
         }[]
       }
+      fn_validate_report_query: { Args: { p_sql: string }; Returns: boolean }
       fn_validate_whatsapp_connection_url: {
         Args: { p_instance: string }
         Returns: Json
@@ -59524,6 +59914,10 @@ export type Database = {
       fn_vault_healthcheck: { Args: never; Returns: Json }
       fn_vault_healthcheck_cleanup: { Args: never; Returns: undefined }
       fn_vault_healthcheck_run: { Args: never; Returns: undefined }
+      fn_wal_slot_lag_alert: {
+        Args: { p_threshold_mb?: number }
+        Returns: Json
+      }
       fn_wal_slot_lag_check: {
         Args: { p_threshold_mb?: number }
         Returns: {
@@ -60119,6 +60513,10 @@ export type Database = {
         Args: { p_contact_id: string; p_reason?: string }
         Returns: Json
       }
+      rpc_add_xp: {
+        Args: { p_profile_id: string; p_reason?: string; p_xp_delta: number }
+        Returns: Json
+      }
       rpc_app_bootstrap: { Args: never; Returns: Json }
       rpc_associate_label: {
         Args: {
@@ -60318,6 +60716,21 @@ export type Database = {
         Args: { p_message_id: string; p_row_id: string; p_status?: string }
         Returns: Json
       }
+      rpc_claim_pending_report_runs: {
+        Args: { p_limit?: number; p_report_id?: string }
+        Returns: {
+          content: string
+          format: string
+          recipients: string[]
+          report_id: string
+          report_name: string
+          row_count: number
+          run_id: string
+          send_attempts: number
+          signed_url: string
+          storage_path: string
+        }[]
+      }
       rpc_complete_followup: { Args: { p_id: string }; Returns: Json }
       rpc_complete_media_download: {
         Args: {
@@ -60439,6 +60852,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      rpc_dismiss_warroom_alert: {
+        Args: { p_alert_id: string }
+        Returns: boolean
       }
       rpc_dispatch_error_stats: { Args: { p_hours?: number }; Returns: Json }
       rpc_dlq_abandon: {
@@ -60630,6 +61047,10 @@ export type Database = {
         Args: { p_days?: number; p_limit?: number }
         Returns: Json
       }
+      rpc_dismiss_warroom_alert: {
+        Args: { p_alert_id: string }
+        Returns: boolean
+      }
       rpc_email_update_delivery: {
         Args: {
           p_bounce_type?: string
@@ -60708,6 +61129,7 @@ export type Database = {
           unread_whispers: number
         }[]
       }
+      rpc_get_crm_sync_config: { Args: never; Returns: Json }
       rpc_get_email_health_summary: { Args: never; Returns: Json }
       rpc_get_gmail_health_summary:
         | { Args: never; Returns: Json }
@@ -60791,6 +61213,16 @@ export type Database = {
         }
         Returns: Json
       }
+      rpc_grant_achievement: {
+        Args: {
+          p_description?: string
+          p_name: string
+          p_profile_id: string
+          p_type: string
+          p_xp_reward?: number
+        }
+        Returns: Json
+      }
       rpc_inbox_preview_batch: {
         Args: { p_instance?: string; p_limit?: number; p_remote_jids: string[] }
         Returns: Json
@@ -60863,6 +61295,10 @@ export type Database = {
         }[]
       }
       rpc_integration_health: { Args: never; Returns: Json }
+      rpc_latest_contact_analysis: {
+        Args: { p_contact_id: string }
+        Returns: Json
+      }
       rpc_link_channel_queue: {
         Args: {
           p_channel_id: string
@@ -62136,6 +62572,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      rpc_upsert_crm_sync_config: {
+        Args: { p_enabled?: boolean; p_provider: string; p_settings?: Json }
+        Returns: Json
       }
       rpc_upsert_deal: {
         Args: {

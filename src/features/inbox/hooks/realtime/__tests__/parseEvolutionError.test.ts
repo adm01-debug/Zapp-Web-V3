@@ -7,6 +7,7 @@ import { parseEvolutionError } from '../parseEvolutionError';
 function envelope(overrides: {
   message?: string;
   status?: number;
+  code?: string;
   response?: { message?: string | string[]; error?: string };
 } = {}) {
   return { error: true, ...overrides };
@@ -276,5 +277,28 @@ describe('parseEvolutionError — fallback for unrecognized errors', () => {
   it('returns Evolution fallback when all inputs are empty', () => {
     const r = parseEvolutionError(envelope({}));
     expect(r.reason).toContain('Evolution');
+  });
+});
+
+describe('parseEvolutionError — R1/R1-EXT 403 de ACESSO (*_FORBIDDEN) — trava de regressão', () => {
+  it('MEDIA_FORBIDDEN → permissão (não "sessão expirada")', () => {
+    const r = parseEvolutionError(envelope({ message: 'Você não tem acesso a esta conversa.', status: 403, code: 'MEDIA_FORBIDDEN' }));
+    expect(r.reason).toContain('permissão para acessar');
+    expect(r.reason).not.toContain('sessão');
+  });
+
+  it('SEND_TEXT_FORBIDDEN → permissão (regra nova é a PRIMEIRA do HUMANIZED)', () => {
+    const r = parseEvolutionError(envelope({ message: 'Você não tem acesso a esta conversa.', status: 403, code: 'SEND_TEXT_FORBIDDEN' }));
+    expect(r.reason).toContain('permissão para acessar');
+  });
+
+  it('403 genérico sem *_FORBIDDEN → sessão da instância expirou (comportamento antigo preservado)', () => {
+    const r = parseEvolutionError(envelope({ status: 403 }));
+    expect(r.reason).toContain('Sessão da instância');
+  });
+
+  it('envelope evolution-api@v1 com code FIND_MESSAGES_FORBIDDEN → permissão', () => {
+    const r = parseEvolutionError(envelope({ message: 'conversa não visível ao usuário', status: 403, code: 'FIND_MESSAGES_FORBIDDEN' }));
+    expect(r.reason).toContain('permissão para acessar');
   });
 });

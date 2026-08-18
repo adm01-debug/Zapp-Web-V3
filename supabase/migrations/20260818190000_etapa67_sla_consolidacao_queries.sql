@@ -1,0 +1,34 @@
+-- ============================================================================
+-- E67 — SLA: consolidação (estado verificado) + queries indexadas
+-- ============================================================================
+-- Objetivo (PLANO-100-ETAPAS E67): uma única fonte de verdade de SLA e
+-- queries sem seq scan. Esta migration cobre o lado DB; o lado UI (hooks,
+-- rota única, remoção da seção SLA duplicada de SettingsView) vive no PR.
+--
+-- 1) CONSOLIDAÇÃO — inventário executado (ondas anteriores, nada a DROP):
+--    • zapp.sla_policies: tabela 100% órfã (0 linhas, 0 consumidores em
+--      pg_stat_statements/pg_proc/cron/views/n8n/Metabase) — DROP aplicado em
+--      20260807235500_drop_sla_policies.sql.
+--    • public.sla_configs_v1: view órfã — DROP em
+--      20260807000001_drop_orphan_public_views_33.sql.
+--    • zapp.sla_history: 3 pares de políticas RLS duplicadas (sla_history_*
+--      × sla_hist_*) — duplicatas removidas em
+--      20260806970000_fix_duplicate_rls_policies.sql.
+--    • evo.v_kpi_overview: definida 2× em migrations distintas
+--      (20260806185000_rb2_onda3_views_drops.sql e
+--      20260806185500_rb2_d9_kpi_overview.sql) com corpo IDÊNTICO
+--      (CREATE OR REPLACE) — NENHUM objeto duplicado em runtime; migrations
+--      já aplicadas NÃO são editadas (imutabilidade do registro histórico).
+--    • zapp.queues.sla_policy_id / zapp.sla_violations.sla_policy_id:
+--      colunas 100% NULL, mantidas por compatibilidade (sem dados).
+--    → NENHUM DROP adicional é seguro nem necessário nesta etapa.
+--
+-- 2) QUERIES INDEXADAS — useSLAMetrics/useSLAHistory (zapp-web-v3) filtram
+--    zapp.conversation_sla por `created_at >= <início do período>` +
+--    ORDER BY created_at a cada fetch do dashboard SLA. Sem índice em
+--    created_at → seq scan. Índice btree simples serve ambos (gte + order).
+--    Rollback: DROP INDEX IF EXISTS zapp.idx_conversation_sla_created_at;
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_conversation_sla_created_at
+  ON zapp.conversation_sla (created_at);

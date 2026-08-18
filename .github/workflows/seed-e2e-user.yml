@@ -11,7 +11,7 @@ on:
 jobs:
   seed:
     name: Criar/atualizar usuário E2E (auth + profile + role agent)
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     timeout-minutes: 10
     steps:
       # E2E-05 (2026-08-07): porta 22 da VPS fechada p/ internet — SSH morto.
