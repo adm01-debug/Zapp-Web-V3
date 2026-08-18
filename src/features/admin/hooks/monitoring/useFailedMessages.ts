@@ -2,6 +2,7 @@ import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 
 import { useUserRole } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
@@ -9,6 +10,7 @@ import { toast } from 'sonner';
 import { isRlsDeniedError, formatAdminError } from '@/lib/errors/rlsError';
 import { classifyRootCause } from '@/lib/failureRootCause';
 import { computeFailedMessagesAggregates } from './failedMessagesAggregates';
+import { parseDlqStats, toRecordOrNull, isFailedMessageStatus } from './monitoringSchemas';
 
 /** Re-exported module members. */
 export type {
@@ -26,21 +28,14 @@ import type { FailedMessageRow, FailedMessagesFilters, DlqStats } from './failed
 
 const log = getLogger('useFailedMessages');
 
-type _SupaRpc = {
-  rpc: (
-    fn: string,
-    args?: Record<string, unknown>
-  ) => Promise<{ data: unknown; error: Error | null }>;
+// E60: tipos gerados não modelam NULL nos params sem DEFAULT, mas a SQL trata
+// `p_status IS NULL OR ...` explicitamente. Widen documentado no boundary.
+type _CursorArgs = Database['zapp']['Functions']['rpc_list_failed_messages_cursor']['Args'];
+type _CursorArgsNullable = {
+  [K in keyof _CursorArgs]: _CursorArgs[K] | null;
 };
-// Typed escape hatch for DLQ RPCs not yet reflected in the generated Supabase types.
-const _rpc = <T = unknown>(fn: string, args?: Record<string, unknown>) =>
-  (supabase as unknown as _SupaRpc).rpc(fn, args) as Promise<{ data: T; error: Error | null }>; // ignore-audit — DLQ RPCs not yet in generated Supabase types
 
 const ADMIN_ONLY_MSG = 'Ação restrita a administradores.';
-
-interface _RpcRow extends FailedMessageRow {
-  total_count: number | string;
-}
 
 /** Queries failed Evolution API messages with DLQ stats, retry mutations, and realtime invalidation. */
 export function useFailedMessages(filters: FailedMessagesFilters = {}) {
@@ -92,19 +87,18 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
   const query = useQuery<{ rows: FailedMessageRow[]; total: number; deniedReason: string | null }>({
     queryKey,
     queryFn: async () => {
-      const { data, error } = await _rpc<Array<Record<string, unknown>>>(
-        'rpc_list_failed_messages_cursor',
-        {
-          p_status: status ? [status] : null,
-          p_instance: instance,
-          p_search: search,
-          p_from: effectiveFrom,
-          p_to: effectiveTo,
-          p_limit: pageSize,
-          p_cursor_id: currentPageCursor,
-          p_error_code: errorCode ?? null,
-        }
-      );
+      // E60: `_CursorArgsNullable` documenta o contrato real da SQL (NULL = sem filtro).
+      const args: _CursorArgsNullable = {
+        p_status: status ? [status] : null,
+        p_instance: instance,
+        p_search: search,
+        p_from: effectiveFrom,
+        p_to: effectiveTo,
+        p_limit: pageSize,
+        p_cursor_id: currentPageCursor,
+        p_error_code: errorCode ?? null,
+      };
+      const { data, error } = await supabase.rpc('rpc_list_failed_messages_cursor', args as _CursorArgs);
       if (error) {
         if (isRlsDeniedError(error)) {
           return { rows: [], total: 0, deniedReason: formatAdminError(error, 'a DLQ') };
@@ -114,9 +108,18 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       const list = data ?? [];
       // errorCode is now filtered server-side via p_error_code.
       // rootCause classification is a multi-field heuristic — filtered client-side.
-      const filtered = list.filter((r: Record<string, unknown>) => {
+      const filtered = list.filter((r) => {
         if (rootCause) {
-          if (classifyRootCause(r) !== rootCause) return false;
+          if (
+            classifyRootCause({
+              error_code: r.error_code,
+              http_status: r.http_status,
+              error_message: r.error_message,
+              payload: toRecordOrNull(r.payload),
+            }) !== rootCause
+          ) {
+            return false;
+          }
         }
         return true;
       });
@@ -126,10 +129,23 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
           : list[0]?.total_count != null
             ? Number(list[0].total_count)
             : 0;
-      const rows: FailedMessageRow[] = filtered.map(
-        ({ total_count: _t, ...rest }: Record<string, unknown>) =>
-          rest as unknown as FailedMessageRow
-      );
+      const rows: FailedMessageRow[] = filtered.map((r) => ({
+        id: r.id,
+        instance_name: r.instance_name ?? '',
+        remote_jid: r.remote_jid,
+        payload: toRecordOrNull(r.payload) ?? {},
+        error_code: r.error_code,
+        error_message: r.error_message,
+        http_status: r.http_status,
+        retry_count: r.retry_count ?? 0,
+        max_retries: r.max_retries ?? 3,
+        status: r.status && isFailedMessageStatus(r.status) ? r.status : 'failed',
+        last_attempt_at: r.last_attempt_at,
+        next_attempt_at: r.next_attempt_at,
+        succeeded_at: r.succeeded_at,
+        created_at: r.created_at ?? '',
+        updated_at: r.updated_at ?? '',
+      }));
       return { rows, total, deniedReason: null as string | null };
     },
     staleTime: 15_000,
@@ -201,7 +217,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       const { data, error } = await supabase.rpc('rpc_dlq_retry_now', { p_id: id });
       if (error) throw error;
       if (data === true) await logItemAction('retry', [id]);
-      return data as boolean; // ignore-audit: RPC returns unknown; boolean is the documented return type
+      return data;
     },
     onSuccess: (ok) => {
       if (ok) toast.success('Item marcado para reprocesso imediato.');
@@ -221,7 +237,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       const { data, error } = await supabase.rpc('rpc_dlq_abandon', { p_id: id, p_reason: reason });
       if (error) throw error;
       if (data === true) await logItemAction('abandon', [id], reason);
-      return data as boolean; // ignore-audit: RPC returns unknown; boolean is the documented return type
+      return data;
     },
     onSuccess: (ok) => {
       if (ok) toast.success('Item abandonado.');
@@ -239,12 +255,12 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       const ids = Array.isArray(input) ? input : input.ids;
       const reason = Array.isArray(input) ? '' : (input.reason ?? '');
       if (ids.length === 0) return 0;
-      const { data, error } = await _rpc<number>('rpc_dlq_bulk_retry_now', {
+      const { data, error } = await supabase.rpc('rpc_dlq_bulk_retry_now', {
         p_ids: ids,
-        p_reason: reason || null,
+        p_reason: reason || undefined,
       });
       if (error) throw error;
-      const n = (data as number | null) ?? 0;
+      const n = data ?? 0;
       if (n > 0) await logItemAction('bulk_retry', ids, reason || undefined);
       return n;
     },
@@ -268,7 +284,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         p_reason: reason,
       });
       if (error) throw error;
-      const affected = (data as number | null) ?? 0; // ignore-audit: RPC returns unknown; number is the documented return type
+      const affected = data ?? 0;
       if (affected > 0) await logItemAction('bulk_abandon', ids, reason);
       return affected;
     },
@@ -284,7 +300,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
   const triggerReprocess = useMutation({
     mutationFn: async () => {
       try {
-        await _rpc('rpc_dlq_log_reprocess_trigger', { p_source: 'panel' });
+        await supabase.rpc('rpc_dlq_log_reprocess_trigger', { p_source: 'panel' });
       } catch (logErr) {
         log.warn('Failed to log reprocess trigger', {
           error: logErr instanceof Error ? logErr.message : String(logErr),
@@ -305,12 +321,12 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     onSuccess: async (data) => {
       const processed = data?.processed ?? 0;
       try {
-        await _rpc('rpc_dlq_log_reprocess_result', {
+        await supabase.rpc('rpc_dlq_log_reprocess_result', {
           p_processed: processed,
           p_succeeded: data?.succeeded ?? 0,
           p_failed: data?.failed ?? 0,
           p_abandoned: data?.abandoned ?? 0,
-          p_message: data?.message ?? null,
+          p_message: data?.message ?? undefined,
           p_source: 'panel',
         });
         queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.dlqAuditLog() });
@@ -352,15 +368,9 @@ export function useFailedMessagesStats() {
   return useQuery<DlqStats>({
     queryKey: queryKeys.failedMessages.stats(),
     queryFn: async () => {
-      const { data, error } = await _rpc<DlqStats>('rpc_dlq_stats');
+      const { data, error } = await supabase.rpc('rpc_dlq_stats');
       if (error) throw error;
-      return (data ?? {
-        total: 0,
-        total_24h: 0,
-        oldest_pending_at: null,
-        by_status: {},
-        by_instance: [],
-      }) as DlqStats;
+      return parseDlqStats(data);
     },
     staleTime: 15_000,
     refetchInterval: 30_000,

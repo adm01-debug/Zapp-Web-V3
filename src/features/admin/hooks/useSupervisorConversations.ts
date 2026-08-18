@@ -66,21 +66,8 @@ export function useSupervisorConversations() {
           .select('id, name, phone, assigned_to, queue_id, ai_priority, risk_score, updated_at')
           .order('updated_at', { ascending: false })
           .limit(200),
-        (
-          supabase.from('profiles') as unknown as {
-            select: (c: string) => {
-              eq: (
-                c: string,
-                v: unknown
-              ) => {
-                in: (
-                  c: string,
-                  v: string[]
-                ) => Promise<{ data: AgentOption[] | null; error: unknown }>;
-              };
-            };
-          }
-        )
+        supabase
+          .from('profiles')
           .select('id, name, role')
           .eq('is_active', true)
           .in('role', SUPERVISOR_ROLES),
@@ -89,12 +76,27 @@ export function useSupervisorConversations() {
 
       if (contactsRes.error) throw contactsRes.error;
 
-      const agentList = ((profilesRes.data ?? []) as unknown as AgentOption[]).filter(Boolean);
-      const queueList = ((queuesRes.data ?? []) as unknown as QueueOption[]).filter(Boolean);
+      // E60: narrowing runtime em vez de `as unknown as` — filas/perfis com
+      // campos nulos são normalizados no boundary (comportamento preservado).
+      const agentList: AgentOption[] = (profilesRes.data ?? []).filter(
+        (a): a is AgentOption => a.id != null && a.name != null && a.role != null
+      );
+      const queueList: QueueOption[] = (queuesRes.data ?? []).filter(
+        (q): q is QueueOption => q.id != null && q.name != null
+      );
       const agentMap = new Map(agentList.map((a) => [a.id, a.name]));
       const queueMap = new Map(queueList.map((q) => [q.id, q.name]));
 
-      const contacts = (contactsRes.data ?? []) as unknown as ContactsResp[];
+      const contacts: ContactsResp[] = (contactsRes.data ?? []).map((c) => ({
+        id: c.id ?? '',
+        name: c.name ?? '',
+        phone: c.phone ?? '',
+        assigned_to: c.assigned_to,
+        queue_id: c.queue_id,
+        ai_priority: c.ai_priority,
+        risk_score: c.risk_score,
+        updated_at: c.updated_at ?? '',
+      }));
       const now = new Date();
       const enriched = contacts.map<SupervisorConversationRow>((c) => ({
         ...c,
@@ -119,15 +121,16 @@ export function useSupervisorConversations() {
     void load();
   }, [load]);
 
-  const updateContact = useCallback(async (contactId: string, patch: Record<string, unknown>) => {
-    if (!isValidUUID(contactId)) return { error: new Error('Invalid UUID') };
-    const q = supabase.from('contacts') as unknown as {
-      update: (v: Record<string, unknown>) => {
-        eq: (c: string, v: string) => Promise<{ error: unknown }>;
-      };
-    };
-    return q.update(patch).eq('id', contactId);
-  }, []);
+  const updateContact = useCallback(
+    async (
+      contactId: string,
+      patch: { assigned_to?: string | null; queue_id?: string | null }
+    ) => {
+      if (!isValidUUID(contactId)) return { error: new Error('Invalid UUID') };
+      return supabase.from('contacts').update(patch).eq('id', contactId);
+    },
+    []
+  );
 
   const reassignAgent = useCallback(
     async (contactId: string, agentId: string | null) => {

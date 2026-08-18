@@ -41,6 +41,16 @@ export type ManualZappTables = Record<never, never>;
  * prioriza Extra) — manter em sincronia com a migration F-06.
  */
 export type ManualZappFunctions = {
+  rpc_list_failed_messages_cursor: {
+    Args: { p_limit?: number; p_cursor?: string; p_error_code?: string; p_instance_name?: string };
+    Returns: {
+      id: string; instance_name: string | null; remote_jid: string | null; payload: Json | null;
+      error_code: string | null; error_message: string | null; http_status: number | null;
+      retry_count: number | null; max_retries: number | null; status: string | null;
+      last_attempt_at: string | null; next_attempt_at: string | null; succeeded_at: string | null;
+      created_at: string | null; updated_at: string | null; total_count: number | null;
+    }[];
+  };
   rpc_schema_tables: {
     Args: { p_schema?: string };
     Returns: { table_name: string; table_type: string }[];

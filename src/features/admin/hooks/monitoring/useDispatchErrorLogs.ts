@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
+import { toRecordOrNull } from './monitoringSchemas';
 
 /** Dispatch Error Log Row interface definition. */
 export interface DispatchErrorLogRow {
@@ -31,10 +32,6 @@ export interface DispatchErrorLogFilters {
   search?: string | null;
   page?: number;
   pageSize?: number;
-}
-
-interface _RpcRow extends DispatchErrorLogRow {
-  total_count: number | string;
 }
 
 /**
@@ -95,11 +92,25 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
         p_cursor_id: currentPageCursor ?? undefined,
       });
       if (error) throw error;
-      const list = (data ?? []) as unknown as _RpcRow[];
+      // E60: RPC tipada nos tipos gerados (com total_count) — mapping sem cast.
+      const list = data ?? [];
       const total = list[0]?.total_count != null ? Number(list[0].total_count) : 0;
-      const rows: DispatchErrorLogRow[] = list.map(
-        ({ total_count: _t, ...rest }) => rest as DispatchErrorLogRow
-      );
+      const rows: DispatchErrorLogRow[] = list.map((r) => ({
+        id: r.id,
+        failed_message_id: r.failed_message_id,
+        instance_name: r.instance_name,
+        remote_jid: r.remote_jid,
+        channel_type: r.channel_type,
+        agent_email: r.agent_email,
+        agent_user_id: r.agent_user_id,
+        error_code: r.error_code,
+        error_message: r.error_message,
+        http_status: r.http_status,
+        retry_count: r.retry_count,
+        payload: toRecordOrNull(r.payload),
+        context: toRecordOrNull(r.context),
+        occurred_at: r.occurred_at,
+      }));
       return { rows, total };
     },
     staleTime: 30_000,
