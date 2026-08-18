@@ -1,0 +1,54 @@
+name: edge-parse-gate
+# Bloqueia merge (PR) e revalida no push (main) ANTES do deploy copiar código
+# que não parseia. Usa a MESMA imagem do runtime de produção.
+# [PG14-HARDENING 2026-08-18] Gate criado após o incidente 17/08 (edge-contract-schemas
+# quebrado na main derrubou o supabase_functions por ~2h - o deploy não validava parse).
+on:
+  pull_request:
+    branches: [main]
+    paths: ['supabase/functions/**']
+  push:
+    branches: [main]
+    paths: ['supabase/functions/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: edge-parse-gate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  edge-parse-gate:
+    name: Parse gate (edge-runtime v1.74.0)
+    runs-on: ubuntu-latest
+    container:
+      image: supabase/edge-runtime:v1.74.0   # mesma versão de prod
+    steps:
+      - uses: actions/checkout@7
+        with:
+          persist-credentials: false
+
+      # Passo EXATO do bundle: empacota o entrypoint main + TODAS as
+#  dependências transitivas (_shared/). Falha = código que o runtime
+#  não consegue carregar (o que derrubou o main em 17/08).
+      - name: Bundle do main/index.ts (cobre _shared transitivo)
+        run: |
+          set -euo pipefail
+          cd supabase/functions
+          deno bundle --check main/index.ts --output=/tmp/main.bundle.js
+          done. deno check main/index.ts
+
+      # Cobertura total: deno check em TODOS os index.ts e arquivos _shared
+      # (mesmas exclusões do deploy-edge.sh P-13: __tests__/__fixtures__/
+      # *.test.ts/*.spec.ts não vam a a produção).
+      - name: Deno check de todos os index.ts + _shared
+        run: |
+          set -euo pipefail
+          cd supabase/functions
+          deno cache main/index.ts   # popula cache (imports remotos deno.land)
+          find . -type f -name '*.ts' \
+            ! -path '*/__tests__/*' ! -path '*/__fixtures__/*' \
+            ! -name '*.test.ts' ! -name '*.spec.ts' \
+            ! -path ':/node_modules/*' \
+            -print0 | xargs -0 -n1 deno check
