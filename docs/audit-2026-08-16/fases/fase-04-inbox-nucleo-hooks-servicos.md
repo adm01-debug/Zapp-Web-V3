@@ -188,16 +188,16 @@
 **Objetivo:** Cobrir e corrigir os hooks periféricos do inbox (autoscroll, deep links, atalhos, broadcast de digitação) que operam sem testes.
 **Base:** findings-03.md:180 (useChatAutoScroll threshold=150px), 182 (useInboxShortcuts react-hotkeys-hook), 183 (useInboxDeepLinks ?contact=/?message=, window.__pendingOpenContactId); pendencias-consolidadas.md:17 (useContactTyping broadcast typing:{remoteJid}).
 ### Subetapas
-- [ ] 40.1 Ler `useChatAutoScroll.ts` (68 ln), `useInboxDeepLinks.ts` (59 ln), `useInboxShortcuts.ts` (65 ln) e `src/features/contacts/hooks/useContactTyping.ts` (197 ln); documentar contratos e consumidores (grep de imports) em `docs/plano-fase-04.md`.
-- [ ] 40.2 RED: `useChatAutoScroll` — teste com jsdom: usuário no topo (scrollTop < threshold 150px) → NOVO scroll automático NÃO ocorre; usuário no fundo → scroll segue novas mensagens.
-- [ ] 40.3 GREEN: corrigir lógica de "near bottom" (distância relativa ao fim, não scrollTop absoluto) e guard de tamanho de mensagem; teste verde.
-- [ ] 40.4 RED: `useInboxDeepLinks` — teste de `?contact=<uuid>`: ao montar, `window.__pendingOpenContactId` é consumido e limpo; `?message=<uuid>` rola até a mensagem após hydratação.
-- [ ] 40.5 GREEN: corrigir consumo/limpeza do pending contact (evitar re-abertura em StrictMode); teste verde.
-- [ ] 40.6 RED: `useInboxShortcuts` — teste de atalhos registrados via `react-hotkeys-hook`: tecla "C" abre nova conversa (handler chamado), atalho não dispara com foco em input/textarea (guard de composição).
-- [ ] 40.7 GREEN: aplicar guards de foco e remover atalhos no unmount (useEffect cleanup); teste verde.
-- [ ] 40.8 RED: `useContactTyping` — teste de broadcast: evento de digitação publica `typing:{remoteJid}` no canal correto e expira (timeout) sem publicar estado "parado" eterno; dedupe de broadcasts repetidos.
-- [ ] 40.9 GREEN: corrigir broadcast (timeout de expiração, dedupe por contato, cleanup no unmount); teste verde.
-- [ ] 40.10 Rodar `bun run check` + suíte completa do módulo inbox; atualizar doc 06-* (06:593, 06:610, 06:613) e findings-01 status de `useContactTyping`; garantir barrel `chat/index.ts` re-exporta hooks cobertos.
+- [x] 40.1 Ler `useChatAutoScroll.ts` (68 ln), `useInboxDeepLinks.ts` (59 ln), `useInboxShortcuts.ts` (65 ln) e `src/features/contacts/hooks/useContactTyping.ts` (197 ln); documentar contratos e consumidores (grep de imports) em `docs/plano-fase-04.md`.
+- [x] 40.2 RED: `useChatAutoScroll` — teste com jsdom: usuário no topo (scrollTop < threshold 150px) → NOVO scroll automático NÃO ocorre; usuário no fundo → scroll segue novas mensagens.
+- [x] 40.3 GREEN: corrigir lógica de "near bottom" (distância relativa ao fim, não scrollTop absoluto) e guard de tamanho de mensagem; teste verde.
+- [x] 40.4 RED: `useInboxDeepLinks` — teste de `?contact=<uuid>`: ao montar, `window.__pendingOpenContactId` é consumido e limpo; `?message=<uuid>` rola até a mensagem após hydratação.
+- [x] 40.5 GREEN: corrigir consumo/limpeza do pending contact (evitar re-abertura em StrictMode); teste verde.
+- [x] 40.6 RED: `useInboxShortcuts` — teste de atalhos registrados via `react-hotkeys-hook`: tecla "C" abre nova conversa (handler chamado), atalho não dispara com foco em input/textarea (guard de composição).
+- [x] 40.7 GREEN: aplicar guards de foco e remover atalhos no unmount (useEffect cleanup); teste verde.
+- [x] 40.8 RED: `useContactTyping` — teste de broadcast: evento de digitação publica `typing:{remoteJid}` no canal correto e expira (timeout) sem publicar estado "parado" eterno; dedupe de broadcasts repetidos.
+- [x] 40.9 GREEN: corrigir broadcast (timeout de expiração, dedupe por contato, cleanup no unmount); teste verde.
+- [x] 40.10 Rodar `bun run check` + suíte completa do módulo inbox; atualizar doc 06-* (06:593, 06:610, 06:613) e findings-01 status de `useContactTyping`; garantir barrel `chat/index.ts` re-exporta hooks cobertos.
 ### Critério de conclusão (checklist da etapa)
 - [ ] 4 suítes novas verdes: autoscroll, deep links, atalhos, typing (≥ 3 casos cada)
 - [ ] Teste de cleanup no unmount para atalhos e typing (sem vazamento de listeners)
