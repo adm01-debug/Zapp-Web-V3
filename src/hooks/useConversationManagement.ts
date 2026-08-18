@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { QueryFunctionContext } from '@tanstack/react-query';
 import { queryKeys } from '@/services/api/queryKeys';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { dbList } from '@/integrations/datasource/db';
+import { dbGet } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { toast } from 'sonner';
 import { log } from '@/lib/logger';
@@ -397,12 +398,6 @@ export interface SLATimelineData {
   resolvedBy: SLAAttribution | null;
 }
 
-interface EvolutionMessageRow {
-  created_at: string;
-  direction: string | null;
-  from_me: boolean | null;
-}
-
 interface ConversationEventRow {
   event_type: string;
   created_at: string;
@@ -440,32 +435,30 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
   return useQuery({
     queryKey: queryKeys.sla.timelineDetailed(remoteJid ?? undefined, contactId ?? undefined),
     enabled,
-    staleTime: 30_000,
+    staleTime: 1000 * 60 * 10, // 10min — incidente 18/08: fetch de 500 msgs/conversa
+    // (rpc_list_messages_lite) a cada 30s sobrecarregava o Postgres; agora a timeline
+    // vem de UMA agregação (zapp.rpc_sla_timeline_aggregate, ~1-25ms) e só revalida
+    // a cada 10min. O refetchInterval de 30s abaixo segue ativo enquanto aguarda resposta.
     refetchInterval: (query) => {
       const data = query.state.data as SLATimelineData | undefined;
       return data?.isAwaitingFirstResponse ? 30_000 : false;
     },
-    queryFn: async (): Promise<SLATimelineData> => {
+    queryFn: async ({ signal }: QueryFunctionContext): Promise<SLATimelineData> => {
       if (!remoteJid) return EMPTY;
 
-      const { data: msgs, error: msgErr } = await dbList(RPC.listMessagesLite, {
-        p_remote_jid: remoteJid,
-        p_limit: 500,
-      });
-      if (msgErr) throw msgErr;
-
-      const rows = (msgs || []) as EvolutionMessageRow[];
-      const sorted = [...rows].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      const { data, error } = await dbGet(
+        RPC.slaTimelineAggregate,
+        { p_remote_jid: remoteJid },
+        { signal }
       );
+      if (error) throw error;
 
-      const firstInbound = sorted.find((m) => m.from_me === false || m.direction === 'inbound');
-      const firstOutbound = sorted.find((m) => m.from_me === true || m.direction === 'outbound');
-      const last = sorted[sorted.length - 1];
-
-      const firstContactAt = firstInbound ? new Date(firstInbound.created_at) : null;
-      const firstResponseAt = firstOutbound ? new Date(firstOutbound.created_at) : null;
-      const lastMessageAt = last ? new Date(last.created_at) : null;
+      // Agregado retorna SEMPRE 1 linha (sem GROUP BY); campos NULL quando a
+      // conversa não tem mensagens (ou nenhuma do sentido filtrado).
+      const firstContactAt = data?.first_inbound_at ? new Date(data.first_inbound_at) : null;
+      const firstResponseAt = data?.first_outbound_at ? new Date(data.first_outbound_at) : null;
+      const lastMessageAt = data?.last_message_at ? new Date(data.last_message_at) : null;
+      const totalMessages = Number(data?.total_messages ?? 0);
 
       const firstResponseDurationMs =
         firstContactAt && firstResponseAt && firstResponseAt > firstContactAt
@@ -586,7 +579,7 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
         reopenedAt,
         isAwaitingFirstResponse,
         awaitingMs,
-        totalMessages: sorted.length,
+        totalMessages,
         firstResponseBy,
         firstResponseAttributionWindow,
         firstResponseAttributionSource,
