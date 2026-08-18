@@ -110,7 +110,10 @@ Deno.serve(async (req) => {
 
     if (action === "reject") {
       // Guard with .eq("status","pending") to prevent overwriting an already-approved request.
-      const { count: rejectedCount, error: updateError } = await supabaseAdmin
+      // E55 fix (GAP V3-5): count/head NÃO são opções do .select() no postgrest-js v2 —
+      // eram silenciosamente descartadas → count=null → guard SEMPRE 409. O número de
+      // linhas afetadas vem do corpo (return=representation) via .select("id").
+      const { data: rejectedRows, error: updateError } = await supabaseAdmin
         .from("password_reset_requests")
         .update({
           status: "rejected",
@@ -121,10 +124,10 @@ Deno.serve(async (req) => {
         })
         .eq("id", requestId)
         .eq("status", "pending")
-        .select("id", { count: "exact", head: true });
+        .select("id");
 
       if (updateError) throw updateError;
-      if (!rejectedCount || rejectedCount === 0) {
+      if (!rejectedRows || rejectedRows.length === 0) {
         return errorResponse("Request already processed", 409, req);
       }
 
@@ -137,7 +140,9 @@ Deno.serve(async (req) => {
     // generateLink — this ensures exactly one token is ever created per request.
     const expiresAt = new Date(Date.now() + 3600000).toISOString();
 
-    const { count: updatedCount, error: updateError } = await supabaseAdmin
+    // E55 fix (GAP V3-5): mesma correção do reject — linhas afetadas via corpo
+    // (return=representation), nunca via count do .select().
+    const { data: updatedRows, error: updateError } = await supabaseAdmin
       .from("password_reset_requests")
       .update({
         status: "approved",
@@ -148,10 +153,10 @@ Deno.serve(async (req) => {
       })
       .eq("id", requestId)
       .eq("status", "pending")
-      .select("id", { count: "exact", head: true });
+      .select("id");
 
     if (updateError) throw updateError;
-    if (!updatedCount || updatedCount === 0) {
+    if (!updatedRows || updatedRows.length === 0) {
       return errorResponse("Request already processed", 409, req);
     }
 
