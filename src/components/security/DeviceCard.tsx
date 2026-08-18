@@ -26,21 +26,38 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface SessionCardProps {
-  session: { id: string; device_id: string | null; ip_address: string | null; started_at: string };
-  device?: { device_name: string | null; browser: string | null; os: string | null } | null;
+  session: { id: string; user_agent: string | null; ip: string | null; last_active: string };
   isCurrentSession: boolean;
   isProcessing: boolean;
   onEndSession: (id: string) => void;
 }
 
+/** Descreve um user_agent de auth.sessions em dispositivo/navegador/SO. */
+function describeUserAgent(ua: string | null): { device: string; browser: string; os: string } {
+  if (!ua) return { device: 'Dispositivo desconhecido', browser: '—', os: '—' };
+  let browser = 'Navegador';
+  let os = 'SO';
+  if (ua.includes('Firefox')) browser = 'Firefox';
+  else if (ua.includes('Edg')) browser = 'Edge';
+  else if (ua.includes('Chrome')) browser = 'Chrome';
+  else if (ua.includes('Safari')) browser = 'Safari';
+  if (ua.includes('Windows')) os = 'Windows';
+  else if (ua.includes('Mac')) os = 'macOS';
+  else if (ua.includes('Linux')) os = 'Linux';
+  else if (ua.includes('Android')) os = 'Android';
+  else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+  const isMobile = /Mobile|Android|iPhone|iPad/.test(ua);
+  return { device: isMobile ? 'Dispositivo Móvel' : 'Desktop', browser, os };
+}
+
 /** Session Card component for the security section. */
 export function SessionCard({
   session,
-  device,
   isCurrentSession,
   isProcessing,
   onEndSession,
 }: SessionCardProps) {
+  const { device, browser, os } = describeUserAgent(session.user_agent);
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -53,19 +70,19 @@ export function SessionCard({
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <h4 className="font-medium">{device?.device_name || 'Dispositivo desconhecido'}</h4>
+            <h4 className="font-medium">{device}</h4>
             {isCurrentSession && <Badge className="bg-primary">Sessão atual</Badge>}
           </div>
           <p className="text-sm text-muted-foreground">
-            {device?.browser} · {device?.os}
+            {browser} · {os}
           </p>
           <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
             <Globe className="h-3 w-3" />
-            {session.ip_address}
+            {session.ip || 'IP desconhecido'}
             <span>·</span>
             <Clock className="h-3 w-3" />
-            Ativa{' '}
-            {formatDistanceToNow(new Date(session.started_at), { addSuffix: false, locale: ptBR })}
+            Último uso{' '}
+            {formatDistanceToNow(new Date(session.last_active), { addSuffix: false, locale: ptBR })}
           </p>
         </div>
       </div>

@@ -13,11 +13,13 @@ function makeWrapper() {
 }
 
 const mockFrom = vi.hoisted(() => vi.fn());
+const mockRpc = vi.hoisted(() => vi.fn());
 const mockFunctionsInvoke = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: (...args: unknown[]) => mockFrom(...args),
+    rpc: (...args: unknown[]) => mockRpc(...args),
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'token' } } }),
       onAuthStateChange: vi
@@ -47,6 +49,8 @@ describe('useDeviceDetection', () => {
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({ user: { id: 'u1' } });
     mockFunctionsInvoke.mockResolvedValue({ data: { device_id: 'd1' } });
+    // Sessões reais (Etapa 56): RPC sessions_list (auth.sessions).
+    mockRpc.mockResolvedValue({ data: [], error: null });
     mockFrom.mockReturnValue({
       select: vi.fn().mockReturnValue({
         order: vi.fn().mockResolvedValue({ data: [], error: null }),
@@ -116,7 +120,8 @@ describe('useDeviceDetection', () => {
     const { result } = renderHook(() => useDeviceDetection(), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(mockFrom).toHaveBeenCalledWith('user_devices');
-    expect(mockFrom).toHaveBeenCalledWith('user_sessions');
+    // Sessões vêm do RPC sessions_list (auth.sessions real, Etapa 56).
+    expect(mockRpc).toHaveBeenCalledWith('sessions_list', { p_target_user_id: 'u1' });
   });
 
   it('currentDeviceId starts as null', () => {
