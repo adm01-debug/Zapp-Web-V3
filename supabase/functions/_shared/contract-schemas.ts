@@ -1100,13 +1100,13 @@ export const ZappGoogleCalendarSyncV1Schema = z.object({
  /** warroom-monthly-test@v1 — teste mensal do pipeline de alerta Warroom.
   * Sem parâmetros de entrada: o handler IGNORA o body (saída fixa).
   */
-export const ZappWarroomMonthlyTestV1Schema = z.object({}).strict();
+ export const ZappWarroomMonthlyTestV1Schema = z.object({}).strict();
 
 /**
-* invite-user@v1 — POST { email, role?, message? } (Etapa 57: convite de
-* usuário). Endpoint interno admin-only. role default 'agent' (espelha o
-* CreateUserV1Schema do repo); message é nota opcional do convite.
-*/
+ * invite-user@v1 — POST { email, role?, message? } (Etapa 57: convite de
+ * usuário). Endpoint interno admin-only. role default 'agent' (espelha o
+ * CreateUserV1Schema do repo); message é nota opcional do convite.
+ */
 export const InviteUserV1Schema = z.object({
   email: z.string().email("Email inválido").max(255),
   role: z.enum(["admin", "supervisor", "agent"]).optional().default("agent"),
@@ -1114,7 +1114,7 @@ export const InviteUserV1Schema = z.object({
 }).strict();
 
 
-export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
+ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Webhooks externos
   "evolution-webhook":       { v1: EvolutionWebhookV1Schema, v2: EvolutionWebhookV2Schema },
   "whatsapp-cloud-webhook":  { v1: MetaWebhookPayloadSchema, v2: WhatsAppCloudWebhookV2Schema },
