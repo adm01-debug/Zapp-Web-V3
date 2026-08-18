@@ -176,7 +176,7 @@ services:
           ACCESS_TOKEN="$$(cat /run/secrets/gh_runner_pat_v2 2>/dev/null || echo '')"
           if [ -z "$$ACCESS_TOKEN" ]; then echo "[runner3] ERRO: secret indisponivel" && exit 1; fi
           for attempt in 1 2 3; do
-            REG_TOKEN=$$(curl -sfL -X POST -H "Authorization: token $$ACCESS_TOKEN" "https://api.github.com/repos/adm01-debug/Zapp_Web_V3/actions/runners/registration-token" | jq -r .token)
+            REG_TOKEN=$$(curl -sfL -X POST -H "Authorization: token $$ACCESS_TOKEN" "https://api.github.com/repos/adm01-debug/Evolution_Api_Stack/actions/runners/registration-token" | jq -r .token)
             [ -n "$$REG_TOKEN" ] && [ "$$REG_TOKEN" != "null" ] && break
             sleep 3
           done
@@ -239,7 +239,7 @@ services:
           test -f "$$VOL/.credentials_rsaparams" && cp "$$VOL/.credentials_rsaparams" "$$RUNNER_DIR/.credentials_rsaparams" || true
           echo "[runner-evo] Config restaurada."
         else
-          echo "[runner-evo] Registrando...")
+          echo "[runner-evo] Registrando..."
           ACCESS_TOKEN="$$(cat /run/secrets/gh_runner_pat_v2 2>/dev/null || echo '')"
           if [ -z "$$ACCESS_TOKEN" ]; then echo "[runner-evo] ERRO: secret indisponivel" && exit 1; fi
           for attempt in 1 2 3; do
