@@ -2,8 +2,9 @@
 -- A view foi criada manualmente (sem fonte no repo) como espelho da evo.ingest_ledger.
 -- A edge (evolution-webhook) insere VIA ela com client schema 'public' (PRs #1220/#1222)
 -- — único caminho PostgREST para o ledger (o schema evo não é exposto no PostgREST).
--- security_invoker=false (owner-executed, comportamento atual): o INSERT verifica como
--- o owner (postgres) — os grants abaixo são para o PostgREST (service_role) e leitores.
+-- security_invoker=true (estado vivo confirmado em 2026-08-18 via pg_class.reloptions):
+-- o INSERT verifica os grants do CALLER — service_role precisa (e tem) INSERT na view
+-- E na base evo.ingest_ledger. Os grants abaixo cobrem PostgREST e leitores.
 -- Idempotente: CREATE OR REPLACE VIEW + GRANTs.
 CREATE OR REPLACE VIEW public.ingest_ledger AS
 SELECT id, received_at, instance_name, event_type, message_id, remote_jid,
