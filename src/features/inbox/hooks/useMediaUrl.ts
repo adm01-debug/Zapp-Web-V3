@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getLogger } from '@/lib/logger';
 import { buildFileHash } from '@/lib/crypto';
+import { isBucketPublic } from '@/lib/mediaUrl';
 // F4-20: cache LRU com maxSize (50 MB de bytes) + cap de 200 entradas.
 // Data URLs base64 são ASCII → length ≈ bytes. Módulo puro em mediaRefreshCache.
 import { mediaCacheGet, mediaCacheSet } from './mediaRefreshCache';
@@ -290,6 +291,42 @@ let sessionRefreshAttempts = 0;
 let sessionRefreshWindowStart = Date.now();
 
 /**
+ * E39 — estado por-mensagem (rate-limit + contador de tentativas).
+ *
+ * Module-level keyed by cacheKey (instance::remoteJid::id). Objetivo:
+ *   - rate-limit: N invokes da edge fn em janela curta (mesma mensagem) →
+ *     1 invoke efetivo (anti-storm, consolida o guard `failed` frágil);
+ *   - contador de tentativas PERSISTE entre montagens — reset só após
+ *     sucesso (ou retry MANUAL), nunca por remount (antes: useState(0)
+ *     resetava por montagem e re-abria a janela de invokes).
+ */
+interface MessageRefreshKeyState {
+  /** Timestamp (ms) do último invoke da edge fn para esta mensagem. */
+  lastInvokeAt: number;
+  /** Falhas acumuladas desta mensagem (reset só após sucesso/retry manual). */
+  attempts: number;
+}
+const REFRESH_RATE_LIMIT_WINDOW_MS = 30_000; // janela fixa anti-storm por mensagem
+const refreshStateByKey = new Map<string, MessageRefreshKeyState>();
+
+function getRefreshKeyState(key: string): MessageRefreshKeyState {
+  let st = refreshStateByKey.get(key);
+  if (!st) {
+    st = { lastInvokeAt: 0, attempts: 0 };
+    refreshStateByKey.set(key, st);
+  }
+  return st;
+}
+
+/**
+ * Test-only: reseta o estado por-mensagem (rate-limit + tentativas).
+ * `mediaCacheClear`-style — nada em produção chama isto.
+ */
+export function resetMediaRefreshKeyState(): void {
+  refreshStateByKey.clear();
+}
+
+/**
  * Test-only: reseta (ou pré-define) o contador global de refresh attempts
  * da sessão. `mediaCacheClear`-style — nada em produção chama isto.
  */
@@ -332,30 +369,53 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
   const [url, setUrl] = useState<string | null>(originalUrl ?? null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<MediaError | null>(null);
-  const [attempts, setAttempts] = useState(0);
+  // E39.7: tenta espelhar o contador PERSISTIDO da mensagem (module-level) —
+  // remontar o componente não zera tentativas de uma mídia já falha.
+  const [attempts, setAttempts] = useState(() =>
+    messageKey && instanceName
+      ? getRefreshKeyState(cacheKey(instanceName, messageKey)).attempts
+      : 0
+  );
   const [failed, setFailed] = useState(false);
   const inFlightRef = useRef<Promise<void> | null>(null);
   const originalUrlRef = useRef(originalUrl);
   originalUrlRef.current = originalUrl;
-  // Guard de mounted: supabase.functions.invoke (supabase-js v2) não aceita
-  // AbortSignal — client.ts descarta deliberadamente o signal do caller
-  // (fix 2026-08-03 anti retry storm). O padrão correto é mountedRef para
-  // suprimir setState/toast/log.warn quando o componente desmonta com um
-  // refresh ainda em voo.
+  // E39: AbortSignal no invoke da edge fn — supabase-js v2.110 aceita
+  // `signal` nas FunctionInvokeOptions (FunctionsClient combina com o
+  // timeout próprio). O abort no cleanup cancela o fetch pendente no
+  // unmount. O mountedRef permanece como defesa SECUNDÁRIA (setState/
+  // toast/log pós-desmontagem).
+  const abortRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
+    abortRef.current = new AbortController();
     return () => {
       mountedRef.current = false;
+      abortRef.current?.abort();
+      abortRef.current = null;
     };
   }, []);
 
   // Keep `url` in sync when the upstream metadata changes.
+  // E39.7: reset de tentativas SÓ quando a URL muda (nova identidade de mídia)
+  // — nunca por montagem; o contador vive no estado module-level por chave.
+  const mediaKeyRef = useRef<string | null>(null);
+  mediaKeyRef.current = messageKey && instanceName ? cacheKey(instanceName, messageKey) : null;
+  const prevOriginalUrlRef = useRef(originalUrl);
   useEffect(() => {
+    const urlChanged = prevOriginalUrlRef.current !== originalUrl;
+    prevOriginalUrlRef.current = originalUrl;
     setUrl(originalUrl ?? null);
     setError(null);
     setFailed(false);
-    setAttempts(0);
+    if (urlChanged && mediaKeyRef.current) {
+      const st = getRefreshKeyState(mediaKeyRef.current);
+      st.attempts = 0;
+      st.lastInvokeAt = 0;
+      // URL mudou = nova identidade de mídia: contador zera na UI também.
+      setAttempts(0);
+    }
   }, [originalUrl]);
 
   const runRefresh = useCallback(async (): Promise<void> => {
@@ -431,44 +491,78 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     setError(null);
     const job = (async () => {
       try {
-        // ADR-004: shortcut para buckets Supabase privados (whatsapp-media, audio-messages)
-        // Quando a URL original é do storage local, criar signed URL diretamente
-        // sem chamar a edge function (que só sabe buscar no CDN WhatsApp).
+        // ADR-004: shortcut para buckets Supabase privados (whatsapp-media,
+        // audio-messages, …). Quando a URL original é do storage local,
+        // criar signed URL diretamente sem chamar a edge function (que só
+        // sabe buscar no CDN WhatsApp). E39: buckets PÚBLICOS (avatars,
+        // stickers, …) têm URL direta válida — nada a refrescar; buckets
+        // PRIVADOS recebem signed URL renovada a cada onError (NÃO é
+        // cacheada no LRU: TTL 1h × cache sem TTL → URL expirada servida
+        // para sempre).
         const localStorageUrl = originalUrlRef.current ?? '';
-        const storageMarkers = [
-          '/storage/v1/object/public/whatsapp-media/',
-          '/storage/v1/object/public/audio-messages/',
-        ];
-        for (const marker of storageMarkers) {
-          const idx = localStorageUrl.indexOf(marker);
-          if (idx !== -1) {
-            const bucketName = marker.split('/object/public/')[1].replace('/', '');
-            const pathWithQuery = localStorageUrl.substring(idx + marker.length);
-            const storagePath = decodeURIComponent(pathWithQuery.split('?')[0]);
-            try {
-              const { data: signedData } = await supabase.storage
-                .from(bucketName)
-                .createSignedUrl(storagePath, 3600); // 1h TTL
-              if (signedData?.signedUrl) {
-                if (!mountedRef.current) return;
-                mediaCacheSet(key, signedData.signedUrl);
-                setUrl(signedData.signedUrl);
-                setError(null);
-                setFailed(false);
-                return;
-              }
-            } catch {
-              // Falha no signed URL → continuar para edge function como fallback
+        const storageMatch = localStorageUrl.match(/\/storage\/v1\/object\/public\/([^/]+)\//);
+        if (storageMatch) {
+          const bucketName = storageMatch[1];
+          const pathWithQuery = localStorageUrl.substring(
+            localStorageUrl.indexOf(storageMatch[0]) + storageMatch[0].length
+          );
+          const storagePath = decodeURIComponent(pathWithQuery.split('?')[0]);
+
+          if (isBucketPublic(bucketName)) {
+            // Bucket deliberadamente público: URL direta é válida — sem
+            // refresh, sem invoke, sem signed URL.
+            if (!mountedRef.current) return;
+            setUrl(localStorageUrl);
+            setError(null);
+            setFailed(false);
+            return;
+          }
+
+          try {
+            const { data: signedData } = await supabase.storage
+              .from(bucketName)
+              .createSignedUrl(storagePath, 3600); // 1h TTL
+            if (signedData?.signedUrl) {
+              if (!mountedRef.current) return;
+              setUrl(signedData.signedUrl);
+              setError(null);
+              setFailed(false);
+              return;
             }
-            break;
+          } catch {
+            // Falha no signed URL → continuar para edge function como fallback
           }
         }
 
+        // E39: rate-limit por messageId (janela fixa) — consolida o guard
+        // frágil: N invokes da MESMA mensagem em janela curta → 1 invoke
+        // efetivo (anti-storm, incidente 2026-08-06). O contador é
+        // module-level e persiste entre montagens.
+        const st = getRefreshKeyState(key);
+        const now = Date.now();
+        if (now - st.lastInvokeAt < REFRESH_RATE_LIMIT_WINDOW_MS) {
+          log.debug(`rate-limited refresh for ${key} (window ${REFRESH_RATE_LIMIT_WINDOW_MS}ms)`);
+          return;
+        }
+        st.lastInvokeAt = now;
+
+        // E39.7: cap de tentativas por mensagem — persiste entre montagens
+        // (reset só após sucesso). Componente remontado com contador
+        // esgotado ⇒ failed imediato sem novo invoke.
+        if (st.attempts >= maxAttempts) {
+          setFailed(true);
+          log.debug(`attempt cap (${maxAttempts}) reached for ${key} — no invoke`);
+          return;
+        }
+
+        const controller = new AbortController();
+        abortRef.current = controller;
         const { data, error: fnError } = await supabase.functions.invoke(
           'evolution-api/get-media-base64',
           {
             method: 'POST',
             body: { instanceName, message: { key: messageKey } },
+            signal: controller.signal,
           }
         );
         if (fnError) throw fnError;
@@ -509,6 +603,10 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
 
         // Guard de mounted: componente desmontado ⇒ nenhum setState roda.
         if (!mountedRef.current) return;
+        // E39.7: sucesso ⇒ reset do contador por-mensagem (persistia entre
+        // montagens só enquanto houvesse falhas; sucesso zera de novo).
+        getRefreshKeyState(key).attempts = 0;
+        setAttempts(0);
         setUrl(dataUrl);
         setError(null);
         setFailed(false);
@@ -531,32 +629,42 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
             `media refresh failed for ${key}: ${classified.reason} — ${classified.cause?.message}`
           );
           setError(classified);
-          setAttempts((prev) => {
-            const next = prev + 1;
-            // Irrecuperável (expirada): o WhatsApp não vai "desexpirar" a
-            // URL — falha imediata na 1ª tentativa, sem gastar a 2ª.
-            const unrecoverable = classified.reason === 'expired';
-            if (unrecoverable || next >= maxAttempts) {
-              setFailed(true);
-              // Anti-flood: 1 toast por mídia por sessão.
-              if (!toastedKeys.has(key)) {
-                toastedKeys.add(key);
-                toast.error('Mídia indisponível', { description: classified.message });
-              }
+          // E39.7: contador de tentativas no estado module-level por mensagem
+          // (persiste entre montagens — reset só após sucesso/retry manual).
+          const st = getRefreshKeyState(key);
+          const next = st.attempts + 1;
+          st.attempts = next;
+          setAttempts(next);
+          // Irrecuperável (expirada): o WhatsApp não vai "desexpirar" a
+          // URL — falha imediata na 1ª tentativa, sem gastar a 2ª.
+          const unrecoverable = classified.reason === 'expired';
+          if (unrecoverable || next >= maxAttempts) {
+            setFailed(true);
+            // Anti-flood: 1 toast por mídia por sessão.
+            if (!toastedKeys.has(key)) {
+              toastedKeys.add(key);
+              toast.error('Mídia indisponível', { description: classified.message });
             }
-            return next;
-          });
+          }
         }
       } finally {
-        // isRefreshing só é resetado se ainda montado; o dedupe inFlightRef
-        // SEMPRE é liberado, mesmo com o componente desmontado.
+        // isRefreshing só é resetado se ainda montado. O dedupe inFlightRef
+        // é liberado via chain do promise (abaixo) — NÃO aqui: com o
+        // rate-limit E39 retornando cedo SEM await, este finally rodaria
+        // SÍNCRONO, antes de `inFlightRef.current = job`, e o ref ficaria
+        // com um promise resolvido stale (próximo onError morto).
         if (mountedRef.current) {
           setIsRefreshing(false);
         }
-        inFlightRef.current = null;
       }
     })();
     inFlightRef.current = job;
+    // Libera o dedupe com identity check: o callback do .finally roda em
+    // microtask (sempre DEPOIS da atribuição acima), e só limpa se ainda
+    // for este job — nunca apaga um job mais novo.
+    void job.finally(() => {
+      if (inFlightRef.current === job) inFlightRef.current = null;
+    });
     return job;
   }, [enabled, instanceName, messageKey, maxAttempts, messageType]);
 
@@ -569,7 +677,14 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
   // Manual retry — zera contador e remove flag de toast (deixa avisar de novo).
   const retry = useCallback(async (): Promise<void> => {
     if (messageKey && instanceName) {
-      toastedKeys.delete(cacheKey(instanceName, messageKey));
+      const key = cacheKey(instanceName, messageKey);
+      toastedKeys.delete(key);
+      // E39: retry MANUAL também zera o estado por-mensagem (janela
+      // anti-storm + tentativas) — o usuário pediu explicitamente; sem
+      // isso o retry ficaria preso na janela do último invoke automático.
+      const st = getRefreshKeyState(key);
+      st.attempts = 0;
+      st.lastInvokeAt = 0;
     }
     // R3: o retry MANUAL também zera o cap global — o usuário pediu
     // explicitamente uma nova tentativa; sem isso a mídia ficava 'failed'

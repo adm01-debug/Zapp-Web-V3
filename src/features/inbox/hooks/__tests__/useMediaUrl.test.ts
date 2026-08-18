@@ -23,6 +23,7 @@ import {
   classifyError,
   MAX_SESSION_REFRESH_ATTEMPTS,
   resetSessionRefreshAttempts,
+  resetMediaRefreshKeyState,
 } from '../useMediaUrl';
 import { mediaCacheClear } from '../mediaRefreshCache';
 
@@ -30,10 +31,14 @@ const invokeMock = vi.hoisted(() => vi.fn());
 const safeFromMock = vi.hoisted(() => vi.fn());
 const toastErrorMock = vi.hoisted(() => vi.fn());
 const buildFileHashMock = vi.hoisted(() => vi.fn());
+// E39: storage do supabase (signed URLs em buckets privados).
+const storageFromMock = vi.hoisted(() => vi.fn());
+const createSignedUrlMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     functions: { invoke: invokeMock },
+    storage: { from: storageFromMock },
   },
 }));
 
@@ -78,8 +83,14 @@ beforeEach(() => {
   safeFromMock.mockReset();
   toastErrorMock.mockReset();
   buildFileHashMock.mockReset().mockResolvedValue('hash-test');
+  storageFromMock.mockReset();
+  createSignedUrlMock.mockReset();
+  // E39: signed URL padrão para o caminho de bucket privado.
+  createSignedUrlMock.mockResolvedValue({ data: { signedUrl: 'https://signed/default' }, error: null });
+  storageFromMock.mockImplementation(() => ({ createSignedUrl: createSignedUrlMock }));
   mediaCacheClear();
   resetSessionRefreshAttempts();
+  resetMediaRefreshKeyState();
 
   // Sem linha em media_cache → segue para o invoke; upsert é no-op.
   safeFromMock.mockImplementation((_table: string, _cb?: (q: unknown) => unknown) =>
@@ -112,10 +123,15 @@ describe('useMediaUrl — guard de mounted', () => {
       result.current.onError();
     });
     expect(invokeMock).toHaveBeenCalledTimes(1);
-    expect(invokeMock).toHaveBeenCalledWith('evolution-api/get-media-base64', {
-      method: 'POST',
-      body: { instanceName: INSTANCE, message: { key: KEY } },
-    });
+    // E39: options agora carregam `signal` (AbortController por request) —
+    // asserção via objectContaining para não acoplar ao objeto exato.
+    expect(invokeMock).toHaveBeenCalledWith(
+      'evolution-api/get-media-base64',
+      expect.objectContaining({
+        method: 'POST',
+        body: { instanceName: INSTANCE, message: { key: KEY } },
+      })
+    );
 
     // Desmonta com o job ainda em voo.
     unmount();
@@ -496,39 +512,203 @@ describe('useMediaUrl — hardening anti-storm (incidente 2026-08-06)', () => {
   });
 
   it('cap global: consome o orçamento por invoke real; retry MANUAL zera o cap (R3)', async () => {
-    resetSessionRefreshAttempts(MAX_SESSION_REFRESH_ATTEMPTS - 2);
-    invokeMock.mockResolvedValue({
-      data: null,
-      error: new Error('network error: fetch failed'),
-    });
+    vi.useFakeTimers();
+    try {
+      resetSessionRefreshAttempts(MAX_SESSION_REFRESH_ATTEMPTS - 2);
+      invokeMock.mockResolvedValue({
+        data: null,
+        error: new Error('network error: fetch failed'),
+      });
 
-    const { result } = renderHook(() =>
+      const { result } = renderHook(() =>
+        useMediaUrl({
+          instanceName: INSTANCE,
+          originalUrl: ORIGINAL_URL,
+          messageKey: { ...KEY, id: 'msg-capped-2' },
+          enabled: true,
+          maxAttempts: 2,
+        })
+      );
+
+      // Tentativa 1: orçamento 39 < 40 → invoke roda (contador → 40).
+      await act(async () => {
+        result.current.onError();
+      });
+      expect(invokeMock).toHaveBeenCalledTimes(1);
+
+      // retry() MANUAL zera o contador GLOBAL (R3) e a janela anti-storm
+      // (E39): o usuário pediu explicitamente — a mídia não fica presa.
+      await act(async () => {
+        await result.current.retry();
+      });
+      expect(invokeMock).toHaveBeenCalledTimes(2);
+
+      // E39.5: 3º onError na MESMA janela é rate-limited (janela fixa por
+      // messageId) — sem invoke adicional, sem toast extra (attempts 1 < 2).
+      await act(async () => {
+        result.current.onError();
+      });
+      expect(invokeMock).toHaveBeenCalledTimes(2);
+      expect(toastErrorMock).not.toHaveBeenCalled();
+
+      // Janela passa → nova rajada pós-reset roda de novo (orçamento 1 < 40).
+      await vi.advanceTimersByTimeAsync(31_000);
+      await act(async () => {
+        result.current.onError();
+      });
+      expect(invokeMock).toHaveBeenCalledTimes(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('useMediaUrl — E39: AbortSignal + rate-limit por messageId + signed URL', () => {
+  const PRIVATE_STORAGE_URL = 'https://supabase.atomicabr.com.br/storage/v1/object/public/whatsapp-media/chat/abc.jpg';
+  const PUBLIC_STORAGE_URL = 'https://supabase.atomicabr.com.br/storage/v1/object/public/avatars/u1.jpg';
+
+  it('E39.2 RED: invoke recebe AbortSignal no 2º argumento; unmount aborta o fetch pendente', async () => {
+    const { promise, resolve } = deferred<{ data: unknown; error: unknown }>();
+    invokeMock.mockReturnValue(promise);
+
+    const { result, unmount } = renderHook(() =>
       useMediaUrl({
         instanceName: INSTANCE,
         originalUrl: ORIGINAL_URL,
-        messageKey: { ...KEY, id: 'msg-capped-2' },
+        messageKey: { ...KEY, id: 'msg-e39-abort' },
         enabled: true,
         maxAttempts: 2,
       })
     );
 
-    // Tentativa 1: orçamento 39 < 40 → invoke roda (contador → 40).
     await act(async () => {
       result.current.onError();
     });
     expect(invokeMock).toHaveBeenCalledTimes(1);
+    const options = invokeMock.mock.calls[0][1] as { signal?: AbortSignal };
+    expect(options.signal).toBeInstanceOf(AbortSignal); // RED: undefined hoje
+    expect(options.signal?.aborted).toBe(false);
 
-    // retry() MANUAL zera o contador GLOBAL (R3): o usuário pediu
-    // explicitamente — a mídia não fica presa em 'failed' até reload.
+    unmount();
+    expect(options.signal?.aborted).toBe(true); // RED: abort no cleanup
+
     await act(async () => {
-      await result.current.retry();
+      resolve({ data: null, error: new Error('network error: fetch failed') });
     });
-    expect(invokeMock).toHaveBeenCalledTimes(2);
+  });
 
-    // Nova rajada pós-reset: invoke roda de novo (orçamento 1 < 40).
+  it('E39.4 RED: anti-storm — N invokes em janela curta (mesma mensagem) → 1 invoke efetivo', async () => {
+    invokeMock.mockResolvedValue({ data: null, error: new Error('network error: fetch failed') });
+
+    const { result } = renderHook(() =>
+      useMediaUrl({
+        instanceName: INSTANCE,
+        originalUrl: ORIGINAL_URL,
+        messageKey: { ...KEY, id: 'msg-e39-storm' },
+        enabled: true,
+        maxAttempts: 10,
+      })
+    );
+
+    for (let i = 0; i < 3; i++) {
+      await act(async () => {
+        result.current.onError();
+      });
+    }
+    expect(invokeMock).toHaveBeenCalledTimes(1); // RED: atual 3
+    expect(toastErrorMock).not.toHaveBeenCalled(); // sem flood (attempts 1 < 10)
+  });
+
+  it('E39.6/39.7 RED: tentativas persistem entre montagens (reset só após sucesso); 3ª falha → failed sem toast repetido', async () => {
+    vi.useFakeTimers();
+    try {
+      invokeMock.mockResolvedValue({ data: null, error: new Error('network error: fetch failed') });
+      const opts = {
+        instanceName: INSTANCE,
+        originalUrl: ORIGINAL_URL,
+        messageKey: { ...KEY, id: 'msg-e39-persist' },
+        enabled: true,
+        maxAttempts: 2,
+      };
+
+      const first = renderHook(() => useMediaUrl(opts));
+      await act(async () => {
+        first.result.current.onError();
+      }); // tentativa 1
+      expect(invokeMock).toHaveBeenCalledTimes(1);
+      expect(first.result.current.attempts).toBe(1);
+      first.unmount();
+
+      await vi.advanceTimersByTimeAsync(31_000); // janela anti-storm passa
+
+      const second = renderHook(() => useMediaUrl(opts));
+      await act(async () => {
+        second.result.current.onError();
+      }); // tentativa 2 — contador DEVE persistir (não resetar por montagem)
+      expect(invokeMock).toHaveBeenCalledTimes(2);
+      expect(second.result.current.attempts).toBe(2); // RED: atual 1 (resetou na montagem)
+      expect(second.result.current.failed).toBe(true); // RED: atual false
+      expect(toastErrorMock).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(31_000);
+      await act(async () => {
+        second.result.current.onError();
+      }); // 3ª falha
+      expect(invokeMock).toHaveBeenCalledTimes(2); // sem novo invoke
+      expect(toastErrorMock).toHaveBeenCalledTimes(1); // sem toast repetido
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('E39 RED: bucket PRIVADO (whatsapp-media) → createSignedUrl renovada após expiração, sem invoke', async () => {
+    createSignedUrlMock
+      .mockResolvedValueOnce({ data: { signedUrl: 'https://signed/1' }, error: null })
+      .mockResolvedValueOnce({ data: { signedUrl: 'https://signed/2' }, error: null });
+
+    const { result } = renderHook(() =>
+      useMediaUrl({
+        instanceName: INSTANCE,
+        originalUrl: PRIVATE_STORAGE_URL,
+        messageKey: { ...KEY, id: 'msg-e39-sign' },
+        enabled: true,
+        maxAttempts: 2,
+      })
+    );
+
     await act(async () => {
       result.current.onError();
     });
-    expect(invokeMock).toHaveBeenCalledTimes(3);
+    expect(createSignedUrlMock).toHaveBeenCalledWith('chat/abc.jpg', 3600);
+    expect(invokeMock).not.toHaveBeenCalled();
+    expect(result.current.url).toBe('https://signed/1');
+
+    // URL expirou (TTL 1h): novo onError re-assina em vez de servir cache morto
+    await act(async () => {
+      result.current.onError();
+    });
+    expect(createSignedUrlMock).toHaveBeenCalledTimes(2); // RED: atual 1 (mediaCacheGet devolve cache)
+    expect(result.current.url).toBe('https://signed/2');
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  it('E39 RED: bucket PÚBLICO (avatars) → URL direta, sem invoke nem signed URL', async () => {
+    const { result } = renderHook(() =>
+      useMediaUrl({
+        instanceName: INSTANCE,
+        originalUrl: PUBLIC_STORAGE_URL,
+        messageKey: { ...KEY, id: 'msg-e39-pub' },
+        enabled: true,
+        maxAttempts: 2,
+      })
+    );
+
+    await act(async () => {
+      result.current.onError();
+    });
+    expect(invokeMock).not.toHaveBeenCalled(); // RED: atual invoca edge fn p/ URL pública
+    expect(createSignedUrlMock).not.toHaveBeenCalled();
+    expect(result.current.url).toBe(PUBLIC_STORAGE_URL);
+    expect(result.current.isRefreshing).toBe(false);
   });
 });
