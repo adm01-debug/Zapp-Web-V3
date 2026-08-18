@@ -16,7 +16,11 @@
  *   Ambos configurados → ambos são exigidos.
  *
  * Idempotência: message_id do provider é UNIQUE em zapp.emails — re-delivery
- * retorna 200 { duplicate: true } sem duplicar.
+ * retorna 200 { duplicate: true } sem duplicar. Dedup atômico no padrão do
+ * repo (markEventProcessed): INSERT + violação de UNIQUE (23505) tratada como
+ * duplicate, nunca erro; fast-path SELECT evita re-upload de anexos. O UNIQUE
+ * é parcial (idx_emails_message_id_unique) — ON CONFLICT com target de coluna
+ * falharia 42P10, por isso o dedup usa o código 23505.
  *
  * Contrato: zapp-email-inbound-webhook@v1 (permissivo — campo novo do provider
  * nunca derruba a ingestão).
@@ -66,6 +70,43 @@ function parseFrom(from: string): { email: string; name: string | null } {
     return { email: m[2].trim().toLowerCase(), name: (m[1] ?? '').trim() || null };
   }
   return { email: from.trim().toLowerCase(), name: null };
+}
+
+/**
+ * Validação mínima de payload (zapp-email-inbound-webhook@v1) — campos
+ * obrigatórios do provider: id (message_id), from, to, subject e pelo menos
+ * um de text/html. Falha → 400 com detalhe por campo. O contrato permissivo
+ * (parseOrReject/CONTRACT_SCHEMAS) segue valendo para tipos/tamanhos dos
+ * demais campos — campo novo do provider nunca derruba a ingestão.
+ */
+function validateMinimalPayload(body: unknown): string[] {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    return ['body: esperado objeto JSON com os campos do email'];
+  }
+  const b = body as Record<string, unknown>;
+  const errors: string[] = [];
+  if (typeof b.id !== 'string' || b.id.trim().length === 0) {
+    errors.push('id: obrigatório (message_id do provider, string não vazia)');
+  }
+  if (typeof b.from !== 'string' || b.from.trim().length === 0) {
+    errors.push('from: obrigatório (remetente, string não vazia)');
+  }
+  if (
+    !Array.isArray(b.to) ||
+    b.to.length === 0 ||
+    !b.to.every((t) => typeof t === 'string' && t.trim().length > 0)
+  ) {
+    errors.push('to: obrigatório (array de destinatários, não vazio)');
+  }
+  if (typeof b.subject !== 'string' || b.subject.trim().length === 0) {
+    errors.push('subject: obrigatório (assunto, string não vazia)');
+  }
+  const text = typeof b.text === 'string' ? b.text.trim() : '';
+  const html = typeof b.html === 'string' ? b.html.trim() : '';
+  if (text.length === 0 && html.length === 0) {
+    errors.push('text/html: pelo menos um dos dois é obrigatório (corpo do email)');
+  }
+  return errors;
 }
 
 /** Verifica assinatura Svix (formato Resend: svix-id/svix-timestamp/svix-signature). */
@@ -145,6 +186,13 @@ Deno.serve(async (req) => {
         rawBody = null;
       }
     }
+
+    // ── Validação mínima de payload (400 com detalhe por campo) ─────────────
+    const payloadErrors = validateMinimalPayload(rawBody);
+    if (payloadErrors.length > 0) {
+      return json({ error: 'invalid_payload', details: payloadErrors }, 400, req);
+    }
+
     const parsed = parseOrReject(
       'zapp-email-inbound-webhook',
       CONTRACT_SCHEMAS['zapp-email-inbound-webhook'],
@@ -168,6 +216,11 @@ Deno.serve(async (req) => {
     };
 
     // ── Idempotência (re-delivery do webhook) ────────────────────────────────
+    // Padrão do repo (evolution-webhook → markEventProcessed): violação de
+    // UNIQUE = duplicate (23505), nunca erro. Este SELECT é só o fast-path
+    // (evita re-upload de anexos em retries comuns); a autoridade é o INSERT
+    // abaixo — corrida SELECT→INSERT coberta pelo UNIQUE parcial
+    // idx_emails_message_id_unique (zapp.emails.message_id).
     const { data: existing } = await admin
       .from('emails')
       .select('id')
@@ -217,6 +270,11 @@ Deno.serve(async (req) => {
     }
 
     // ── Grava em zapp.emails ─────────────────────────────────────────────────
+    // Dedup atômico (padrão do repo — evolution-webhook/markEventProcessed):
+    // INSERT direto + violação de UNIQUE (23505) tratada como duplicate, nunca
+    // como erro. O UNIQUE é PARCIAL (WHERE message_id IS NOT NULL) — por isso
+    // ON CONFLICT com target de coluna falharia 42P10 no PostgREST; o código
+    // 23505 cobre o conflito igualmente, inclusive na corrida SELECT→INSERT.
     const sender = parseFrom(body.from);
     const { data: emailRow, error: insertErr } = await admin
       .from('emails')
@@ -237,10 +295,27 @@ Deno.serve(async (req) => {
         raw_payload: rawBody,
       })
       .select('id')
-      .single();
+      .maybeSingle();
 
     if (insertErr) {
+      if (insertErr.code === '23505') {
+        // Re-delivery concorrente do mesmo message_id — contrato de resposta
+        // do duplicate preservado: 200 { ok, duplicate: true, emailId }.
+        const { data: raced } = await admin
+          .from('emails')
+          .select('id')
+          .eq('message_id', body.id)
+          .maybeSingle();
+        return json({ ok: true, duplicate: true, emailId: raced?.id ?? null }, 200, req);
+      }
       console.error('[zapp-email-inbound-webhook] insert zapp.emails failed:', insertErr.message);
+      return json({ error: 'Falha ao registrar email' }, 502, req);
+    }
+
+    if (!emailRow) {
+      // Defensivo: INSERT sem erro não deveria retornar sem row (PostgREST
+      // sempre devolve a linha com return=representation). Evita crash de tipo.
+      console.error('[zapp-email-inbound-webhook] insert zapp.emails returned no row');
       return json({ error: 'Falha ao registrar email' }, 502, req);
     }
 
