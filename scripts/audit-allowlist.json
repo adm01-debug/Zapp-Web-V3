@@ -193,6 +193,12 @@
       "name": "user_devices",
       "reason": "Planned feature — user device/push token registry not yet created in DB.",
       "status": "missing-table"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_dismiss_warroom_alert",
+      "reason": "RPC SECURITY DEFINER de dismiss de warroom (member|admin) — criada 2026-08-18 (warroom_dismiss_rpc_fix)",
+      "status": "catalog-pending"
     }
   ]
 }
