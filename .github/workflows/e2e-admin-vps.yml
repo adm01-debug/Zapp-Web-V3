@@ -56,7 +56,7 @@ jobs:
 
       - name: Instalar dependências
         # HUSKY=0: husky v9 é ESM-only e quebra no Node antigo do container do runner self-hosted (E2E-04, 2026-08-06)
-        run: HUSKY=0 bun install --frozen-lockfile
+        run: HUSKY=0 bun install
 
       - name: Instalar Chromium do Playwright
         run: bunx playwright install --with-deps chromium

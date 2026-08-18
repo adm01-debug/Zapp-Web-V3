@@ -4,19 +4,19 @@ name: "Notify CI Failure — Abner TI"
 on:
   workflow_run:
     workflows:
-      - "CI"
-      - "E2E CRM VPS"
-      - "E2E Inbox VPS"
-      - "E2E Nightly Full"
+      - "CI/CD Pipeline"
+      - "E2E CRM (VPS)"
+      - "E2E Inbox (VPS)"
+      - "E2E Nightly Full (VPS)"
       - "Quality Gate"
-      - "Deploy VPS"
+      - "🚀 Build & Deploy — ZAPP web v3"
     types: [completed]
     branches: [main, production]
 
 jobs:
   notify-failure:
     name: "Email Abner via N8N"
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}
     steps:
       - name: "POST warroom → Email + Bitrix24"

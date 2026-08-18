@@ -23,14 +23,7 @@
 name: 🚀 Deploy VPS — Git→CI→Swarm (convergência verificada) [DRAFT]
 
 on:
-  push:
-    branches: [main]
-    # Caminhos mínimos para não disparar deploy a cada commit de UI:
-    # paths:
-    #   - 'infra/stacks/**'
-    #   - '.github/workflows/deploy-vps*.yml'
-    #   - 'supabase/**'
-    #   - 'Dockerfile'
+  # push: disabled (DRAFT — não duplica o deploy-vps.yml)
   workflow_dispatch:
     inputs:
       stack_id:
@@ -63,8 +56,8 @@ env:
 jobs:
   build-and-push:
     name: Build & push imagem (GHCR)
-    runs-on: ubuntu-latest
-    environment: production
+    runs-on: [Linux, X64, vps-zapp]
+    # environment: production (desativado no DRAFT)
     outputs:
       image: ${{ steps.meta.outputs.image }}
     steps:
@@ -161,7 +154,7 @@ jobs:
     name: Deploy Swarm + convergência verificada
     runs-on: [Linux, X64, vps-zapp]
     needs: build-and-push
-    environment: production
+    # environment: production (desativado no DRAFT)
     timeout-minutes: 30
     # NOTA: o runner (stack 210) monta /var/run/docker.sock → `docker stack
     # deploy` direto. Labels reais registradas: vps-zapp,playwright,linux,x64.

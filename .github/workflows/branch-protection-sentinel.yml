@@ -28,7 +28,7 @@ concurrency:
 jobs:
   check-quality:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -52,7 +52,7 @@ jobs:
 
   verify-branch-protection:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     steps:
       - name: Check branch protection rules
         env:

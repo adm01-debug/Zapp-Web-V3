@@ -14,7 +14,7 @@ on:
 jobs:
   evo-ddl-gate:
     name: "E42 — DDL novo em schema evo bloqueado"
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     steps:
       - uses: actions/checkout@v7
         with:

@@ -33,7 +33,7 @@ jobs:
     # _shared/, causa do incidente 17/08). Boot com a imagem REAL fica no Gate 6
     # do ci.yml (docker run + edge-runtime start).
     name: Parse gate (deno check — closure do boot)
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     steps:
       - uses: actions/checkout@v7
         with:
