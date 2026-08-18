@@ -306,3 +306,48 @@ Deno.test("[PATCH 28] message_type normalizado no ledger: conversation→text", 
   assertMatch(MAP_SOURCE, /conversation: 'text'/);
   assertMatch(MAP_SOURCE, /EVO_EVENT_TYPES/);
 });
+
+Deno.test("[P25] Ledger processed: INSERT via createIngestLedgerClient com outcome 'processed'/'processed_reaction' e message_type normalizado (conversation→text)", async () => {
+  const procBlock = SOURCE.slice(SOURCE.indexOf("createIngestLedgerClient().from('ingest_ledger').insert"));
+  assertMatch(procBlock, /outcome: 'processed'/);
+  assertMatch(procBlock, /message_type: mtype/);
+  assertMatch(SOURCE, /outcome: 'processed_reaction'/);
+  assertMatch(procBlock, /EVO_PROTOBUF_MESSAGE_TYPE_MAP\[Object\.keys\(msgObj\)\[0\] as string\] \?\? 'unknown'/);
+  const HELPERS_SOURCE = await Deno.readTextFile(
+    new URL("../../_shared/evolution-helpers.ts", import.meta.url),
+  );
+  assertMatch(HELPERS_SOURCE, /export function createIngestLedgerClient\(\): any/);
+  assertMatch(HELPERS_SOURCE, /db: \{ schema: "public" \}/);
+});
+
+Deno.test("[P26] Ledger rejected: logLedgerRejection reusa o client public (createIngestLedgerClient) e nunca lança", async () => {
+  const HELPERS_SOURCE = await Deno.readTextFile(
+    new URL("../../_shared/evolution-helpers.ts", import.meta.url),
+  );
+  assertMatch(HELPERS_SOURCE, /const pub = createIngestLedgerClient\(\);/);
+  const insBlock = HELPERS_SOURCE.slice(HELPERS_SOURCE.indexOf("pub.from('ingest_ledger').insert"));
+  assertMatch(insBlock, /outcome: 'rejected'/);
+  assertMatch(insBlock, /reject_reason: opts\.rejectReason/);
+  assertMatch(HELPERS_SOURCE, /\[ingest_ledger\] rejected err:/);
+  assertMatch(HELPERS_SOURCE, /\[ingest_ledger\] rejected exception:/);
+  assert(!/throw/.test(HELPERS_SOURCE.slice(HELPERS_SOURCE.indexOf("export function logLedgerRejection"), HELPERS_SOURCE.indexOf("export async function markEventProcessed"))), "logLedgerRejection não pode lançar");
+});
+
+Deno.test("[P27] Whitelist: gate 24 bloqueia SÓ proveniência 'consumer' (HMAC válido), 200 ignored, ANTES do pause/idempotência", () => {
+  assertMatch(SOURCE, /let webhookSource: 'consumer' \| 'evolution-native' = 'evolution-native'/);
+  assertMatch(SOURCE, /webhookSource = 'consumer'/);
+  const gate = SOURCE.slice(SOURCE.indexOf("webhookSource === 'consumer' && !EVO_EVENT_TYPES_SET.has(event)"));
+  assertMatch(gate, /event_type_not_in_whitelist/);
+  assertMatch(gate, /status_code: 200/);
+  assertMatch(gate, /success: true, ignored: true/);
+  assertMatch(gate, /logLedgerRejection\(supabase, \{/);
+  assert(SOURCE.indexOf("EVO_EVENT_TYPES_SET.has(event)") < SOURCE.indexOf("isInstancePaused(supabase, instance)"), "gate 24 deve vir antes do pause guard");
+  assert(SOURCE.indexOf("EVO_EVENT_TYPES_SET.has(event)") < SOURCE.indexOf("markEventProcessed(supabase, eventId"), "gate 24 deve vir antes da idempotência");
+});
+
+Deno.test("[P28] Ledger: falha do INSERT (400/404/PGRST106) NUNCA quebra o request — fire-and-forget, sem await", () => {
+  const procBlock = SOURCE.slice(SOURCE.indexOf("createIngestLedgerClient().from('ingest_ledger').insert"));
+  assertMatch(procBlock, /\.then\(\(\) => \{\}, \(e: unknown\) => console\.warn\('\[ingest_ledger\] msg err:/);
+  assertMatch(procBlock, /\[ingest_ledger\] reaction err:/);
+  assert(!/await\s+createIngestLedgerClient\(\)/.test(SOURCE), "INSERT do ledger não pode ser aguardado (fire-and-forget)");
+});
