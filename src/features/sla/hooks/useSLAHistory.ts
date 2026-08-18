@@ -65,9 +65,8 @@ function calcTrend(
   };
 }
 
-async function fetchSLAHistory(period: HistoryPeriod): Promise<SLAHistoryData> {
+async function fetchSLAHistory(period: HistoryPeriod, startDate: Date): Promise<SLAHistoryData> {
   const days = PERIOD_DAYS[period];
-  const startDate = startOfDay(subDays(new Date(), days));
 
   const { data: slaRecords, error } = await supabase
     .from('conversation_sla')
@@ -161,9 +160,14 @@ async function fetchSLAHistory(period: HistoryPeriod): Promise<SLAHistoryData> {
 
 /** Hook: use SLAHistory. */
 export const useSLAHistory = (period: HistoryPeriod = '30d') => {
+  // E67 (67.6): o dia/período entra na queryKey — virada de dia = chave nova =
+  // refetch obrigatório (antes: `new Date()` só dentro do queryFn → chave fixa
+  // `['sla-history', period]` sem invalidação por dia).
+  const startDate = startOfDay(subDays(new Date(), PERIOD_DAYS[period]));
+
   const { data = null, isLoading: loading } = useQuery({
-    queryKey: queryKeys.sla.history(period),
-    queryFn: () => fetchSLAHistory(period),
+    queryKey: queryKeys.sla.history(period, startDate.toISOString()),
+    queryFn: () => fetchSLAHistory(period, startDate),
     staleTime: 60_000,
     refetchInterval: 120_000,
   });

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { QUERY_STALE_TIMES } from '@/lib/queryStaleTimes';
 
 /** Hook: SLAConfig. */
 export interface SLAConfig {
@@ -45,7 +46,10 @@ export function useSLAConfigurations() {
 
   const { data: configs = [], isLoading } = useQuery({
     queryKey: queryKeys.sla.configurations(),
-    staleTime: Infinity,
+    // E67 (67.4): staleTime finito — mudanças de admin em outro cliente
+    // refletem sem reload (antes: Infinity = dado eternamente stale-free).
+    staleTime: QUERY_STALE_TIMES.slaConfigurations,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sla_configurations')
