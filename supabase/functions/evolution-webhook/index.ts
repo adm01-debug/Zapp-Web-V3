@@ -7,7 +7,7 @@ import {
   isRecord, normalizeEventName, toEventRecords,
   handleReactionEvent, redactJid, generateRequestId,
   sha256Hex, markEventProcessed, unmarkEventProcessed, auditWebhookEvent,
-  routeToDeadLetter, instanceOrFilter, logLedgerRejection,
+  routeToDeadLetter, instanceOrFilter, logLedgerRejection, createIngestLedgerClient,
   type WebhookPayload,
 } from "../_shared/evolution-helpers.ts";
 import { EVO_EVENT_TYPES_SET, EVO_PROTOBUF_MESSAGE_TYPE_MAP } from "../_shared/evolution-event-types.ts";
@@ -484,7 +484,7 @@ Deno.serve(async (req) => {
               ?? (typeof baseData.pushName === 'string' ? baseData.pushName : undefined);
             await handleReactionEvent(supabase, instance, msg.reactionMessage as Record<string, unknown>, !!key.fromMe, pushNameStr);
             // Fire-and-forget: log reaction to ingest_ledger (observability)
-            supabase.from('ingest_ledger').insert({
+            createIngestLedgerClient().from('ingest_ledger').insert({
               instance_name: instance, event_type: event, message_id: externalId,
               remote_jid: key.remoteJid ?? null, message_type: 'reactionMessage',
               from_me: key.fromMe, outcome: 'processed_reaction',
@@ -507,7 +507,7 @@ Deno.serve(async (req) => {
             const mtype = msgObj
               ? (EVO_PROTOBUF_MESSAGE_TYPE_MAP[Object.keys(msgObj)[0] as string] ?? 'unknown')
               : 'unknown';
-            supabase.from('ingest_ledger').insert({
+            createIngestLedgerClient().from('ingest_ledger').insert({
               instance_name: instance, event_type: event, message_id: externalId,
               remote_jid: key.remoteJid ?? null, message_type: mtype,
               from_me: key.fromMe, outcome: 'processed',
