@@ -432,7 +432,10 @@ jobs:
 
   e2e:
     name: E2E tests
-    runs-on: ubuntu-latest
+    # [2026-08-18] Migrado p/ runner self-hosted: repo virou privado (jobs
+    # ubuntu-latest passam a consumir a cota de 2000 min/mes) e o runner
+    # vps-zapp ja tem chromium do Playwright cacheado (label playwright).
+    runs-on: [Linux, X64, vps-zapp]
     needs: build
     timeout-minutes: 15
     steps:
@@ -465,7 +468,8 @@ jobs:
 
   a11y:
     name: Accessibility regression (axe)
-    runs-on: ubuntu-latest
+    # [2026-08-18] Self-hosted pelo mesmo motivo do e2e (cota de minutes).
+    runs-on: [Linux, X64, vps-zapp]
     needs: build
     timeout-minutes: 15
     steps:

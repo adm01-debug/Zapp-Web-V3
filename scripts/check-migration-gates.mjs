@@ -24,6 +24,12 @@
  *       pulando canários inteiros (classe que invalidou 7 migrations em
  *       2026-08-17/18). Correto: PERFORM set_config('<guc>', <expr>::text, true).
  *       Linhas de comentário (--) são ignoradas; allowlist vale como em (a).
+ *   (d) FAIL (exit 1) em COLISAO-VERSAO — dois ou mais arquivos com o mesmo
+ *       prefixo de versão (14 dígitos). Ferramentas por-versão (aplicador
+ *       db-migrate, schema_migrations com PK em version) enxergam só UMA e
+ *       pulam as demais em silêncio. Classe recorrente: 8 duplicatas
+ *       eliminadas em 2026-08-18 e uma nova (PR #1231) nasceu 30 min depois.
+ *       Allowlist (por arquivo) rebaixa para WARN, como em (a)/(c).
  *
  * Uso:
  *   node scripts/check-migration-gates.mjs                          # varre supabase/migrations
@@ -94,6 +100,7 @@ const TS_RE = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/;
 const fails = [];
 const warns = [];
 let total = 0;
+const byVersion = new Map(); // (d) versao (14 digitos) -> [arquivos]
 
 if (!quiet) console.log(`check-migration-gates: varrendo ${dir} (allowlist: ${allowlist.size} arquivo(s))\n`);
 
@@ -133,6 +140,10 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) {
   //     para ordenar migrations (AG-EX-14). Comparação em UTC (sem fuso local).
   const mTs = file.match(TS_RE);
   if (mTs) {
+    // (d) coleta p/ detecção de colisão de versão (avaliada após o loop)
+    const ver = mTs.slice(1).join('');
+    if (!byVersion.has(ver)) byVersion.set(ver, []);
+    byVersion.get(ver).push(file);
     const [, y, mo, d, h, mi, s] = mTs;
     const tsDate = new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s)));
     if (!Number.isNaN(tsDate.getTime()) && tsDate.getTime() > Date.now()) {
@@ -142,6 +153,18 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) {
         msg: `timestamp ${y}${mo}${d}${h}${mi}${s} > agora (${new Date().toISOString()}) — migration com versão futura (ordenamento); confirmar intenção`,
       });
     }
+  }
+}
+
+// (d) colisão de versão — todos os arquivos da versão duplicada são listados;
+//     FAIL se QUALQUER um estiver fora da allowlist (colisão é defeito do par).
+for (const [ver, files] of byVersion) {
+  if (files.length < 2) continue;
+  const msg = `versão ${ver} usada por ${files.length} arquivos: ${files.join(', ')} — ferramentas por-versão pulam as demais em silêncio; renomeie para versões únicas`;
+  if (files.every((fl) => allowlist.has(fl))) {
+    warns.push({ file: files.join(' + '), kind: 'COLISAO-VERSAO-ALLOWLIST', msg });
+  } else {
+    fails.push({ file: files.join(' + '), kind: 'COLISAO-VERSAO', msg });
   }
 }
 
