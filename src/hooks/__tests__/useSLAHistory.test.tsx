@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { queryKeys } from '@/services/api/queryKeys';
 
 const mockFrom = vi.hoisted(() => vi.fn());
 

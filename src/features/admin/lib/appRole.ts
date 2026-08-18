@@ -2,7 +2,7 @@ import type { AppRole } from '@/features/auth';
 
 /**
  * E60 — saneamento auth/admin: guard runtime de AppRole sem casts frágeis.
- * Substitui `v as AppRole /* ignore-audit *​/` por validação real no boundary
+ * Substitui `v as AppRole` por validação real no boundary
  * (Select/Tabs entregam string; só valores da lista são aceitos).
  */
 export const APP_ROLE_VALUES: readonly AppRole[] = ['dev', 'admin', 'manager', 'supervisor', 'agent'];
