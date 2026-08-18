@@ -5,7 +5,7 @@
 - evolution-api, evolution-sender, evolution-sync
 - evolution-chatbot, evolution-followup
 - evolution-credentials, evolution-templates
-- evolution-bitrix-sync, evolution-sentiment
+- evolution-sentiment
 - evolution-health, evolution-retry-metrics
 
 ## Functions de IA
