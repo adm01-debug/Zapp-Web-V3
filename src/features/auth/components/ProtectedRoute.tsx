@@ -2,6 +2,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { getLogger } from '@/lib/logger';
 import { markTimeToMainScreen, recordAuthzFailure } from '@/lib/appMetrics';
+import { getAppEnv, isDevBypassAllowed } from '@/lib/auth/devBypass';
 
 const log = getLogger('ProtectedRoute');
 import { Navigate, useLocation } from 'react-router-dom';
@@ -11,6 +12,37 @@ import { useUserRole, type AppRole } from '../hooks/useUserRole';
 import { useRouteRoles } from '../hooks/useRouteRoles';
 
 import { supabase } from '@/integrations/supabase/client';
+
+// E51 51.7: auditoria de tentativa de bypass `dev` BLOQUEADA em produção.
+// Throttle por path por sessão (evita spam de eventos a cada re-render).
+const devBypassBlockLoggedPaths = new Set<string>();
+function logDevBypassBlocked(path: string, roles: AppRole[]) {
+  if (devBypassBlockLoggedPaths.has(path)) return;
+  devBypassBlockLoggedPaths.add(path);
+  void supabase
+    .rpc('log_security_event', {
+      p_event_type: 'dev_bypass_used',
+      p_resource: path,
+      p_action: 'route_access',
+      p_status: 'blocked',
+      p_details: {
+        roles,
+        env: getAppEnv(),
+        reason: 'dev_bypass_not_allowed_in_production',
+      },
+    })
+    .then(({ error }) => {
+      if (error) log.warn('Failed to log blocked dev bypass', { error: error.message });
+    })
+    .then(undefined, (err: unknown) => {
+      log.warn('[ProtectedRoute] Falha ao registrar bypass dev bloqueado (audit log):', err);
+    });
+}
+
+/** Test-only: limpa o throttle de log de bypass bloqueado (E51). */
+export function __resetDevBypassBlockLogForTest() {
+  devBypassBlockLoggedPaths.clear();
+}
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -231,7 +263,36 @@ export function ProtectedRoute({
 
   if (timedOut) {
     recordAuthzFailure({ route: location.pathname, reason: 'timeout' });
-    return <Navigate to="/auth?reason=timeout" state={{ from: location }} replace />;
+    // E51 51.6 (anti-loop): se já estamos em /auth, redirecionar para
+    // /auth?reason=timeout recairia na mesma tela → loop. Renderiza saída.
+    if (location.pathname !== '/auth') {
+      return <Navigate to="/auth?reason=timeout" state={{ from: location }} replace />;
+    }
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center bg-background p-6"
+        role="alert"
+        aria-live="assertive"
+      >
+        <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
+          <h1 className="mb-2 text-xl font-semibold text-foreground">
+            Tempo de carregamento excedido
+          </h1>
+          <p className="mb-5 text-sm text-muted-foreground">
+            Não foi possível carregar suas permissões em 10s. Tente sair e entrar novamente.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              void signOut();
+            }}
+            className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:bg-accent"
+          >
+            Sair e tentar novamente
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (loading || (requiredPermission && user && hasPermission === null)) {
@@ -286,9 +347,11 @@ export function ProtectedRoute({
   const effectiveRoles: AppRole[] | undefined =
     overrideRoles === null ? requiredRoles : overrideRoles;
 
-  // 'dev' always has access
-  const isDev = hasRole('dev' as AppRole);
-  if (isDev) {
+  // 'dev' bypass: só em ambientes allowlisted (E51) — em produção o papel dev
+  // passa a exigir a mesma checagem RBAC/permissão dos demais papéis.
+  const isDevUser = hasRole('dev' as AppRole);
+  const devBypassAllowed = isDevBypassAllowed();
+  if (isDevUser && devBypassAllowed) {
     // F3-02: registra bypass no log de auditoria com throttle por sessão
     void supabase.rpc('log_security_event', {
       p_event_type: 'dev_bypass_used',
@@ -306,9 +369,7 @@ export function ProtectedRoute({
   }
 
   if (effectiveRoles && effectiveRoles.length > 0) {
-    // 'dev' always has access
-    const hasRequiredRole =
-      hasRole('dev' as AppRole) || effectiveRoles.some((role) => hasRole(role));
+    const hasRequiredRole = effectiveRoles.some((role) => hasRole(role));
     if (!hasRequiredRole) {
       log.warn(
         `Unauthorized role access attempt to ${location.pathname}. Required: ${effectiveRoles.join(', ')}`
@@ -334,6 +395,11 @@ export function ProtectedRoute({
         .then(undefined, (err: unknown) => {
           log.warn('[ProtectedRoute] Falha ao registrar acesso não autorizado (audit log):', err);
         });
+
+      // E51 51.7: tentativa de bypass dev bloqueada em produção
+      if (isDevUser && !devBypassAllowed) {
+        logDevBypassBlocked(location.pathname, roles);
+      }
 
       if (fallback) return <>{fallback}</>;
       return <Navigate to="/access-denied" state={{ from: location }} replace />;
@@ -366,6 +432,11 @@ export function ProtectedRoute({
       .then(undefined, (err: unknown) => {
         log.warn('[ProtectedRoute] Falha ao registrar permissão negada (audit log):', err);
       });
+
+    // E51 51.7: tentativa de bypass dev bloqueada em produção
+    if (isDevUser && !devBypassAllowed) {
+      logDevBypassBlocked(location.pathname, roles);
+    }
 
     if (fallback) return <>{fallback}</>;
     return <Navigate to="/access-denied" state={{ from: location }} replace />;
