@@ -801,19 +801,7 @@ export const ElevenLabsDialogueV1Schema = z.object({
    dropbox_email: z.string().email("Email Dropbox inválido").max(255).optional(),
    }).passthrough();
 
-   /**
-   * invite-user@v1 — convite por email (Etapa 57, EF invite-user). Endpoint
-   * interno (admin/supervisor) → estrito: email obrigatório; role fechada com
-   * default 'agent' (espelha CreateUserV1Schema, sem special_agent — convite
-   * só para papéis operacionais); message opcional com teto de 500.
-   */
-   export const InviteUserV1Schema = z.object({
-   email: z.string().email("Email inválido").max(255),
-   role: z.enum(["admin", "supervisor", "agent"]).optional().default("agent"),
-   message: z.string().max(500).optional(),
-   }).strict();
-
- /** approve-password-reset@v1 — valida no index.ts. Schema de registro. */
+   /** approve-password-reset@v1 — valida no index.ts. Schema de registro. */
  /**
  * approve-password-reset@v1 — real. Consumo: { action (default 'approve'),
  * reset_id?/request_id?, approved?/decision? }. Endpoint interno →
