@@ -157,12 +157,14 @@ jobs:
           ignore-versions: ${{ steps.protect.outputs.regex }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  # ====================================================================  # DEPLOY — runner SELF-HOSTED (stack 210, myoung34/github-runner)
+  # ====================================================================
+  # DEPLOY — runner SELF-HOSTED (stack 210, myoung34/github-runner)
   # ---------------------------------------------------------------------------
   # Labels do runner: conferir com a env LABELS do stack 210 (ex. "vps").
   # Ajuste `runs-on` para bater com o registro real:
   #   gh api repos/<owner>/<repo>/actions/runners | jq '.runners[].labels'
-  # ====================================================================  deploy:
+  # ====================================================================
+  deploy:
     name: Deploy Swarm + convergência verificada
     runs-on: [Linux, X64, vps-zapp]
     needs: build-and-push
