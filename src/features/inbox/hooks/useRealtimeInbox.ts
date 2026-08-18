@@ -273,10 +273,13 @@ export function useRealtimeInbox() {
     // Wave 2: whisper_messages is a VIEW in public schema — zapp.whisper_messages is the base table.
     // PostgreSQL views never emit WAL events, so Realtime subscriptions must target the base table.
     // O callback NÃO faz mais HEAD count — invalida a query batch (1 RPC).
-    // Última conexão bem-sucedida do canal — classifica CHANNEL_ERROR transiente vs real.
+    // E32: tópico DETERMINÍSTICO derivado do estado — antes usava
+    // Math.random() no sufixo, o que acumulava canais órfãos no RealtimeClient
+    // a cada mount (padrão A8 findings-08:675). Com tópico estável, o cleanup
+    // (unsubscribe + removeChannel) garante o reuso seguro entre mounts.
     let lastConnectedAtMs: number | null = null;
     const channel = supabase
-      .channel(`whisper-count-${selectedContactId}:${Math.random().toString(36).slice(2, 10)}`)
+      .channel(`inbox-realtime:${profile.id}:whisper:${ref.uuid}`)
       .on(
         'postgres_changes',
         {

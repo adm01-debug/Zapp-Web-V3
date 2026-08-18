@@ -35,6 +35,11 @@ export function useChatAutoScroll({
       isAtBottomRef.current =
         containerEl.scrollHeight - containerEl.scrollTop - containerEl.clientHeight < threshold;
     };
+    // E40.3: compute the initial position immediately at bind. Without this the
+    // ref keeps its previous value (or `true` from mount) until the FIRST user
+    // scroll event — e.g. opening a new conversation while scrolled up in the
+    // previous one (bind re-runs per conversation) leaves auto-scroll wrong.
+    handler();
     containerEl.addEventListener('scroll', handler, { passive: true });
     return () => containerEl.removeEventListener('scroll', handler);
   }, []);

@@ -33,6 +33,16 @@
 --   secret  pg_supa_url_evo_reconciler_v1
 --   config  evo_reconcile_v5_749bd16  (fonte: scripts/decouple/evo-reconcile-v5.sh)
 --   stack   evolution-watchdogs v12 (240)
+--
+-- ============================================================================
+-- PATCH 2026-08-18 (PG14-HARDENING-2026-08, rodadas 7/8 — guard 251 x 39a-extra):
+--   O guard original RAISE se evo_reconciler tivesse USAGE em zapp OU evo.
+--   A migration 39a-extra (webhook-check v3) concedeu USAGE no schema evo
+--   deliberadamente (leitura de evo.evolution_webhook_events_v2 + FT
+--   evo.pg14_message_hourly) -> o replay desta migration FALHAVA em prod.
+--   PATCH: o guard agora verifica SOMENTE zapp (schema de dados do app — o
+--   least-privilege que esta migration protege). USAGE em evo e permitido e
+--   governado pela 39a-extra (SELECT-only + policy evo_reconciler_read).
 -- ============================================================================
 
 -- 1. Role dedicado (idempotente; senha real vive no secret do Swarm)
@@ -109,10 +119,12 @@ GRANT USAGE ON SCHEMA ops TO evo_reconciler;
 GRANT EXECUTE ON FUNCTION ops.rpc_reconcile_snapshot(bigint,bigint,bigint,bigint,bigint) TO evo_reconciler;
 
 -- 4. Guard: o role NAO pode ter acesso direto aos schemas de dados
+--    [PATCH 2026-08-18] verifica SOMENTE zapp — USAGE em evo e permitido
+--    (concedido pela 39a-extra: webhook-check v3 + leitura da FT). Manter
+--    zapp proibido preserva o least-privilege original desta migration.
 DO $$
 BEGIN
-  IF has_schema_privilege('evo_reconciler','zapp','USAGE')
-     OR has_schema_privilege('evo_reconciler','evo','USAGE') THEN
-    RAISE EXCEPTION 'evo_reconciler nao deve ter USAGE em zapp/evo (least-privilege violado)';
+  IF has_schema_privilege('evo_reconciler','zapp','USAGE') THEN
+    RAISE EXCEPTION 'evo_reconciler nao deve ter USAGE em zapp (least-privilege violado)';
   END IF;
 END $$;
