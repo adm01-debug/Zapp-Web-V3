@@ -56,6 +56,19 @@ if (skipToken) {
   process.exit(0);
 }
 
+// Auto-exempt (RGT-04, 2026-08-18): PRs cujos arquivos alterados são TODOS
+// infra/config/docs não têm código de aplicação para proteger com teste de
+// regressão — exigir [skip-e46] manual em todo PR de CI criava vermelho
+// recorrente sem valor de proteção.
+const NON_CODE_PATTERNS = [/^\.github\//, /^docs\//, /\.md$/];
+const onlyNonCode =
+  CHANGED_FILES.length > 0 && CHANGED_FILES.every((f) => NON_CODE_PATTERNS.some((re) => re.test(f)));
+if (onlyNonCode) {
+  console.log('ℹ️  Todos os arquivos alterados são CI/docs/config — exigência de teste de regressão não se aplica.');
+  console.log('ℹ️  E46 auto-exempt (config-only) — check skipped.');
+  process.exit(0);
+}
+
 const testFiles = CHANGED_FILES.filter(isTestFile);
 const nonTestFiles = CHANGED_FILES.filter(f => !isTestFile(f));
 

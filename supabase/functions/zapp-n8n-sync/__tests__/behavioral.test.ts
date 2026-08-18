@@ -141,7 +141,9 @@ Deno.test("C7 contrato: baseUrl vazia falha (min 1)", () => {
 });
 
 Deno.test("C8 contrato: baseUrl acima de 2048 falha (max)", () => {
-  assertEquals(V1.safeParse({ action: "configure", baseUrl: "https://n8n.example.com/" + "a".repeat(2017) }).success, false);
+  // baseUrl = 24 chars fixos + 2025 'a's = 2049 > 2048 (max) — o valor
+  // anterior (2017) somava 2041 e NÃO excedia o limite (teste não testava).
+  assertEquals(V1.safeParse({ action: "configure", baseUrl: "https://n8n.example.com/" + "a".repeat(2025) }).success, false);
 });
 
 Deno.test("C9 contrato: estrito — campo extra em status falha", () => {
@@ -224,6 +226,11 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   }
   return new Response("not found", { status: 404 });
 }) as typeof fetch;
+
+// O handler REAL é carregado via import dinâmico DEPOIS de Deno.serve estar
+// stubado e o fetch/env mockados — sem esta linha, `h` permanece o stub 500
+// e TODOS os testes B1-B9 falham com "nunca 5xx" (bug RGT-03, 2026-08-18).
+await import("../index.ts");
 
 // JWT HS256 real assinado com JWT_SECRET (o mock de /auth/v1/user é a
 // autoridade; a assinatura evita rejeição local de exp/iss no supabase-js).

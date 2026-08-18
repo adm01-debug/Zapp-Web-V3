@@ -2,6 +2,7 @@ name: 🦕 Deno Contract Tests — Edge Functions
 
 on:
   push:
+    branches: [main]
     paths:
       - 'supabase/functions/**'
       - 'deno.json'
