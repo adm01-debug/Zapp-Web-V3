@@ -76,6 +76,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   // Auth / admin
   "create-user":                  { current: "v1", supported: ["v1"] },
   "approve-password-reset":       { current: "v1", supported: ["v1"] },
+  "request-password-reset":       { current: "v1", supported: ["v1"] },
   "detect-new-device":            { current: "v1", supported: ["v1"] },
   "webauthn":                     { current: "v1", supported: ["v1"] },
 

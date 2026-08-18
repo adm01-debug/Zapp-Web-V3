@@ -184,10 +184,54 @@ Deno.serve(async (req) => {
       }
     }
 
-    log.done(200, { action: "approved" });
+    // Email com o link REAL (Etapa 55): envia via Resend para o solicitante.
+    // Falha de email NÃO derruba a aprovação — o link já foi gerado e o hash
+    // persistido; emailSent=false permite ao caller (painel admin) informar o
+    // estado com precisão (antes, ninguém enviava o email e o toast mentia).
+    let emailSent = false;
+    const actionLink = resetData.properties?.action_link;
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+    if (actionLink && resendKey) {
+      try {
+        const emailRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${resendKey}`,
+          },
+          body: JSON.stringify({
+            from: Deno.env.get("RESET_EMAIL_FROM") || "noreply@zappweb.app",
+            to: [resetRequest.email],
+            subject: "ZAPP — Redefinição de senha aprovada",
+            html:
+              `<p>Olá,</p>` +
+              `<p>Sua solicitação de redefinição de senha foi <strong>aprovada</strong>.</p>` +
+              `<p>Clique no link abaixo para definir sua nova senha (válido por 1 hora):</p>` +
+              `<p><a href="${actionLink}">Redefinir minha senha</a></p>` +
+              `<p>Se você não solicitou esta redefinição, ignore este email.</p>`,
+          }),
+          signal: AbortSignal.timeout(15_000),
+        });
+        emailSent = emailRes.ok;
+        if (!emailRes.ok) {
+          log.error("Resend failed to send reset email", { status: emailRes.status });
+        }
+      } catch (emailErr) {
+        log.error("Resend error sending reset email", {
+          error: emailErr instanceof Error ? emailErr.message : String(emailErr),
+        });
+      }
+    } else if (!resendKey) {
+      log.warn("RESEND_API_KEY not configured — reset email NOT sent");
+    }
+
+    log.done(200, { action: "approved", emailSent });
     return jsonResponse({
       success: true,
-      message: "Solicitação aprovada",
+      emailSent,
+      message: emailSent
+        ? "Solicitação aprovada — email com link enviado"
+        : "Solicitação aprovada (falha ao enviar email — reenvie ou contate o usuário)",
       resetLink: resetData.properties?.action_link,
     }, 200, req);
   } catch (error: unknown) {

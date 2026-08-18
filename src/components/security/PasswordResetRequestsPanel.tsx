@@ -79,11 +79,18 @@ export function PasswordResetRequestsPanel() {
   const handleApprove = async (request: ResetRequest) => {
     setProcessing(true);
     try {
-      const { error } = await supabase.functions.invoke('approve-password-reset', {
+      const { error, data } = await supabase.functions.invoke('approve-password-reset', {
         body: { requestId: request.id, action: 'approve' },
       });
       if (error) throw error;
-      toast.success('Solicitação aprovada! Email de reset enviado.');
+      // A EF agora envia o email com o link real e reporta o estado via
+      // emailSent — só afirmar envio quando o email realmente foi enviado.
+      const emailSent = (data as { emailSent?: boolean } | null)?.emailSent !== false;
+      if (emailSent) {
+        toast.success('Solicitação aprovada! Email de reset enviado.');
+      } else {
+        toast.warning('Solicitação aprovada, mas o envio do email falhou. Reenvie ou contate o usuário.');
+      }
       void fetchRequests();
     } catch (error) {
       log.error('Error approving:', error);

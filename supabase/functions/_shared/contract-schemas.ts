@@ -797,6 +797,20 @@ export const ApprovePasswordResetV1Schema = z.object({
   decision: z.string().optional(),
 }).passthrough();
 
+/**
+ * request-password-reset@v1 — solicitação PÚBLICA de reset (Etapa 55).
+ * Endpoint anônimo (página /forgot-password): só email + dados opcionais de
+ * contexto. STRICT por design: superfície pública não aceita campos extras.
+ */
+export const RequestPasswordResetV1Schema = z
+  .object({
+    email: z.string().email("Email inválido").max(254),
+    reason: z.string().max(500).optional(),
+    userAgent: z.string().max(1000).optional(),
+    ipAddress: z.string().max(64).optional(),
+  })
+  .strict();
+
  /**
   * zapp-auth-sessions@v1 — gestão de sessões ativas (Etapa 56). Endpoint
   * interno (frontend autenticado). action obrigatório; userId só para
@@ -1128,6 +1142,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "elevenlabs-dialogue":           { v1: ElevenLabsDialogueV1Schema },
   "create-user":                   { v1: CreateUserV1Schema },
   "approve-password-reset":        { v1: ApprovePasswordResetV1Schema },
+  "request-password-reset":        { v1: RequestPasswordResetV1Schema },
   "detect-new-device":             { v1: AISchemas.DetectNewDeviceV1Schema },
   "webauthn":                      { v1: WebauthnV1Schema },
   "evolution-api":                 { v1: EvolutionApiV1Schema },
