@@ -316,7 +316,7 @@ hooks/team-chat/useTeamMessageReactions.ts
 | Edge Function `voice-agent` | `hooks/voice/processTranscript.ts` | POST, timeout 15s |
 | Edge Function `evolution-api/find-status-messages` | `data-access/whatsappStatusRepository.ts` | fetch raw |
 | Edge Function `evolution-api/send-chat-presence` | `data-access/whatsappStatusRepository.ts` | fetch raw |
-| Edge Function `evolution-api/get-media-base64` | `hooks/useMediaUrl` (testado em useMediaUrl.test.ts) | supabase.functions.invoke (SEM AbortSignal) |
+| Edge Function `evolution-api/get-media-base64` | `hooks/useMediaUrl` (testado em useMediaUrl.test.ts) | supabase.functions.invoke COM AbortSignal (E39); abort no unmount cancela o fetch |
 | Evolution API (reactions mirror) | `hooks/reactions/useReactionMutations.ts` | sendReaction / deleteReaction via Evolution API |
 | SIP.js UserAgent | `hooks/sip/useSipConnection.ts` | WebRTC/SIP stack |
 | `window.speechSynthesis` | `hooks/voice/playTtsAudio.ts` | Browser Web Speech API (fallback TTS) |
@@ -570,10 +570,10 @@ Quando o filtro `archivedTab: true` está ativo, `applyInboxFilters` retorna ape
 
 `THROTTLE_MS` (240s) é deliberadamente maior que `HEARTBEAT_MS` (180s): o intervalo periódico nunca dispara o throttle sozinho, protegendo contra writes frequentes. `pagehide` e `handleOffline` acionam `forceWrite` imediato sem esperar throttle. Cleanup só escreve `'offline'` se `lastWrittenStatus === 'online'` E o throttle expirou.
 
-### A12 — `useMediaUrl`: mountedRef guard; `supabase.functions.invoke` sem AbortSignal; fail-fast em erros irrecuperáveis
+### A12 — `useMediaUrl`: mountedRef guard; AbortSignal no invoke (E39); fail-fast em erros irrecuperáveis
 **Arquivo:** `hooks/__tests__/useMediaUrl.test.ts`
 
-Anti-storm hardening (2026-08-06): `supabase.functions.invoke` não aceita `AbortSignal` — `mountedRef` evita setState/log/toast pós-unmount. Erros irrecuperáveis (`MEDIA_EXPIRED`, `expired`, `not_found`, 404, 410, `400+"Failed to fetch stream"`) falham imediatamente sem segunda tentativa. `MAX_SESSION_REFRESH_ATTEMPTS=40`. `classifyError` lê `context.data` (parsed) ou `context.json()` (raw Response) para classificar por código de envelope, status HTTP ou texto.
+Anti-storm hardening (2026-08-06): `mountedRef` evita setState/log/toast pós-unmount. **E39 (2026-08-18):** o invoke da edge fn agora recebe `signal` (AbortController por request) — supabase-js v2.110 aceita e o abort no cleanup cancela o fetch pendente; mountedRef virou defesa secundária. Erros irrecuperáveis (`MEDIA_EXPIRED`, `expired`, `not_found`, 404, 410, `400+"Failed to fetch stream"`) falham imediatamente sem segunda tentativa. `MAX_SESSION_REFRESH_ATTEMPTS=40`. **E39:** rate-limit por messageId (janela fixa 30s), tentativas por mensagem persistem entre montagens (reset só após sucesso), signed URL 1h renovada por onError (sem cache LRU de URL assinada), buckets públicos sem refresh. `classifyError` lê `context.data` (parsed) ou `context.json()` (raw Response) para classificar por código de envelope, status HTTP ou texto.
 
 ### A13 — `useFallbackContact`: cadeia UUID→JID→`evolution_contacts`→`rpc_get_contact`→synthetic
 **Arquivo:** `hooks/__tests__/useFallbackContact.test.ts`

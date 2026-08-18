@@ -26,7 +26,12 @@ export function useInboxShortcuts({
   useHotkeys(['mod+k', '/'], (e) => {
     e.preventDefault();
     onSearchFocus();
-  }, { enabled });
+  }, {
+    enabled,
+    // E40.6: '/' só casa via `key` (o lib compara `event.code` por padrão —
+    // code 'Slash' nunca casa com a hotkey '/', deixando o atalho morto).
+    useKey: true,
+  });
 
   // Navigation: Alt + Up/Down
   useHotkeys('alt+up', (e) => {

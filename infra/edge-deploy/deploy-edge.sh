@@ -44,6 +44,8 @@
 # Modos:
 #   Sem --apply  → READ-ONLY: imprime o diff e sai com exit 1 se houver
 #                  MISSING/STALE/ORPHAN (gate de drift p/ CI — E39).
+#                  Fix 2026-08-18: functions E _shared são SEMPRE avaliados na
+#                  mesma rodada — o exit consolidado ocorre no fim (P-12c).
 #   --apply      → Escreve MISSING/STALE (repo → volume), valida hash pós-
 #                  escrita e (com --restart) força restart do serviço.
 #   --prune      → (com --apply) remove os ORPHANs de _shared do volume
@@ -242,11 +244,18 @@ elif [[ $APPLY -eq 1 ]]; then
   echo "── P-10: nada a aplicar (sem MISSING/STALE) ──"
 fi
 
-# ── P-12: Exit code — drift sem --apply falha (gate de CI) ───────────────────
+# ── P-12: Drift de functions — ACUMULA (não sai antes do P-13) ───────────────
+# Fix 2026-08-18 (BUG short-circuit P12→P13): o `exit 1` do P-12 em modo
+# read-only acontecia ANTES do P-13 — com drift de functions, os órfãos de
+# _shared NUNCA eram avaliados (gate E39 incompleto: reportava só metade do
+# drift). Agora P-12 acumula num flag (DRIFT_FOUND), o P-13 roda SEMPRE e o
+# exit consolidado acontece no fim (P-12c), cobrindo as duas classes numa
+# única rodada de CI.
+DRIFT_FOUND=0
 if [[ $MISSING -gt 0 || $STALE -gt 0 || $ORPHAN -gt 0 ]]; then
   if [[ $APPLY -eq 0 ]]; then
-    echo "❌ DRIFT detectado (MISSING=$MISSING STALE=$STALE ORPHAN=$ORPHAN) — rode com --apply para reconciliar." >&2
-    exit 1
+    echo "❌ DRIFT detectado em functions (MISSING=$MISSING STALE=$STALE ORPHAN=$ORPHAN) — acumulado; P-13 será avaliado." >&2
+    DRIFT_FOUND=1
   fi
   # Com --apply: MISSING/STALE foram resolvidos; ORPHAN de functions é higiene
   # manual (não bloqueia); ORPHAN de _shared é tratado em P-13/P-13b (--prune).
@@ -396,16 +405,27 @@ if [[ -d "$SHARED_DIR" ]]; then
   fi
 
   # Gate: drift de _shared sem --apply também falha (mesma semântica do P-12;
-  # ORPHAN de _shared entra no gate desde 2026-08-15 — fecha E39).
+  # ORPHAN de _shared entra no gate desde 2026-08-15 — fecha E39). Fix
+  # 2026-08-18: acumula no DRIFT_FOUND em vez de sair — o P-12c consolida.
   if [[ $APPLY -eq 0 ]] && { [[ $SHARED_MISSING -gt 0 || $SHARED_STALE -gt 0 || $SHARED_ORPHAN -gt 0 ]]; }; then
-    echo "❌ _SHARED DRIFT detectado (MISSING=$SHARED_MISSING STALE=$SHARED_STALE ORPHAN=$SHARED_ORPHAN) — rode com --apply (órfãos: --prune)." >&2
-    exit 1
+    echo "❌ _SHARED DRIFT detectado (MISSING=$SHARED_MISSING STALE=$SHARED_STALE ORPHAN=$SHARED_ORPHAN) — acumulado; exit consolidado no P-12c." >&2
+    DRIFT_FOUND=1
   fi
   if [[ $APPLY -eq 1 ]] && [[ $SHARED_ORPHAN -gt 0 ]] && [[ $PRUNE -eq 0 ]]; then
     echo "⚠️  ORPHAN de _shared restante ($SHARED_ORPHAN) — use --apply --prune para removê-los do volume." >&2
   fi
 else
   echo "⚠️  _shared/ ausente no repo ($SHARED_DIR) — pulando sincronização."
+fi
+
+# ── P-12c: Gate consolidado functions + _shared (fix 2026-08-18) ─────────────
+# Read-only com QUALQUER drift (functions OU _shared) → exit 1. Antes o P-12
+# saía ANTES do P-13 e os órfãos de _shared ficavam invisíveis quando havia
+# drift de functions (short-circuit P12→P13). Agora as duas classes são
+# avaliadas e reportadas numa única rodada, e o gate sai no fim.
+if [[ $APPLY -eq 0 ]] && [[ $DRIFT_FOUND -eq 1 ]]; then
+  echo "❌ DRIFT detectado (functions: MISSING=$MISSING STALE=$STALE ORPHAN=$ORPHAN; _shared: MISSING=$SHARED_MISSING STALE=$SHARED_STALE ORPHAN=$SHARED_ORPHAN) — rode com --apply para reconciliar (órfãos de _shared: --prune)." >&2
+  exit 1
 fi
 
 # ── P-14: Restart do serviço (opcional) ──────────────────────────────────────
