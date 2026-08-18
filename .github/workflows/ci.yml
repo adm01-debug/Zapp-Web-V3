@@ -30,7 +30,8 @@ env:
 jobs:
   lockfile:
     name: Verify Lockfile
-    runs-on: ubuntu-latest
+    # [2026-08-18] self-hosted: repo privado + cota billing esgotada; tools=bun git jq
+    runs-on: [Linux, X64, vps-zapp]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -89,7 +90,8 @@ jobs:
 
   quality:
     name: Quality diagnostics
-    runs-on: ubuntu-latest
+    # [2026-08-18] self-hosted: repo privado + cota billing esgotada; tools=bun node
+    runs-on: [Linux, X64, vps-zapp]
     needs: lockfile
     steps:
       - name: Checkout code
@@ -204,7 +206,8 @@ jobs:
   # erro de sintaxe. Gate bloqueante: test e build dependem deste job.
   audit-contract-scan:
     name: Audit contract (scan-only, always runs)
-    runs-on: ubuntu-latest
+    # [2026-08-18] self-hosted: repo privado + cota billing esgotada; tools=node
+    runs-on: [Linux, X64, vps-zapp]
     needs: lockfile
     steps:
       - name: Checkout code
@@ -229,7 +232,8 @@ jobs:
   # promover para needs quando runner self-hosted com acesso ao DB estiver disponível.
   audit-contract-live:
     name: Audit front↔DB contract (live, requires secrets)
-    runs-on: ubuntu-latest
+    # [2026-08-18] self-hosted: repo privado + cota billing esgotada; tools=node pg
+    runs-on: [Linux, X64, vps-zapp]
     needs: lockfile
     if: github.event_name != 'pull_request'
     # NOTA (fix 2026-08-05): `secrets` NÃO é permitido em `if:` de job no GitHub
@@ -273,7 +277,8 @@ jobs:
   # (GAP-J da simulação 20260804). Em push o step é pulado (o live cobre).
   contract-gate:
     name: Contract gate (front↔DB, bloqueante em PR)
-    runs-on: ubuntu-latest
+    # [2026-08-18] self-hosted: repo privado + cota billing esgotada; tools=node pg
+    runs-on: [Linux, X64, vps-zapp]
     needs: lockfile
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -317,7 +322,8 @@ jobs:
   # achado A, campanhas_nps_cron.sql, foi CORRIGIDA em AG-EX-13 com RAISE EXCEPTION).
   migration-gates:
     name: Migration gates (antipadrão + timestamp)
-    runs-on: ubuntu-latest
+    # [2026-08-18] self-hosted: repo privado + cota billing esgotada; tools=node
+    runs-on: [Linux, X64, vps-zapp]
     needs: lockfile
     steps:
       - name: Checkout code
@@ -335,7 +341,8 @@ jobs:
 
   test:
     name: Unit tests
-    runs-on: ubuntu-latest
+    # [2026-08-18] self-hosted: repo privado + cota billing esgotada; tools=bun node
+    runs-on: [Linux, X64, vps-zapp]
     needs: [lockfile, quality, audit-contract-scan, contract-gate, migration-gates]
     steps:
       - name: Checkout code
@@ -392,7 +399,8 @@ jobs:
 
   build:
     name: Build
-    runs-on: ubuntu-latest
+    # [2026-08-18] self-hosted: repo privado + cota billing esgotada; tools=bun node
+    runs-on: [Linux, X64, vps-zapp]
     needs: [lockfile, quality, audit-contract-scan, contract-gate, migration-gates]
     steps:
       - name: Checkout code
@@ -503,7 +511,8 @@ jobs:
 
   security:
     name: Security audit
-    runs-on: ubuntu-latest
+    # [2026-08-18] self-hosted: repo privado + cota billing esgotada; tools=bun node
+    runs-on: [Linux, X64, vps-zapp]
     needs: lockfile
     steps:
       - name: Checkout code
@@ -558,7 +567,8 @@ jobs:
   # Sem secrets — seguro em PRs de fork. Sem path filters (politica do ci.yml).
   edge-functions-parse-check:
     name: Gate 6 — edge functions parse-check (edge-runtime v1.74.0)
-    runs-on: ubuntu-latest
+    # [2026-08-18] self-hosted: repo privado + cota billing esgotada; tools=docker
+    runs-on: [Linux, X64, vps-zapp]
     needs: lockfile
     timeout-minutes: 15
     steps:

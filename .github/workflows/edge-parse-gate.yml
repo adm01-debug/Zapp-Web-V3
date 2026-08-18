@@ -1,8 +1,9 @@
 name: edge-parse-gate
-# Bloqueia merge (PR) e revalida no push (main) ANTES do deploy copiar código
-# que não parseia. Usa a MESMA imagem do runtime de produção.
-# [PG14-HARDENING 2026-08-18] Gate criado após o incidente 17/08 (edge-contract-schemas
-# quebrado na main derrubou o supabase_functions por ~2h - o deploy não validava parse).
+# Bloqueia merge (PR) e revalida no push (main) ANTES do deploy copiar codigo
+# que nao parseia. Boot-check validado 2026-08-18: exit 124 = runtime de pe
+# sem erros de parse/boot (substitui o deno bundle que nao existe na imagem).
+# [FIX 2026-08-18] Corrigidos: checkout@7->@v7, deno bundle inexistente,
+# done. typo, :/node_modules path invalido; migrado p/ self-hosted.
 on:
   pull_request:
     branches: [main]
@@ -21,34 +22,73 @@ concurrency:
 jobs:
   edge-parse-gate:
     name: Parse gate (edge-runtime v1.74.0)
-    runs-on: ubuntu-latest
-    container:
-      image: supabase/edge-runtime:v1.74.0   # mesma versão de prod
+    runs-on: [Linux, X64, vps-zapp]
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@7
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
-      # Passo EXATO do bundle: empacota o entrypoint main + TODAS as
-#  dependências transitivas (_shared/). Falha = código que o runtime
-#  não consegue carregar (o que derrubou o main em 17/08).
-      - name: Bundle do main/index.ts (cobre _shared transitivo)
+      # Boot-check: inicia o main service e aguarda 90s.
+      # exit 124 = runtime ficou de pe = codigo parseia OK.
+      # Saida antecipada (exit != 124) = falha real de boot/parse.
+      - name: Boot-check do main service (parse via boot)
         run: |
           set -euo pipefail
-          cd supabase/functions
-          deno bundle --check main/index.ts --output=/tmp/main.bundle.js
-          done. deno check main/index.ts
+          LOG=$(mktemp)
+          set +e
+          timeout 90 docker run --rm \
+            -v "$GITHUB_WORKSPACE/supabase/functions:/home/deno/functions:ro" \
+            -e SUPABASE_URL=http://localhost:8000 \
+            -e SUPABASE_ANON_KEY=test-anon-key \
+            -e SUPABASE_SERVICE_ROLE_KEY=test-service-role-key \
+            -e JWT_SECRET=super-secret-jwt-token-with-at-least-32-characters-long \
+            -e VERIFY_JWT=false \
+            supabase/edge-runtime:v1.74.0 \
+            start --main-service /home/deno/functions/main \
+            >"$LOG" 2>&1
+          rc=$?
+          set -e
+          echo "exit=$rc (124=runtime de pe: OK)"
+          if [ "$rc" -ne 0 ] && [ "$rc" -ne 124 ]; then
+            echo "::error title=edge-parse-gate::boot-check falhou (exit $rc)"
+            sed -n '1,60p' "$LOG"
+            exit 1
+          fi
+          ERRS=$(grep -E "could not be parsed|worker boot error" "$LOG" || true)
+          if [ -n "$ERRS" ]; then
+            echo "::error title=edge-parse-gate::erros de parse detectados:"
+            echo "$ERRS"
+            exit 1
+          fi
+          echo "edge-parse-gate: OK"
 
-      # Cobertura total: deno check em TODOS os index.ts e arquivos _shared
-      # (mesmas exclusões do deploy-edge.sh P-13: __tests__/__fixtures__/
-      # *.test.ts/*.spec.ts não vam a a produção).
-      - name: Deno check de todos os index.ts + _shared
+      # deno cache em todos os .ts (parse individual, sem type-check estrito).
+      - name: Parse de todos os .ts (deno cache)
         run: |
           set -euo pipefail
-          cd supabase/functions
-          deno cache main/index.ts   # popula cache (imports remotos deno.land)
-          find . -type f -name '*.ts' \
+          COUNT=$(find supabase/functions -name '*.ts' \
             ! -path '*/__tests__/*' ! -path '*/__fixtures__/*' \
-            ! -name '*.test.ts' ! -name '*.spec.ts' \
-            ! -path ':/node_modules/*' \
-            -print0 | xargs -0 -n1 deno check
+            ! -name '*.test.ts' ! -name '*.spec.ts' | wc -l)
+          echo "Parse de $COUNT arquivos .ts"
+          for attempt in 1 2; do
+            set +e
+            timeout 240 docker run --rm \
+              -v "$GITHUB_WORKSPACE/supabase/functions:/home/deno/functions:ro" \
+              denoland/deno:2.2.8 cache --no-config --no-lock \
+              $(find supabase/functions -name '*.ts' \
+                ! -path '*/__tests__/*' ! -path '*/__fixtures__/*' \
+                ! -name '*.test.ts' ! -name '*.spec.ts' \
+                | sed 's|^supabase/functions/|/home/deno/functions/|') \
+              >"$RUNNER_TEMP/deno-cache.log" 2>&1
+            rc=$?
+            set -e
+            if [ "$rc" -eq 0 ]; then echo "Parse: OK."; exit 0; fi
+            if grep -qE 'file:///home/deno/functions/' "$RUNNER_TEMP/deno-cache.log"; then
+              echo "::error title=edge-parse-gate::parse error:"
+              grep -E 'file:///home/deno/functions/' "$RUNNER_TEMP/deno-cache.log" | head -20
+              exit 1
+            fi
+            echo "Tentativa $attempt falhou (rede); retentando..."
+          done
+          echo "::error::deno cache falhou 2x"; exit 1
