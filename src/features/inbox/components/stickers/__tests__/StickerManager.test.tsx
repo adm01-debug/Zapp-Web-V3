@@ -91,6 +91,15 @@ vi.mock('@/features/inbox/components/stickers/PersonalStickers', () => ({
 vi.mock('@/features/inbox/components/stickers/StickerUploadPreview', () => ({
   StickerUploadPreview: (props: PreviewProps) => {
     previewPropsHolder.current = props;
+    // O componente some do DOM quando o StickerManager limpa o pending
+    // (render condicional `{pendingUpload && ...}`) — sem um cleanup, o holder
+    // guardaria o ÚLTIMO props para sempre e asserts de "preview fechado"
+    // (ex.: após confirmar/cancelar) nunca passariam.
+    React.useEffect(() => {
+      return () => {
+        previewPropsHolder.current = undefined;
+      };
+    }, []);
     return null;
   },
 }));
@@ -174,6 +183,11 @@ function selectStickerFile(file: File): void {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Holders de captura dos stubs são módulo-level: reset entre testes para
+  // evitar vazamento de estado (ex.: 'falha de upload' via a receber um
+  // previewPropsHolder do teste anterior).
+  gridPropsHolder.current = undefined;
+  previewPropsHolder.current = undefined;
   mockFetchStickers.mockResolvedValue(STICKERS);
   mockUploadStickerFile.mockResolvedValue({
     ok: true,
@@ -462,7 +476,10 @@ describe('StickerManager — upload de compartilhadas', () => {
     );
     expect(mockToast.success).toHaveBeenCalledWith(expect.stringContaining('salva'));
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['stickers-manager'] });
-    expect(previewPropsHolder.current).toBeUndefined();
+    // O pending só limpa após o await do insert + re-render (setPending(null)
+    // roda depois do insertStickerRow resolver) — esperar o estado, não assertar
+    // síncrono antes do flush.
+    await waitFor(() => expect(previewPropsHolder.current).toBeUndefined());
   });
 
   it('cancelar preview → removeStickerObject com o path do objeto', async () => {
