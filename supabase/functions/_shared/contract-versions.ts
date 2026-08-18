@@ -83,10 +83,6 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "approve-password-reset":       { current: "v1", supported: ["v1"] },
   "request-password-reset":       { current: "v1", supported: ["v1"] },
   "detect-new-device":            { current: "v1", supported: ["v1"] },
-  "revoke-session":               { current: "v1", supported: ["v1"] },
-  // Etapa 56 — registro paralelo (zapp-auth-sessions, sem diretório próprio
-  // ainda): alinhado a CONTRACT_SCHEMAS para satisfazer a integridade do kit.
-  "zapp-auth-sessions":           { current: "v1", supported: ["v1"] },
   "webauthn":                     { current: "v1", supported: ["v1"] },
 
   // Business / infra (v1)
