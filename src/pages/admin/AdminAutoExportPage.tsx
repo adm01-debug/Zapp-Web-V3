@@ -47,8 +47,8 @@ const SOURCE_TABLE_OPTIONS = [
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   pending: { label: 'Pendente', className: 'bg-muted text-muted-foreground' },
-  processing: { label: 'Processando', className: 'bg-amber-500/15 text-amber-600' },
-  completed: { label: 'Concluído', className: 'bg-emerald-500/15 text-emerald-600' },
+  processing: { label: 'Processando', className: 'bg-warning/15 text-warning' },
+  completed: { label: 'Concluído', className: 'bg-success/15 text-success' },
   failed: { label: 'Falhou', className: 'bg-destructive/15 text-destructive' },
 };
 

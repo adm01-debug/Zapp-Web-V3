@@ -33,10 +33,10 @@ type SeverityLevel = (typeof SEVERITY_LEVELS)[number];
 
 const SEVERITY_COLORS: Record<SeverityLevel, string> = {
   DEBUG: 'bg-muted text-muted-foreground',
-  INFO: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  WARNING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  ERROR: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-  CRITICAL: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+  INFO: 'bg-primary text-primary dark:bg-primary/30 dark:text-primary',
+  WARNING: 'bg-warning text-warning dark:bg-warning/30 dark:text-warning',
+  ERROR: 'bg-warning text-warning dark:bg-warning/30 dark:text-warning',
+  CRITICAL: 'bg-destructive text-destructive dark:bg-destructive/30 dark:text-destructive',
 };
 
 // ── Channel icon/label helpers ──────────────────────────────────────────────
@@ -125,7 +125,7 @@ function ChannelCard({ channel, draft, isSaving, onDraftChange, onSave }: Channe
             </div>
           </div>
           <Badge
-            className={`shrink-0 text-xs font-semibold px-2 py-0.5 ${draft.enabled ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-muted text-muted-foreground'}`}
+            className={`shrink-0 text-xs font-semibold px-2 py-0.5 ${draft.enabled ? 'bg-success text-success dark:bg-success/30 dark:text-success' : 'bg-muted text-muted-foreground'}`}
           >
             {draft.enabled ? 'Ativo' : 'Inativo'}
           </Badge>

@@ -16,7 +16,7 @@ interface ValidationItem {
 }
 
 const DEFAULT_ITEMS: ValidationItem[] = [
-  { id: 'font-inter', category: 'font', label: 'Fonte Inter', description: 'Garantir que a fonte Inter está carregada e aplicada em toda a tela.', isApproved: false, autoValidate: true },
+  { id: '', category: 'font', label: 'Fonte Inter', description: 'Garantir que a fonte Inter está carregada e aplicada em toda a tela.', isApproved: false, autoValidate: true },
   { id: 'color-primary', category: 'style', label: 'Cor Primária', description: 'Variáveis HSL da cor primária devem estar carregadas e válidas.', isApproved: false, autoValidate: true },
   { id: 'oled-pure-black', category: 'style', label: 'Preto OLED Puro', description: 'Background deve ser 0 0% 0% no modo dark.', isApproved: false, autoValidate: true },
   { id: 'font-sizes', category: 'font', label: 'Tamanhos de Fonte', description: 'Nomes 15px, timestamps 11px, mensagens 15px.', isApproved: true },
