@@ -205,6 +205,17 @@ Deno.serve(async (req) => {
       return jsonResponse({ synced: false, reason: "not_configured", providers: [...PROVIDERS] }, 200, req);
     }
 
+    // F8 defesa em profundidade: settings deve ser objeto plano (não string/array/null).
+    // DB tem CHECK jsonb_typeof(settings)='object'; re-validamos aqui como guardrail.
+    const rawSettings: unknown = config.settings;
+    if (rawSettings === null || typeof rawSettings !== "object" || Array.isArray(rawSettings)) {
+      log.error("crm_sync_config.settings corrompido (não é objeto)", {
+        provider: config.provider,
+        settingsType: typeof rawSettings,
+      });
+      return jsonResponse({ "synced": false, "reason": "invalid_config", provider: config.provider }, 400, req);
+    }
+
     log.info(`dispatch provider=${config.provider}`);
 
     switch (config.provider) {
