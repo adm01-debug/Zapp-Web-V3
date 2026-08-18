@@ -183,33 +183,36 @@ services:
     image: supabase/gotrue:v2.189.0
     entrypoint: ["/bin/sh", "-c"]
     command:
-      - "export DB_PASS=$$(cat /run/secrets/supabase_db_password_v1) && export GOTRUE_DB_DATABASE_URL=postgres://supabase_auth_admin:$${DB_PASS}@db:5432/postgres && export GOTRUE_JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && export GOTRUE_SMTP_PASS=$$(cat /run/secrets/gmail_smtp_password_v1) && exec auth"
+      - "export DB_PASS=$$(cat /run/secrets/supabase_db_password_v1) && export GOTRUE_DB_DATABASE_URL=postgres://supabase_auth_admin:$${DB_PASS}@db:5432/postgres && export GOTRUE_JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && export GOTRUE_SMTP_PASS=$$(cat /run/secrets/resend_api_key_v1) && export GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID=$$(cat /run/secrets/google_oauth_client_id_v1) && export GOTRUE_EXTERNAL_GOOGLE_SECRET=$$(cat /run/secrets/google_oauth_client_secret_v1) && exec auth"
     secrets:
       - supabase_db_password_v1
       - supabase_jwt_secret_v1
-      - gmail_smtp_password_v1
+      - resend_api_key_v1
+      - google_oauth_client_id_v1
+      - google_oauth_client_secret_v1
     networks:
       - AtomicaBRNet
     environment:
       - GOTRUE_API_HOST=0.0.0.0
       - GOTRUE_API_PORT=9999
       - API_EXTERNAL_URL=https://supabase.atomicabr.com.br
-      - GOTRUE_MFA_ENABLED=true
       - GOTRUE_DB_DRIVER=postgres
       - GOTRUE_SITE_URL=https://zapp.atomicabr.com.br
-      - GOTRUE_URI_ALLOW_LIST=https://whats-your-line.lovable.app,https://zapp.atomicabr.com.br,https://supabase.atomicabr.com.br,https://zapp-web-v3.vercel.app,https://zappweb.app.br,https://www.zappweb.app.br
+      - GOTRUE_URI_ALLOW_LIST=https://zapp.atomicabr.com.br,https://supabase.atomicabr.com.br,https://zappweb.app.br,https://www.zappweb.app.br
       - GOTRUE_DISABLE_SIGNUP=true
       - GOTRUE_JWT_ADMIN_ROLES=service_role
       - GOTRUE_JWT_AUD=authenticated
       - GOTRUE_JWT_EXP=28800
       - GOTRUE_JWT_ISSUER=https://supabase.atomicabr.com.br/auth/v1
       - GOTRUE_EXTERNAL_EMAIL_ENABLED=true
+      - GOTRUE_EXTERNAL_GOOGLE_ENABLED=true
+      - GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI=https://supabase.atomicabr.com.br/auth/v1/callback
       - GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED=false
       - GOTRUE_MAILER_AUTOCONFIRM=true
-      - GOTRUE_SMTP_ADMIN_EMAIL=ti04.promobrindes@gmail.com
-      - GOTRUE_SMTP_HOST=smtp.gmail.com
+      - GOTRUE_SMTP_ADMIN_EMAIL=alertas@promobrindes.com.br
+      - GOTRUE_SMTP_HOST=smtp.resend.com
       - GOTRUE_SMTP_PORT=587
-      - GOTRUE_SMTP_USER=ti04.promobrindes@gmail.com
+      - GOTRUE_SMTP_USER=resend
       - GOTRUE_SMTP_SENDER_NAME=AtomicaBR
       - GOTRUE_MAILER_URLPATHS_INVITE=/auth/v1/verify
       - GOTRUE_MAILER_URLPATHS_CONFIRMATION=/auth/v1/verify
@@ -221,6 +224,10 @@ services:
       - GOTRUE_SECURITY_REFRESH_TOKEN_ROTATION_ENABLED=true
       - GOTRUE_SECURITY_REFRESH_TOKEN_REUSE_INTERVAL=10
       - GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED=true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     deploy:
       mode: replicated
       replicas: 1
@@ -262,12 +269,11 @@ services:
     command:
       - "/bin/sh"
       - "-c"
-      - "export SECRET_KEY_BASE=$$(cat /run/secrets/secret_key_base_v2) && export METRICS_JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v2) && export DB_PASSWORD=$$(cat /run/secrets/supabase_db_password_v1) && export API_JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && exec /app/run.sh /app/bin/server"
+      - "export SECRET_KEY_BASE=$$(cat /run/secrets/secret_key_base_v2) && export METRICS_JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && export DB_PASSWORD=$$(cat /run/secrets/supabase_db_password_v1) && export API_JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && exec /app/run.sh /app/bin/server"
     secrets:
       - supabase_db_password_v1
       - supabase_jwt_secret_v1
       - secret_key_base_v2
-      - supabase_jwt_secret_v2
     networks:
       - AtomicaBRNet
     environment:
@@ -279,10 +285,33 @@ services:
       - DB_NAME=postgres
       - DB_AFTER_CONNECT_QUERY=SET search_path TO _realtime
       - DB_ENC_KEY=supabaserealtime
+      - REDIS_URL=redis://redis:6379
       - ERL_AFLAGS=-proto_dist inet_tcp
       - DNS_NODES="''"
       - RLIMIT_NOFILE=10000
       - SEED_SELF_HOST=true
+      - ERL_CRASH_DUMP=/tmp/erl_crash.dump
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:4000/healthcheck || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - NET_RAW
+      - SYS_ADMIN
+      - SYS_MODULE
+      - SYS_PTRACE
+      - SYS_RAWIO
+      - SYS_BOOT
+      - SYS_TIME
+      - NET_ADMIN
+      - AUDIT_WRITE
+      - AUDIT_CONTROL
+      - MKNOD
+      - NET_BIND_SERVICE
     deploy:
       mode: replicated
       replicas: 1
@@ -291,7 +320,7 @@ services:
           - node.role == manager
       resources:
         limits:
-          memory: 1g
+          memory: 2g
       update_config:
         failure_action: rollback
         order: stop-first
@@ -550,7 +579,11 @@ secrets:
     external: true
   supabase_service_key_v1:
     external: true
-  gmail_smtp_password_v1:
+  resend_api_key_v1:
+    external: true
+  google_oauth_client_id_v1:
+    external: true
+  google_oauth_client_secret_v1:
     external: true
   kong_dashboard_password_v1:
     external: true
