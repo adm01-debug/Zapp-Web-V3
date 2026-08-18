@@ -28,8 +28,16 @@
  * cache, auth) mockados; supabase.client com fake realtime (semântica
  * supabase-js: cache por topic, .on() após subscribe lança, removeChannel limpa
  * o cache). Mappers legacy mockados (contrato próprio, fora do escopo).
+ *
+ * E36 (dual-path zapp×evo): o teste fixa `VITE_INBOX_SOURCE_MODE=zapp`
+ * (beforeEach) para exercitar o ORQUESTRADOR sobre o path legado — que é o
+ * leaf mockado aqui (useMessages). Sem o pin, o default 'auto' resolve
+ * evo→useMessagesCursor REAL: criaria canal `evolution_messages:{jid}:{random}`
+ * (quebra os asserts de canal) e selecionaria mensagens via rpc_list_messages_lite
+ * (vazio no fake → reconcile/legacyMessages quebram). O path evo é contrato
+ * coberto por useInboxSource.test.tsx.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -231,6 +239,27 @@ vi.mock('@/features/inbox/hooks/useRealtimeMessages', () => ({
 vi.mock('@/features/inbox/hooks/useMessages', () => ({
   useMessages: () => ({ messages: h.state.msgs, loading: false, refetch: h.fns.refetchMsgs }),
 }));
+// E36 dual-path: leaf evo (cursor) mockado — o orquestrador roda sobre o path
+// legado ('zapp' via stubEnv). O cursor REAL criaria canal + RPC evo e, mesmo
+// desabilitado, dispararia setPages([]) extra (re-render) que re-dispara o
+// efeito de reconcile — com >1000 entregas a cascata de evicção dobra as
+// chamadas (contrato evo coberto por useInboxSource.test.tsx).
+const cursorReturn = vi.hoisted(() => ({
+  messages: [] as unknown[],
+  loading: false,
+  loadingOlder: false,
+  hasMoreOlder: false,
+  error: null as string | null,
+  loadOlder: vi.fn(),
+  cancelLoadOlder: vi.fn(),
+  refetch: vi.fn(),
+  addMessage: vi.fn(),
+  updateMessage: vi.fn(),
+  removeMessage: vi.fn(),
+}));
+vi.mock('@/features/inbox/hooks/useMessagesCursor', () => ({
+  useMessagesCursor: () => cursorReturn,
+}));
 vi.mock('@/adapters/inboxLegacyMapper', () => ({
   mapToLegacyConversation: (resolved: unknown) => {
     if (!resolved) return null;
@@ -361,6 +390,10 @@ function renderAndSelectContact(qc: QueryClient, contactId: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // E36 dual-path: fixa o modo 'zapp' (path legado, leaf mockado aqui). O
+  // default 'auto' ativaria o useMessagesCursor REAL (canal + RPC evo) e
+  // quebraria os asserts de canal/reconcile deste arquivo (ver header).
+  vi.stubEnv('VITE_INBOX_SOURCE_MODE', 'zapp');
   fakeSupabase.reset();
   Object.assign(h.state, {
     profile: { id: PROFILE_ID },
@@ -377,6 +410,10 @@ beforeEach(() => {
     isOnline: true,
     notification: null as unknown,
   });
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe('E32 useRealtimeInbox — boot da cadeia de canais (whisper)', () => {
