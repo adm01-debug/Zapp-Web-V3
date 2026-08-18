@@ -95,6 +95,12 @@ DECLARE
   v_job_id uuid;
 BEGIN
   -- Setup como OWNER (sem RLS): profiles + user_role admin do canário.
+  -- [FIX 2026-08-18] usuários canário em auth.users (FK real de profiles).
+  INSERT INTO auth.users (id, aud, role, email)
+  VALUES
+    (v_admin_uid, 'authenticated', 'authenticated', 'canario-d001@invalid.local'),
+    (v_agent_uid, 'authenticated', 'authenticated', 'canario-d002@invalid.local')
+  ON CONFLICT (id) DO NOTHING;
   INSERT INTO zapp.profiles (id, user_id) VALUES (gen_random_uuid(), v_admin_uid)
     ON CONFLICT (user_id) DO UPDATE SET user_id = EXCLUDED.user_id
     RETURNING id INTO v_admin_profile;
@@ -105,7 +111,7 @@ BEGIN
 
   -- Canário como authenticated (JWT = admin).
   SET LOCAL ROLE authenticated;
-  SET LOCAL request.jwt.claims = json_build_object('sub', v_admin_uid, 'role', 'authenticated');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_admin_uid, 'role', 'authenticated')::text, true);
 
   -- INSERT como admin deve passar.
   INSERT INTO zapp.auto_export_jobs (name, source_table, format, created_by)
@@ -119,7 +125,7 @@ BEGIN
   PERFORM 1 FROM zapp.auto_export_jobs WHERE id = v_job_id;
 
   -- JWT = agente (não-admin).
-  SET LOCAL request.jwt.claims = json_build_object('sub', v_agent_uid, 'role', 'authenticated');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_agent_uid, 'role', 'authenticated')::text, true);
 
   -- INSERT de não-admin deve falhar (RLS bloqueia).
   BEGIN
@@ -145,6 +151,7 @@ BEGIN
   RESET ROLE;
   DELETE FROM zapp.auto_export_jobs WHERE id = v_job_id;
   DELETE FROM zapp.profiles WHERE user_id IN (v_admin_uid, v_agent_uid); -- cascade em user_roles
+  DELETE FROM auth.users WHERE id IN (v_admin_uid, v_agent_uid);
 END $$;
 
 COMMIT;

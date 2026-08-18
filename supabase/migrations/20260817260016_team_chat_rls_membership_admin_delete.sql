@@ -96,6 +96,13 @@ CREATE POLICY team_conversations_delete ON zapp.team_conversations
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- Setup (role de migração — owner bypassa RLS)
+-- [FIX 2026-08-18] usuários canário em auth.users (FK real de profiles).
+INSERT INTO auth.users (id, aud, role, email) VALUES
+  ('00000000-0000-0000-0000-00000000e001', 'authenticated', 'authenticated', 'canario-e001@invalid.local'),
+  ('00000000-0000-0000-0000-00000000e002', 'authenticated', 'authenticated', 'canario-e002@invalid.local'),
+  ('00000000-0000-0000-0000-00000000e003', 'authenticated', 'authenticated', 'canario-e003@invalid.local')
+ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO zapp.profiles (id, user_id) VALUES
   ('00000000-0000-0000-0000-00000000e101', '00000000-0000-0000-0000-00000000e001'),
   ('00000000-0000-0000-0000-00000000e102', '00000000-0000-0000-0000-00000000e002'),
@@ -138,7 +145,7 @@ VALUES (
 DO $$
 BEGIN
   SET LOCAL ROLE authenticated;
-  SET LOCAL request.jwt.claims = json_build_object('sub', '00000000-0000-0000-0000-00000000e001', 'role', 'authenticated');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', '00000000-0000-0000-0000-00000000e001', 'role', 'authenticated')::text, true);
   INSERT INTO zapp.team_messages (conversation_id, sender_id, content)
     VALUES ('00000000-0000-0000-0000-00000000e0c1', '00000000-0000-0000-0000-00000000e101', 'canario member insert');
   RESET ROLE;
@@ -148,7 +155,7 @@ END $$;
 DO $$
 BEGIN
   SET LOCAL ROLE authenticated;
-  SET LOCAL request.jwt.claims = json_build_object('sub', '00000000-0000-0000-0000-00000000e002', 'role', 'authenticated');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', '00000000-0000-0000-0000-00000000e002', 'role', 'authenticated')::text, true);
   BEGIN
     INSERT INTO zapp.team_messages (conversation_id, sender_id, content)
       VALUES ('00000000-0000-0000-0000-00000000e0c1', '00000000-0000-0000-0000-00000000e102', 'canario outsider insert');
@@ -163,7 +170,7 @@ END $$;
 DO $$
 BEGIN
   SET LOCAL ROLE authenticated;
-  SET LOCAL request.jwt.claims = json_build_object('sub', '00000000-0000-0000-0000-00000000e003', 'role', 'authenticated');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', '00000000-0000-0000-0000-00000000e003', 'role', 'authenticated')::text, true);
   INSERT INTO zapp.team_messages (conversation_id, sender_id, content)
     VALUES ('00000000-0000-0000-0000-00000000e0c1', '00000000-0000-0000-0000-00000000e103', 'canario admin insert');
   RESET ROLE;
@@ -174,7 +181,7 @@ DO $$
 DECLARE v_deleted uuid;
 BEGIN
   SET LOCAL ROLE authenticated;
-  SET LOCAL request.jwt.claims = json_build_object('sub', '00000000-0000-0000-0000-00000000e001', 'role', 'authenticated');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', '00000000-0000-0000-0000-00000000e001', 'role', 'authenticated')::text, true);
   DELETE FROM zapp.team_conversations WHERE id = '00000000-0000-0000-0000-00000000e0c1' RETURNING id INTO v_deleted;
   IF v_deleted IS NOT NULL THEN
     RAISE EXCEPTION 'CANARY_FAIL: DELETE team_conversations sem admin passou';
@@ -187,7 +194,7 @@ DO $$
 DECLARE v_deleted uuid;
 BEGIN
   SET LOCAL ROLE authenticated;
-  SET LOCAL request.jwt.claims = json_build_object('sub', '00000000-0000-0000-0000-00000000e003', 'role', 'authenticated');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', '00000000-0000-0000-0000-00000000e003', 'role', 'authenticated')::text, true);
   DELETE FROM zapp.team_conversations WHERE id = '00000000-0000-0000-0000-00000000e0c1' RETURNING id INTO v_deleted;
   IF v_deleted IS NULL THEN
     RAISE EXCEPTION 'CANARY_FAIL: DELETE team_conversations admin nao passou';
@@ -200,6 +207,11 @@ DELETE FROM zapp.team_conversations WHERE id = '00000000-0000-0000-0000-00000000
 DELETE FROM zapp.user_roles WHERE user_id = '00000000-0000-0000-0000-00000000e003';
 DELETE FROM zapp.workspaces WHERE id = '00000000-0000-0000-0000-00000000e0a1';
 DELETE FROM zapp.profiles WHERE user_id IN (
+  '00000000-0000-0000-0000-00000000e001',
+  '00000000-0000-0000-0000-00000000e002',
+  '00000000-0000-0000-0000-00000000e003'
+);
+DELETE FROM auth.users WHERE id IN (
   '00000000-0000-0000-0000-00000000e001',
   '00000000-0000-0000-0000-00000000e002',
   '00000000-0000-0000-0000-00000000e003'

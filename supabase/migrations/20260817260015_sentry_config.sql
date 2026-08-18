@@ -83,7 +83,7 @@ DECLARE v_state boolean;
 DECLARE v_dsn text;
 BEGIN
   SET LOCAL ROLE authenticated;
-  SET LOCAL request.jwt.claims = json_build_object('sub', v_user, 'role', 'authenticated');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_user, 'role', 'authenticated')::text, true);
 
   SELECT enabled INTO v_state FROM zapp.sentry_config WHERE id = true;
   IF v_state IS NULL THEN

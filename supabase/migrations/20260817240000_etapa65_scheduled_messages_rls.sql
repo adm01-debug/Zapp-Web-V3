@@ -82,6 +82,10 @@ CREATE INDEX IF NOT EXISTS idx_scheduled_messages_created_by
   ON zapp.scheduled_messages (created_by);
 
 -- ── Canário RLS (SET ROLE authenticated + JWT fake, padrão etapa44) ────────
+-- [FIX 2026-08-18] set_config no lugar de SET LOCAL com expressão (sintaxe
+-- inválida); usuários canário criados em auth.users (FK real de profiles);
+-- setup movido p/ antes do SET ROLE; ON CONFLICT removido do INSERT na view
+-- zapp.contacts (não suportado em view); cleanup total no final.
 DO $$
 DECLARE
   v_owner uuid := '00000000-0000-0000-0000-00000000c001';
@@ -90,16 +94,21 @@ DECLARE
   v_contact uuid;
   v_inserted uuid;
 BEGIN
-  SET LOCAL ROLE authenticated;
-  SET LOCAL request.jwt.claims = json_build_object('sub', v_owner, 'role', 'authenticated');
-
-  -- Setup: profile do dono + contato visível (dono é contact owner).
+  -- Setup como owner da migração (bypassa RLS): FK real em auth.users.
+  INSERT INTO auth.users (id, aud, role, email)
+  VALUES
+    (v_owner, 'authenticated', 'authenticated', 'canario-c001@invalid.local'),
+    (v_other, 'authenticated', 'authenticated', 'canario-c002@invalid.local')
+  ON CONFLICT (id) DO NOTHING;
   INSERT INTO zapp.profiles (id, user_id) VALUES (gen_random_uuid(), v_owner)
     ON CONFLICT (user_id) DO UPDATE SET user_id = EXCLUDED.user_id
     RETURNING id INTO v_profile;
-  INSERT INTO zapp.contacts (id, name, phone) VALUES (gen_random_uuid(), 'Canario RLS', '5511999999999')
-    ON CONFLICT (id) DO NOTHING
+  INSERT INTO zapp.contacts (id, name, phone)
+    VALUES (gen_random_uuid(), 'Canario RLS', '5511999999999')
     RETURNING id INTO v_contact;
+
+  SET LOCAL ROLE authenticated;
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_owner, 'role', 'authenticated')::text, true);
 
   -- INSERT como dono (created_by = profile) deve passar.
   INSERT INTO zapp.scheduled_messages (contact_id, content, scheduled_at, created_by)
@@ -115,18 +124,24 @@ BEGIN
   PERFORM 1 FROM zapp.scheduled_messages WHERE id = v_inserted;
 
   -- UPDATE de OUTRO usuário deve afetar 0 rows (RLS filtra).
-  SET LOCAL request.jwt.claims = json_build_object('sub', v_other, 'role', 'authenticated');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_other, 'role', 'authenticated')::text, true);
   UPDATE zapp.scheduled_messages SET status = 'cancelled' WHERE id = v_inserted;
   IF FOUND THEN
     RAISE EXCEPTION 'canario RLS falhou: UPDATE cross-tenant afetou row';
   END IF;
 
   -- INSERT sem created_by (NULL) com contato visível ao dono deve passar.
-  SET LOCAL request.jwt.claims = json_build_object('sub', v_owner, 'role', 'authenticated');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_owner, 'role', 'authenticated')::text, true);
   INSERT INTO zapp.scheduled_messages (contact_id, content, scheduled_at, created_by)
     VALUES (v_contact, 'canario insert null owner', now() + interval '2 hours', NULL);
 
   RESET ROLE;
+
+  -- Cleanup: nenhum dado canário persiste.
+  DELETE FROM zapp.scheduled_messages WHERE contact_id = v_contact;
+  DELETE FROM zapp.contacts WHERE id = v_contact;
+  DELETE FROM zapp.profiles WHERE user_id IN (v_owner, v_other);
+  DELETE FROM auth.users WHERE id IN (v_owner, v_other);
   RAISE NOTICE '[etapa65] canário RLS scheduled_messages OK (insert/update/select tenant-based)';
 END $$;
 
