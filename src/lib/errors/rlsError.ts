@@ -27,7 +27,7 @@ export function isRlsDeniedError(err: unknown): boolean {
 
 /** rls Denied Message function. */
 export function rlsDeniedMessage(resource: string): string {
-  return `Acesso negado a ${resource}. Apenas administradores ou supervisores podem visualizar este recurso.`;
+  return `Acesso negado a ${resource}. Você não tem permissão para esta ação — apenas administradores ou supervisores podem visualizar este recurso.`;
 }
 
 /** Normaliza qualquer erro para mensagem amigável em PT-BR sem quebrar a lista. */

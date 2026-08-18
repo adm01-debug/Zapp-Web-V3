@@ -31,12 +31,22 @@ export interface MatchEvent {
   at: number;
 }
 
+/** Troca de fonte de mensagens do inbox (E36 dual-path): evo cursor-based → legado zapp.messages. */
+export interface SourceSwitchEvent {
+  from: 'evo' | 'zapp';
+  to: 'evo' | 'zapp';
+  reason: string;
+  at: number;
+}
+
 interface Counters {
   total: number;
   byStrategy: Record<MatchStrategy, number>;
   byMessageType: Record<string, number>;
   /** matrix [strategy][messageType] -> count */
   byStrategyAndType: Record<MatchStrategy, Record<string, number>>;
+  /** E36: nº de vezes que o inbox caiu do path evo para o legado (modo auto). */
+  sourceFallback: number;
 }
 
 const counters: Counters = {
@@ -48,10 +58,13 @@ const counters: Counters = {
     text_fallback: {},
     media_fallback: {},
   },
+  sourceFallback: 0,
 };
 
 const recentEvents: MatchEvent[] = [];
 const MAX_RECENT = 100;
+const sourceSwitchEvents: SourceSwitchEvent[] = [];
+const MAX_SOURCE_SWITCH_EVENTS = 100;
 const listeners = new Set<(ev: MatchEvent) => void>();
 
 function debugEnabled(): boolean {
@@ -105,12 +118,38 @@ export function getReconciliationStats(): Counters {
       text_fallback: { ...counters.byStrategyAndType.text_fallback },
       media_fallback: { ...counters.byStrategyAndType.media_fallback },
     },
+    sourceFallback: counters.sourceFallback,
   };
 }
 
 /** Returns the N most-recent match events from the ring buffer (default 20), oldest first. */
 export function getRecentMatches(limit = 20): MatchEvent[] {
   return recentEvents.slice(-limit);
+}
+
+/**
+ * E36 — Registra um fallback de fonte do inbox (evo cursor-based → legado
+ * zapp.messages): incrementa o counter `source_fallback` e emite o evento
+ * `source_switch` (ring buffer). Chamado pelo useInboxSource em modo 'auto'
+ * quando o path evo falha.
+ */
+export function recordSourceFallback(reason: string): void {
+  counters.sourceFallback += 1;
+  const event: SourceSwitchEvent = { from: 'evo', to: 'zapp', reason, at: Date.now() };
+  sourceSwitchEvents.push(event);
+  if (sourceSwitchEvents.length > MAX_SOURCE_SWITCH_EVENTS) sourceSwitchEvents.shift();
+
+  if (debugEnabled()) {
+    log.warn('[source_switch] fallback evo→zapp', {
+      reason,
+      total: counters.sourceFallback,
+    });
+  }
+}
+
+/** Returns the N most-recent source-switch (fallback) events (default 20), oldest first. */
+export function getSourceSwitchEvents(limit = 20): SourceSwitchEvent[] {
+  return sourceSwitchEvents.slice(-limit);
 }
 
 /** Subscribes to live reconciliation events; returns an unsubscribe function. */
@@ -129,7 +168,9 @@ export function resetReconciliationStats(): void {
     text_fallback: {},
     media_fallback: {},
   };
+  counters.sourceFallback = 0;
   recentEvents.length = 0;
+  sourceSwitchEvents.length = 0;
 }
 
 // Expõe no window para inspeção rápida em produção via devtools.

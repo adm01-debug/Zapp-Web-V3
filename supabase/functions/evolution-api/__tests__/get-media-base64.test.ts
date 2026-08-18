@@ -139,3 +139,27 @@ Deno.test("get-media-base64 action: source validates message.key, uses 30s timeo
   assert(block.includes("Media not found"), "deve detectar marcador upstream de mídia não encontrada");
   assert(block.includes("A mídia expirou no WhatsApp"), "mensagem pt-BR de mídia expirada");
 });
+
+Deno.test("get-media-base64 action: R1-AUTH fail-closed — prova de acesso antes do proxy (MEDIA_FORBIDDEN)", async () => {
+  const source = await readSource();
+  const block = extractBlock(source, "if (action === 'get-media-base64')", {
+    until: "// ── Instance lifecycle",
+    maxSize: 6000,
+  });
+  // Fail-closed: sem prova de acesso → 403, nunca proxy.
+  assert(block.includes("MEDIA_FORBIDDEN"), "deve re-emitir code MEDIA_FORBIDDEN");
+  assert(block.includes("mediaForbidden"), "deve ter helper de 403");
+  assert(block.includes("Você não tem acesso à mídia desta conversa"), "mensagem pt-BR de acesso negado");
+  // Prova de acesso: contato por remote_jid+instance (deleted_at null) + RPCs de visibilidade.
+  assert(block.includes("evolution_contacts"), "deve consultar evolution_contacts");
+  assert(block.includes("remote_jid"), "deve filtrar por remote_jid");
+  assert(block.includes("instance_name"), "deve filtrar por instance_name");
+  assert(block.includes("deleted_at"), "deve filtrar deleted_at");
+  assert(block.includes("is_contact_visible_to_user"), "deve usar helper de visibilidade de contato");
+  assert(block.includes("is_queue_member_of_contact"), "deve usar helper de fila");
+  assert(block.includes("is_admin_or_supervisor"), "deve usar helper de admin/supervisor");
+  // O check vem ANTES do proxy (fail-closed por construção).
+  const proxyIdx = block.indexOf("getBase64FromMediaMessage");
+  const forbiddenIdx = block.indexOf("MEDIA_FORBIDDEN");
+  assert(forbiddenIdx !== -1 && proxyIdx !== -1 && forbiddenIdx < proxyIdx, "403 deve vir antes do proxy");
+});

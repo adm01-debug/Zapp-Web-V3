@@ -192,6 +192,25 @@ Deno.serve(async (req) => {
       if (!key || typeof key.id !== 'string' || !key.id.trim()) return invalidMessage('INVALID_MESSAGE_KEY', 'message.key.id é obrigatório', 'key', 422);
       if (key.remoteJid !== undefined && typeof key.remoteJid !== 'string') return invalidMessage('INVALID_MESSAGE_KEY', 'message.key.remoteJid deve ser string', 'key', 422);
       if (key.fromMe !== undefined && typeof key.fromMe !== 'boolean') return invalidMessage('INVALID_MESSAGE_KEY', 'message.key.fromMe deve ser boolean', 'key', 422);
+      // [R1-AUTH] Fail-closed: prova de acesso à conversa ANTES do proxy (padrão
+      // canônico do rpc_insert_message — ver SIMULAÇÃO R1 2026-08-18). Sem
+      // contato visível/na fila/admin → 403 MEDIA_FORBIDDEN, nunca proxy.
+      // (remoteJid ausente/indefinido → lookup não acha contato → 403.)
+      const mediaForbidden = () => new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 403, code: 'MEDIA_FORBIDDEN', message: 'Você não tem acesso à mídia desta conversa.', details: [{ path: 'message', message: 'Acesso negado: conversa não visível ao usuário' }] }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const { data: contato } = await supabase
+        .from('evolution_contacts')
+        .select('id')
+        .eq('remote_jid', key.remoteJid)
+        .eq('instance_name', instance)
+        .eq('deleted_at', null)
+        .maybeSingle();
+      if (!contato) return mediaForbidden();
+      const [{ data: visivel }, { data: naFila }, { data: isAdmin }] = await Promise.all([
+        supabase.rpc('is_contact_visible_to_user', { _contact_id: contato.id, _user_id: authedUser.id }),
+        supabase.rpc('is_queue_member_of_contact', { _contact_id: contato.id, _user_id: authedUser.id }),
+        supabase.rpc('is_admin_or_supervisor', { _user_id: authedUser.id }),
+      ]);
+      if (!(visivel || naFila || isAdmin)) return mediaForbidden();
       // Download de mídia é lento: timeout 30s (>= 25s) e propaga o abort do caller (req.signal).
       const response = await proxy(`/chat/getBase64FromMediaMessage/${instance}`, 'POST', { message: msg }, { signal: req.signal, timeoutMs: 30_000 });
       // Re-emite envelope de erro com status HTTP real para o frontend classificar

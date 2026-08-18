@@ -167,37 +167,37 @@
 **Objetivo:** Eliminar invokes sem AbortSignal (anti-storm por mountedRef) e quebra de agendamentos longos pela expiração de signed URL em 7 dias.
 **Base:** pendencias-consolidadas.md:605 (07:573-576 invoke SEM AbortSignal); findings-03.md:101-102 (06:618 auto-refresh, max 2 tentativas); findings-03.md:201 (Edge Fn get-media-base64 SEM AbortSignal); findings-04.md:154 (signed URL 7d useChatScheduleMessage.ts:43 quebra agendamentos >7d).
 ### Subetapas
-- [ ] 39.1 Ler `src/features/inbox/hooks/useMediaUrl.ts` (603 ln): fluxo de signed URL, TTL 604800s, refresh de URL expirada (max 2 tentativas), toast anti-flood, guard mountedRef no invoke (l.340-363, 467) (linha→efeito).
-- [ ] 39.2 RED: criar teste (ampliar `useMediaUrl.test.ts`): invoke da Edge Fn recebe `AbortSignal` (spy no 2º argumento) e o abort cancela o fetch pendente no unmount.
-- [ ] 39.3 GREEN: passar `signal` (AbortController por request) ao `supabase.functions.invoke` e abortar no cleanup; manter o guard mountedRef como defesa secundária; teste verde.
-- [ ] 39.4 RED: teste de anti-storm — N invokes em janela curta (mesma mensagem) → 1 invoke efetivo (rate-limit por mensagem + toast único, sem flood).
-- [ ] 39.5 GREEN: consolidar rate-limit por `messageId` (janela fixa) no lugar do guard frágil; verde.
-- [ ] 39.6 RED: teste de refresh — URL expirada (simular `expires_at` passado) → re-invoke até 2 tentativas; 3ª falha → `failed=true` sem toast repetido.
-- [ ] 39.7 GREEN: ajustar contagem de tentativas para resetar só após sucesso (não por montagem); verde.
-- [ ] 39.8 RED: `useChatScheduleMessage` (findings-04.md:74, useChatScheduleMessage.ts:43): teste que prova que agendamento com `scheduled_for` > 7d cria URL inválida — RED documentando o bug (assert de validação de prazo).
-- [ ] 39.9 GREEN: validar prazo máximo no agendamento (rejeitar > 7d com erro claro OU gerar signed URL curta + re-upload na execução, decisão no PR); bloqueio de envio inválido; teste verde.
-- [ ] 39.10 Verificar Edge Fn `evolution-api/get-media-base64` (07:319): garantir que o chamador (useMediaUrl) passa signal; rodar `bun run check` + suíte de mídia; atualizar doc 06-* (06:617-618) e 07-* (07:319).
+- [x] 39.1 Ler `src/features/inbox/hooks/useMediaUrl.ts` (603 ln): fluxo de signed URL, TTL 604800s, refresh de URL expirada (max 2 tentativas), toast anti-flood, guard mountedRef no invoke (l.340-363, 467) (linha→efeito).
+- [x] 39.2 RED: criar teste (ampliar `useMediaUrl.test.ts`): invoke da Edge Fn recebe `AbortSignal` (spy no 2º argumento) e o abort cancela o fetch pendente no unmount.
+- [x] 39.3 GREEN: passar `signal` (AbortController por request) ao `supabase.functions.invoke` e abortar no cleanup; manter o guard mountedRef como defesa secundária; teste verde.
+- [x] 39.4 RED: teste de anti-storm — N invokes em janela curta (mesma mensagem) → 1 invoke efetivo (rate-limit por mensagem + toast único, sem flood).
+- [x] 39.5 GREEN: consolidar rate-limit por `messageId` (janela fixa) no lugar do guard frágil; verde.
+- [x] 39.6 RED: teste de refresh — URL expirada (simular `expires_at` passado) → re-invoke até 2 tentativas; 3ª falha → `failed=true` sem toast repetido.
+- [x] 39.7 GREEN: ajustar contagem de tentativas para resetar só após sucesso (não por montagem); verde.
+- [x] 39.8 RED: `useChatScheduleMessage` (findings-04.md:74, useChatScheduleMessage.ts:43): teste que prova que agendamento com `scheduled_for` > 7d cria URL inválida — RED documentando o bug (assert de validação de prazo).
+- [x] 39.9 GREEN: validar prazo máximo no agendamento (rejeitar > 7d com erro claro OU gerar signed URL curta + re-upload na execução, decisão no PR); bloqueio de envio inválido; teste verde.
+- [x] 39.10 Verificar Edge Fn `evolution-api/get-media-base64` (07:319): garantir que o chamador (useMediaUrl) passa signal; rodar `bun run check` + suíte de mídia; atualizar doc 06-* (06:617-618) e 07-* (07:319).
 ### Critério de conclusão (checklist da etapa)
-- [ ] Teste prova `AbortSignal` presente no invoke (spy) e abort no unmount
-- [ ] Teste de anti-storm verde (1 invoke por janela/mensagem)
-- [ ] Teste de refresh max 2 tentativas verde
-- [ ] Agendamento >7d bloqueado/tratado com teste verde (findings-04 A5)
-- [ ] `bun run check` verde; PR único
+- [x] Teste prova `AbortSignal` presente no invoke (spy) e abort no unmount
+- [x] Teste de anti-storm verde (1 invoke por janela/mensagem)
+- [x] Teste de refresh max 2 tentativas verde
+- [x] Agendamento >7d bloqueado/tratado com teste verde (findings-04 A5)
+- [x] `bun run check` verde; PR único
 
 ## Etapa 40 — Hooks de UX/presença: autoscroll, deep links, atalhos e typing
 **Objetivo:** Cobrir e corrigir os hooks periféricos do inbox (autoscroll, deep links, atalhos, broadcast de digitação) que operam sem testes.
 **Base:** findings-03.md:180 (useChatAutoScroll threshold=150px), 182 (useInboxShortcuts react-hotkeys-hook), 183 (useInboxDeepLinks ?contact=/?message=, window.__pendingOpenContactId); pendencias-consolidadas.md:17 (useContactTyping broadcast typing:{remoteJid}).
 ### Subetapas
-- [ ] 40.1 Ler `useChatAutoScroll.ts` (68 ln), `useInboxDeepLinks.ts` (59 ln), `useInboxShortcuts.ts` (65 ln) e `src/features/contacts/hooks/useContactTyping.ts` (197 ln); documentar contratos e consumidores (grep de imports) em `docs/plano-fase-04.md`.
-- [ ] 40.2 RED: `useChatAutoScroll` — teste com jsdom: usuário no topo (scrollTop < threshold 150px) → NOVO scroll automático NÃO ocorre; usuário no fundo → scroll segue novas mensagens.
-- [ ] 40.3 GREEN: corrigir lógica de "near bottom" (distância relativa ao fim, não scrollTop absoluto) e guard de tamanho de mensagem; teste verde.
-- [ ] 40.4 RED: `useInboxDeepLinks` — teste de `?contact=<uuid>`: ao montar, `window.__pendingOpenContactId` é consumido e limpo; `?message=<uuid>` rola até a mensagem após hydratação.
-- [ ] 40.5 GREEN: corrigir consumo/limpeza do pending contact (evitar re-abertura em StrictMode); teste verde.
-- [ ] 40.6 RED: `useInboxShortcuts` — teste de atalhos registrados via `react-hotkeys-hook`: tecla "C" abre nova conversa (handler chamado), atalho não dispara com foco em input/textarea (guard de composição).
-- [ ] 40.7 GREEN: aplicar guards de foco e remover atalhos no unmount (useEffect cleanup); teste verde.
-- [ ] 40.8 RED: `useContactTyping` — teste de broadcast: evento de digitação publica `typing:{remoteJid}` no canal correto e expira (timeout) sem publicar estado "parado" eterno; dedupe de broadcasts repetidos.
-- [ ] 40.9 GREEN: corrigir broadcast (timeout de expiração, dedupe por contato, cleanup no unmount); teste verde.
-- [ ] 40.10 Rodar `bun run check` + suíte completa do módulo inbox; atualizar doc 06-* (06:593, 06:610, 06:613) e findings-01 status de `useContactTyping`; garantir barrel `chat/index.ts` re-exporta hooks cobertos.
+- [x] 40.1 Ler `useChatAutoScroll.ts` (68 ln), `useInboxDeepLinks.ts` (59 ln), `useInboxShortcuts.ts` (65 ln) e `src/features/contacts/hooks/useContactTyping.ts` (197 ln); documentar contratos e consumidores (grep de imports) em `docs/plano-fase-04.md`.
+- [x] 40.2 RED: `useChatAutoScroll` — teste com jsdom: usuário no topo (scrollTop < threshold 150px) → NOVO scroll automático NÃO ocorre; usuário no fundo → scroll segue novas mensagens.
+- [x] 40.3 GREEN: corrigir lógica de "near bottom" (distância relativa ao fim, não scrollTop absoluto) e guard de tamanho de mensagem; teste verde.
+- [x] 40.4 RED: `useInboxDeepLinks` — teste de `?contact=<uuid>`: ao montar, `window.__pendingOpenContactId` é consumido e limpo; `?message=<uuid>` rola até a mensagem após hydratação.
+- [x] 40.5 GREEN: corrigir consumo/limpeza do pending contact (evitar re-abertura em StrictMode); teste verde.
+- [x] 40.6 RED: `useInboxShortcuts` — teste de atalhos registrados via `react-hotkeys-hook`: tecla "C" abre nova conversa (handler chamado), atalho não dispara com foco em input/textarea (guard de composição).
+- [x] 40.7 GREEN: aplicar guards de foco e remover atalhos no unmount (useEffect cleanup); teste verde.
+- [x] 40.8 RED: `useContactTyping` — teste de broadcast: evento de digitação publica `typing:{remoteJid}` no canal correto e expira (timeout) sem publicar estado "parado" eterno; dedupe de broadcasts repetidos.
+- [x] 40.9 GREEN: corrigir broadcast (timeout de expiração, dedupe por contato, cleanup no unmount); teste verde.
+- [x] 40.10 Rodar `bun run check` + suíte completa do módulo inbox; atualizar doc 06-* (06:593, 06:610, 06:613) e findings-01 status de `useContactTyping`; garantir barrel `chat/index.ts` re-exporta hooks cobertos.
 ### Critério de conclusão (checklist da etapa)
 - [ ] 4 suítes novas verdes: autoscroll, deep links, atalhos, typing (≥ 3 casos cada)
 - [ ] Teste de cleanup no unmount para atalhos e typing (sem vazamento de listeners)
