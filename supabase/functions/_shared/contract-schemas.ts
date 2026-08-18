@@ -801,19 +801,7 @@ export const ElevenLabsDialogueV1Schema = z.object({
    dropbox_email: z.string().email("Email Dropbox inválido").max(255).optional(),
    }).passthrough();
 
-   /**
-   * invite-user@v1 — convite por email (Etapa 57, EF invite-user). Endpoint
-   * interno (admin/supervisor) → estrito: email obrigatório; role fechada com
-   * default 'agent' (espelha CreateUserV1Schema, sem special_agent — convite
-   * só para papéis operacionais); message opcional com teto de 500.
-   */
-   export const InviteUserV1Schema = z.object({
-   email: z.string().email("Email inválido").max(255),
-   role: z.enum(["admin", "supervisor", "agent"]).optional().default("agent"),
-   message: z.string().max(500).optional(),
-   }).strict();
-
- /** approve-password-reset@v1 — valida no index.ts. Schema de registro. */
+   /** approve-password-reset@v1 — valida no index.ts. Schema de registro. */
  /**
  * approve-password-reset@v1 — real. Consumo: { action (default 'approve'),
  * reset_id?/request_id?, approved?/decision? }. Endpoint interno →
@@ -1197,11 +1185,9 @@ export const InviteUserV1Schema = z.object({
   "elevenlabs-sfx":                { v1: ElevenLabsSfxV1Schema },
   "elevenlabs-dialogue":           { v1: ElevenLabsDialogueV1Schema },
   "create-user":                   { v1: CreateUserV1Schema },
-  "invite-user":                   { v1: InviteUserV1Schema },
   "approve-password-reset":        { v1: ApprovePasswordResetV1Schema },
   "request-password-reset":        { v1: RequestPasswordResetV1Schema },
   "detect-new-device":             { v1: AISchemas.DetectNewDeviceV1Schema },
-  "revoke-session":                { v1: RevokeSessionV1Schema },
   "webauthn":                      { v1: WebauthnV1Schema },
   "evolution-api":                 { v1: EvolutionApiV1Schema },
   "zapp-auth-sessions":            { v1: ZappAuthSessionsV1Schema },

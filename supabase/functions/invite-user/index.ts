@@ -47,7 +47,17 @@ Deno.serve(async (req) => {
     const inviteId = (data as any)?.[0]?.invite_id ?? (data as any)?.invite_id ?? null;
     if (!inviteId) return errorResponse("Invite not found", 404, req);
 
-    return jsonResponse({ success: true, invite_id: inviteId }, 200, req);
+    // Convite REAL via GoTrue admin API (Etapa 57.3): envia o email com o link.
+    const { data: gtuInvite, error: gtuError } = await client.auth.admin.inviteUserByEmail(
+      email,
+      { data: { role: role ?? "agent", invite_id: inviteId } },
+    );
+    if (gtuError) {
+      log.error("inviteUserByEmail falhou", { code: gtuError.code, message: gtuError.message });
+      return errorResponse("Invite email failed", 400, req);
+    }
+
+    return jsonResponse({ success: true, invite_id: inviteId, go_true_id: gtuInvite?.user?.id ?? null }, 200, req);
   } catch (e) {
     log.error("invite-user erro inesperado", { error: String(e) });
     return errorResponse("Internal error", 500, req);
