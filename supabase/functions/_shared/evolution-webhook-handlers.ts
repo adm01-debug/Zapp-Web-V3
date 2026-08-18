@@ -5,6 +5,7 @@ import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import {
   isRecord, normalizePhone, toEventRecords, instanceOrFilter,
   getConnectionByInstance, getContactByPhone, persistProfilePicture, generatePhoneVariants,
+  resolveLidToPhone,
 } from "./evolution-helpers.ts";
 
 /** evolution-webhook-handlers utilities and exports. */
@@ -478,7 +479,7 @@ export async function handleChatsUpdate(supabase: SupabaseClient<any, any>, inst
       continue;
     }
 
-    const phone = normalizePhone(jid);
+    const phone = normalizePhone(jid) ?? await resolveLidToPhone(supabase, jid);
     if (!phone) continue;
     const unreadCount = chatData.unreadCount as number;
 
@@ -639,8 +640,8 @@ export async function handleChatsDelete(supabase: SupabaseClient<any, any>, inst
   for (const chat of chats) {
     const chatData = isRecord(chat) ? chat : {};
     const jid = (chatData.id as string) || (chatData.remoteJid as string);
-    if (!jid || jid.endsWith('@g.us') || jid.endsWith('@lid')) continue;
-    const phone = normalizePhone(jid);
+    if (!jid || jid.endsWith('@g.us')) continue;
+    const phone = normalizePhone(jid) ?? await resolveLidToPhone(supabase, jid);
     if (!phone) continue;
     const contact = await getContactByPhone(supabase, phone, connection.id);
     if (contact) {
@@ -699,7 +700,7 @@ export async function handleChatsSet(supabase: SupabaseClient<any, any>, instanc
   for (const chat of chats) {
     const jid = chat.id as string;
     if (!jid || jid.endsWith('@g.us')) continue;
-    const phone = normalizePhone(jid);
+    const phone = normalizePhone(jid) ?? await resolveLidToPhone(supabase, jid);
     if (!phone) continue;
     const unreadCount = chat.unreadCount as number;
     if (unreadCount === 0) {
