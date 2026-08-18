@@ -55,7 +55,7 @@ export interface SendExternalResult {
   externalId: string | null;
 }
 
-/** Constructs an OptimisticMessage with a locally-unique `optimistic:…` id and the given content/type/media fields, ready to be inserted into the conversation before the API confirms. */
+/** Constructs an OptimisticMessage with a locally-unique `optimistic:…` id and the given content/type/media fields, ready to be inserted into the conversation before the API confirms. Pure com seeds injetáveis: `now`/`randomSuffix` tornam o output determinístico (mesmo input → mesmo output) para testes. */
 export function makeOptimisticBubble(
   remoteJid: string,
   content: string,
@@ -64,12 +64,18 @@ export function makeOptimisticBubble(
     mediaUrl?: string | null;
     contactAvatar?: string | null;
     media_meta?: Record<string, unknown> | null;
+    /** Testability: timestamp fixo (ISO) — mesmo input ⇒ mesmo output. */
+    now?: string;
+    /** Testability: sufixo fixo do id — mesmo input ⇒ mesmo output. */
+    randomSuffix?: string;
   } = {}
 ): OptimisticMessage {
-  const now = new Date().toISOString();
+  const now = opts.now ?? new Date().toISOString();
   // ID local começa com `optimistic:` pra reconciliação. O webhook insere
   // a mensagem real com outro id e o cursor/poll a substitui no merge.
-  const id = `optimistic:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+  const id = `optimistic:${opts.now ? Date.parse(opts.now) : Date.now()}:${
+    opts.randomSuffix ?? Math.random().toString(36).slice(2, 8)
+  }`;
   return {
     id,
     contact_id: remoteJid,
