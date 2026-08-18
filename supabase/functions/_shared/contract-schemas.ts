@@ -878,13 +878,6 @@ export const TranscribeAudioInternalV1Schema = z.object({
 }).passthrough();
 
 /**
- * @deprecated zapp-auth-invite: registro fantasma removido em 2026-08-18 — a edge
- * invite-user (E57, #1179) só existe em branch órfã (index.ts nunca chegou na main);
- * o contract-kit exigia lifecycle em versions para contrato sem edge. Reintroduzir
- * junto com o merge real da E57.
- */
-
-/**
  * @deprecated Edge auth-email-hook REMOVIDA do repo (commit 78fa7d7be, "zumbi sem index.ts").
  * Registro morto removido em 2026-08-04 — o schema placeholder permissivo
  * (z.object vazio) derrubava o gate contract-registry-integrity (Invariante 9).
@@ -1100,13 +1093,13 @@ export const ZappGoogleCalendarSyncV1Schema = z.object({
  /** warroom-monthly-test@v1 — teste mensal do pipeline de alerta Warroom.
   * Sem parâmetros de entrada: o handler IGNORA o body (saída fixa).
   */
-export const ZappWarroomMonthlyTestV1Schema = z.object({}).strict();
+ export const ZappWarroomMonthlyTestV1Schema = z.object({}).strict();
 
 /**
-* invite-user@v1 — POST { email, role?, message? } (Etapa 57: convite de
-* usuário). Endpoint interno admin-only. role default 'agent' (espelha o
-* CreateUserV1Schema do repo); message é nota opcional do convite.
-*/
+ * invite-user@v1 — POST { email, role?, message? } (Etapa 57: convite de
+ * usuário). Endpoint interno admin-only. role default 'agent' (espelha o
+ * CreateUserV1Schema do repo); message é nota opcional do convite.
+ */
 export const InviteUserV1Schema = z.object({
   email: z.string().email("Email inválido").max(255),
   role: z.enum(["admin", "supervisor", "agent"]).optional().default("agent"),
@@ -1114,7 +1107,7 @@ export const InviteUserV1Schema = z.object({
 }).strict();
 
 
-export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
+ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Webhooks externos
   "evolution-webhook":       { v1: EvolutionWebhookV1Schema, v2: EvolutionWebhookV2Schema },
   "whatsapp-cloud-webhook":  { v1: MetaWebhookPayloadSchema, v2: WhatsAppCloudWebhookV2Schema },
@@ -1212,6 +1205,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "webauthn":                      { v1: WebauthnV1Schema },
   "evolution-api":                 { v1: EvolutionApiV1Schema },
   "zapp-auth-sessions":            { v1: ZappAuthSessionsV1Schema },
+  "zapp-auth-invite":             { v1: ZappAuthInviteV1Schema },
   "zapp-n8n-sync":                 { v1: ZappN8nSyncV1Schema },
 
   // ─── Onda 1 (2026-08-04): cobertura 100% — schemas reais dos workers ───

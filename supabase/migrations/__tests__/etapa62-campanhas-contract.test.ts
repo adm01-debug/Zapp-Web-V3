@@ -15,10 +15,10 @@
 import { assertMatch, assertNotMatch } from "jsr:@std/assert";
 
 const M1 = await Deno.readTextFile(
-  new URL("../20260818210000_etapa62_campanhas_rls_escrita.sql", import.meta.url),
+  new URL("../20260818210002_etapa62_campanhas_rls_escrita.sql", import.meta.url),
 );
 const M2 = await Deno.readTextFile(
-  new URL("../20260818220000_etapa62_dedup_atomico_recipients.sql", import.meta.url),
+  new URL("../20260818220002_etapa62_dedup_atomico_recipients.sql", import.meta.url),
 );
 const M3 = await Deno.readTextFile(
   new URL("../20260818230000_etapa62_engine_ab_variantes.sql", import.meta.url),
