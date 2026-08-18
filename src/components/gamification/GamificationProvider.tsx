@@ -283,14 +283,12 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
       await updateStreak(true);
       const totalMessages = result.newSent + (dbStats?.messages_received || 0);
       if ([10, 50, 100, 500, 1000].includes(totalMessages)) {
-        const grantResult = await grantAchievement({
         const milestoneResult = await grantAchievement({
           type: ACHIEVEMENT_TYPES.MESSAGE_MILESTONE,
           name: `${totalMessages} Mensagens`,
           description: `Você enviou/recebeu ${totalMessages} mensagens!`,
           xpReward: Math.min(100, totalMessages / 10),
         });
-        if (grantResult.alreadyHad) return;
         // E59: dedupe atômico no banco — conquista repetida não re-toasta.
         if (milestoneResult?.alreadyHad) return;
         showAchievement(
