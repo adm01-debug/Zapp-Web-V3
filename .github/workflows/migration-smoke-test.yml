@@ -91,7 +91,7 @@ jobs:
         run: |
           # Copia o arquivo para o container e executa via docker exec (rede bridge)
           docker cp supabase/ci/pg-bootstrap.sql pg-smoke:/tmp/pg-bootstrap.sql
-          docker exec pg-smoke psql -U postgres -v ON_ERROR_STOP=1 -f /tmp/pg-bootstrap.sql
+          docker exec pg-smoke psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 -f /tmp/pg-bootstrap.sql
           echo "Bootstrap applied successfully."
 
       - name: Collect and apply migrations (delta - so as que mudaram)
@@ -128,7 +128,7 @@ jobs:
           for f in $(echo "$CHANGED_MIGRATIONS" | sort); do
             bn=$(basename "$f")
             echo "Applying: $bn"
-            if ! docker exec pg-smoke psql -U postgres -v ON_ERROR_STOP=1 -f "/tmp/mig/$bn" 2>&1; then
+            if ! docker exec pg-smoke psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 -f "/tmp/mig/$bn" 2>&1; then
               echo "::warning file=$f::Apply falhou (dependencia incremental): $f"
               FIRST_ERROR="$f"; break
             fi
@@ -142,7 +142,7 @@ jobs:
 
       - name: Verify expected schemas exist
         run: |
-          docker exec pg-smoke psql -U postgres -v ON_ERROR_STOP=1 <<'PSQLEOF'
+          docker exec pg-smoke psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 <<'PSQLEOF'
             DO $$
             DECLARE
               missing text[] := '{}';

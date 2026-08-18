@@ -176,17 +176,50 @@ Deno.serve(async (req) => {
       return Boolean(isPriv);
     };
 
-    // ── GET: estado atual (contrato público, dsn mascarado) ────────────────
+    // ── GET: sincronização com Sentry (contrato v1: synced + reason) ───────
+    // Contrato: sem config → { "synced": false, "reason": "not_configured" } (nunca 5xx).
+    // Com config + enabled → chama API real do Sentry → { "synced": boolean, ... }.
     if (req.method === "GET" || req.method === "HEAD") {
-      const [row, isPriv] = await Promise.all([readRow(), canManage()]);
+      const row = await readRow();
       if (!row) {
         return jsonResponse(
-          { ok: true, config: publicConfig(DEFAULT_CONFIG, isPriv) },
+          { "synced": false, "reason": "not_configured" },
           200,
           req,
         );
       }
-      return jsonResponse({ ok: true, config: publicConfig(row, isPriv) }, 200, req);
+      if (!row.enabled) {
+        return jsonResponse(
+          { "synced": false, "reason": "disabled" },
+          200,
+          req,
+        );
+      }
+      // Config presente + enabled: sincroniza com Sentry (anti-mock: chamada real)
+      const dsn = (row.dsn as string | undefined)?.trim() ?? "";
+      if (!dsn) {
+        return jsonResponse(
+          { "synced": false, "reason": "not_configured" },
+          200,
+          req,
+        );
+      }
+      try {
+        const testResult = await sendTestEvent(dsn, row.environment || "production");
+        return jsonResponse(
+          testResult
+            ? { "synced": true, last_event_id: testResult.event_id }
+            : { "synced": false, "reason": "provider_error" },
+          200,
+          req,
+        );
+      } catch {
+        return jsonResponse(
+          { "synced": false, "reason": "provider_error" },
+          200,
+          req,
+        );
+      }
     }
 
     // ── POST: admin/supervisor — salvar config ou enviar evento de teste ──

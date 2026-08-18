@@ -40,7 +40,8 @@ jobs:
             bun-${{ runner.os }}-
 
       - name: Install dependencies
-        run: bun install
+        # HUSKY=0: husky v9 e ESM-only, quebra no Node antigo do runner self-hosted (E2E-04)
+        run: HUSKY=0 bun install
 
       - name: Lint (blocking — E02/F1-10)
         run: bun run lint
