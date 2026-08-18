@@ -1,6 +1,11 @@
 # REALTIME-UPGRADE-RETRY-20260817
 
-**Estado (2026-08-17):** serviço `supabase_realtime` (stack 35) roda v2.124.2 (estável;
+**EXECUTADO COM SUCESSO (2026-08-18):** update com `--image` explícito convergiu
+(task running, UpdateStatus completed, boot limpo, healthcheck 200 "ok").
+Pull pré-validado confirmou a causa provável de 17/08 (pull failure — imagem
+já estava no host). Pendência: alinhar o stack FILE do Portainer (35) ao spec.
+
+**Histórico (2026-08-17):** serviço `supabase_realtime` (stack 35) roda v2.124.2 (estável;
 mirror do repo = stack file = runtime, todos 124.2). A tentativa de upgrade para v2.128.3
 falhou às 12:50Z e o Swarm fez rollback automático (~70s). Causa NÃO determinada (logs
 podados ~9 min depois pelo housekeeping) — duas hipóteses:

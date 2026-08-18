@@ -290,7 +290,7 @@ export const ContractLifecycles: Record<string, ContractLifecycle> = {
   },
 };
 
-const specificEdgeFunctionSchemas = {
+const specificEdgeFunctionSchemas: Record<string, ContractVersionMap> = {
 
   'evolution-consumer-stats': { v1: z.object({
     collected_at: z.string().optional(),

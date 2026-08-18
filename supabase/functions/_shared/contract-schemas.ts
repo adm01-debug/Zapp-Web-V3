@@ -1102,7 +1102,6 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "health":                        { v1: HealthV1Schema },
   "status":                        { v1: StatusV1Schema },
   "metrics":                       { v1: MetricsV1Schema },
-  "send-scheduled-report":         { v1: SendScheduledReportV1Schema },
   "zapp-auto-export":              { v1: ZappAutoExportV1Schema },
   "send-scheduled-report":         { v1: SendScheduledReportV1Schema, v2: SendScheduledReportV2Schema },
   "auto-close-conversations":      { v1: AutoCloseConversationsV1Schema },
@@ -1189,7 +1188,6 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "zapp-google-calendar-sync": { v1: ZappGoogleCalendarSyncV1Schema },
 
   // ─── OUTROS ────────────────────────────────────────────────────────────────
-  "warroom-monthly-test": { v1: ZappWarroomMonthlyTestV1Schema },
   // ─── CRM plugável (Etapa 66) ──────────────────────────────────────────────
   "zapp-crm-sync":   { v1: ZappCrmSyncV1Schema },
 };

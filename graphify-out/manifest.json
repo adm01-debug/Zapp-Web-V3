@@ -12339,11 +12339,6 @@
     "ast_hash": "94e4088e3f468af59e5973b9d16f30ea",
     "semantic_hash": ""
   },
-  "supabase/functions/evolution-bitrix-sync/index.ts": {
-    "mtime": 1786105212.934512,
-    "ast_hash": "024ffe4c7c3fbc4ff7257416fe45dc1f",
-    "semantic_hash": ""
-  },
   "supabase/functions/evolution-credentials/__tests__/contract.test.ts": {
     "mtime": 1786105212.934512,
     "ast_hash": "73e243e0d75aa37dbe61587abcc25b44",
