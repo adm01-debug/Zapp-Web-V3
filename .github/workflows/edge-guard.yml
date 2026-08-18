@@ -5,4 +5,50 @@ name: edge-guard
 #    pipeline e causa drift silencioso).
 # 2. Proíbe a seção [functions.migrate-helper] em supabase/config.toml.
 # 3. Proíbe arquivos de backup (.bak*) e temporários (
-#    supabase/functions/ (lixo comitado — fix 2026-08-18: o padrão antigo
+#     supabase/functions/ (lixo comitado — fix 2026-08-18: o padrão antigo
+#     *.bak não pegava .ts.bak-<n> nem *.bak-e89 de edições manuais).
+
+on:
+  pull_request:
+
+jobs:
+  guard:
+    name: Edge guard checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Block manual deploy commands
+        run: |
+          set -euo pipefail
+          MATCHES=$(grep -rn 'supabase functions deploy' .github supabase scripts --include='*.yml' --include='*.sh' --include='*.toml' | grep -v '.github/workflows/edge-guard.yml' || true)
+          if [ -n "$MATCHES" ]; then
+            echo "::error::Referência a deploy manual de Edge Function encontrada:"
+            echo "$MATCHES"
+            exit 1
+          fi
+          echo "Guard OK: nenhum deploy manual detectado."
+
+      - name: Block migrate-helper in config.toml
+        run: |
+          set -euo pipefail
+          if grep -q '^\[functions\.migrate-helper\]' supabase/config.toml 2>/dev/null; then
+            echo "::error::[functions.migrate-helper] presente em supabase/config.toml — seção proibida."
+            exit 1
+          fi
+          echo "Guard OK: sem migrate-helper no config.toml."
+
+      - name: Block backup/temp files in supabase/functions
+        run: |
+          set -euo pipefail
+          # Fix 2026-08-18: padrão *.bak* (não só *.bak) — pega .ts.bak-<n> e
+          # *.bak-e89 de edições manuais; *.tmp cobre lixo temporário.
+          BAKS=$(find supabase/functions -type f \( -name '*.bak*' -o -name '*.tmp' \) 2>/dev/null || true)
+          if [ -n "$BAKS" ]; then
+            echo "::error::Arquivos de backup (.bak*) ou temporários (.tmp) encontrados em supabase/functions/:"
+            echo "$BAKS"
+            exit 1
+          fi
+          echo "Guard OK: sem arquivos .bak*/.tmp."
