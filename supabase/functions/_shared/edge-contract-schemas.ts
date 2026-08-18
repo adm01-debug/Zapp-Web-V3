@@ -103,6 +103,7 @@ export const EDGE_FUNCTION_NAMES = [
   'health',
   'health-check',
   'instance-pause-control',
+  'invite-user',
   'lgpd-scheduled-jobs',
   'login-attempts',
   'main',
@@ -150,15 +151,15 @@ export const EDGE_FUNCTION_NAMES = [
   'whatsapp-cloud-send',
   'whatsapp-cloud-webhook',
   'whatsapp-cloud-webhook-verify',
+  'zapp-auto-export',
+  'zapp-crm-sync',
   'zapp-email-inbound-webhook',
   'zapp-email-send',
-  'zapp-auto-export',
-  'zapp-sentry-sync',
-  'zapp-n8n-sync',
-  'zapp-google-calendar-sync',
   'zapp-get-sip-credentials',
-  'zapp-crm-sync',
+  'zapp-google-calendar-sync',
+  'zapp-n8n-sync',
   'zapp-notifications-dispatch',
+  'zapp-sentry-sync',
 ] as const;
 
 const JsonValueSchema: z.ZodType<unknown> = z.lazy(() =>
