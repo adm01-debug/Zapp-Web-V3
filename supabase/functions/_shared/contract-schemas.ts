@@ -1077,10 +1077,11 @@ export const SentrySyncV1Schema = z.object({
 }).strict();
 
 /**
- * zapp-google-calendar-sync@v1 — status/sync do contrato Google Calendar
- * (G1, 2026-08-17). GET (status) ou POST com body opcional { dryRun }.
- * Resposta SEMPRE 200: { synced:false, reason:'not_configured'|'disabled'|
- * 'not_implemented'|'error' } — nunca 500.
+ * zapp-google-calendar-sync@v1 — status do contrato Google Calendar (G1).
+ * GET (status) ou POST com body opcional { dryRun }. Resposta SEMPRE 200:
+ * { synced:false, reason:'not_configured'|'disabled'|'error' } — nunca 500 e
+ * nunca 'not_implemented' (ADR 2026-08-18: chamador de front removido; ver
+ * supabase/functions/zapp-google-calendar-sync/ADR.md).
  */
 export const ZappGoogleCalendarSyncV1Schema = z.object({
   dryRun: z.boolean().optional(),
@@ -1097,6 +1098,17 @@ export const RevokeSessionV1Schema = z.object({
   sessionId: z.string().uuid("sessionId deve ser um UUID de auth.sessions"),
 }).strict();
 
+/**
+ * invite-user@v1 — POST { email, role?, message? } (Etapa 57: convite de
+ * usuário). Endpoint interno admin-only. role default 'agent' (espelha o
+ * CreateUserV1Schema do repo); message é nota opcional do convite.
+ */
+export const InviteUserV1Schema = z.object({
+  email: z.string().email("Email inválido").max(255),
+  role: z.enum(["admin", "supervisor", "agent"]).optional().default("agent"),
+  message: z.string().max(500).optional(),
+}).strict();
+
 
 export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Webhooks externos
@@ -1107,6 +1119,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Internos / UI / cron
   "talkx-send":                 { v1: TalkxSendV1Schema },
   "revoke-session":       { v1: RevokeSessionV1Schema },
+  "invite-user":          { v1: InviteUserV1Schema },
   "send-email":                 { v1: SendEmailV1Schema },
   // evolution-proxy (2026-08-14): proxy server-side — envelope validado manualmente
   // (allowlist de method + path); contrato registrado para o gate de cobertura.
@@ -1249,7 +1262,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "csat-auto-send":  { v1: CsatAutoSendV1Schema },
   "csat-dispatch":   { v1: CsatDispatchV1Schema },
 
-  // ─── GOOGLE CALENDAR (contrato real desligado, G1) ────────────────────────
+  // ─── GOOGLE CALENDAR (contrato honesto, ADR 2026-08-18) ───────────────────
   "zapp-google-calendar-sync": { v1: ZappGoogleCalendarSyncV1Schema },
 
   // ─── OUTROS ────────────────────────────────────────────────────────────────

@@ -454,6 +454,17 @@ const specificEdgeFunctionSchemas: Record<string, ContractVersionMap> = {
       })
       .strict(),
   },
+  // invite-user — convite REAL via GoTrue admin API (ADR 2026-08-18; banco
+  // vivo sem RPC invite_user/tabela de convites). Espelho inline (sem ciclo).
+  'invite-user': {
+    v1: z
+      .object({
+        email: z.string().email().max(255),
+        role: z.enum(['admin', 'supervisor', 'agent']).optional(),
+        message: z.string().max(500).optional(),
+      })
+      .strict(),
+  },
   // csat-dispatch — cron 1min (job csat-dispatch-tick); espelho de CsatDispatchV1Schema.
   'csat-dispatch': {
     v1: z

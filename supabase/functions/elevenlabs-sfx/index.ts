@@ -4,6 +4,7 @@ import { requireUser } from "../_shared/auth.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { fetchWithRetry } from "../_shared/retry-with-backoff.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -45,14 +46,16 @@ Deno.serve(async (req) => {
 
     log.info(`Generating ${isMusic ? "music" : "sfx"}: "${prompt}" (${duration || (isMusic ? 15 : 5)}s)`);
 
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: "POST",
       headers: {
         "xi-api-key": ELEVENLABS_API_KEY,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(elBody),
-      signal: AbortSignal.timeout(30_000),
+    }, {
+      timeoutMs: 30_000,
+      label: "ElevenLabs",
     });
 
     if (!response.ok) {

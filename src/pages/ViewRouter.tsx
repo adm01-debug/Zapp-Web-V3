@@ -105,7 +105,6 @@ const VIEW_MAP: Record<string, React.LazyExoticComponent<React.ComponentType<any
   diagnostics: Views.DiagnosticsView,
   voip: Views.VoIPPanel,
   'auto-export': Views.AutoExportManager,
-  'google-calendar': Views.GoogleCalendarIntegration,
   themes: Views.ThemeCustomizer,
   schedule: Views.ScheduleCalendarView,
   warroom: Views.WarRoomDashboard,

@@ -3,6 +3,7 @@ import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders, valida
 import { requireUser } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { fetchWithRetry } from '../_shared/retry-with-backoff.ts';
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -111,14 +112,16 @@ Deno.serve(async (req) => {
       case 'sync_contacts': {
         const supabase = createZappAdminClient();
 
-        const contactsResponse = await fetch(`${BITRIX_WEBHOOK_URL}/crm.contact.list`, {
+        const contactsResponse = await fetchWithRetry(`${BITRIX_WEBHOOK_URL}/crm.contact.list`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             filter: filters || {},
             select: ['ID', 'NAME', 'LAST_NAME', 'EMAIL', 'PHONE', 'COMPANY_ID', 'POST'],
           }),
-          signal: AbortSignal.timeout(15_000),
+        }, {
+          timeoutMs: 15_000,
+          label: 'Bitrix',
         });
         if (!contactsResponse.ok) {
           const errText = await contactsResponse.text().catch(() => '');
@@ -151,7 +154,7 @@ Deno.serve(async (req) => {
         break;
       }
       case 'push_contact': {
-        const pushResponse = await fetch(`${BITRIX_WEBHOOK_URL}/crm.contact.add`, {
+        const pushResponse = await fetchWithRetry(`${BITRIX_WEBHOOK_URL}/crm.contact.add`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -162,7 +165,9 @@ Deno.serve(async (req) => {
               POST: data?.jobTitle,
             },
           }),
-          signal: AbortSignal.timeout(15_000),
+        }, {
+          timeoutMs: 15_000,
+          label: 'Bitrix',
         });
         if (!pushResponse.ok) {
           const errText = await pushResponse.text().catch(() => '');
@@ -173,7 +178,7 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: true, bitrixId: pushData.result }, 200, req);
       }
       case 'create_lead_from_conversation': {
-        const leadResponse = await fetch(`${BITRIX_WEBHOOK_URL}/crm.lead.add`, {
+        const leadResponse = await fetchWithRetry(`${BITRIX_WEBHOOK_URL}/crm.lead.add`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -187,7 +192,9 @@ Deno.serve(async (req) => {
               UF_CRM_WHATSAPP_CONTACT_ID: data?.contactId,
             },
           }),
-          signal: AbortSignal.timeout(15_000),
+        }, {
+          timeoutMs: 15_000,
+          label: 'Bitrix',
         });
         if (!leadResponse.ok) {
           const errText = await leadResponse.text().catch(() => '');
@@ -203,11 +210,13 @@ Deno.serve(async (req) => {
 
     if (endpoint) {
       log.info(`Calling Bitrix: ${endpoint}`);
-      const bitrixResponse = await fetch(`${BITRIX_WEBHOOK_URL}/${endpoint}`, {
+      const bitrixResponse = await fetchWithRetry(`${BITRIX_WEBHOOK_URL}/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: body ? JSON.stringify(body) : undefined,
-        signal: AbortSignal.timeout(15_000),
+      }, {
+        timeoutMs: 15_000,
+        label: 'Bitrix',
       });
       if (!bitrixResponse.ok) {
         const errText = await bitrixResponse.text().catch(() => '');

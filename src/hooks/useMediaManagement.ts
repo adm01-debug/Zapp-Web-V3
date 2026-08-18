@@ -209,13 +209,24 @@ export function useDownloadPermissionManagement(resourceId?: string) {
         setHasPermission(Boolean(data));
       } catch (err) {
         if (cancelled) return;
-        log.error('Error checking download permission:', err);
-        // Fail open only when the RPC doesn't exist yet:
-        //   PGRST202 = PostgREST cannot find the function in its schema cache
-        //   42883    = PostgreSQL undefined_function (function exists in cache but throws)
-        // Any other error (network, auth, RLS) keeps permission denied.
         const code = (err as { code?: string })?.code;
-        setHasPermission(code === '42883' || code === 'PGRST202');
+        // PostgREST/supabase-js devolvem o erro como plain object (PostgrestError),
+        // não como Error — extrair .message antes de cair no String(err).
+        const message =
+          (err as { message?: string })?.message ??
+          (err instanceof Error ? err.message : String(err));
+        // Fail-closed (MELHORIA 2): QUALQUER erro — RPC ausente (42883/PGRST202
+        // = drift de schema: check_download_permission não existe no DB/nas
+        // migrations), rede, auth, RLS — NEGA o download. RPC ausente precisa
+        // de diagnóstico (log.error abaixo), nunca de liberação silenciosa.
+        // Nunca setHasPermission(true) em erro.
+        log.error('Download permission check failed — download denied (fail-closed)', {
+          rpc: 'check_download_permission',
+          resourceId,
+          code: code ?? null,
+          message,
+        });
+        setHasPermission(false);
       } finally {
         if (!cancelled) setLoading(false);
       }

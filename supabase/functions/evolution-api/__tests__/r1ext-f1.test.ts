@@ -4,6 +4,7 @@ import {
 import {
   readSource,
 } from "./_helpers.ts";
+import { readSourceFrom } from "../../_shared/test-helpers.ts";
 
 /**
  * Locks the R1-EXT/F1 hardening contract (fail-closed de conversa):
@@ -45,4 +46,19 @@ Deno.test("R1-EXT/F1: find-messages e delete-message com fail-closed de conversa
   const dmGateIdx = dmBlock.indexOf("assertConversationAccess");
   const dmProxyIdx = dmBlock.indexOf("message/delete");
   assert(dmGateIdx !== -1 && dmProxyIdx !== -1 && dmGateIdx < dmProxyIdx, "gate deve vir antes do proxy");
+});
+
+Deno.test("mcp-server: F3 — find-chats/find-contacts/send-status com role-check admin (ADR-R1EXT-F3)", async () => {
+  const f3 = await readSourceFrom(import.meta.url, "../index.ts");
+  // Bloco F3: as 3 actions juntas com authorizeRoles e ADMIN_ONLY_FORBIDDEN.
+  const idx = f3.indexOf("action === 'send-status' || action === 'find-chats' || action === 'find-contacts'");
+  assert(idx !== -1, "bloco F3 deve existir (3 actions juntas)");
+  const block = f3.slice(idx, idx + 1200);
+  assert(block.includes("authorizeRoles"), "role-check via authorizeRoles");
+  assert(block.includes("ADMIN_ONLY_FORBIDDEN"), "code ADMIN_ONLY_FORBIDDEN para 403");
+  assert(block.includes("'admin', 'dev', 'supervisor'"), "roles exigidas: admin/dev/supervisor");
+  // Sem proxies diretos remanescentes para as 3 actions (fora do bloco).
+  assert(!f3.includes("action === 'send-status') return"), "sem proxy direto de send-status");
+  assert(!f3.includes("action === 'find-chats') return"), "sem proxy direto de find-chats");
+  assert(!f3.includes("action === 'find-contacts') return"), "sem proxy direto de find-contacts");
 });

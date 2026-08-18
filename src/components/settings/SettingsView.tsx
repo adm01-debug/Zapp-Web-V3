@@ -49,7 +49,6 @@ import { ScheduleSettings } from '@/components/settings/ScheduleSettings';
 import { MessagesSettings } from '@/components/settings/MessagesSettings';
 import { AutomationSettings } from '@/components/settings/AutomationSettings';
 import { AppearanceSettings } from '@/components/settings/AppearanceSettings';
-import { SLASettings } from '@/components/settings/SLASettings';
 import { MarketingBudgets } from '@/components/settings/MarketingBudgets';
 import { PageTemplate } from '@/components/layout/PageTemplate';
 import { useUserSettings } from '@/hooks/useUserSettings';

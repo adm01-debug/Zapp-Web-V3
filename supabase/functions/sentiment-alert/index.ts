@@ -4,6 +4,7 @@ import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { fetchWithRetry } from "../_shared/retry-with-backoff.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -105,7 +106,7 @@ Deno.serve(async (req) => {
 
     if (RESEND_API_KEY && agentProfile?.email) {
       try {
-        const emailResponse = await fetch('https://api.resend.com/emails', {
+        const emailResponse = await fetchWithRetry('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${RESEND_API_KEY}`,
@@ -127,7 +128,9 @@ Deno.serve(async (req) => {
               <p style="color:#9ca3af;font-size:12px;margin-top:24px">Alerta automático do sistema de análise de conversas.</p>
             </div>`,
           }),
-          signal: AbortSignal.timeout(15_000),
+        }, {
+          timeoutMs: 15_000,
+          label: 'Resend',
         });
         emailSent = emailResponse.ok;
       } catch (emailError) {

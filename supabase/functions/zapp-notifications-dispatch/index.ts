@@ -55,6 +55,7 @@ import { parseOrReject } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 import { getSecret } from '../_shared/vault.ts';
 import { sha256Hex, markEventProcessed } from '../_shared/evolution-helpers.ts';
+import { fetchWithRetry } from '../_shared/retry-with-backoff.ts';
 
 const FETCH_TIMEOUT_MS = 15_000;
 
@@ -252,7 +253,7 @@ async function sendEmail(
   if (!to) return { ok: false, error: 'email sem destinatário no config (to/email/email_addresses)' };
 
   try {
-    const res = await fetch('https://api.resend.com/emails', {
+    const res = await fetchWithRetry('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -264,7 +265,9 @@ async function sendEmail(
         subject,
         html,
       }),
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    }, {
+      timeoutMs: FETCH_TIMEOUT_MS,
+      label: 'Resend',
     });
     const body = await res.text();
     if (!res.ok) return { ok: false, error: `Resend HTTP ${res.status}: ${body.slice(0, 300)}` };

@@ -6,7 +6,12 @@
  *
  * Falha SEMPRE explícita (nunca silenciosa): o chamador decide o que fazer
  * (rollback, fallback manual, 502/503).
+ *
+ * Retry 2x (backoff 300ms→600ms, full jitter) em 408/429/5xx/timeout/rede via
+ * fetchWithRetry — falha transiente deixa de ser perda silenciosa. 4xx de
+ * contrato nunca é retentado.
  */
+import { fetchWithRetry } from "./retry-with-backoff.ts";
 export interface ResendSuccess {
   ok: true;
   messageId: string;
@@ -46,7 +51,7 @@ export async function sendTransactionalEmail(
 
   let res: Response;
   try {
-    res = await fetch(RESEND_API, {
+    res = await fetchWithRetry(RESEND_API, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -58,7 +63,9 @@ export async function sendTransactionalEmail(
         subject,
         html,
       }),
-      signal: AbortSignal.timeout(15_000),
+    }, {
+      timeoutMs: 15_000,
+      label: "Resend",
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Resend network error";

@@ -3,6 +3,7 @@ import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { fetchWithRetry } from "../_shared/retry-with-backoff.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -123,7 +124,7 @@ Deno.serve(async (req) => {
               </body>
               </html>`;
 
-            const emailRes = await fetch("https://api.resend.com/emails", {
+            const emailRes = await fetchWithRetry("https://api.resend.com/emails", {
               method: "POST",
               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${RESEND_API_KEY}` },
               body: JSON.stringify({
@@ -132,7 +133,9 @@ Deno.serve(async (req) => {
                 subject: "🔐 Novo dispositivo detectado na sua conta",
                 html: emailHtml,
               }),
-              signal: AbortSignal.timeout(15_000),
+            }, {
+              timeoutMs: 15_000,
+              label: "Resend",
             });
             if (!emailRes.ok) {
               log.warn("Security email failed to send", { status: emailRes.status });

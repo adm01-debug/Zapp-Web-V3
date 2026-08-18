@@ -44,6 +44,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 import { getSecret } from '../_shared/vault.ts';
+import { fetchWithRetry } from '../_shared/retry-with-backoff.ts';
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -305,9 +306,11 @@ async function sendEmail(
   // envio (barata, <100ms) — dispensa novo deploy quando o DNS for verificado.
   let from = 'Promo Brindes <on@resend.dev>';
   try {
-    const domRes = await fetch('https://api.resend.com/domains', {
+    const domRes = await fetchWithRetry('https://api.resend.com/domains', {
       headers: { Authorization: `Bearer ${resendKey}` },
-      signal: AbortSignal.timeout(5_000),
+    }, {
+      timeoutMs: 5_000,
+      label: 'Resend',
     });
     if (domRes.ok) {
       const domBody = await domRes.json() as { data?: Array<{ name?: string; status?: string }> };
@@ -327,14 +330,16 @@ async function sendEmail(
   if (!html) return { ok: false, error: 'email sem conteúdo (html/message)' };
 
   try {
-    const res = await fetch('https://api.resend.com/emails', {
+    const res = await fetchWithRetry('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${resendKey}`,
       },
       body: JSON.stringify({ from, to, subject, html }),
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    }, {
+      timeoutMs: FETCH_TIMEOUT_MS,
+      label: 'Resend',
     });
     const body = await res.text();
     if (!res.ok) {

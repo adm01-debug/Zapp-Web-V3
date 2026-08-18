@@ -13,6 +13,7 @@ import { requireUser } from '../_shared/auth.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { createZappAdminClient } from '../_shared/db-client.ts';
+import { fetchWithRetry } from '../_shared/retry-with-backoff.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
@@ -118,11 +119,13 @@ Deno.serve(async (req) => {
 
       const rawEmail = buildMime({ to: toArray, cc: ccArray, bcc: bccArray, subject, bodyHtml: bodyHtmlOut, bodyPlain, attachments: attachmentsArray, threadId });
 
-      const sendRes = await fetch(`${GMAIL_API}/messages/send`, {
+      const sendRes = await fetchWithRetry(`${GMAIL_API}/messages/send`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ raw: rawEmail, ...(threadId ? { threadId } : {}) }),
-        signal: AbortSignal.timeout(15_000),
+      }, {
+        timeoutMs: 15_000,
+        label: 'Gmail',
       });
 
       if (!sendRes.ok) {
@@ -222,14 +225,16 @@ Deno.serve(async (req) => {
 
       const failures: string[] = [];
       for (const msgId of messageIds) {
-        const gmailRes = await fetch(`${GMAIL_API}/messages/${msgId}/modify`, {
+        const gmailRes = await fetchWithRetry(`${GMAIL_API}/messages/${msgId}/modify`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(read
             ? { removeLabelIds: ['UNREAD'] }
             : { addLabelIds: ['UNREAD'] }
           ),
-          signal: AbortSignal.timeout(10_000),
+        }, {
+          timeoutMs: 10_000,
+          label: 'Gmail',
         });
         if (!gmailRes.ok) { failures.push(msgId); continue; }
         await supabase.from('gmail_messages').update({ is_read: read }).eq('message_id', msgId).eq('account_id', accountId);
@@ -243,10 +248,12 @@ Deno.serve(async (req) => {
       const messageId = typeof body.messageId === 'string' ? body.messageId : '';
       if (!messageId) return json({ error: 'messageId obrigatório' }, 400);
 
-      const trashRes = await fetch(`${GMAIL_API}/messages/${messageId}/trash`, {
+      const trashRes = await fetchWithRetry(`${GMAIL_API}/messages/${messageId}/trash`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(10_000),
+      }, {
+        timeoutMs: 10_000,
+        label: 'Gmail',
       });
       if (!trashRes.ok) {
         let errorMsg = '';
@@ -278,11 +285,13 @@ Deno.serve(async (req) => {
       const removeValid = removeLabelIds.every(l => typeof l === 'string');
       if (!removeValid) return json({ error: 'removeLabelIds items must be strings' }, 400);
 
-      const res = await fetch(`${GMAIL_API}/messages/${messageId}/modify`, {
+      const res = await fetchWithRetry(`${GMAIL_API}/messages/${messageId}/modify`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ addLabelIds, removeLabelIds }),
-        signal: AbortSignal.timeout(10_000),
+      }, {
+        timeoutMs: 10_000,
+        label: 'Gmail',
       });
 
       if (!res.ok) {
@@ -337,18 +346,22 @@ Deno.serve(async (req) => {
 
       let res;
       if (draftId) {
-        res = await fetch(`${GMAIL_API}/drafts/${draftId}`, {
+        res = await fetchWithRetry(`${GMAIL_API}/drafts/${draftId}`, {
           method: 'PUT',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: draftBody,
-          signal: AbortSignal.timeout(15_000),
+        }, {
+          timeoutMs: 15_000,
+          label: 'Gmail',
         });
       } else {
-        res = await fetch(`${GMAIL_API}/drafts`, {
+        res = await fetchWithRetry(`${GMAIL_API}/drafts`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: draftBody,
-          signal: AbortSignal.timeout(15_000),
+        }, {
+          timeoutMs: 15_000,
+          label: 'Gmail',
         });
       }
 
@@ -384,10 +397,12 @@ Deno.serve(async (req) => {
       const draftId = typeof body.draftId === 'string' ? body.draftId : '';
       if (!draftId) return json({ error: 'draftId obrigatório' }, 400);
 
-      const deleteRes = await fetch(`${GMAIL_API}/drafts/${draftId}`, {
+      const deleteRes = await fetchWithRetry(`${GMAIL_API}/drafts/${draftId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(10_000),
+      }, {
+        timeoutMs: 10_000,
+        label: 'Gmail',
       });
       if (!deleteRes.ok && deleteRes.status !== 404) {
         return json({ error: `Gmail API error: ${deleteRes.status}` }, 502);
@@ -435,7 +450,7 @@ async function getValidToken(supabase: ReturnType<typeof createZappAdminClient>,
 
   let tokenRes;
   try {
-    tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    tokenRes = await fetchWithRetry('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -444,7 +459,9 @@ async function getValidToken(supabase: ReturnType<typeof createZappAdminClient>,
         client_secret: clientSecret,
         grant_type:    'refresh_token',
       }),
-      signal: AbortSignal.timeout(10_000),
+    }, {
+      timeoutMs: 10_000,
+      label: 'Gmail',
     });
   } catch (fetchErr) {
     console.error('[gmail-send] token refresh fetch failed', fetchErr instanceof Error ? fetchErr.message : String(fetchErr));
