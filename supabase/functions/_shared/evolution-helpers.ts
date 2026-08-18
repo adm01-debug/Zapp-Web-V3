@@ -61,6 +61,18 @@ export async function sha256Hex(input: string): Promise<string> {
 // Fire-and-forget como os INSERTs 'processed' existentes (index.ts:414/432).
 // Nunca lança; falha só loga. Campos null quando o descarte precede o parse.
 // deno-lint-ignore no-explicit-any
+/** Client p/ o ingest_ledger REAL (tabela evo; view public exposta no PostgREST).
+ * [FIX 2026-08-18] O client do caller é schema 'zapp' (PGRST106/400 no PostgREST);
+ * o INSERT via view public.ingest_ledger cai na tabela evo.ingest_ledger (updatable).
+ */
+export function createIngestLedgerClient(): any {
+  return createClient(
+    Deno.env.get("SELFHOSTED_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "public" } },
+  );
+}
+
 /** log Ledger Rejection function. */
 export function logLedgerRejection(
   supabase: any,
@@ -77,14 +89,7 @@ export function logLedgerRejection(
   },
 ): void {
   try {
-    // [FIX 2026-08-17] O client do caller é schema 'zapp' (PGRST106 no PostgREST).
-    // O ingest_ledger REAL é a view public (updatable, com reject_reason) — um
-    // client com schema 'public' resolve o INSERT corretamente.
-    const pub = createClient(
-      Deno.env.get("SELFHOSTED_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "public" } },
-    );
+    const pub = createIngestLedgerClient();
     pub.from('ingest_ledger').insert({
       instance_name: opts.instanceName,
       event_type: opts.eventType ?? null,
