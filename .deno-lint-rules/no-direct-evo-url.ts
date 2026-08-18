@@ -15,6 +15,9 @@ export default {
           return (
             filePath.includes("providers/evolution") ||
             filePath.includes("evolution-api-proxy") ||
+            // connection-health-check: testa a conectividade da URL real
+            // (o gateway nao faz sentido aqui — o proposito e medir a URL)
+            filePath.includes("connection-health-check") ||
             filePath.includes(".test.ts") ||
             filePath.includes("__tests__")
           );
