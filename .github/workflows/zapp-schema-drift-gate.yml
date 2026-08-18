@@ -3,7 +3,12 @@ name: zapp-schema-drift-gate
 on:
   schedule:
     - cron: '10 9 * * *'   # 06:10 America/Sao_Paulo (offset do gate evo)
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      regen:
+        description: 'Regenerar snapshot (commita resultado — use apenas quando migration nova foi aplicada)'
+        type: boolean
+        default: false
   pull_request:
     paths:
       - 'supabase/migrations/**'
@@ -13,11 +18,33 @@ on:
     paths:
       - 'supabase/migrations/**'
 
+permissions:
+  contents: write
+
 jobs:
   drift-check:
     runs-on: [Linux, X64, vps-zapp]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-      - name: Check drift zapp schema vs snapshot
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check drift zapp schema vs snapshot (ou regenera com REGEN=1)
+        env:
+          REGEN: ${{ github.event.inputs.regen == 'true' && '1' || '0' }}
         run: sh scripts/decouple/zapp-drift-check.sh
+
+      - name: Commit snapshot regenerado (somente quando REGEN=true)
+        if: github.event.inputs.regen == 'true'
+        run: |
+          git config user.email "ci-bot@atomicabr.com.br"
+          git config user.name "CI Bot [zapp-drift-regen]"
+          git add scripts/decouple/snapshots/zapp_schema_snapshot.sql
+          if git diff --staged --quiet; then
+            echo "Snapshot ja estava atualizado — nada a commitar."
+          else
+            git commit -m "fix(ci): regen zapp schema snapshot [skip ci]"
+            git push
+            echo "Snapshot regenerado e commitado."
+          fi

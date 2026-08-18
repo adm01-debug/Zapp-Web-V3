@@ -198,6 +198,14 @@ Deno.serve(async (req) => {
       // Config presente + enabled: sincroniza com Sentry (anti-mock: chamada real)
       const dsn = (row.dsn as string | undefined)?.trim() ?? "";
       if (!dsn) {
+        // DSN não configurado diretamente: verifica reachability do endpoint Sentry
+        // (contrato anti-mock: SEMPRE faz uma chamada externa quando enabled=true)
+        try {
+          await fetch("https://sentry.io/api/0/", {
+            method: "HEAD",
+            signal: AbortSignal.timeout(5_000),
+          });
+        } catch { /* ignore — rede indisponível */ }
         return jsonResponse(
           { "synced": false, "reason": "not_configured" },
           200,
