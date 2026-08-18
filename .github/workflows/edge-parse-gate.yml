@@ -1,17 +1,13 @@
 name: edge-parse-gate
 # Bloqueia merge (PR) e revalida no push (main) ANTES do deploy copiar codigo
-# que nao parseia. Mesmo escopo do parse-gate do edge-deploy.yml: bundle do
-# main/index.ts (deno bundle --check, cobre o grafo _shared transitivo) +
-# deno check dos _shared. Usa a MESMA imagem do runtime de producao.
+# que nao parseia. Cobre o grafo _shared transitivo via deno check.
 #
-# [FIX 2026-08-18] Root cause dos runs vermelhos ('could not find an
-# appropriate entrypoint'): os runners self-hosted vps-zapp sao containers
-# com /var/run/docker.sock compartilhado — bind mount de $GITHUB_WORKSPACE
-# resolve contra o filesystem do DAEMON (diretorio vazio), e o edge-runtime
-# nao encontra o entrypoint do main service. Fix: SEM bind mount — docker cp
-# transfere o codigo do workspace para o container via API (client-side,
-# imune a resolucao do daemon), com o container criado via --entrypoint
-# /bin/sh (a imagem nao boota com o entrypoint padrao para exec de comandos).
+# [FIX 2026-08-18 v2] Root cause dos runs vermelhos: a imagem supabase/edge-runtime
+# NAO carrega o CLI 'deno' (so o binario do runtime em Go) — portanto
+# 'deno bundle --check' e 'deno check' dentro do container falhavam com
+# "deno: not found" antes de qualquer verificacao real.
+# Fix: usa denoland/setup-deno (mesmo padrao do edge-deploy.yml e deno-contract-tests)
+# com deno check no main/index.ts (cobre o closure do boot inteiro, incluindo _shared).
 on:
   pull_request:
     branches: [main]
@@ -29,7 +25,7 @@ concurrency:
 
 jobs:
   edge-parse-gate:
-    name: Parse gate (edge-runtime v1.74.0)
+    name: Parse gate (deno check v2.x — closure do boot)
     runs-on: [Linux, X64, vps-zapp]
     timeout-minutes: 15
     steps:
@@ -37,25 +33,31 @@ jobs:
         with:
           persist-credentials: false
 
-      # Bundle do entrypoint main + TODAS as dependencias transitivas (_shared).
-      # Falha = codigo que o runtime nao consegue carregar (incidente 17/08).
-      # docker cp: codigo entra no container sem bind mount (client-side).
-      - name: Bundle do main/index.ts (cobre _shared transitivo)
-        run: |
-          set -euo pipefail
-          CID=$(docker create --rm --entrypoint /bin/sh supabase/edge-runtime:v1.74.0 \
-            -c 'cd /tmp/functions && deno bundle --check main/index.ts --output=/tmp/main.bundle.js')
-          trap 'docker rm -f "$CID" >/dev/null 2>&1 || true' EXIT
-          docker cp "$GITHUB_WORKSPACE/supabase/functions" "$CID:/tmp/functions"
-          docker start -a "$CID"
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
-      # Cobertura dos _shared (mesmas exclusoes do deploy-edge.sh P-13:
-      # __tests__/__fixtures__/*.test.ts/*.spec.ts nao vao a producao).
-      - name: Deno check dos _shared
+      # deno check resolve transitivamente todos os imports de _shared
+      # incluidos por main/index.ts — mesmo escopo do incidente 17/08.
+      - name: deno check do main/index.ts (cobre _shared transitivo)
         run: |
           set -euo pipefail
-          CID=$(docker create --rm --entrypoint /bin/sh supabase/edge-runtime:v1.74.0 \
-            -c 'cd /tmp/functions && deno check $(find _shared -type f -name "*.ts" ! -path "*/__tests__/*" ! -path "*/__fixtures__/*" ! -name "*.test.ts" ! -name "*.spec.ts")')
-          trap 'docker rm -f "$CID" >/dev/null 2>&1 || true' EXIT
-          docker cp "$GITHUB_WORKSPACE/supabase/functions" "$CID:/tmp/functions"
-          docker start -a "$CID"
+          cd supabase/functions
+          deno check main/index.ts
+
+      # Cobertura dos _shared nao importados pelo main
+      # (mesmas exclusoes do deploy-edge.sh P-13).
+      - name: deno check dos _shared (cobertura complementar)
+        run: |
+          set -euo pipefail
+          cd supabase/functions
+          FILES=$(find _shared -type f -name '*.ts' \
+            ! -path '*/__tests__/*' \
+            ! -path '*/__fixtures__/*' \
+            ! -name '*.test.ts' \
+            ! -name '*.spec.ts')
+          if [ -z "$FILES" ]; then
+            echo "Nenhum arquivo _shared encontrado — skip."
+            exit 0
+          fi
+          echo "$FILES" | xargs deno check

@@ -160,7 +160,7 @@ jobs:
                 RAISE NOTICE 'All expected schemas present. v';
               END IF;
             END;
-            $;
+            $$;
           PSQLEOF
 
       - name: Stop Postgres container
