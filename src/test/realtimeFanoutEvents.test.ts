@@ -53,6 +53,8 @@ function parseDiagramEdges(): Record<string, Set<Evt>> {
 // dentro de um arquivo e extrai o `event:` de cada um.
 // A tabela pode ser referenciada como literal (`table: 'messages'`) ou via o
 // helper do datasource (`table: dbTable('messages')`), ambos aceitos aqui.
+// Fanout v2: `realtime_message_fanout` (espelho não-particionado) também conta
+// como canal de mensagens — Realtime v2 não entrega partições.
 function parseFileEvents(absPath: string): Set<Evt> {
   const src = readFileSync(absPath, 'utf8');
   const blockRe = /\.on\(\s*['"]postgres_changes['"]\s*,\s*\{([\s\S]*?)\}\s*,/g;
@@ -61,7 +63,7 @@ function parseFileEvents(absPath: string): Set<Evt> {
   while ((m = blockRe.exec(src)) !== null) {
     const body = m[1];
     if (
-      !/table:\s*(?:['"](?:messages|evolution_messages)['"]|dbTable\(\s*['"](?:messages|evolution_messages)['"]\s*\))/.test(
+      !/table:\s*(?:['"](?:messages|evolution_messages|realtime_message_fanout)['"]|dbTable\(\s*['"](?:messages|evolution_messages|realtime_message_fanout)['"]\s*\))/.test(
         body
       )
     )
