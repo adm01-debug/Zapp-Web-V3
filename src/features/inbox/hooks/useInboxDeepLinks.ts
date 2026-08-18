@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getLogger } from '@/lib/logger';
 
@@ -13,6 +13,12 @@ interface DeepLinkHandlers {
 export function useInboxDeepLinks({ setPendingContactId, setPendingMessageId }: DeepLinkHandlers) {
   const [searchParams] = useSearchParams();
 
+  // E40.5: consumed-once guard — o efeito pode re-executar com os MESMOS params
+  // (StrictMode 18 double-invoke, ou callbacks do consumidor com identidade
+  // instável). Re-consumir reabriria a conversa / re-destacaria a mensagem.
+  const consumedContactRef = useRef<string | null>(null);
+  const consumedMessageRef = useRef<string | null>(null);
+
   useEffect(() => {
     const appWindow = window as Window & {
       __pendingOpenContactId?: string;
@@ -22,12 +28,14 @@ export function useInboxDeepLinks({ setPendingContactId, setPendingMessageId }: 
     const urlContact = searchParams.get('contact');
     const urlMessage = searchParams.get('message');
 
-    if (urlContact?.trim()) {
+    if (urlContact?.trim() && consumedContactRef.current !== urlContact.trim()) {
+      consumedContactRef.current = urlContact.trim();
       log.info('Deep-link: found pending contact', { contactId: urlContact.trim() });
       setPendingContactId(urlContact.trim());
     }
 
-    if (urlMessage?.trim()) {
+    if (urlMessage?.trim() && consumedMessageRef.current !== urlMessage.trim()) {
+      consumedMessageRef.current = urlMessage.trim();
       log.info('Deep-link: found pending message highlight', { messageId: urlMessage.trim() });
       setPendingMessageId(urlMessage.trim());
     }

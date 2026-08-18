@@ -590,7 +590,7 @@ Arquivos externos a `src/features/inbox/hooks/` que importam diretamente:
 | `useAuditLogMutation.ts` | COMPLETA | `logAuditEvent()` — NÃO é hook React; fire-and-forget |
 | `useAuxiliaryMessageLog.ts` | PARCIAL | `insertAuxMessage()`; UUID → insert zapp.messages; JID → skip |
 | `useCalls.ts` | PARCIAL | CRUD em `calls`; AbortController; Call/StartCallParams |
-| `useChatAutoScroll.ts` | PARCIAL | threshold=150px; scroll only quando user near bottom |
+| `useChatAutoScroll.ts` | PARCIAL | threshold=150px relativo ao fim; posição inicial computada no bind (E40); coberto por `useChatAutoScroll.test.ts` |
 | `useChatMediaSending.ts` | PARCIAL | Stickers/emojis/audio memes via Evolution API; usa insertAuxMessage |
 | `useChatSearch.ts` | PARCIAL | Full-text + accent normalization; DatePreset enum; URL_REGEX |
 | `useContactDetailStats.ts` | PARCIAL | Derivado de caches compartilhados; CSAT com query própria; BUG-2026-08-06 N+1 fix |
@@ -607,15 +607,17 @@ Arquivos externos a `src/features/inbox/hooks/` que importam diretamente:
 | `useFallbackContact.ts` | PARCIAL | UUID→contacts.id ou JID→contacts.phone→evolution_contacts |
 | `useInboxBulkActions.ts` | PARCIAL | Selection state + bulk ops; useUndoableAction |
 | `useInboxDataQueries.ts` | PARCIAL | `inbox_custom_scopes` + `contact_tags`; CHUNK_SIZE=500 |
-| `useInboxDeepLinks.ts` | PARCIAL | URL params `?contact=`/`?message=`; `window.__pendingOpenContactId` |
+| `useInboxDeepLinks.ts` | PARCIAL | URL params `?contact=`/`?message=`; `window.__pendingOpenContactId`; consumo único com guard (E40); coberto por `useInboxDeepLinks.test.ts` |
 | `useInboxFilters.ts` | PARCIAL | Pipeline de filtros; STORAGE_KEY='inbox_filters_v1'; preset sync |
 | `useInboxHeartbeat.ts` | PARCIAL | THROTTLE_MS=240s; profiles.online_status + last_seen |
 | `useInboxShortcuts.ts` | PARCIAL | react-hotkeys-hook; atalhos de teclado |
 | `useInboxSource.ts` | COMPLETA | Dual-path zapp×evo por configuração (VITE_INBOX_SOURCE_MODE: evo/zapp/auto+fallback telemetrado) — ADR `docs/adr/dual-path-inbox.md`; testado em `__tests__/useInboxSource.test.tsx` (E36) |
+| `useInboxShortcuts.ts` | PARCIAL | react-hotkeys-hook; atalhos de teclado; '/' com useKey (E40, bug do code 'Slash'); coberto por `useInboxShortcuts.test.ts` |
+| `useInboxSource.ts` | PARCIAL | Wraps useRealtimeMessages + useMessages; interface unificada |
 | `useInboxStatusPref.ts` | COMPLETA | localStorage; STORAGE_KEY='inbox-status-label-visible'; custom DOM event |
 | `useIncomingCallBroadcast.ts` | COMPLETA | Canal broadcast `incoming-calls:{instance}`; guard @broadcast |
 | `useMediaRefresh.ts` | PARCIAL | No-op wrapper sobre useMediaUrl; propagates messageType |
-| `useMediaUrl.ts` | PARCIAL | Auto-refresh URLs expiradas; max 2 tentativas; toast anti-flood |
+| `useMediaUrl.ts` | PARCIAL | Auto-refresh URLs expiradas; max 2 tentativas (persistem entre montagens); toast anti-flood; AbortSignal no invoke (E39); rate-limit 30s por messageId; signed URL 1h renovada por onError; buckets públicos sem refresh |
 | `useMentionableProfilesData.ts` | COMPLETA | `fetchMentionableProfiles` — NÃO hook |
 | `useMessageDetails.ts` | COMPLETA | `rpc_get_message_details`; staleTime=5min, gcTime=10min |
 | `useMessageQueue.ts` | PARCIAL | Queue + retry; maxRetries=3; baseDelay=1s; maxDelay=30s; MAX_CONCURRENT=5 |

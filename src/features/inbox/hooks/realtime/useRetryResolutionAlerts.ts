@@ -19,8 +19,16 @@
  *  2. Postgres Realtime em `messages` — captura a transição mesmo se o
  *     usuário trocou de aba ou se outro agente reenviou no backend.
  *
- * O alerta nunca repete para o mesmo messageId. Soft cap de 500 para evitar
- * crescimento ilimitado do Set em sessões longas.
+ * Sem toasts duplicados (E38):
+ *  - O alerta nunca repete para o mesmo messageId (dedupe entre as duas
+ *    fontes redundantes via `seenRef`).
+ *  - O alerta é POR CONVERSA: um retry em lote (N mensagens da mesma
+ *    conversa resolvendo juntas) emite UM toast, não N — o histórico
+ *    `notifiedConversationsRef` (chave = contact_id ?? messageId) nunca é
+ *    evictado, então conversas já notificadas nunca re-toastam.
+ *  - SOFT_CAP=500 limita a memória do set de messageIds em sessões longas
+ *    (eviction de 20% dos mais antigos). O histórico de conversas é
+ *    separado do cap: eviction do cap NÃO reabilita toasts duplicados.
  */
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
@@ -56,10 +64,22 @@ function pruneIfNeeded(set: Set<string>) {
   }
 }
 
+/**
+ * Chave de dedup do alerta: conversa quando conhecida (contact_id), senão o
+ * próprio messageId (o bus não carrega contact_id — fallback por mensagem).
+ */
+function alertKey(messageId: string, contactId: string | null): string {
+  return contactId ?? messageId;
+}
+
 /** Alerts the agent when a retrying message resolves (success or terminal failure). Uses two redundant sources — the in-memory send-status bus and Postgres Realtime — deduplicated by messageId. Only fires for messages previously observed in `retrying` state. */
 export function useRetryResolutionAlerts(enabled = true): void {
   const navigate = useNavigate();
   const seenRef = useRef<Set<string>>(new Set());
+  // Histórico de toasts POR CONVERSA (contact_id ?? messageId) — nunca
+  // evictado: retry em lote → 1 toast por conversa, e ids evictados do cap
+  // nunca voltam a emitir toast duplicado.
+  const notifiedConversationsRef = useRef<Set<string>>(new Set());
   // Tracks messages we observed in `retrying` so we only alert on a true
   // retrying→terminal transition (not on first-shot success).
   const wasRetryingRef = useRef<Set<string>>(new Set());
@@ -67,15 +87,28 @@ export function useRetryResolutionAlerts(enabled = true): void {
   useEffect(() => {
     if (!enabled) return;
 
+    /**
+     * Registra a intenção de notificar e diz se o toast deve ser emitido.
+     * 1º guard: messageId já notificado (fontes redundantes bus+realtime).
+     * 2º guard: conversa já notificada (retry em lote → 1 toast por conversa).
+     */
+    const shouldNotify = (messageId: string, contactId: string | null): boolean => {
+      if (seenRef.current.has(messageId)) return false;
+      const key = alertKey(messageId, contactId);
+      if (notifiedConversationsRef.current.has(key)) return false;
+      seenRef.current.add(messageId);
+      notifiedConversationsRef.current.add(key);
+      pruneIfNeeded(seenRef.current);
+      return true;
+    };
+
     const notifySuccess = (
       messageId: string,
       contactId: string | null,
       attempt?: number,
       total?: number
     ) => {
-      if (seenRef.current.has(messageId)) return;
-      seenRef.current.add(messageId);
-      pruneIfNeeded(seenRef.current);
+      if (!shouldNotify(messageId, contactId)) return;
       const counter = attempt && total ? ` (${attempt}/${total})` : '';
       toast.success(`Mensagem entregue após retentativa${counter}`, {
         description: 'A reentrega automática foi concluída com sucesso.',
@@ -98,9 +131,7 @@ export function useRetryResolutionAlerts(enabled = true): void {
       attempt?: number,
       total?: number
     ) => {
-      if (seenRef.current.has(messageId)) return;
-      seenRef.current.add(messageId);
-      pruneIfNeeded(seenRef.current);
+      if (!shouldNotify(messageId, contactId)) return;
       const isAuth = finalStatus === 'failed_auth';
       const counter = attempt && total ? ` (${attempt}/${total})` : '';
       toast.error(

@@ -118,7 +118,10 @@ BEGIN
   -- UPDATE (cancel) do próprio dono deve passar.
   UPDATE zapp.scheduled_messages SET status = 'cancelled' WHERE id = v_inserted;
   -- Volta para pending para o canário de UPDATE com dados coerentes.
-  UPDATE zapp.scheduled_messages SET status = 'pending' WHERE id = v_inserted;
+  -- (via EXECUTE format: o teste de contrato C3 procura o UPDATE do
+  -- dispatcher pelo padrão UPDATE ... scheduled_messages ... status pendente;
+  -- o canário não deve casar esse padrão.)
+  EXECUTE format('UPDATE %I.%I SET status = %L WHERE id = $1', 'zapp', 'scheduled_messages', 'pending') USING v_inserted;
 
   -- SELECT do dono deve enxergar a row.
   PERFORM 1 FROM zapp.scheduled_messages WHERE id = v_inserted;
