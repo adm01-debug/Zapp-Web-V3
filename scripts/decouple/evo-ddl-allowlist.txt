@@ -22,7 +22,6 @@
 20260816090000_drop_dead_functions_zapp_evo.sql
 20260816260007_fix_views_security_invoker_restantes.sql
 20260817130000_webhook_events_authenticated_read_admin_only.sql
-20260808280000_fix_security_definer_evo_fns_anon_access.sql
 20260817000000_p23_ingest_ledger_rejected.sql
 20260818120000_regularize_public_ingest_ledger_view.sql | regularização da view public.ingest_ledger (PG14-HARDENING 18/08 — espelho do evo.ingest_ledger usado pela edge; migration de regularização de DDL manual existente)
 20260818210102_fix_perf_rpc_list_messages_lite_or_generic.sql | zapp.rpc_list_messages_lite retorna SETOF evo.evolution_messages — referencia de tipo, nao DDL no schema evo
