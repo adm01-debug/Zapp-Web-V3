@@ -47,4 +47,10 @@ $fn$;
 REVOKE EXECUTE ON FUNCTION zapp.rpc_dismiss_warroom_alert(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION zapp.rpc_dismiss_warroom_alert(uuid) TO authenticated;
 
+-- [Achado validação 2026-08-18] Grant blanket pré-existente (EXECUTE em ALL
+-- FUNCTIONS p/ authenticated) anulava o REVOKE PUBLIC do dispatcher: qualquer
+-- autenticado conseguia executar fn_dispatch_scheduled_messages() (marcar
+-- agendadas como enviadas + RETURNING * vaza conteúdo). REVOKE direto:
+REVOKE EXECUTE ON FUNCTION zapp.fn_dispatch_scheduled_messages() FROM authenticated;
+
 COMMIT;
