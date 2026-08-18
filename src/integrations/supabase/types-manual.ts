@@ -63,6 +63,7 @@ export type ManualZappFunctions = {
   rpc_latest_contact_analysis: {
     Args: { p_contact_id: string };
     Returns: Json;
+  };
   // Etapa 66 (migration 20260817190000) — métricas reais de dashboard.
   // Assinaturas espelham o RETURNS TABLE das RPCs; entram no types.ts gerado
   // quando gen-types-zapp.mjs rodar com META_URL/META_TOKEN apontando para a VPS.
