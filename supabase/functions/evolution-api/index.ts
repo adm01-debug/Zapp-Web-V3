@@ -103,6 +103,27 @@ Deno.serve(async (req) => {
       const sendRl = checkRateLimit(`evolution-send:${instance}`, SEND_PER_INSTANCE_PER_MIN, 60_000);
       if (!sendRl.allowed) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 429, code: 'INSTANCE_RATE_LIMIT', details: [{ path: 'instance', message: 'Limite de envios por instância atingido (minuto). Tente novamente em instantes.' }] }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '30' } });
     }
+    // [R1-EXT/F1] Fail-closed compartilhado: prova de acesso à conversa antes do
+    // proxy (padrão #1240 — lookup evolution_contacts + RPCs de visibilidade).
+    const conversationForbidden = (actionCode: string) => new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 403, code: actionCode, message: 'Você não tem acesso a esta conversa.', details: [{ path: 'remoteJid', message: 'Acesso negado: conversa não visível ao usuário' }] }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const assertConversationAccess = async (remoteJid: unknown, actionCode: string): Promise<Response | null> => {
+      if (typeof remoteJid !== 'string' || !remoteJid.trim()) return conversationForbidden(actionCode);
+      const { data: contato } = await supabase
+        .from('evolution_contacts')
+        .select('id')
+        .eq('remote_jid', remoteJid)
+        .eq('instance_name', instance)
+        .eq('deleted_at', null)
+        .maybeSingle();
+      if (!contato) return conversationForbidden(actionCode);
+      const [{ data: visivel }, { data: naFila }, { data: isAdmin }] = await Promise.all([
+        supabase.rpc('is_contact_visible_to_user', { _contact_id: contato.id, _user_id: authedUser.id }),
+        supabase.rpc('is_queue_member_of_contact', { _contact_id: contato.id, _user_id: authedUser.id }),
+        supabase.rpc('is_admin_or_supervisor', { _user_id: authedUser.id }),
+      ]);
+      if (!(visivel || naFila || isAdmin)) return conversationForbidden(actionCode);
+      return null;
+    };
     if (action === 'read-messages') {
       const jsonBody = ensureBodyIsRecord(body);
       const remoteJid = safeGet(jsonBody, 'remoteJid', false) || safeGet(jsonBody, 'chat', false);
@@ -135,7 +156,12 @@ Deno.serve(async (req) => {
     if (action === 'send-status') return await proxy(`/message/sendStatus/${instance}`, 'POST', body);
     if (action === 'send-template') return await proxy(`/message/sendTemplate/${instance}`, 'POST', body);
     if (action === 'find-chats') return await proxy(`/chat/findChats/${instance}`, 'POST', body);
-    if (action === 'find-messages') return await proxy(`/chat/findMessages/${instance}`, 'POST', body);
+    if (action === 'find-messages') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertConversationAccess(safeGetAny(jb, 'remoteJid', isMultipart), 'FIND_MESSAGES_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/chat/findMessages/${instance}`, 'POST', body);
+    }
     if (action === 'find-contacts') return await proxy(`/chat/findContacts/${instance}`, 'POST', body);
     if (action === 'check-numbers') return await proxy(`/chat/whatsappNumbers/${instance}`, 'POST', body);
     // ── Status/Stories (F4-08): find-status-messages + send-chat-presence (P1-09 reconciliação)
@@ -179,7 +205,12 @@ Deno.serve(async (req) => {
     if (action === 'get-settings') return await proxy(`/settings/find/${instance}`, 'GET');
     if (action === 'set-webhook') return await proxy(`/webhook/set/${instance}`, 'POST', body);
     if (action === 'get-webhook') return await proxy(`/webhook/find/${instance}`, 'GET');
-    if (action === 'delete-message') return await proxy(`/message/delete/${instance}`, 'DELETE', body);
+    if (action === 'delete-message') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertConversationAccess(safeGetAny(jb, 'remoteJid', isMultipart), 'DELETE_MESSAGE_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/message/delete/${instance}`, 'DELETE', body);
+    }
     if (action === 'archive-chat') return await proxy(`/message/archiveChat/${instance}`, 'POST', body);
     if (action === 'get-media-base64') {
       const jb = ensureBodyIsRecord(body);
