@@ -145,6 +145,7 @@ export const EDGE_FUNCTION_NAMES = [
   'webhook-diagnostic',
   'webhook-hmac-selftest',
   'webhook-secret-status',
+  'warroom-monthly-test',
   'whatsapp-cloud-api',
   'whatsapp-cloud-secrets-status',
   'whatsapp-cloud-send',
@@ -158,6 +159,7 @@ export const EDGE_FUNCTION_NAMES = [
   'zapp-google-calendar-sync',
   'zapp-get-sip-credentials',
   'zapp-crm-sync',
+  'zapp-notifications-dispatch',
 ] as const;
 
 const JsonValueSchema: z.ZodType<unknown> = z.lazy(() =>
@@ -332,6 +334,25 @@ const specificEdgeFunctionSchemas: Record<string, ContractVersionMap> = {
         dryRun: z.boolean().optional(),
       })
       .strict(),
+  },
+  // DASHBOARD-08 — executor de notificações (espelho do CONTRACT_SCHEMAS).
+  'zapp-notifications-dispatch': {
+    v1: z
+      .object({
+        event_type: z.enum(['conversation_mentioned', 'new_message', 'sla_breach']).optional(),
+        conversation_id: z.string().uuid().optional(),
+        workspace_id: z.string().uuid().optional(),
+        severity: z.enum(['info', 'warning', 'critical']).optional(),
+        title: z.string().max(500).optional(),
+        message: z.string().max(5000).optional(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
+      })
+      .strict(),
+  },
+  // warroom-monthly-test (#1175): POST-only, body IGNORADO por design (payload
+  // fixo de saída) — schema permissivo apenas para cobertura do registro.
+  'warroom-monthly-test': {
+    v1: z.object({}).passthrough(),
   },
   'detect-new-device': {
     v1: z

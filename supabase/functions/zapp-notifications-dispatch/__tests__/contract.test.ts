@@ -32,18 +32,30 @@
 //       req, raw, { extraHeaders }) → 422 envelope canônico em body inválido.
 //       Registrar a chave em _shared/contract-schemas.ts E contract-versions.ts.
 //
-// COMPORTAMENTO (3 cenários contratuais):
+// COMPORTAMENTO (4 cenários contratuais):
 // 1. SEM preferências ativas → NO-OP sem erro:
 //    `notification_channels_config` com `enabled = true` → 0 linhas (ou nenhuma
-//    casa o workspace/severidade) → 200 { noop: true, dispatched: 0, failed: 0 },
-//    ZERO chamadas ao gateway de envio, sem erro.
+//    casa o workspace/severidade) → 200, dispatched: 0, failed: 0, ZERO
+//    chamadas ao gateway de envio, sem erro. (Nota: a edge responde
+//    { noop: false } para evento real com 0 canais — o flag noop marca
+//    heartbeat/cron, não é parte do contrato de no-op; o que importa é 200 +
+//    zero envios.)
 // 2. EVENTO mencionou conversa + canal ativo → ENVIA via gateway do canal
 //    (fetch para a URL do config do canal) → 200 { noop: false, dispatched: 1,
-//    failed: 0 }; payload do gateway contém conversation_id/message.
+//    failed: 0 }; payload do gateway contém conversation_id/message. Vale para
+//    `conversation_mentioned` e `new_message` (enum do contrato).
 // 3. ERRO DE ENVIO (gateway 5xx/throw) → REGISTRADO, não crasha:
 //    erro persistido (UPDATE do canal com colunas de estado `last_sent_at`/
 //    `error`, Etapa 68.3) → 200 { noop: false, dispatched: 0, failed: 1,
 //    error: "..." } — NUNCA 5xx.
+// 4. DEDUP POR EVENTO (Etapa 68.9 "dedup de eventos com payload repetido"):
+//    o mesmo evento (payload idêntico) postado 2x → SÓ a 1ª entrega chama o
+//    gateway; a 2ª responde 200 sem chamar o gateway de novo. Mecanismo da
+//    edge: claim INSERT-first em `zapp.notification_delivery_log` com UNIQUE
+//    (event_key, channel_id) — event_key = `${event_type}|${workspace_id}|
+//    ${conversation_id}` (migration 20260817270000); conflito 23505 =>
+//    duplicata => skip (dedup real, sobrevive a restarts). Falha do log =
+//    fail-open com warn (nunca bloqueia envio).
 //
 // Rodar (idêntico ao CI): deno test --allow-net --allow-env --allow-read
 //   supabase/functions/zapp-notifications-dispatch/__tests__/contract.test.ts
@@ -104,6 +116,20 @@ Deno.test("A7 contrato fonte: chave registrada em CONTRACT_SCHEMAS + CONTRACT_VE
   assertMatch(versions, /['"]zapp-notifications-dispatch['"]\s*:/);
 });
 
+Deno.test("A8 contrato fonte: dedup por evento — claim INSERT-first em notification_delivery_log (UNIQUE event_key+channel_id)", async () => {
+  const src = await sourceOrThrow();
+  // Dedup atômico por evento+canal: INSERT-first em zapp.notification_delivery_log
+  // (migration 20260817270000 cria UNIQUE(event_key, channel_id)); conflito
+  // 23505 => duplicata => skip do envio (dedup real, sobrevive a restarts).
+  assertMatch(src, /notification_delivery_log/);
+  assertMatch(src, /eventKey\(/);
+  assertMatch(src, /claimDelivery\(/);
+  assertMatch(src, /onConflict/);
+  // Guard invertido: isNew = true (1ª vez) → envia; duplicata (!isNew) → skip.
+  assertMatch(src, /!isNew/);
+  assertMatch(src, /23505/);
+});
+
 // ---------------------------------------------------------------------------
 // Bloco B — COMPORTAMENTO via Deno.serve stub + fetch mock (sem rede/DB)
 // Padrão whatsapp-cloud-webhook-mock.test.ts: stub do serve ANTES do import
@@ -128,6 +154,10 @@ for (const [k, v] of Object.entries({
 const J = { "content-type": "application/json" };
 const gatewayCalls: Array<{ url: string; body: unknown }> = [];
 const stateUpdates: Array<{ body: unknown }> = [];
+// Dedup insert-first (zapp.notification_delivery_log, UNIQUE event_key+channel_id):
+// 1º insert => 201 (novo); repetição do mesmo (event_key, channel_id) => 409 code
+// 23505 (sem Prefer resolution=ignore-duplicates, o PostgREST real conflita com 409).
+const deliveryClaims = new Map<string, number>();
 let channels: unknown[] = [];
 let gatewayStatus = 200;
 
@@ -135,6 +165,18 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const u = new URL(String(input));
   const b = init?.body ? JSON.parse(String(init.body)) : null;
   if (u.pathname.startsWith("/rest/v1")) {
+    if (u.pathname.endsWith("/notification_delivery_log") && (init?.method ?? "GET") === "POST") {
+      const k = `${b?.event_key}|${b?.channel_id}`;
+      const n = deliveryClaims.get(k) ?? 0;
+      deliveryClaims.set(k, n + 1);
+      if (n > 0) {
+        return new Response(
+          JSON.stringify({ code: "23505", message: "duplicate key value violates unique constraint" }),
+          { status: 409, headers: J },
+        );
+      }
+      return new Response("[]", { status: 201, headers: J });
+    }
     if (u.pathname.endsWith("/notification_channels_config") && (init?.method ?? "GET") === "GET") {
       return new Response(JSON.stringify(channels), { headers: J });
     }
@@ -190,12 +232,16 @@ Deno.test("B1 sem preferências ativas → no-op sem erro (200, zero envios)", a
   gatewayStatus = 200;
   gatewayCalls.length = 0;
   stateUpdates.length = 0;
+  deliveryClaims.clear();
   const res = await post(event(CONV));
   assertEquals(res.status, 200, "no-op deve responder 200, nunca 5xx");
   const body = await res.json() as Record<string, unknown>;
-  assertEquals(body.noop, true);
+  // Flag `noop` marca heartbeat/cron na edge (evento real com 0 canais vem
+  // noop:false) — o contrato de no-op é: 200, zero envios, zero erros.
+  assert(typeof body.noop === "boolean", "resposta deve carregar o flag noop");
   assertEquals(body.dispatched, 0);
   assertEquals(body.failed, 0);
+  assertEquals(body.error, undefined, "no-op não pode carregar erro");
   assertEquals(gatewayCalls.length, 0, "sem preferências ativas não pode chamar gateway");
 });
 
@@ -205,6 +251,7 @@ Deno.test("B2 evento mencionou conversa → envia via canal ativo (mock gateway)
   gatewayStatus = 200;
   gatewayCalls.length = 0;
   stateUpdates.length = 0;
+  deliveryClaims.clear();
   const res = await post(event(CONV));
   assertEquals(res.status, 200);
   const body = await res.json() as Record<string, unknown>;
@@ -214,16 +261,59 @@ Deno.test("B2 evento mencionou conversa → envia via canal ativo (mock gateway)
   assert(sent.conversation_id === CONV, "payload do gateway deve carregar a conversa mencionada");
 });
 
+Deno.test("B2b evento new_message → envia via canal ativo (mesmo contrato)", async () => {
+  mustExist();
+  channels = [activeChannel];
+  gatewayStatus = 200;
+  gatewayCalls.length = 0;
+  stateUpdates.length = 0;
+  deliveryClaims.clear();
+  const res = await post({ ...event(CONV), event_type: "new_message", message: "Nova mensagem na conversa" });
+  assertEquals(res.status, 200);
+  const body = await res.json() as Record<string, unknown>;
+  assertEquals(body.dispatched, 1, "evento new_message com canal ativo deve enviar");
+  assertEquals(gatewayCalls.length, 1);
+  const sent = gatewayCalls[0].body as Record<string, unknown>;
+  assert(sent.conversation_id === CONV, "payload do gateway deve carregar a conversa do new_message");
+});
+
 Deno.test("B3 erro de envio → registrado, não crasha (200 + failed + estado persistido)", async () => {
   mustExist();
   channels = [activeChannel];
   gatewayStatus = 500;
   gatewayCalls.length = 0;
   stateUpdates.length = 0;
+  deliveryClaims.clear();
   const res = await post(event(CONV));
   assertEquals(res.status, 200, "erro de envio não pode derrubar o handler (sem 5xx)");
   const body = await res.json() as Record<string, unknown>;
   assertEquals(body.failed, 1);
   assertEquals(body.dispatched, 0);
   assertEquals(stateUpdates.length, 1, "erro deve ser registrado no estado do canal (last_sent_at/error)");
+});
+
+Deno.test("B4 dedup por evento: payload repetido → 1 envio só (2ª entrega noop, sem gateway)", async () => {
+  mustExist();
+  channels = [activeChannel];
+  gatewayStatus = 200;
+  gatewayCalls.length = 0;
+  stateUpdates.length = 0;
+  deliveryClaims.clear();
+  const ev = event(CONV);
+  const first = await post(ev);
+  assertEquals(first.status, 200);
+  const firstBody = await first.json() as Record<string, unknown>;
+  assertEquals(firstBody.dispatched, 1, "primeira entrega do evento deve despachar");
+  assertEquals(gatewayCalls.length, 1, "primeira entrega deve chamar o gateway exatamente 1x");
+  const second = await post(ev);
+  assertEquals(second.status, 200, "payload repetido deve responder 200, nunca 5xx");
+  const secondBody = await second.json() as Record<string, unknown>;
+  // `noop` marca heartbeat/cron na edge — duplicata é evento real processado
+  // sem envio (noop:false, dispatched: 0, failed: 0); o contrato de dedup é
+  // NÃO chamar o gateway de novo.
+  assert(typeof secondBody.noop === "boolean", "duplicata deve carregar o flag noop");
+  assertEquals(secondBody.dispatched, 0, "duplicata não pode re-despachar");
+  assertEquals(secondBody.failed, 0, "duplicata não é erro");
+  assertEquals(secondBody.error, undefined, "duplicata não pode carregar erro");
+  assertEquals(gatewayCalls.length, 1, "payload repetido NÃO pode chamar o gateway de novo (dedup por evento)");
 });

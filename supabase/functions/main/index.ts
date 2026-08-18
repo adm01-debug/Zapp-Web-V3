@@ -50,6 +50,10 @@ const PUBLIC_FNS = new Set<string>([
   'bitrix-api',
   'send-rate-limit-alert',
   'evolution-sync',
+  // DASHBOARD-08 (2026-08-17): executor de notificações — cron/evento interno
+  // com CRON_SECRET (requireServiceRoleOrCron fail-closed, espelho do
+  // evolution-notification-dispatcher).
+  'zapp-notifications-dispatch',
   // service-to-service com secret próprio (sem JWT de usuário)
   'sicoob-bridge',
   'sicoob-bridge-reply',
