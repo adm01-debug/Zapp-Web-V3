@@ -1,36 +1,310 @@
-# Self-hosted runner alternativo, empacotado em Docker.
-# Útil quando não se quer instalar o runner diretamente no host da VPS.
+version: "3.8"
+
+# GitHub Actions Self-Hosted Runner — vps-zapp (PERSISTENTE)
+# v4.7 (2026-08-18, Claude): fix crash-loop runner/runner2
+# Root cause: .runner/.credentials eram escritos em /actions-runner/ (ephemeral)
+# e nunca persistidos no volume. Cada restart tentava re-registrar com secret
+# que nao estava disponivel no ciclo de crash rapido.
+# Fix v4.7: restore config do volume antes de exec ./run.sh;
+# salva no volume apos registro bem-sucedido. Idempotente.
 #
-# Uso:
-#   1. Copie infra/runner/.env.example para infra/runner/.env e preencha
-#      REPO_URL + RUNNER_TOKEN (gerado no GitHub UI, expira em 1h).
-#   2. docker compose -f infra/runner/docker-compose.runner.yml up -d
-#   3. Verifique: docker logs -f zapp-gh-runner
+# Deploy (stack 210) -- apenas via Portainer ou portainer_update_stack:
+#   1. O secret Docker "gh_runner_pat_v2" deve existir no Swarm.
+#   2. A network "AtomicaBRNet2" deve existir.
+#   3. NAO use docker compose up (nao e compose standalone).
 #
-# A imagem myoung34/github-runner já inclui Node 20, Chromium deps e
-# suporta labels customizados.
+# Servicos:
+#   runner, runner2, runner3 --> repo Zapp_Web_V3
+#   runner-evo --> repo Evolution_Api_Stack
 
 services:
-  gh-runner:
-    image: myoung34/github-runner:2.319.1-ubuntu-jammy
-    container_name: zapp-gh-runner
-    restart: unless-stopped
+  runner:
+    image: myoung34/github-runner:latest@sha256:5be309f7a869f13834b10aecff03e3d73730f7de3efd4456c456c63600902043
+    command:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        RUNNER_DIR="/actions-runner"
+        VOL="/tmp/runner"
+        if [ -f "$$VOL/.runner" ] && [ -f "$$VOL/.credentials" ]; then
+          echo "[runner] Restaurando config do volume..."
+          cp "$$VOL/.runner" "$$RUNNER_DIR/.runner"
+          cp "$$VOL/.credentials" "$$RUNNER_DIR/.credentials"
+          test -f "$$VOL/.credentials_rsaparams" && cp "$$VOL/.credentials_rsaparams" "$$RUNNER_DIR/.credentials_rsaparams" || true
+          echo "[runner] Config restaurada."
+        else
+          echo "[runner] Volume sem config -- registrando..."
+          ACCESS_TOKEN="$$(cat /run/secrets/gh_runner_pat_v2 2>/dev/null || echo '')"
+          if [ -z "$$ACCESS_TOKEN" ]; then echo "[runner] ERRO: secret indisponivel" && exit 1; fi
+          for attempt in 1 2 3; do
+            REG_TOKEN=$$(curl -sfL -X POST -H "Authorization: token $$ACCESS_TOKEN" "https://api.github.com/repos/adm01-debug/Zapp_Web_V3/actions/runners/registration-token" | jq -r .token)
+            [ -n "$$REG_TOKEN" ] && [ "$$REG_TOKEN" != "null" ] && break
+            sleep 3
+          done
+          echo "reg-token-len: $${#REG_TOKEN}"
+          cd "$$RUNNER_DIR"
+          ./config.sh --url "$$REPO_URL" --token "$$REG_TOKEN" --unattended --replace --name "vps-zapp-$$(hostname -s)" --labels "$$LABELS" --work "$$RUNNER_WORKDIR" --no-default-labels
+          cp .runner "$$VOL/.runner" && cp .credentials "$$VOL/.credentials"
+          test -f .credentials_rsaparams && cp .credentials_rsaparams "$$VOL/.credentials_rsaparams" || true
+          echo "[runner] Registrado e salvo no volume."
+        fi
+        exec ./run.sh
     environment:
-      REPO_URL: ${REPO_URL}
-      RUNNER_TOKEN: ${RUNNER_TOKEN}
-      RUNNER_NAME: ${RUNNER_NAME:-zapp-docker-runner}
-      RUNNER_WORKDIR: /tmp/runner/work
-      LABELS: self-hosted,linux,x64,vps-zapp,playwright,docker
-      RUNNER_SCOPE: repo
+      RUNNER_SCOPE: "repo"
+      REPO_URL: "https://github.com/adm01-debug/Zapp_Web_V3"
+      LABELS: "vps-zapp,playwright,linux,x64"
+      RUNNER_NAME_PREFIX: "vps-zapp"
+      RUNNER_WORKDIR: "/tmp/runner/work"
+      RUNNER_ALLOW_RUNASROOT: "1"
       DISABLE_AUTO_UPDATE: "true"
+    secrets:
+      - gh_runner_pat_v2
     volumes:
-      - runner-work:/tmp/runner/work
-      - playwright-cache:/home/runner/.cache/ms-playwright
       - /var/run/docker.sock:/var/run/docker.sock
+      - runner-work:/tmp/runner
     security_opt:
-      - seccomp:unconfined
-    shm_size: "2gb"
+      - no-new-privileges:true
+    networks:
+      - AtomicaBRNet2
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+        delay: 10s
+      update_config:
+        failure_action: continue
+        monitor: 20s
+      resources:
+        limits:
+          memory: 4G
+          cpus: "2.0"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+
+  runner2:
+    image: myoung34/github-runner:latest@sha256:5be309f7a869f13834b10aecff03e3d73730f7de3efd4456c456c63600902043
+    command:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        RUNNER_DIR="/actions-runner"
+        VOL="/tmp/runner-2"
+        if [ -f "$$VOL/.runner" ] && [ -f "$$VOL/.credentials" ]; then
+          echo "[runner2] Restaurando config do volume..."
+          cp "$$VOL/.runner" "$$RUNNER_DIR/.runner"
+          cp "$$VOL/.credentials" "$$RUNNER_DIR/.credentials"
+          test -f "$$VOL/.credentials_rsaparams" && cp "$$VOL/.credentials_rsaparams" "$$RUNNER_DIR/.credentials_rsaparams" || true
+          echo "[runner2] Config restaurada."
+        else
+          echo "[runner2] Volume sem config -- registrando..."
+          ACCESS_TOKEN="$$(cat /run/secrets/gh_runner_pat_v2 2>/dev/null || echo '')"
+          if [ -z "$$ACCESS_TOKEN" ]; then echo "[runner2] ERRO: secret indisponivel" && exit 1; fi
+          for attempt in 1 2 3; do
+            REG_TOKEN=$$(curl -sfL -X POST -H "Authorization: token $$ACCESS_TOKEN" "https://api.github.com/repos/adm01-debug/Zapp_Web_V3/actions/runners/registration-token" | jq -r .token)
+            [ -n "$$REG_TOKEN" ] && [ "$$REG_TOKEN" != "null" ] && break
+            sleep 3
+          done
+          echo "reg-token-len: $${#REG_TOKEN}"
+          cd "$$RUNNER_DIR"
+          ./config.sh --url "$$REPO_URL" --token "$$REG_TOKEN" --unattended --replace --name "vps-zapp2-$$(hostname -s)" --labels "$$LABELS" --work "$$RUNNER_WORKDIR" --no-default-labels
+          cp .runner "$$VOL/.runner" && cp .credentials "$$VOL/.credentials"
+          test -f .credentials_rsaparams && cp .credentials_rsaparams "$$VOL/.credentials_rsaparams" || true
+          echo "[runner2] Registrado e salvo no volume."
+        fi
+        exec ./run.sh
+    environment:
+      RUNNER_SCOPE: "repo"
+      REPO_URL: "https://github.com/adm01-debug/Zapp_Web_V3"
+      LABELS: "vps-zapp,playwright,linux,x64"
+      RUNNER_NAME_PREFIX: "vps-zapp2"
+      RUNNER_WORKDIR: "/tmp/runner-2/work"
+      RUNNER_ALLOW_RUNASROOT: "1"
+      DISABLE_AUTO_UPDATE: "true"
+    secrets:
+      - gh_runner_pat_v2
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - runner-work-2:/tmp/runner-2
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - AtomicaBRNet2
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+        delay: 10s
+      update_config:
+        failure_action: continue
+        monitor: 20s
+      resources:
+        limits:
+          memory: 4G
+          cpus: "2.0"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+
+  runner3:
+    image: myoung34/github-runner:latest@sha256:5be309f7a869f13834b10aecff03e3d73730f7de3efd4456c456c63600902043
+    command:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        RUNNER_DIR="/actions-runner"
+        VOL="/tmp/runner-3"
+        if [ -f "$$VOL/.runner" ] && [ -f "$$VOL/.credentials" ]; then
+          echo "[runner3] Restaurando config do volume..."
+          cp "$$VOL/.runner" "$$RUNNER_DIR/.runner"
+          cp "$$VOL/.credentials" "$$RUNNER_DIR/.credentials"
+          test -f "$$VOL/.credentials_rsaparams" && cp "$$VOL/.credentials_rsaparams" "$$RUNNER_DIR/.credentials_rsaparams" || true
+          echo "[runner3] Config restaurada."
+        else
+          echo "[runner3] Registrando..."
+          ACCESS_TOKEN="$$(cat /run/secrets/gh_runner_pat_v2 2>/dev/null || echo '')"
+          if [ -z "$$ACCESS_TOKEN" ]; then echo "[runner3] ERRO: secret indisponivel" && exit 1; fi
+          for attempt in 1 2 3; do
+            REG_TOKEN=$$(curl -sfL -X POST -H "Authorization: token $$ACCESS_TOKEN" "https://api.github.com/repos/adm01-debug/Zapp_Web_V3/actions/runners/registration-token" | jq -r .token)
+            [ -n "$$REG_TOKEN" ] && [ "$$REG_TOKEN" != "null" ] && break
+            sleep 3
+          done
+          cd "$$RUNNER_DIR"
+          ./config.sh --url "$$REPO_URL" --token "$$REG_TOKEN" --unattended --replace --name "vps-zapp3-$$(hostname -s)" --labels "$$LABELS" --work "$$RUNNER_WORKDIR" --no-default-labels
+          cp .runner "$$VOL/.runner" && cp .credentials "$$VOL/.credentials"
+          test -f .credentials_rsaparams && cp .credentials_rsaparams "$$VOL/.credentials_rsaparams" || true
+        fi
+        exec ./run.sh
+    environment:
+      RUNNER_SCOPE: "repo"
+      REPO_URL: "https://github.com/adm01-debug/Zapp_Web_V3"
+      LABELS: "vps-zapp,playwright,linux,x64"
+      RUNNER_NAME_PREFIX: "vps-zapp3"
+      RUNNER_WORKDIR: "/tmp/runner-3/work"
+      RUNNER_ALLOW_RUNASROOT: "1"
+      DISABLE_AUTO_UPDATE: "true"
+    secrets:
+      - gh_runner_pat_v2
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - runner-work-3:/tmp/runner-3
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - AtomicaBRNet2
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+        delay: 10s
+      update_config:
+        failure_action: continue
+        monitor: 20s
+      resources:
+        limits:
+          memory: 4G
+          cpus: "2.0"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+
+  runner-evo:
+    image: myoung34/github-runner:latest@sha256:5be309f7a869f13834b10aecff03e3d73730f7de3efd4456c456c63600902043
+    command:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        RUNNER_DIR="/actions-runner"
+        VOL="/tmp/runner-evo"
+        if [ -f "$$VOL/.runner" ] && [ -f "$$VOL/.credentials" ]; then
+          echo "[runner-evo] Restaurando config do volume..."
+          cp "$$VOL/.runner" "$$RUNNER_DIR/.runner"
+          cp "$$VOL/.credentials" "$$RUNNER_DIR/.credentials"
+          test -f "$$VOL/.credentials_rsaparams" && cp "$$VOL/.credentials_rsaparams" "$$RUNNER_DIR/.credentials_rsaparams" || true
+          echo "[runner-evo] Config restaurada."
+        else
+          echo "[runner-evo] Registrando...")
+          ACCESS_TOKEN="$$(cat /run/secrets/gh_runner_pat_v2 2>/dev/null || echo '')"
+          if [ -z "$$ACCESS_TOKEN" ]; then echo "[runner-evo] ERRO: secret indisponivel" && exit 1; fi
+          for attempt in 1 2 3; do
+            REG_TOKEN=$$(curl -sfL -X POST -H "Authorization: token $$ACCESS_TOKEN" "https://api.github.com/repos/adm01-debug/Evolution_Api_Stack/actions/runners/registration-token" | jq -r .token)
+            [ -n "$$REG_TOKEN" ] && [ "$$REG_TOKEN" != "null" ] && break
+            sleep 3
+          done
+          cd "$$RUNNER_DIR"
+          ./config.sh --url "$$REPO_URL" --token "$$REG_TOKEN" --unattended --replace --name "vps-evo-$$(hostname -s)" --labels "$$LABELS" --work "$$RUNNER_WORKDIR" --no-default-labels
+          cp .runner "$$VOL/.runner" && cp .credentials "$$VOL/.credentials"
+          test -f .credentials_rsaparams && cp .credentials_rsaparams "$$VOL/.credentials_rsaparams" || true
+        fi
+        exec ./run.sh
+    environment:
+      RUNNER_SCOPE: "repo"
+      REPO_URL: "https://github.com/adm01-debug/Evolution_Api_Stack"
+      LABELS: "vps-evo,linux,x64"
+      RUNNER_NAME_PREFIX: "vps-evo"
+      RUNNER_WORKDIR: "/tmp/runner-evo/work"
+      RUNNER_ALLOW_RUNASROOT: "1"
+      DISABLE_AUTO_UPDATE: "true"
+    secrets:
+      - gh_runner_pat_v2
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - runner-evo-work:/tmp/runner-evo
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - AtomicaBRNet2
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+        delay: 10s
+      update_config:
+        failure_action: continue
+        monitor: 20s
+      resources:
+        limits:
+          memory: 4G
+          cpus: "2.0"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+
+secrets:
+  gh_runner_pat_v2:
+    external: true
 
 volumes:
   runner-work:
-  playwright-cache:
+    driver: local
+  runner-work-2:
+    driver: local
+  runner-work-3:
+    driver: local
+  runner-evo-work:
+    driver: local
+
+networks:
+  AtomicaBRNet2:
+    external: true
+    name: AtomicaBRNet2
