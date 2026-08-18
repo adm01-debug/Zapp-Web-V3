@@ -799,7 +799,19 @@ export const ElevenLabsDialogueV1Schema = z.object({
    gmail_email: z.string().email("Email Gmail inválido").max(255).optional(),
    google_services: z.array(z.enum(["google_sheets", "google_docs", "google_calendar", "google_drive"])).optional().default([]),
    dropbox_email: z.string().email("Email Dropbox inválido").max(255).optional(),
- }).passthrough();
+   }).passthrough();
+
+   /**
+   * invite-user@v1 — convite por email (Etapa 57, EF invite-user). Endpoint
+   * interno (admin/supervisor) → estrito: email obrigatório; role fechada com
+   * default 'agent' (espelha CreateUserV1Schema, sem special_agent — convite
+   * só para papéis operacionais); message opcional com teto de 500.
+   */
+   export const InviteUserV1Schema = z.object({
+   email: z.string().email("Email inválido").max(255),
+   role: z.enum(["admin", "supervisor", "agent"]).optional().default("agent"),
+   message: z.string().max(500).optional(),
+   }).strict();
 
  /** approve-password-reset@v1 — valida no index.ts. Schema de registro. */
  /**
@@ -1167,6 +1179,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "elevenlabs-sfx":                { v1: ElevenLabsSfxV1Schema },
   "elevenlabs-dialogue":           { v1: ElevenLabsDialogueV1Schema },
   "create-user":                   { v1: CreateUserV1Schema },
+  "invite-user":                   { v1: InviteUserV1Schema },
   "approve-password-reset":        { v1: ApprovePasswordResetV1Schema },
   "request-password-reset":        { v1: RequestPasswordResetV1Schema },
   "detect-new-device":             { v1: AISchemas.DetectNewDeviceV1Schema },
