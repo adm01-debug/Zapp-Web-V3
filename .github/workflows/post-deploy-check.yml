@@ -35,7 +35,7 @@ name: 🩺 Post-Deploy Health Check
 
 on:
   workflow_run:
-    workflows: ["deploy-vps.yml"]
+    workflows: ["🚀 Build & Deploy — ZAPP web v3"]
     types: [completed]
 
 permissions:
