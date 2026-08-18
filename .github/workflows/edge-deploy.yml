@@ -53,6 +53,7 @@ jobs:
     # Runner self-hosted da VPS (labels: self-hosted, linux, x64, vps-zapp;
     # a variante docker do runner também carrega a label 'docker').
     runs-on: [Linux, X64, vps-zapp]
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
         with:

@@ -28,6 +28,7 @@ jobs:
   deno-contract-tests:
     name: Contract Tests (Deno)
     runs-on: [Linux, X64, vps-zapp]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
         with:

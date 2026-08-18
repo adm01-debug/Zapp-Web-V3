@@ -42,12 +42,7 @@ jobs:
     runs-on: [Linux, X64, vps-zapp]
 
 
-    env:
-      PGHOST: localhost
-      PGPORT: 5432
-      PGUSER: postgres
-      PGPASSWORD: postgres
-      PGDATABASE: postgres
+    # Conexão ao postgres via docker exec (evita problema de rede bridge entre containers)
 
     steps:
       - name: Checkout
@@ -94,7 +89,9 @@ jobs:
 
       - name: Apply Supabase compatibility bootstrap
         run: |
-          psql -v ON_ERROR_STOP=1 -f supabase/ci/pg-bootstrap.sql
+          # Copia o arquivo para o container e executa via docker exec (rede bridge)
+          docker cp supabase/ci/pg-bootstrap.sql pg-smoke:/tmp/pg-bootstrap.sql
+          docker exec pg-smoke psql -U postgres -v ON_ERROR_STOP=1 -f /tmp/pg-bootstrap.sql
           echo "Bootstrap applied successfully."
 
       - name: Collect and apply migrations
@@ -111,11 +108,17 @@ jobs:
           FIRST_ERROR=''
           TOTAL=0
 
+          # Copiar migrations para o container (acesso via docker exec)
+          docker exec pg-smoke mkdir -p /tmp/mig
+          find "$MIGRATION_DIR" -maxdepth 1 -name '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*.sql' | sort | while read -r mfile; do
+            docker cp "$mfile" pg-smoke:/tmp/mig/ 2>/dev/null || true
+          done
+
           # POSIX-safe (sem mapfile/arrays bash): find + sort
           while IFS= read -r f; do
             TOTAL=$((TOTAL + 1))
             echo "Applying: $f"
-            if ! psql -v ON_ERROR_STOP=1 -f "$f" 2>&1; then
+            if ! docker exec pg-smoke psql -U postgres -v ON_ERROR_STOP=1 -f "/tmp/mig/$(basename "$f")" 2>&1; then
               echo "::warning file=$f::Migration apply failed (incremental schema - expected): $f"
               FIRST_ERROR="$f"
               break
@@ -136,13 +139,9 @@ jobs:
           # Always exit 0 - static linter is the real gate
           exit 0
 
-
-      - name: Stop Postgres container
-        if: always()
-        run: docker rm -f pg-smoke 2>/dev/null || true
       - name: Verify expected schemas exist
         run: |
-          psql -v ON_ERROR_STOP=1 <<'SQL'
+          docker exec pg-smoke psql -U postgres -v ON_ERROR_STOP=1 <<'PSQLEOF'
             DO $$
             DECLARE
               missing text[] := '{}';
@@ -160,5 +159,9 @@ jobs:
                 RAISE NOTICE 'All expected schemas present. v';
               END IF;
             END;
-            $$;
-          SQL
+            $;
+          PSQLEOF
+
+      - name: Stop Postgres container
+        if: always()
+        run: docker rm -f pg-smoke 2>/dev/null || true
