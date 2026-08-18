@@ -124,10 +124,36 @@ Deno.serve(async (req) => {
       if (!(visivel || naFila || isAdmin)) return conversationForbidden(actionCode);
       return null;
     };
+    // [R1-EXT/F2] Gate de ALVO com exceção de bootstrap (Regra A/E): contato
+    // EXISTE no banco e não é visível/fila/admin → 403; contato INEXISTENTE →
+    // permite (número novo/não sincronizado — não bloquear envio a número novo).
+    const targetForbidden = (actionCode: string) => new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 403, code: actionCode, message: 'Você não tem acesso a esta conversa.', details: [{ path: 'target', message: 'Acesso negado: conversa não visível ao usuário' }] }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const resolveContactId = async (target: string): Promise<string | null> => {
+      const isJid = target.includes('@');
+      let q = supabase.from('evolution_contacts').select('id').eq('instance_name', instance).eq('deleted_at', null);
+      if (isJid) q = q.eq('remote_jid', target);
+      else q = q.eq('phone_number', target.replace(/[^0-9]/g, ''));
+      const { data } = await q.maybeSingle();
+      return (data as { id: string } | null)?.id ?? null;
+    };
+    const assertTargetAccess = async (target: unknown, actionCode: string): Promise<Response | null> => {
+      if (typeof target !== 'string' || !target.trim()) return null;
+      const contactId = await resolveContactId(target);
+      if (!contactId) return null; // bootstrap: contato não sincronizado → permite
+      const [{ data: visivel }, { data: naFila }, { data: isAdmin }] = await Promise.all([
+        supabase.rpc('is_contact_visible_to_user', { _contact_id: contactId, _user_id: authedUser.id }),
+        supabase.rpc('is_queue_member_of_contact', { _contact_id: contactId, _user_id: authedUser.id }),
+        supabase.rpc('is_admin_or_supervisor', { _user_id: authedUser.id }),
+      ]);
+      if (!(visivel || naFila || isAdmin)) return targetForbidden(actionCode);
+      return null;
+    };
     if (action === 'read-messages') {
       const jsonBody = ensureBodyIsRecord(body);
       const remoteJid = safeGet(jsonBody, 'remoteJid', false) || safeGet(jsonBody, 'chat', false);
       if (!remoteJid) return new Response(JSON.stringify({ ok: false, skipped: true, reason: 'missing remoteJid' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const denied = await assertTargetAccess(remoteJid, 'READ_MESSAGES_FORBIDDEN');
+      if (denied) return denied;
       try {
         const response = await proxy(`/chat/markMessageAsRead/${instance}`, 'POST', { readMessages: [{ remoteJid }] });
         if (response.ok) return response;
@@ -135,26 +161,97 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ ok: false, skipped: true, upstream_status: response.status, details: text }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       } catch { return new Response(JSON.stringify({ ok: false, skipped: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }); }
     }
-    if (action === 'mark-read') { const jb = ensureBodyIsRecord(body); const rm = safeGetAny(jb, 'readMessages', false); return await proxy(`/chat/markMessageAsRead/${instance}`, 'POST', { readMessages: Array.isArray(rm) ? rm : [safeGetAny(jb, 'key', false)] }); }
-    if (action === 'mark-unread') { const jb = ensureBodyIsRecord(body); const rm = safeGetAny(jb, 'readMessages', false); return await proxy(`/chat/markMessageAsUnread/${instance}`, 'POST', { readMessages: Array.isArray(rm) ? rm : [safeGetAny(jb, 'key', false)] }); }
-    if (action === 'send-text') return await proxy(`/message/sendText/${instance}`, 'POST', body);
-    if (action === 'send-media') return await proxy(`/message/sendMedia/${instance}`, 'POST', body);
-    if (action === 'send-audio') return await proxy(`/message/sendWhatsAppAudio/${instance}`, 'POST', body);
-    if (action === 'send-ptv') return await proxy(`/message/sendPtv/${instance}`, 'POST', body);
-    if (action === 'send-location') return await proxy(`/message/sendLocation/${instance}`, 'POST', body);
-    if (action === 'send-contact') return await proxy(`/message/sendContact/${instance}`, 'POST', body);
-    if (action === 'send-reaction') return await proxy(`/message/sendReaction/${instance}`, 'POST', body);
-    if (action === 'send-poll') return await proxy(`/message/sendPoll/${instance}`, 'POST', body);
+    if (action === 'mark-read') {
+      const jb = ensureBodyIsRecord(body);
+      const rm = safeGetAny(jb, 'readMessages', false);
+      const first = (Array.isArray(rm) ? rm[0] : safeGetAny(jb, 'key', false)) as Record<string, unknown> | null | undefined;
+      const denied = await assertTargetAccess(first?.remoteJid ?? (first?.key as Record<string, unknown> | undefined)?.remoteJid, 'MARK_READ_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/chat/markMessageAsRead/${instance}`, 'POST', { readMessages: Array.isArray(rm) ? rm : [safeGetAny(jb, 'key', false)] });
+    }
+    if (action === 'mark-unread') {
+      const jb = ensureBodyIsRecord(body);
+      const rm = safeGetAny(jb, 'readMessages', false);
+      const first = (Array.isArray(rm) ? rm[0] : safeGetAny(jb, 'key', false)) as Record<string, unknown> | null | undefined;
+      const denied = await assertTargetAccess(first?.remoteJid ?? (first?.key as Record<string, unknown> | undefined)?.remoteJid, 'MARK_UNREAD_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/chat/markMessageAsUnread/${instance}`, 'POST', { readMessages: Array.isArray(rm) ? rm : [safeGetAny(jb, 'key', false)] });
+    }
+    if (action === 'send-text') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertTargetAccess(safeGetAny(jb, 'number', isMultipart), 'SEND_TEXT_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/message/sendText/${instance}`, 'POST', body);
+    }
+    if (action === 'send-media') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertTargetAccess(safeGetAny(jb, 'number', isMultipart), 'SEND_MEDIA_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/message/sendMedia/${instance}`, 'POST', body);
+    }
+    if (action === 'send-audio') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertTargetAccess(safeGetAny(jb, 'number', isMultipart), 'SEND_AUDIO_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/message/sendWhatsAppAudio/${instance}`, 'POST', body);
+    }
+    if (action === 'send-ptv') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertTargetAccess(safeGetAny(jb, 'number', isMultipart), 'SEND_PTV_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/message/sendPtv/${instance}`, 'POST', body);
+    }
+    if (action === 'send-location') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertTargetAccess(safeGetAny(jb, 'number', isMultipart), 'SEND_LOCATION_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/message/sendLocation/${instance}`, 'POST', body);
+    }
+    if (action === 'send-contact') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertTargetAccess(safeGetAny(jb, 'number', isMultipart), 'SEND_CONTACT_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/message/sendContact/${instance}`, 'POST', body);
+    }
+    if (action === 'send-reaction') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertTargetAccess(safeGetAny(jb, 'number', isMultipart), 'SEND_REACTION_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/message/sendReaction/${instance}`, 'POST', body);
+    }
+    if (action === 'send-poll') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertTargetAccess(safeGetAny(jb, 'number', isMultipart), 'SEND_POLL_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/message/sendPoll/${instance}`, 'POST', body);
+    }
     if (action === 'send-sticker') {
       const jb = ensureBodyIsRecord(body);
+      const denied = await assertTargetAccess(safeGetAny(jb, 'number', isMultipart), 'SEND_STICKER_FORBIDDEN');
+      if (denied) return denied;
       const rawStickerUrl = safeGet(body, 'sticker', isMultipart);
       const resolvedStickerUrl = rawStickerUrl ? await resolvePrivateBucketUrl(supabase, rawStickerUrl) : undefined;
       return await proxy(`/message/sendSticker/${instance}`, 'POST', resolvedStickerUrl ? { ...jb, sticker: resolvedStickerUrl } : jb);
     }
-    if (action === 'send-list') return await proxy(`/message/sendList/${instance}`, 'POST', body);
-    if (action === 'send-buttons') return await proxy(`/message/sendButtons/${instance}`, 'POST', body);
+    if (action === 'send-list') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertTargetAccess(safeGetAny(jb, 'number', isMultipart), 'SEND_LIST_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/message/sendList/${instance}`, 'POST', body);
+    }
+    if (action === 'send-buttons') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertTargetAccess(safeGetAny(jb, 'number', isMultipart), 'SEND_BUTTONS_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/message/sendButtons/${instance}`, 'POST', body);
+    }
     if (action === 'send-status') return await proxy(`/message/sendStatus/${instance}`, 'POST', body);
-    if (action === 'send-template') return await proxy(`/message/sendTemplate/${instance}`, 'POST', body);
+    if (action === 'send-template') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertTargetAccess(safeGetAny(jb, 'number', isMultipart), 'SEND_TEMPLATE_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/message/sendTemplate/${instance}`, 'POST', body);
+    }
     if (action === 'find-chats') return await proxy(`/chat/findChats/${instance}`, 'POST', body);
     if (action === 'find-messages') {
       const jb = ensureBodyIsRecord(body);
@@ -163,7 +260,17 @@ Deno.serve(async (req) => {
       return await proxy(`/chat/findMessages/${instance}`, 'POST', body);
     }
     if (action === 'find-contacts') return await proxy(`/chat/findContacts/${instance}`, 'POST', body);
-    if (action === 'check-numbers') return await proxy(`/chat/whatsappNumbers/${instance}`, 'POST', body);
+    if (action === 'check-numbers') {
+      const jb = ensureBodyIsRecord(body);
+      const numbers = safeGetAny(jb, 'numbers', isMultipart);
+      if (Array.isArray(numbers)) {
+        for (const n of numbers) {
+          const denied = await assertTargetAccess(n, 'CHECK_NUMBERS_FORBIDDEN');
+          if (denied) return denied;
+        }
+      }
+      return await proxy(`/chat/whatsappNumbers/${instance}`, 'POST', body);
+    }
     // ── Status/Stories (F4-08): find-status-messages + send-chat-presence (P1-09 reconciliação)
     if (action === 'find-status-messages') {
       const jb = ensureBodyIsRecord(body);
@@ -186,21 +293,38 @@ Deno.serve(async (req) => {
       if (!PRESENCE_ALLOWED.has(presence)) {
         return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 422, code: 'INVALID_PRESENCE', message: `presence deve ser um de: ${[...PRESENCE_ALLOWED].join(', ')}`, details: [{ path: 'presence', message: `presence deve ser um de: ${[...PRESENCE_ALLOWED].join(', ')}` }] }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
+      const denied = await assertTargetAccess(number, 'SEND_CHAT_PRESENCE_FORBIDDEN');
+      if (denied) return denied;
       const { instanceName: _instanceName, ...presenceBody } = jb;
       return await proxy(`/chat/sendPresence/${instance}`, 'POST', presenceBody);
     }
     if (action === 'status') return await proxy(`/instance/connectionState/${instance}`, 'GET');
     if (action === 'list-instances') return await proxy(`/instance/fetchInstances`, 'GET');
     if (action === 'instance-info') return await proxy(`/instance/info/${instance}`, 'GET');
-    if (action === 'fetch-profile') return await proxy(`/profile/fetchProfile/${instance}`, 'GET');
+    if (action === 'fetch-profile') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertTargetAccess(safeGetAny(jb, 'number', isMultipart), 'FETCH_PROFILE_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/profile/fetchProfile/${instance}`, 'GET');
+    }
     if (action === 'update-profile-name') return await proxy(`/profile/updateProfileName/${instance}`, 'PUT', body);
     if (action === 'update-profile-status') return await proxy(`/profile/updateProfileStatus/${instance}`, 'PUT', body);
     if (action === 'find-labels') return await proxy(`/label/findLabels/${instance}`, 'GET');
-    if (action === 'handle-label') return await proxy(`/label/handleLabel/${instance}`, 'POST', body);
+    if (action === 'handle-label') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertTargetAccess(safeGetAny(jb, 'number', isMultipart), 'HANDLE_LABEL_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/label/handleLabel/${instance}`, 'POST', body);
+    }
     // CONTATOS-16: rota documentada no evolution-api-mapping.md (update-block-status →
     // POST /chat/updateBlockStatus/{instance}) mas ausente do router — consumida por
     // useEvolutionApiManagement.updateBlockStatus → BlockContactDialog.
-    if (action === 'update-block-status') return await proxy(`/chat/updateBlockStatus/${instance}`, 'POST', body);
+    if (action === 'update-block-status') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertTargetAccess(safeGetAny(jb, 'number', isMultipart), 'UPDATE_BLOCK_STATUS_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/chat/updateBlockStatus/${instance}`, 'POST', body);
+    }
     if (action === 'set-settings') return await proxy(`/settings/set/${instance}`, 'POST', body);
     if (action === 'get-settings') return await proxy(`/settings/find/${instance}`, 'GET');
     if (action === 'set-webhook') return await proxy(`/webhook/set/${instance}`, 'POST', body);
@@ -211,7 +335,12 @@ Deno.serve(async (req) => {
       if (denied) return denied;
       return await proxy(`/message/delete/${instance}`, 'DELETE', body);
     }
-    if (action === 'archive-chat') return await proxy(`/message/archiveChat/${instance}`, 'POST', body);
+    if (action === 'archive-chat') {
+      const jb = ensureBodyIsRecord(body);
+      const denied = await assertTargetAccess(safeGetAny(jb, 'remoteJid', isMultipart), 'ARCHIVE_CHAT_FORBIDDEN');
+      if (denied) return denied;
+      return await proxy(`/message/archiveChat/${instance}`, 'POST', body);
+    }
     if (action === 'get-media-base64') {
       const jb = ensureBodyIsRecord(body);
       if (!instance) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 422, code: 'MISSING_INSTANCE', message: 'instanceName é obrigatório', details: [{ path: 'instance', message: 'instanceName é obrigatório' }] }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
