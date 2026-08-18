@@ -91,3 +91,7 @@ BEGIN
   RETURN v_result;
 END;
 $function$;
+
+-- Reforco de privilegios (idempotente): so authenticated (app) e service_role.
+REVOKE ALL ON FUNCTION zapp.get_contact_360_by_phone(text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION zapp.get_contact_360_by_phone(text, text) TO authenticated, service_role;

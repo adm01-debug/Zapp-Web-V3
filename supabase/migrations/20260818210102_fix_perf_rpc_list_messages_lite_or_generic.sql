@@ -70,3 +70,7 @@ BEGIN
   END IF;
 END;
 $function$;
+
+-- Reforco de privilegios (idempotente): so authenticated (app) e service_role.
+REVOKE ALL ON FUNCTION zapp.rpc_list_messages_lite(text, text, integer, integer, timestamp with time zone) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION zapp.rpc_list_messages_lite(text, text, integer, integer, timestamp with time zone) TO authenticated, service_role;
