@@ -1,5 +1,0 @@
-      0 [main] sh 42234 dofork: child -1 - forked process 23900 died unexpectedly, retry 0, exit code 0xC000012D, errno 11
-/c/Users/Joaquim/AppData/Roaming/npm/bunx: fork: retry: Resource temporarily unavailable
-Resolving dependencies
-Resolved, downloaded and extracted [1]
-error: GET https://registry.npmjs.org/tsgo - 404
