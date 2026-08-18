@@ -145,10 +145,10 @@ export const ZappNotificationsDispatchV1Schema = z.object({
 
 /**
  * warroom-monthly-test@v1 (#1175) — POST-only, body IGNORADO por design
- * (payload de saída é fixo; zero risco de injeção/reflexão). Schema permissivo
- * apenas para cobrir o registro (gate de cobertura exige schema por função).
+ * (payload de saída é fixo; zero risco de injeção/reflexão). Strict vazio:
+ * satisfaz o Invariante 9 (registry-integrity proíbe placeholder permissivo).
  */
-export const WarroomMonthlyTestV1Schema = z.object({}).passthrough();
+export const WarroomMonthlyTestV1Schema = z.object({}).strict();
 
 /** recheck-webhook-signature@v1 — index.ts exige event_id string; observed_signature opcional. */
 export const RecheckWebhookSignatureV1Schema = z.object({
@@ -863,6 +863,27 @@ export const ZappAuthInviteV1Schema = z.object({
   role: z.enum(["admin", "supervisor", "manager", "agent"]).optional(),
 }).passthrough();
 
+/** download-wa-status-media@v1 — chamado por pg_cron (30min) p/ baixar mídia de status antes da URL expirar. Body fiel ao index.ts. */
+export const DownloadWaStatusMediaV1Schema = z.object({
+  status_id: z.string().min(1, "status_id é obrigatório"),
+  participant_jid: z.string().min(1, "participant_jid é obrigatório"),
+  message_id: z.string().min(1, "message_id é obrigatório"),
+  message_type: z.string().optional(),
+}).passthrough();
+
+/** transcribe-audio-internal@v1 — transcrição interna (invocada por outras edges). Body fiel ao index.ts. */
+export const TranscribeAudioInternalV1Schema = z.object({
+  messageId: z.string().min(1, "messageId é obrigatório"),
+  audioUrl: z.string().url("audioUrl inválida"),
+}).passthrough();
+
+/**
+ * @deprecated zapp-auth-invite: registro fantasma removido em 2026-08-18 — a edge
+ * invite-user (E57, #1179) só existe em branch órfã (index.ts nunca chegou na main);
+ * o contract-kit exigia lifecycle em versions para contrato sem edge. Reintroduzir
+ * junto com o merge real da E57.
+ */
+
 /**
  * @deprecated Edge auth-email-hook REMOVIDA do repo (commit 78fa7d7be, "zumbi sem index.ts").
  * Registro morto removido em 2026-08-04 — o schema placeholder permissivo
@@ -1191,7 +1212,6 @@ export const InviteUserV1Schema = z.object({
   "webauthn":                      { v1: WebauthnV1Schema },
   "evolution-api":                 { v1: EvolutionApiV1Schema },
   "zapp-auth-sessions":            { v1: ZappAuthSessionsV1Schema },
-  "zapp-auth-invite":              { v1: ZappAuthInviteV1Schema },
   "zapp-n8n-sync":                 { v1: ZappN8nSyncV1Schema },
 
   // ─── Onda 1 (2026-08-04): cobertura 100% — schemas reais dos workers ───
@@ -1241,6 +1261,8 @@ export const InviteUserV1Schema = z.object({
   // ─── INBOX-09 / AUTOMACOES-09 ─────────────────────────────────────────────
   "followup-bridge": { v1: FollowupBridgeV1Schema },
   "csat-auto-send":  { v1: CsatAutoSendV1Schema },
+  "download-wa-status-media":      { v1: DownloadWaStatusMediaV1Schema },
+  "transcribe-audio-internal":     { v1: TranscribeAudioInternalV1Schema },
   "csat-dispatch":   { v1: CsatDispatchV1Schema },
 
   // ─── GOOGLE CALENDAR (contrato honesto, ADR 2026-08-18) ───────────────────
