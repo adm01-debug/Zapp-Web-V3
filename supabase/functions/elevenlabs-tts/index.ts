@@ -2,6 +2,7 @@ import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHea
 import { requireUser } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { ElevenLabsTtsV1Schema } from "../_shared/contract-schemas.ts";
+import { fetchWithRetry } from "../_shared/retry-with-backoff.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -34,7 +35,7 @@ Deno.serve(async (req) => {
 
     log.info(`TTS: "${text.substring(0, 50)}..." voice: ${selectedVoiceId}, model: ${selectedModel}`);
 
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}?output_format=mp3_44100_128`,
       {
         method: 'POST',
@@ -42,7 +43,6 @@ Deno.serve(async (req) => {
           'xi-api-key': ELEVENLABS_API_KEY,
           'Content-Type': 'application/json',
         },
-        signal: AbortSignal.timeout(30_000),
         body: JSON.stringify({
           text,
           model_id: selectedModel,
@@ -55,7 +55,11 @@ Deno.serve(async (req) => {
             use_speaker_boost: true,
           },
         }),
-      }
+      },
+      {
+        timeoutMs: 30_000,
+        label: 'ElevenLabs',
+      },
     );
 
     if (!response.ok) {

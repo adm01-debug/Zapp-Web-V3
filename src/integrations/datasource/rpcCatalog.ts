@@ -806,12 +806,24 @@ export const RPC = {
     name: 'record_voice_telemetry',
     client: 'lovable',
   }),
+  rpc_add_xp: def<Record<string, unknown>, unknown>({
+    name: 'rpc_add_xp',
+    client: 'lovable',
+  }),
+  rpc_campaign_assign_variant: def<Record<string, unknown>, unknown>({
+    name: 'rpc_campaign_assign_variant',
+    client: 'lovable',
+  }),
   rpc_dlq_abandon: def<Record<string, unknown>, unknown>({
     name: 'rpc_dlq_abandon',
     client: 'lovable',
   }),
   rpc_dlq_bulk_abandon: def<Record<string, unknown>, unknown>({
     name: 'rpc_dlq_bulk_abandon',
+    client: 'lovable',
+  }),
+  rpc_dlq_bulk_retry_now: def<Record<string, unknown>, unknown>({
+    name: 'rpc_dlq_bulk_retry_now',
     client: 'lovable',
   }),
   rpc_dlq_list_audit: def<Record<string, unknown>, unknown>({
@@ -822,8 +834,20 @@ export const RPC = {
     name: 'rpc_dlq_log_item_action',
     client: 'lovable',
   }),
+  rpc_dlq_log_reprocess_result: def<Record<string, unknown>, unknown>({
+    name: 'rpc_dlq_log_reprocess_result',
+    client: 'lovable',
+  }),
+  rpc_dlq_log_reprocess_trigger: def<Record<string, unknown>, unknown>({
+    name: 'rpc_dlq_log_reprocess_trigger',
+    client: 'lovable',
+  }),
   rpc_dlq_retry_now: def<Record<string, unknown>, unknown>({
     name: 'rpc_dlq_retry_now',
+    client: 'lovable',
+  }),
+  rpc_dlq_stats: def<Record<string, unknown>, unknown>({
+    name: 'rpc_dlq_stats',
     client: 'lovable',
   }),
   rpc_email_archive_thread: def<Record<string, unknown>, unknown>({
@@ -854,12 +878,20 @@ export const RPC = {
     name: 'rpc_get_reactions_batch',
     client: 'lovable',
   }),
+  rpc_grant_achievement: def<Record<string, unknown>, unknown>({
+    name: 'rpc_grant_achievement',
+    client: 'lovable',
+  }),
   rpc_instance_auth_event_trend: def<Record<string, unknown>, unknown>({
     name: 'rpc_instance_auth_event_trend',
     client: 'lovable',
   }),
   rpc_list_dispatch_error_logs_cursor: def<Record<string, unknown>, unknown>({
     name: 'rpc_list_dispatch_error_logs_cursor',
+    client: 'lovable',
+  }),
+  rpc_list_failed_messages_cursor: def<Record<string, unknown>, unknown>({
+    name: 'rpc_list_failed_messages_cursor',
     client: 'lovable',
   }),
   rpc_log_email_health: def<Record<string, unknown>, unknown>({

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSLAScopeOptions } from '@/hooks/sla/useSLAScopeOptions';
+import { useSLAScopeOptions } from '@/features/sla/hooks/useSLAScopeOptions';
 import { useSLARules, SLARuleForm, SLARule, SLARuleScope } from '@/features/sla';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

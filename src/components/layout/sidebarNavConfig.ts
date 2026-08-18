@@ -17,7 +17,6 @@ import {
   Plug,
   Activity,
   PhoneCall,
-  Calendar,
   CalendarClock,
   FileText,
   Inbox,
@@ -118,7 +117,6 @@ export const connectionsNav: readonly NavItemConfig[] = [
   { id: 'omni-inbox', icon: Inbox, label: 'Omnichannel' },
   { id: 'voip', icon: PhoneCall, label: 'VoIP' },
   { id: 'meta-capi', icon: Activity, label: 'Meta CAPI' },
-  { id: 'google-calendar', icon: Calendar, label: 'Calendário' },
 ] as const;
 
 // ── System & Admin ────────────────────────────────────────

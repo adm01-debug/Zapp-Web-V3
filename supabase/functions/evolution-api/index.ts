@@ -245,21 +245,42 @@ Deno.serve(async (req) => {
       if (denied) return denied;
       return await proxy(`/message/sendButtons/${instance}`, 'POST', body);
     }
-    if (action === 'send-status') return await proxy(`/message/sendStatus/${instance}`, 'POST', body);
+    if (action === 'send-status' || action === 'find-chats' || action === 'find-contacts') {
+      // [F3 — decisão 2026-08-18, ADR-R1EXT-F3] Ações instance-wide (publicar
+      // status / listar conversas / listar contatos da instância): role-check
+      // admin/supervisor (authorizeRoles — helper da casa, loga tentativa
+      // negada via log_security_event). Opção 2 do ADR.
+      const anonKey = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? '';
+      try {
+        await authorizeRoles(req, supabaseUrl, anonKey, ['admin', 'dev', 'supervisor']);
+      } catch (authErr) {
+        const status = (authErr as { status?: number })?.status ?? 500;
+        const message = (authErr as { message?: string })?.message ?? 'Falha de autorização';
+        return new Response(JSON.stringify({
+          version: EVOLUTION_ENVELOPE_VERSION,
+          contract: 'evolution-api@v1',
+          error: true,
+          status,
+          code: status === 403 ? 'ADMIN_ONLY_FORBIDDEN' : 'UNAUTHORIZED',
+          message,
+          details: [{ path: 'authorization', message }],
+        }), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const route = action === 'send-status' ? `/message/sendStatus/${instance}` : action === 'find-chats' ? `/chat/findChats/${instance}` : `/chat/findContacts/${instance}`;
+      return await proxy(route, 'POST', body);
+    }
     if (action === 'send-template') {
       const jb = ensureBodyIsRecord(body);
       const denied = await assertTargetAccess(safeGetAny(jb, 'number', isMultipart), 'SEND_TEMPLATE_FORBIDDEN');
       if (denied) return denied;
       return await proxy(`/message/sendTemplate/${instance}`, 'POST', body);
     }
-    if (action === 'find-chats') return await proxy(`/chat/findChats/${instance}`, 'POST', body);
     if (action === 'find-messages') {
       const jb = ensureBodyIsRecord(body);
       const denied = await assertConversationAccess(safeGetAny(jb, 'remoteJid', isMultipart), 'FIND_MESSAGES_FORBIDDEN');
       if (denied) return denied;
       return await proxy(`/chat/findMessages/${instance}`, 'POST', body);
     }
-    if (action === 'find-contacts') return await proxy(`/chat/findContacts/${instance}`, 'POST', body);
     if (action === 'check-numbers') {
       const jb = ensureBodyIsRecord(body);
       const numbers = safeGetAny(jb, 'numbers', isMultipart);

@@ -4,21 +4,24 @@ import { handleCors, jsonResponse } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 
 /**
- * zapp-google-calendar-sync — contrato Google Calendar REAL desligado (G1).
+ * zapp-google-calendar-sync — status da integração Google Calendar (G1).
  *
- * A integração ainda não possui OAuth/sync com a Google Calendar API. Este
- * endpoint materializa o contrato de forma HONESTA: consulta a configuração
- * (zapp.google_calendar_config) e responde SEMPRE com 200:
+ * ADR 2026-08-18 (ver ADR.md neste diretório): o chamador de front foi
+ * REMOVIDO — não existem credenciais de Google Calendar no ambiente
+ * (.env.required só tem GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET para OAuth do
+ * Gmail; zapp.google_calendar_config vazia no DB vivo; sem service account,
+ * sem API key). Esta edge permanece como endpoint de status honesto
+ * (SEMPRE 200 — ausência de configuração não é erro de servidor) e NUNCA
+ * reporta 'not_implemented':
  *
- *   sem linha de config        → { synced: false, reason: 'not_configured' }
- *   config com enabled=false   → { synced: false, reason: 'disabled' }
- *   config com enabled=true    → { synced: false, reason: 'not_implemented' }
- *   falha interna              → { synced: false, reason: 'error', message? }
+ *   sem linha de config              → { synced: false, reason: 'not_configured' }
+ *   config com enabled=false         → { synced: false, reason: 'disabled' }
+ *   enabled=true sem credentials_json → { synced: false, reason: 'not_configured',
+ *                                        message: 'credenciais ausentes (credentials_json)' }
+ *   falha interna                    → { synced: false, reason: 'error', message? }
  *
- * NUNCA responde 500 — ausência de configuração não é erro de servidor e o
- * frontend não deve tratar rede/estado como exceção. Autenticação:
- * admin/supervisor (a config é sensível). Body opcional aceito:
- * { dryRun?: boolean } (registrado no contrato, ainda sem efeito).
+ * Re-ativação: documentada em ADR.md (credenciais + pipeline de sync real +
+ * reexposição na UI). Autenticação: admin/supervisor (a config é sensível).
  */
 
 function statusBody(reason: string, extra: Record<string, unknown> = {}): Record<string, unknown> {
@@ -43,7 +46,7 @@ Deno.serve(async (req) => {
     const admin = createZappAdminClient();
     const { data, error } = await admin
       .from("google_calendar_config")
-      .select("enabled, calendar_id")
+      .select("enabled, calendar_id, credentials_json")
       .limit(1)
       .maybeSingle();
 
@@ -59,8 +62,23 @@ Deno.serve(async (req) => {
     if (!data.enabled) {
       return jsonResponse(statusBody("disabled"), 200, req);
     }
-    // Config habilitada mas sync real ainda não implementado — contrato honesto.
-    return jsonResponse(statusBody("not_implemented"), 200, req);
+    if (!data.credentials_json) {
+      // enabled sem credencial = configuração incompleta, não "a implementar".
+      // Sem service account/credenciais não há sync possível (ADR 2026-08-18).
+      return jsonResponse(
+        statusBody("not_configured", { message: "credenciais ausentes (credentials_json)" }),
+        200,
+        req,
+      );
+    }
+    // Credenciais presentes mas pipeline de sync não implantado — ver ADR.md.
+    // Estado inalcançável hoje: a config exige escrita service_role e não há
+    // credenciais reais no ambiente.
+    return jsonResponse(
+      statusBody("error", { message: "pipeline de sync indisponível — ver ADR.md no diretório da edge" }),
+      200,
+      req,
+    );
   } catch (err: unknown) {
     console.error("[zapp-google-calendar-sync] unexpected error:", err instanceof Error ? err.message : String(err));
     return jsonResponse(statusBody("error", { message: "Erro interno" }), 200, req);

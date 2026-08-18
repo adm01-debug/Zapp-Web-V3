@@ -1,4 +1,42 @@
 import type { TourStep } from './tourContext';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('defaultTourSteps');
+
+/**
+ * Filtra steps cujo seletor NÃO existe no DOM (E70.2).
+ *
+ * Step ausente é PULADO com aviso — o tour nunca quebra por um seletor
+ * removido/renomeado na UI; ele progride apenas pelos steps disponíveis,
+ * preservando a ordem original. SSR-safe: sem `document`, retorna os steps
+ * intactos (não há DOM para validar).
+ */
+export function filterAvailableSteps(
+  steps: TourStep[],
+  doc: Document | null | undefined = typeof document === 'undefined' ? null : document
+): TourStep[] {
+  if (!doc) return steps;
+  const available: TourStep[] = [];
+  const missing: string[] = [];
+  for (const step of steps) {
+    try {
+      if (doc.querySelector(step.target)) {
+        available.push(step);
+      } else {
+        missing.push(step.id);
+      }
+    } catch {
+      // Seletor com sintaxe inválida é tratado como ausente (nunca quebra o tour).
+      missing.push(step.id);
+    }
+  }
+  if (missing.length > 0) {
+    log.warn(
+      `Tour: ${missing.length} passo(s) ignorado(s) — seletor não encontrado no DOM: ${missing.join(', ')}`
+    );
+  }
+  return available;
+}
 
 /** DEFAULT_ONBOARDING_STEPS component for the onboarding section. */
 export const DEFAULT_ONBOARDING_STEPS: TourStep[] = [

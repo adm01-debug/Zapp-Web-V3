@@ -3,6 +3,7 @@ import { requireUser } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { fetchWithRetry } from "../_shared/retry-with-backoff.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -27,10 +28,12 @@ Deno.serve(async (req) => {
 
     log.info("Requesting ElevenLabs realtime scribe token");
 
-    const response = await fetch('https://api.elevenlabs.io/v1/single-use-token/realtime_scribe', {
+    const response = await fetchWithRetry('https://api.elevenlabs.io/v1/single-use-token/realtime_scribe', {
       method: 'POST',
       headers: { 'xi-api-key': ELEVENLABS_API_KEY },
-      signal: AbortSignal.timeout(10_000),
+    }, {
+      timeoutMs: 10_000,
+      label: 'ElevenLabs',
     });
 
     if (!response.ok) {

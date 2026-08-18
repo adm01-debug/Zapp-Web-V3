@@ -66,7 +66,6 @@ function calcTrend(
 }
 
 async function fetchSLAHistory(period: HistoryPeriod, startDate: Date): Promise<SLAHistoryData> {
-
   const { data: slaRecords, error } = await supabase
     .from('conversation_sla')
     .select('*')

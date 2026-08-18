@@ -18,6 +18,7 @@ import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { resendFromAddress } from '../_shared/resend.ts';
+import { fetchWithRetry } from '../_shared/retry-with-backoff.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 const RESEND_API = 'https://api.resend.com/emails';
@@ -146,14 +147,16 @@ Deno.serve(async (req) => {
 
     let resendRes: Response;
     try {
-      resendRes = await fetch(RESEND_API, {
+      resendRes = await fetchWithRetry(RESEND_API, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${resendKey}`,
         },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(15_000),
+      }, {
+        timeoutMs: 15_000,
+        label: 'Resend',
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Resend network error';

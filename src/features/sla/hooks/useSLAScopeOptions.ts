@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
-import type { SLARuleScope } from '@/features/sla';
+import type { SLARuleScope } from '@/features/sla/hooks/useSLARules';
 
 const log = getLogger('useSLAScopeOptions');
 

@@ -145,10 +145,10 @@ export const ZappNotificationsDispatchV1Schema = z.object({
 
 /**
  * warroom-monthly-test@v1 (#1175) — POST-only, body IGNORADO por design
- * (payload de saída é fixo; zero risco de injeção/reflexão). Schema permissivo
- * apenas para cobrir o registro (gate de cobertura exige schema por função).
+ * (payload de saída é fixo; zero risco de injeção/reflexão). Strict vazio:
+ * satisfaz o Invariante 9 (registry-integrity proíbe placeholder permissivo).
  */
-export const WarroomMonthlyTestV1Schema = z.object({}).passthrough();
+export const WarroomMonthlyTestV1Schema = z.object({}).strict();
 
 /** recheck-webhook-signature@v1 — index.ts exige event_id string; observed_signature opcional. */
 export const RecheckWebhookSignatureV1Schema = z.object({
@@ -801,19 +801,7 @@ export const ElevenLabsDialogueV1Schema = z.object({
    dropbox_email: z.string().email("Email Dropbox inválido").max(255).optional(),
    }).passthrough();
 
-   /**
-   * invite-user@v1 — convite por email (Etapa 57, EF invite-user). Endpoint
-   * interno (admin/supervisor) → estrito: email obrigatório; role fechada com
-   * default 'agent' (espelha CreateUserV1Schema, sem special_agent — convite
-   * só para papéis operacionais); message opcional com teto de 500.
-   */
-   export const InviteUserV1Schema = z.object({
-   email: z.string().email("Email inválido").max(255),
-   role: z.enum(["admin", "supervisor", "agent"]).optional().default("agent"),
-   message: z.string().max(500).optional(),
-   }).strict();
-
- /** approve-password-reset@v1 — valida no index.ts. Schema de registro. */
+   /** approve-password-reset@v1 — valida no index.ts. Schema de registro. */
  /**
  * approve-password-reset@v1 — real. Consumo: { action (default 'approve'),
  * reset_id?/request_id?, approved?/decision? }. Endpoint interno →
@@ -874,6 +862,27 @@ export const ZappAuthInviteV1Schema = z.object({
   name: z.string().min(1, "Nome é obrigatório").max(255).optional(),
   role: z.enum(["admin", "supervisor", "manager", "agent"]).optional(),
 }).passthrough();
+
+/** download-wa-status-media@v1 — chamado por pg_cron (30min) p/ baixar mídia de status antes da URL expirar. Body fiel ao index.ts. */
+export const DownloadWaStatusMediaV1Schema = z.object({
+  status_id: z.string().min(1, "status_id é obrigatório"),
+  participant_jid: z.string().min(1, "participant_jid é obrigatório"),
+  message_id: z.string().min(1, "message_id é obrigatório"),
+  message_type: z.string().optional(),
+}).passthrough();
+
+/** transcribe-audio-internal@v1 — transcrição interna (invocada por outras edges). Body fiel ao index.ts. */
+export const TranscribeAudioInternalV1Schema = z.object({
+  messageId: z.string().min(1, "messageId é obrigatório"),
+  audioUrl: z.string().url("audioUrl inválida"),
+}).passthrough();
+
+/**
+ * @deprecated zapp-auth-invite: registro fantasma removido em 2026-08-18 — a edge
+ * invite-user (E57, #1179) só existe em branch órfã (index.ts nunca chegou na main);
+ * o contract-kit exigia lifecycle em versions para contrato sem edge. Reintroduzir
+ * junto com o merge real da E57.
+ */
 
 /**
  * @deprecated Edge auth-email-hook REMOVIDA do repo (commit 78fa7d7be, "zumbi sem index.ts").
@@ -1077,10 +1086,11 @@ export const SentrySyncV1Schema = z.object({
 }).strict();
 
 /**
- * zapp-google-calendar-sync@v1 — status/sync do contrato Google Calendar
- * (G1, 2026-08-17). GET (status) ou POST com body opcional { dryRun }.
- * Resposta SEMPRE 200: { synced:false, reason:'not_configured'|'disabled'|
- * 'not_implemented'|'error' } — nunca 500.
+ * zapp-google-calendar-sync@v1 — status do contrato Google Calendar (G1).
+ * GET (status) ou POST com body opcional { dryRun }. Resposta SEMPRE 200:
+ * { synced:false, reason:'not_configured'|'disabled'|'error' } — nunca 500 e
+ * nunca 'not_implemented' (ADR 2026-08-18: chamador de front removido; ver
+ * supabase/functions/zapp-google-calendar-sync/ADR.md).
  */
 export const ZappGoogleCalendarSyncV1Schema = z.object({
   dryRun: z.boolean().optional(),
@@ -1090,10 +1100,21 @@ export const ZappGoogleCalendarSyncV1Schema = z.object({
  /** warroom-monthly-test@v1 — teste mensal do pipeline de alerta Warroom.
   * Sem parâmetros de entrada: o handler IGNORA o body (saída fixa).
   */
- export const ZappWarroomMonthlyTestV1Schema = z.object({}).strict();
+export const ZappWarroomMonthlyTestV1Schema = z.object({}).strict();
+
+/**
+* invite-user@v1 — POST { email, role?, message? } (Etapa 57: convite de
+* usuário). Endpoint interno admin-only. role default 'agent' (espelha o
+* CreateUserV1Schema do repo); message é nota opcional do convite.
+*/
+export const InviteUserV1Schema = z.object({
+  email: z.string().email("Email inválido").max(255),
+  role: z.enum(["admin", "supervisor", "agent"]).optional().default("agent"),
+  message: z.string().max(500).optional(),
+}).strict();
 
 
- export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
+export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Webhooks externos
   "evolution-webhook":       { v1: EvolutionWebhookV1Schema, v2: EvolutionWebhookV2Schema },
   "whatsapp-cloud-webhook":  { v1: MetaWebhookPayloadSchema, v2: WhatsAppCloudWebhookV2Schema },
@@ -1102,6 +1123,7 @@ export const ZappGoogleCalendarSyncV1Schema = z.object({
   // Internos / UI / cron
   "talkx-send":                 { v1: TalkxSendV1Schema },
   "revoke-session":       { v1: RevokeSessionV1Schema },
+  "invite-user":          { v1: InviteUserV1Schema },
   "send-email":                 { v1: SendEmailV1Schema },
   // evolution-proxy (2026-08-14): proxy server-side — envelope validado manualmente
   // (allowlist de method + path); contrato registrado para o gate de cobertura.
@@ -1184,15 +1206,12 @@ export const ZappGoogleCalendarSyncV1Schema = z.object({
   "elevenlabs-sfx":                { v1: ElevenLabsSfxV1Schema },
   "elevenlabs-dialogue":           { v1: ElevenLabsDialogueV1Schema },
   "create-user":                   { v1: CreateUserV1Schema },
-  "invite-user":                   { v1: InviteUserV1Schema },
   "approve-password-reset":        { v1: ApprovePasswordResetV1Schema },
   "request-password-reset":        { v1: RequestPasswordResetV1Schema },
   "detect-new-device":             { v1: AISchemas.DetectNewDeviceV1Schema },
-  "revoke-session":                { v1: RevokeSessionV1Schema },
   "webauthn":                      { v1: WebauthnV1Schema },
   "evolution-api":                 { v1: EvolutionApiV1Schema },
   "zapp-auth-sessions":            { v1: ZappAuthSessionsV1Schema },
-  "zapp-auth-invite":              { v1: ZappAuthInviteV1Schema },
   "zapp-n8n-sync":                 { v1: ZappN8nSyncV1Schema },
 
   // ─── Onda 1 (2026-08-04): cobertura 100% — schemas reais dos workers ───
@@ -1242,9 +1261,11 @@ export const ZappGoogleCalendarSyncV1Schema = z.object({
   // ─── INBOX-09 / AUTOMACOES-09 ─────────────────────────────────────────────
   "followup-bridge": { v1: FollowupBridgeV1Schema },
   "csat-auto-send":  { v1: CsatAutoSendV1Schema },
+  "download-wa-status-media":      { v1: DownloadWaStatusMediaV1Schema },
+  "transcribe-audio-internal":     { v1: TranscribeAudioInternalV1Schema },
   "csat-dispatch":   { v1: CsatDispatchV1Schema },
 
-  // ─── GOOGLE CALENDAR (contrato real desligado, G1) ────────────────────────
+  // ─── GOOGLE CALENDAR (contrato honesto, ADR 2026-08-18) ───────────────────
   "zapp-google-calendar-sync": { v1: ZappGoogleCalendarSyncV1Schema },
 
   // ─── OUTROS ────────────────────────────────────────────────────────────────

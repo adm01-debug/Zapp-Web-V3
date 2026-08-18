@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 
 /**
  * Contrato E67.7 — rota SLA ÚNICA.
@@ -13,20 +15,16 @@ import { readFileSync } from 'node:fs';
  * Deep-links de página standalone (ex.: `/sla/history`) permanecem em AppRoutes.
  */
 
-const appRoutes = readFileSync(
-  new URL('../../routing/AppRoutes.tsx', import.meta.url),
-  'utf8'
-);
-const viewRouter = readFileSync(
-  new URL('../../../pages/ViewRouter.tsx', import.meta.url),
-  'utf8'
-);
-const queuesView = readFileSync(
-  new URL('../../../components/queues/QueuesView.tsx', import.meta.url),
-  'utf8'
-);
+// Z4 (E67 residue): `new URL(rel, import.meta.url)` quebra no Windows
+// ("The URL must be of scheme file") — usar fileURLToPath + resolve
+// (padrão do repo: useChatInputLogic.memory.test.ts).
+const testDir = dirname(fileURLToPath(import.meta.url));
+
+const appRoutes = readFileSync(resolve(testDir, '../../routing/AppRoutes.tsx'), 'utf8');
+const viewRouter = readFileSync(resolve(testDir, '../../../pages/ViewRouter.tsx'), 'utf8');
+const queuesView = readFileSync(resolve(testDir, '../../../components/queues/QueuesView.tsx'), 'utf8');
 const slaDashboard = readFileSync(
-  new URL('../../../components/queues/SLADashboard.tsx', import.meta.url),
+  resolve(testDir, '../../../components/queues/SLADashboard.tsx'),
   'utf8'
 );
 

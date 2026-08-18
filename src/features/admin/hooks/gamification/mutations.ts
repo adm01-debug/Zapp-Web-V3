@@ -23,6 +23,9 @@ export function useGamificationMutations(
       // UPDATE) e recalcula o nível (trigger update_level_on_xp_change).
       // NUNCA computar newXp a partir do cache (race read-modify-write:
       // 2 eventos simultâneos perdiam 1 incremento).
+      // Nota (fix 2026-08-18): caminho E70 (rpc_grant_xp + ledger) removido —
+      // merge E70×E59 estava quebrado e a migration 20260818190002 (E70) NÃO
+      // está aplicada no banco (DB-as-source: só rpc_add_xp existe).
       const { data, error } = await supabase.rpc('rpc_add_xp', {
         p_profile_id: profileId,
         p_xp_delta: xp,
@@ -57,6 +60,9 @@ export function useGamificationMutations(
       // E59 — dedupe + incremento ATOMICO no banco (ON CONFLICT DO NOTHING via
       // índice único agent_achievements_unique + xp/achievements_count
       // incrementais no mesmo UPDATE). Sem read-then-insert client-side.
+      // Nota (fix 2026-08-18): caminho E70 (rpc_unlock_achievement) removido —
+      // merge E70×E59 estava quebrado e a migration 20260818190002 (E70) NÃO
+      // está aplicada no banco (DB-as-source: só rpc_grant_achievement existe).
       const { data, error } = await supabase.rpc('rpc_grant_achievement', {
         p_profile_id: profileId,
         p_type: type,
@@ -64,7 +70,20 @@ export function useGamificationMutations(
         p_description: description ?? null,
         p_xp_reward: xpReward,
       });
-      if (error) throw error;
+      if (error) {
+        // Defensivo: corrida de unique que escapar do ON CONFLICT (ex.: banco
+        // sem a migration aplicada ainda) vira alreadyHad, nunca throw.
+        if ((error as { code?: string }).code === '23505') {
+          return {
+            alreadyHad: true,
+            newXp: 0,
+            newLevel: currentStats?.level ?? 1,
+            leveledUp: false,
+            previousLevel: currentStats?.level ?? 1,
+          };
+        }
+        throw error;
+      }
       if (!data) throw new Error('rpc_grant_achievement: resposta vazia');
 
       if (data.already_had) {

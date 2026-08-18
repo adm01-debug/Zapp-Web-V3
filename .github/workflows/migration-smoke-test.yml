@@ -94,49 +94,50 @@ jobs:
           docker exec pg-smoke psql -U postgres -v ON_ERROR_STOP=1 -f /tmp/pg-bootstrap.sql
           echo "Bootstrap applied successfully."
 
-      - name: Collect and apply migrations
-        # NOTA ARQUITETURAL: As migrations ativas sao INCREMENTAIS (alteram
-        # objetos existentes em prod). O baseline e documental (sem DDL).
-        # Apply-from-scratch falha por design - nao bloqueia CI.
-        # O linter estatico (step anterior) ja captura erros de sintaxe.
-        # Este step e executado para detectar erros "evidentes" (ex: SQL invalido)
-        # mas nao bloqueia quando falha por dependencias de esquema.
+      - name: Collect and apply migrations (delta - so as que mudaram)
+        # OTIMIZACAO v2: copia/aplica SOMENTE as migrations do PR/push, nao todas as 400+.
+        # O linter estatico (step anterior) e a gate real de erros de sintaxe.
         continue-on-error: true
         run: |
           MIGRATION_DIR="supabase/migrations"
-          APPLIED=0
-          FIRST_ERROR=''
-          TOTAL=0
 
-          # Copiar migrations para o container (acesso via docker exec)
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="HEAD~1"
+          fi
+          CHANGED_MIGRATIONS=$(git diff --name-only "$BASE"...HEAD -- "$MIGRATION_DIR" 2>/dev/null \
+            | grep -E '[0-9]{14}_.*\.sql$' || true)
+
+          if [ -z "$CHANGED_MIGRATIONS" ]; then
+            echo "Nenhuma migration alterada -- smoke test Postgres ignorado."
+            exit 0
+          fi
+
+          echo "Migrations a testar (delta):"; echo "$CHANGED_MIGRATIONS"
+          TOTAL=$(echo "$CHANGED_MIGRATIONS" | wc -l | tr -d ' ')
+
+          # Copiar APENAS as migrations do delta para o container
           docker exec pg-smoke mkdir -p /tmp/mig
-          find "$MIGRATION_DIR" -maxdepth 1 -name '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*.sql' | sort | while read -r mfile; do
-            docker cp "$mfile" pg-smoke:/tmp/mig/ 2>/dev/null || true
+          echo "$CHANGED_MIGRATIONS" | while IFS= read -r f; do
+            [ -f "$f" ] && docker cp "$f" pg-smoke:/tmp/mig/ 2>/dev/null || true
           done
 
-          # POSIX-safe (sem mapfile/arrays bash): find + sort
-          while IFS= read -r f; do
-            TOTAL=$((TOTAL + 1))
-            echo "Applying: $f"
-            if ! docker exec pg-smoke psql -U postgres -v ON_ERROR_STOP=1 -f "/tmp/mig/$(basename "$f")" 2>&1; then
-              echo "::warning file=$f::Migration apply failed (incremental schema - expected): $f"
-              FIRST_ERROR="$f"
-              break
+          # Aplicar em ordem de timestamp
+          APPLIED=0; FIRST_ERROR=''
+          for f in $(echo "$CHANGED_MIGRATIONS" | sort); do
+            bn=$(basename "$f")
+            echo "Applying: $bn"
+            if ! docker exec pg-smoke psql -U postgres -v ON_ERROR_STOP=1 -f "/tmp/mig/$bn" 2>&1; then
+              echo "::warning file=$f::Apply falhou (dependencia incremental): $f"
+              FIRST_ERROR="$f"; break
             fi
             APPLIED=$((APPLIED + 1))
-          done < $(find "$MIGRATION_DIR" -maxdepth 1 -name '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*.sql' | sort > /tmp/migrations.txt && echo /tmp/migrations.txt)
+          done
 
-          TOTAL=$(wc -l < /tmp/migrations.txt || echo 0)
-          echo ''
-          echo '------------------------------------'
-          echo "Applied: $APPLIED / $TOTAL"
-          if [ -n "$FIRST_ERROR" ]; then
-            echo "First failure (incremental schema dependency): $FIRST_ERROR"
-            echo 'NOTE: This is expected for incremental schemas. Static linter is the gate.'
-          else
-            echo 'All migrations applied successfully. v'
-          fi
-          # Always exit 0 - static linter is the real gate
+          echo "------------------------------------"
+          echo "Applied: $APPLIED / $TOTAL (delta do PR/push)"
+          [ -n "$FIRST_ERROR" ] && echo "First failure: $FIRST_ERROR"
           exit 0
 
       - name: Verify expected schemas exist
@@ -159,7 +160,7 @@ jobs:
                 RAISE NOTICE 'All expected schemas present. v';
               END IF;
             END;
-            $;
+            $$;
           PSQLEOF
 
       - name: Stop Postgres container

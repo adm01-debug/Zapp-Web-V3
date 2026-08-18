@@ -63,8 +63,6 @@ export const DiagnosticsView = lazyWithRetry(() => import('@/components/diagnost
 export const VoIPPanel = lazyWithRetry(() => import('@/components/calls/VoIPPanel').then(m => ({ default: m.VoIPPanel })));
 /** Lazy-loaded AutoExportManager with 3-attempt retry backoff. */
 export const AutoExportManager = lazyWithRetry(() => import('@/components/reports/AutoExportManager').then(m => ({ default: m.AutoExportManager })));
-/** Lazy-loaded GoogleCalendarIntegration with 3-attempt retry backoff. */
-export const GoogleCalendarIntegration = lazyWithRetry(() => import('@/components/integrations/GoogleCalendarIntegration').then(m => ({ default: m.GoogleCalendarIntegration })));
 /** Lazy-loaded ThemeCustomizer with 3-attempt retry backoff. */
 export const ThemeCustomizer = lazyWithRetry(() => import('@/components/settings/ThemeCustomizer').then(m => ({ default: m.ThemeCustomizer })));
 /** Lazy-loaded ScheduleCalendarView with 3-attempt retry backoff. */

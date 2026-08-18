@@ -71,6 +71,7 @@ export const EDGE_FUNCTION_NAMES = [
   'csat-dispatch',
   'db-health-monitor',
   'detect-new-device',
+  'download-wa-status-media',
   'elevenlabs-dialogue',
   'elevenlabs-scribe-token',
   'elevenlabs-sfx',
@@ -137,6 +138,7 @@ export const EDGE_FUNCTION_NAMES = [
   'talkx-scheduler',
   'talkx-send',
   'ticket-router',
+  'transcribe-audio-internal',
   'virustotal-test',
   'voice-agent',
   'voice-changer',
@@ -451,6 +453,17 @@ const specificEdgeFunctionSchemas: Record<string, ContractVersionMap> = {
     v1: z
       .object({
         dryRun: z.boolean().optional(),
+      })
+      .strict(),
+  },
+  // invite-user — convite REAL via GoTrue admin API (ADR 2026-08-18; banco
+  // vivo sem RPC invite_user/tabela de convites). Espelho inline (sem ciclo).
+  'invite-user': {
+    v1: z
+      .object({
+        email: z.string().email().max(255),
+        role: z.enum(['admin', 'supervisor', 'agent']).optional(),
+        message: z.string().max(500).optional(),
       })
       .strict(),
   },

@@ -4,6 +4,7 @@ import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
+import { fetchWithRetry } from "../_shared/retry-with-backoff.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -102,14 +103,16 @@ Deno.serve(async (req) => {
 
     log.info("Forwarding reply to Sicoob Gifts");
 
-    const response = await fetch(`${sicoobGiftsUrl}/functions/v1/chat-bridge`, {
+    const response = await fetchWithRetry(`${sicoobGiftsUrl}/functions/v1/chat-bridge`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${sicoobGiftsBridgeSecret}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(sicoobPayload),
-      signal: AbortSignal.timeout(15_000),
+    }, {
+      timeoutMs: 15_000,
+      label: 'Sicoob',
     });
 
     if (!response.ok) {
