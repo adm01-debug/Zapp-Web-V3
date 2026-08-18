@@ -81,7 +81,11 @@ services:
         - "com.docker.stack.image=supabase/studio:2026.06.29-sha-20290c7"
 
   functions:
-    image: supabase/edge-runtime:v1.74.0
+    image: supabase/edge-runtime:v1.74.0@sha256:2781daf92394db91f7e94129cc3d04ec474ad16a8fe64b3fbeef6e7d557ab120
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     entrypoint: ["/bin/sh", "-c"]
     command:
       - "export JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) && export DB_PASS=$$(cat /run/secrets/supabase_db_password_v1) && export SUPABASE_DB_URL=postgresql://postgres:$${DB_PASS}@db:5432/postgres && export SUPABASE_SERVICE_ROLE_KEY=$$(cat /run/secrets/supabase_service_key_v3) && export EVOLUTION_WEBHOOK_SECRETS=$$(cat /run/secrets/supabase_evolution_webhook_secret_v1) && export SELFHOSTED_SUPABASE_URL=https://supabase.atomicabr.com.br && export SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY=$$(cat /run/secrets/supabase_service_key_v3) && export SELFHOSTED_SUPABASE_ANON_KEY=$$(cat /run/secrets/supabase_anon_key_v2) && export SUPABASE_ANON_KEY=$$(cat /run/secrets/supabase_anon_key_v2) && export SENTRY_DSN=$$(cat /run/secrets/sentry_dsn_v2) && export HEALTH_SECRET=$$(cat /run/secrets/health_secret_v2) && export METRICS_SCRAPE_TOKEN=$$(cat /run/secrets/metrics_scrape_token_v2) && export DEEPSEEK_API_KEY=$$(cat /run/secrets/deepseek_api_key_v2) && export EVOLUTION_API_KEY=$$(cat /run/secrets/evolution_api_key_v7_20260814) && export STATS_HTTP_HMAC_SECRET=$$(cat /run/secrets/stats_http_hmac_v1) && exec edge-runtime start --main-service /home/deno/functions/main # secrets-v1"
