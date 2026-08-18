@@ -15,9 +15,11 @@ import { readSourceFrom } from "../../_shared/test-helpers.ts";
  */
 Deno.test("mcp-server: implementação REAL (R2) — JSON-RPC + tools read-only + auth", async () => {
   const source = await readSourceFrom(import.meta.url, "../../mcp-server/index.ts");
-  // Fachada removida.
-  assert(!source.includes("In a real implementation"), "fachada removida");
+  // Fachada removida (o comentário pode citar a frase histórica — o que
+  // prova a remoção é a ausência do RETORNO fixo de sucesso).
   assert(!source.includes("MCP Server is active"), "sucesso fixo removido");
+  assert(!source.includes("success: true, message"), "envelope falso removido");
+  assert(!source.includes("protocol: \"1.0\""), "protocolo falso removido");
   // Protocolo JSON-RPC.
   assert(source.includes("jsonrpc"), "envelope JSON-RPC");
   assert(source.includes("initialize"), "método initialize");
