@@ -378,8 +378,6 @@ const EmptyStrictV1Schema = z.object({}).strict();
 /** evolution-credentials@v1 — GET admin; sem body. */
 export const EvolutionCredentialsV1Schema = EmptyStrictV1Schema;
 
-/** evolution-bitrix-sync@v1 — cron de sincronização Bitrix; sem body. (Parity com main.) */
-export const EvolutionBitrixSyncV1Schema = EmptyStrictV1Schema;
 
 /**
  * evolution-credentials-write@v1 — POST CRUD (actions 'save' | 'delete').
@@ -1095,7 +1093,6 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Sub-rota POST do evolution-credentials (dual-route por design — sem
   // diretório próprio; não consta em EDGE_FUNCTION_NAMES. Auditoria A9).
   "evolution-credentials-write":   { v1: EvolutionCredentialsWriteV1Schema },
-  "evolution-bitrix-sync":         { v1: EvolutionBitrixSyncV1Schema },
   "evolution-templates":           { v1: EvolutionTemplatesV1Schema },
   "evolution-retry-metrics":       { v1: EvolutionRetryMetricsV1Schema },
   "db-health-monitor":             { v1: DbHealthMonitorV1Schema },
