@@ -19,30 +19,13 @@ export function useGamificationMutations(
   const addXpMutation = useMutation({
     mutationFn: async ({ xp, reason }: { xp: number; reason: string }) => {
       if (!profileId) throw new Error('No profile ID');
-      // E70: XP transacional — RPC SECURITY DEFINER grava ledger + estado
-      // atomicamente (fim da race condition client-side). Nível recalculado
-      // no banco (FLOOR(SQRT(xp/50))+1, espelho de levelUtils).
-      const { data, error } = await supabase.rpc('rpc_grant_xp', {
-        p_profile_id: profileId,
-        p_amount: xp,
-        p_reason: reason,
-      });
-      if (error) throw error;
-      const r = data as {
-        new_xp: number;
-        new_level: number;
-        leveled_up: boolean;
-        previous_level: number;
-      };
-      return {
-        newXp: r.new_xp,
-        newLevel: r.new_level,
-        leveledUp: r.leveled_up,
-        previousLevel: r.previous_level,
       // E59 — escrita TRANSACIONAL: o banco soma o delta (xp = xp + $1, FOR
       // UPDATE) e recalcula o nível (trigger update_level_on_xp_change).
       // NUNCA computar newXp a partir do cache (race read-modify-write:
       // 2 eventos simultâneos perdiam 1 incremento).
+      // Nota (fix 2026-08-18): caminho E70 (rpc_grant_xp + ledger) removido —
+      // merge E70×E59 estava quebrado e a migration 20260818190002 (E70) NÃO
+      // está aplicada no banco (DB-as-source: só rpc_add_xp existe).
       const { data, error } = await supabase.rpc('rpc_add_xp', {
         p_profile_id: profileId,
         p_xp_delta: xp,
@@ -74,12 +57,12 @@ export function useGamificationMutations(
     }) => {
       if (!profileId) throw new Error('No profile ID');
 
-      // E70: dedupe transacional no banco (ON CONFLICT DO NOTHING sobre o
-      // índice único da E66) — achievement desbloqueia 1x, sem TOCTOU.
-      const { data, error } = await supabase.rpc('rpc_unlock_achievement', {
       // E59 — dedupe + incremento ATOMICO no banco (ON CONFLICT DO NOTHING via
       // índice único agent_achievements_unique + xp/achievements_count
       // incrementais no mesmo UPDATE). Sem read-then-insert client-side.
+      // Nota (fix 2026-08-18): caminho E70 (rpc_unlock_achievement) removido —
+      // merge E70×E59 estava quebrado e a migration 20260818190002 (E70) NÃO
+      // está aplicada no banco (DB-as-source: só rpc_grant_achievement existe).
       const { data, error } = await supabase.rpc('rpc_grant_achievement', {
         p_profile_id: profileId,
         p_type: type,
@@ -101,20 +84,6 @@ export function useGamificationMutations(
         }
         throw error;
       }
-      const r = data as {
-        already_unlocked: boolean;
-        new_xp: number | null;
-        new_level: number | null;
-        leveled_up: boolean;
-        previous_level: number | null;
-      };
-      return {
-        alreadyHad: r.already_unlocked,
-        newXp: r.new_xp ?? 0,
-        newLevel: r.new_level ?? currentStats?.level ?? 1,
-        leveledUp: r.leveled_up,
-        previousLevel: r.previous_level ?? currentStats?.level ?? 1,
-      if (error) throw error;
       if (!data) throw new Error('rpc_grant_achievement: resposta vazia');
 
       if (data.already_had) {
