@@ -42,6 +42,27 @@ export type CampaignInput = {
   send_interval_seconds?: number;
 };
 
+/**
+ * Mensagem amigável para erros de RLS (E62-62.8): 403 silencioso do botão
+ * "Iniciar/Pausar/Excluir" vira aviso claro, em vez de texto cru do PostgREST.
+ */
+const CAMPAIGN_RLS_MESSAGE =
+  'Sem permissão para esta ação em campanhas. Apenas admin/supervisor ou o criador da campanha podem alterá-la.';
+
+/** Mapeia erro de escrita (RLS/403) para mensagem clara; demais erros mantêm o texto original. */
+export function campaignErrorToMessage(error: Error): string {
+  const message = (error?.message ?? '').toLowerCase();
+  if (
+    message.includes('row-level security') ||
+    message.includes('permission denied for table') ||
+    message.includes('42501') ||
+    message.includes('insufficient_privilege')
+  ) {
+    return CAMPAIGN_RLS_MESSAGE;
+  }
+  return `Erro: ${error?.message ?? 'desconhecido'}`;
+}
+
 /** Provides campaigns CRUD operations and contact targeting for campaigns. */
 export function useCampaigns() {
   const queryClient = useQueryClient();
@@ -73,7 +94,7 @@ export function useCampaigns() {
       queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all() });
       toast.success('Campanha criada com sucesso!');
     },
-    onError: (err: Error) => toast.error(`Erro: ${err.message}`),
+    onError: (err: Error) => toast.error(campaignErrorToMessage(err)),
   });
 
   const updateCampaign = useMutation({
@@ -91,7 +112,7 @@ export function useCampaigns() {
       queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all() });
       toast.success('Campanha atualizada!');
     },
-    onError: (err: Error) => toast.error(`Erro: ${err.message}`),
+    onError: (err: Error) => toast.error(campaignErrorToMessage(err)),
   });
 
   const deleteCampaign = useMutation({
@@ -103,7 +124,7 @@ export function useCampaigns() {
       queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all() });
       toast.success('Campanha excluída!');
     },
-    onError: (err: Error) => toast.error(`Erro: ${err.message}`),
+    onError: (err: Error) => toast.error(campaignErrorToMessage(err)),
   });
 
   const addContactsToCampaign = useMutation({
@@ -124,7 +145,7 @@ export function useCampaigns() {
       queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all() });
       toast.success('Contatos adicionados à campanha!');
     },
-    onError: (err: Error) => toast.error(`Erro: ${err.message}`),
+    onError: (err: Error) => toast.error(campaignErrorToMessage(err)),
   });
 
   return {
