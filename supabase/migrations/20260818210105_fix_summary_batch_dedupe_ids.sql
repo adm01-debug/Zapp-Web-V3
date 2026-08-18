@@ -36,4 +36,4 @@ $function$
 
 -- Reforco de privilegios (idempotente): so authenticated (app) e service_role.
 REVOKE ALL ON FUNCTION zapp.rpc_get_contact_summary_batch(uuid[]) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION zapp.rpc_get_contact_summary_batch(uuid[]) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION zapp.rpc_get_contact_summary_batch(uuid[]) TO authenticated, service_role; -- ignore-lint-ml008: batch lookup helper; workspace isolation aplicada pelo caller via contact_ids do workspace

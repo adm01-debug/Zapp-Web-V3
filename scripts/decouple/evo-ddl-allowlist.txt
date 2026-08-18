@@ -25,3 +25,5 @@
 20260808280000_fix_security_definer_evo_fns_anon_access.sql
 20260817000000_p23_ingest_ledger_rejected.sql
 20260818120000_regularize_public_ingest_ledger_view.sql | regularização da view public.ingest_ledger (PG14-HARDENING 18/08 — espelho do evo.ingest_ledger usado pela edge; migration de regularização de DDL manual existente)
+20260818210102_fix_perf_rpc_list_messages_lite_or_generic.sql | zapp.rpc_list_messages_lite retorna SETOF evo.evolution_messages — referencia de tipo, nao DDL no schema evo
+20260818210103_capture_get_avatars_by_jids_batch_fixed.sql | zapp.get_avatars_by_jids_batch faz FROM evo.evolution_contacts — leitura, nao DDL no schema evo
