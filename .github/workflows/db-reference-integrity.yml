@@ -16,6 +16,11 @@ on:
     - cron: '0 8 * * *'
   workflow_dispatch:
   push:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - 'scripts/sql/**'
+  pull_request:
     paths:
       - 'supabase/**'
       - 'scripts/sql/**'
