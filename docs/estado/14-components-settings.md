@@ -245,14 +245,14 @@ Não foi identificado uso de Realtime nos componentes deste diretório. Os updat
 | `useRetagRecentContacts` | AIAutoTagsConfig | `@/hooks/` (NAO_VERIFICADO) |
 | `useAutoCloseConversations` | AutoCloseSettings | `@/hooks/useAutoCloseConversations` |
 | `useSLAConfigurations` | SLAConfigurationManager | `@/features/sla` |
-| `useSLARulesCounts` | SLARulesManager | `@/hooks/useSLARulesCounts` |
+| `useSLARulesCounts` | SLARulesManager | `@/features/sla/hooks/useSLARulesCounts` |
 | `useMarketingBudgets` | MarketingBudgets | `@/hooks/useMarketingBudgets` |
 | `useMediaLibrary` | MediaAdminPanel | `@/hooks/media-library/useMediaLibrary` |
 | `useMediaUpload` | MediaAdminPanel | `@/hooks/media-library/useMediaUpload` |
 | `useTheme` | ThemeCustomizer | `@/hooks/useTheme` |
 | `useDensity` | AppearanceSettings | `@/hooks/useDensity` (via DensitySelector) |
 | `useLanguage` | LanguageSelector | `@/i18n` |
-| `useSLARulesCounts` | SLARulesManager | `@/hooks/useSLARulesCounts` |
+| `useSLARulesCounts` | SLARulesManager | `@/features/sla/hooks/useSLARulesCounts` |
 
 ### Features externas consumidas:
 | Feature/Import | Importado por | Localização |

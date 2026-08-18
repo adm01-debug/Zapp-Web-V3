@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSLARulesCounts } from '@/hooks/useSLARulesCounts';
+import { useSLARulesCounts } from '@/features/sla/hooks/useSLARulesCounts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { LayoutGrid } from 'lucide-react';

@@ -1,10 +1,11 @@
 import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { SLARuleScope } from '@/features/sla';
+import type { SLARuleScope } from '@/features/sla/hooks/useSLARules';
 import { isValidUUID } from '@/utils/uuid';
 import { QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/queryStaleTimes';
 
+/** Hook: use SLAScope Names. */
 export function useSLAScopeNames(
   scope: SLARuleScope,
   contactIds: string[],

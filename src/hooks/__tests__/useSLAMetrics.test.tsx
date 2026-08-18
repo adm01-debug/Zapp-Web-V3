@@ -13,7 +13,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 vi.mock('@/lib/logger');
 
-import { useSLAMetrics } from '@/hooks/useSLAMetrics';
+import { useSLAMetrics } from '@/features/sla/hooks/useSLAMetrics';
 
 function createWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
