@@ -1,7 +1,7 @@
 import {
   assert,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { readSource } from "../../evolution-api/__tests__/_helpers.ts";
+import { readSourceFrom } from "../../_shared/test-helpers.ts";
 
 /**
  * Locks the R2 hardening contract (mcp-server REAL, 2026-08-18):
@@ -14,7 +14,7 @@ import { readSource } from "../../evolution-api/__tests__/_helpers.ts";
  *  - zero escrita e zero SQL público.
  */
 Deno.test("mcp-server: implementação REAL (R2) — JSON-RPC + tools read-only + auth", async () => {
-  const source = await readSource("../../mcp-server/index.ts");
+  const source = await readSourceFrom(import.meta.url, "../../mcp-server/index.ts");
   // Fachada removida.
   assert(!source.includes("In a real implementation"), "fachada removida");
   assert(!source.includes("MCP Server is active"), "sucesso fixo removido");
