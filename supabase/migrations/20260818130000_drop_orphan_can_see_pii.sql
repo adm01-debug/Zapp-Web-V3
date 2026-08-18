@@ -1,0 +1,12 @@
+-- 20260818130000_drop_orphan_can_see_pii
+-- Drop de função órfã (auditoria 2026-08-18): zapp.can_see_pii() foi criada
+-- em 20260817130500 (decouple_pii_conversations_role_guard) mas nunca ganhou
+-- call site — nenhuma view, policy ou função a referencia (pg_depend com
+-- deptype normal: 0 dependentes; busca textual em pg_views/pg_policy/
+-- pg_proc.prosrc: 0 ocorrências). SECURITY DEFINER com GRANT a authenticated
+-- sem uso é superfície morta de ataque/manutenção.
+-- Definição preservada no espelho 20260817130500 caso a feature de
+-- mascaramento de PII seja retomada.
+-- Sem CASCADE de propósito: se alguma dependência surgir entre o commit e o
+-- apply, o DROP falha em vez de arrastar objetos.
+DROP FUNCTION IF EXISTS zapp.can_see_pii();

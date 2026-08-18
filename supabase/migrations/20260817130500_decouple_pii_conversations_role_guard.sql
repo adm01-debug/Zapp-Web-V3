@@ -2,8 +2,8 @@
 -- Espelho DB-as-source (reconstruido do estado vivo em 2026-08-18; aplicado
 -- originalmente via MCP em 2026-08-17). Guard de role em conversas:
 --  * zapp.can_see_pii(): helper de role p/ mascaramento de PII
---    (NOTA 2026-08-18: sem call sites vivos no banco - candidata a uso futuro
---    ou remocao; espelhada porque existe com GRANTs a authenticated)
+--    (NOTA 2026-08-18: sem call sites vivos; DROPADA em 20260818130000 -
+--    definicao mantida aqui so como historico/base p/ retomar mascaramento)
 --  * policies de evo.evolution_conversations com guard de role:
 --    SELECT via admin/supervisor OU contato visivel; UPDATE so admin/supervisor
 -- Idempotente.
