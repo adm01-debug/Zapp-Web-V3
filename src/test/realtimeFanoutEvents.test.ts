@@ -8,7 +8,9 @@ export { parseEdgeEvents };
 /**
  * Valida que os rótulos de evento nas arestas DB -.->|...| <Hook> do diagrama
  * batem com os tipos de evento (INSERT/UPDATE/DELETE) realmente assinados em
- * cada arquivo consumidor de postgres_changes na tabela 'messages'.
+ * cada arquivo consumidor de postgres_changes de mensagens — tabelas
+ * 'messages'/'evolution_messages' e o espelho não-particionado
+ * 'realtime_message_fanout' (fan-out v2).
  *
  * Falha em duas direções:
  *   - aresta declara evento X que o hook NÃO assina;
@@ -36,6 +38,8 @@ const NODE_TO_FILE: Record<string, string> = {
   // URD removed — useRealtimeDashboard is a thin delegate with no direct messages postgres_changes
   UEM: 'src/components/monitoring/hooks/useEvolutionMonitoring.ts',
   AMP: 'src/features/inbox/components/useAudioMessagePlayer.ts',
+  URRA: 'src/features/inbox/hooks/realtime/useRetryResolutionAlerts.ts',
+  CMA2: 'src/features/inbox/components/chat/ChatMessagesArea.tsx',
 };
 
 function parseDiagramEdges(): Record<string, Set<Evt>> {
@@ -51,19 +55,19 @@ function parseDiagramEdges(): Record<string, Set<Evt>> {
 
 // Captura todos os blocos `.on('postgres_changes', { ... table: <messages> ... })`
 // dentro de um arquivo e extrai o `event:` de cada um.
-// A tabela pode ser referenciada como literal (`table: 'messages'`) ou via o
-// helper do datasource (`table: dbTable('messages')`), ambos aceitos aqui.
-// Fanout v2: `realtime_message_fanout` (espelho não-particionado) também conta
-// como canal de mensagens — Realtime v2 não entrega partições.
+// A tabela pode ser referenciada como literal (`table: 'messages'`), via o
+// helper do datasource (`table: dbTable('messages')`), ou no espelho
+// não-particionado `realtime_message_fanout` (fan-out v2 — Realtime v2 não
+// entrega partições); o `.on` também pode carregar genérico (`.on<Row>(`).
 function parseFileEvents(absPath: string): Set<Evt> {
   const src = readFileSync(absPath, 'utf8');
-  const blockRe = /\.on\(\s*['"]postgres_changes['"]\s*,\s*\{([\s\S]*?)\}\s*,/g;
+  const blockRe = /\.on(?:<[^>]*>)?\(\s*['"]postgres_changes['"]\s*,\s*\{([\s\S]*?)\}\s*,/g;
   const out = new Set<Evt>();
   let m: RegExpExecArray | null;
   while ((m = blockRe.exec(src)) !== null) {
     const body = m[1];
     if (
-      !/table:\s*(?:['"](?:messages|evolution_messages|realtime_message_fanout)['"]|dbTable\(\s*['"](?:messages|evolution_messages|realtime_message_fanout)['"]\s*\))/.test(
+      !/table:\s*(?:['"](?:realtime_message_fanout|messages|evolution_messages)['"]|dbTable\(\s*['"](?:realtime_message_fanout|messages|evolution_messages)['"]\s*\))/.test(
         body
       )
     )

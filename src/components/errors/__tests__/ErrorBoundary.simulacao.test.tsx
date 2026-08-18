@@ -258,10 +258,12 @@ describe('ErrorBoundary — recuperação (onError, resetKey, retry)', () => {
 describe('App.tsx — verificação estática (sem renderizar)', () => {
   const APP_SOURCE = readFileSync(resolve(process.cwd(), 'src/App.tsx'), 'utf8');
 
-  it('usa lazyWithRetry para todos os componentes lazy do App (5 providers diferidos + 4 debug widgets = 9)', () => {
+  it('usa lazyWithRetry para todos os componentes lazy do App (5 providers diferidos + 4 debug widgets + 1 DeferredHooks = 10)', () => {
     // FIX perf TTM phase-07: BuildValidationOverlay, HardResetButton,
     // SwDebugWidget e ThemeDebugger passaram a lazyWithRetry (antes estáticos).
-    expect(APP_SOURCE.match(/lazyWithRetry\(/g) ?? []).toHaveLength(9);
+    // DeferredHooks (hooks pós-primeira-pintura: useServiceWorker,
+    // useScreenProtection, buildVersion) também é lazyWithRetry.
+    expect(APP_SOURCE.match(/lazyWithRetry\(/g) ?? []).toHaveLength(10);
   });
 
   it('NÃO usa lazy() cru (zero ocorrências de "= lazy(" e de lazy() com word boundary)', () => {
