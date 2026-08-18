@@ -82,6 +82,18 @@
     },
     {
       "kind": "rpc",
+      "name": "rpc_complete_followup",
+      "reason": "Exists in DB — zapp.rpc_complete_followup(uuid), SECURITY DEFINER, GRANT EXECUTE to authenticated (migration 20260817220000_followup_complete_rpc_status_check.sql). Called via direct supabase.rpc in src/hooks/followup/useFollowupPending.ts. Typed entry in rpcCatalog.ts pending.",
+      "status": "catalog-pending"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_latest_contact_analysis",
+      "reason": "Exists in DB — zapp.rpc_latest_contact_analysis(uuid), GRANT EXECUTE to authenticated/service_role (migration 20260817230000_etapa66_latest_analysis_rpc.sql). Called via direct supabase.rpc in src/hooks/useLatestAnalysis.ts. Typed entry in rpcCatalog.ts pending.",
+      "status": "catalog-pending"
+    },
+    {
+      "kind": "rpc",
       "name": "rpc_email_search_threads",
       "reason": "Missing RPC — email thread search not yet implemented in DB.",
       "status": "missing-rpc"
@@ -181,6 +193,12 @@
       "name": "user_devices",
       "reason": "Planned feature — user device/push token registry not yet created in DB.",
       "status": "missing-table"
+    },
+    {
+      "kind": "rpc",
+      "name": "rpc_dismiss_warroom_alert",
+      "reason": "RPC SECURITY DEFINER de dismiss de warroom (member|admin) — criada 2026-08-18 (warroom_dismiss_rpc_fix)",
+      "status": "catalog-pending"
     }
   ]
 }

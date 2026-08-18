@@ -13,8 +13,7 @@ import { useNotificationSettingsManagement } from '@/hooks/useNotificationManage
 import { toast } from 'sonner';
 import { playNotificationSound, showBrowserNotification } from '@/utils/notificationSounds';
 import { getLogger } from '@/lib/logger';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { warRoomAlertRowSchema, safeParseEvent, sentimentAlertRowSchema } from '@/shared/webhookEventSchemas';
+import { warRoomAlertRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
 import { queryKeys } from '@/services/api/queryKeys';
 
 const log = getLogger('useAlertManagement');
@@ -182,7 +181,12 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
         if (status === 'SUBSCRIBED') {
           lastConnectedAtMs = Date.now();
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          void logChannelError(log, '[useWarRoomAlertsManagement] warroom alerts subscription status:', lastConnectedAtMs, status);
+          void logChannelError(
+            log,
+            '[useWarRoomAlertsManagement] warroom alerts subscription status:',
+            lastConnectedAtMs,
+            status
+          );
         }
       });
 
@@ -196,11 +200,12 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
     // RPC SECURITY DEFINER com check de member (R3 2026-08-18): o update direto
     // era filtrado silenciosamente pelo RLS (0 rows) para não-admin desde o
     // hardening de 05/08 — alerta nunca marcava como lido.
-    const { data: dismissed, error } = await supabase.rpc('rpc_dismiss_warroom_alert' as never, {
+    const { data: dismissed, error } = await supabase.rpc('rpc_dismiss_warroom_alert', {
       p_alert_id: alertId,
-    } as never);
+    });
     if (error) log.error('Failed to dismiss warroom alert', error);
-    else if (dismissed === false) log.warn('Dismiss warroom alert negado (sem permissão de member)', { alertId });
+    else if (dismissed === false)
+      log.warn('Dismiss warroom alert negado (sem permissão de member)', { alertId });
     queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
   };
 
@@ -384,18 +389,21 @@ export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult
     [queryClient, key]
   );
 
-  const acknowledgeAlert = useCallback(async (alertId: string) => {
-    try {
-      const { error: updateError } = await supabase
-        .from('webhook_health_checks')
-        .update({ acknowledged: true })
-        .eq('id', alertId);
-      if (updateError) throw updateError;
-      await queryClient.invalidateQueries({ queryKey: key });
-    } catch (error) {
-      log.error('Failed to acknowledge webhook health alert:', error);
-    }
-  }, [queryClient, key]);
+  const acknowledgeAlert = useCallback(
+    async (alertId: string) => {
+      try {
+        const { error: updateError } = await supabase
+          .from('webhook_health_checks')
+          .update({ acknowledged: true })
+          .eq('id', alertId);
+        if (updateError) throw updateError;
+        await queryClient.invalidateQueries({ queryKey: key });
+      } catch (error) {
+        log.error('Failed to acknowledge webhook health alert:', error);
+      }
+    },
+    [queryClient, key]
+  );
 
   return { alerts, loading, acknowledgeAlert, checkHealth };
 }

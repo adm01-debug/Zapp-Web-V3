@@ -22,7 +22,7 @@ on:
 jobs:
   migration-lint:
     name: Lint migrations (RLS idempotency)
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     permissions:
       contents: read
       pull-requests: write

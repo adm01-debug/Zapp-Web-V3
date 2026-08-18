@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act, waitFor, renderHook } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor, renderHook, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement } from 'react';
 import type { ReactNode } from 'react';
@@ -67,9 +67,9 @@ function getTableData(table: string): unknown {
 function makeChain(table: string) {
   const raw = getTableData(table);
   const isArray = Array.isArray(raw);
-  const ops: Array<(rows: Array<Record<string, unknown>>) => Array<Record<string, unknown>>> = [];
+  const ops: Array<(rows: Array<Record<string, unknown>>) => unknown> = [];
   const chain: Record<string, unknown> = {};
-  const apply = (fn: (rows: Array<Record<string, unknown>>) => Array<Record<string, unknown>>) => {
+  const apply = (fn: (rows: Array<Record<string, unknown>>) => unknown) => {
     ops.push(fn);
     return chain;
   };
@@ -100,29 +100,40 @@ function makeChain(table: string) {
     return apply((rs) => rs.filter((r) => String(r[col] ?? '').toLowerCase().includes(needle)));
   });
   chain['limit'] = vi.fn((n: number) => apply((rs) => rs.slice(0, n)));
-  chain['order'] = vi.fn((col: string, opts?: { ascending?: boolean }) =>
-    apply((rs) =>
+  // order() emula ORDER BY composto do PostgREST: cada .order() adiciona uma
+  // chave de ordenação (tiebreaker), NUNCA um re-sort completo que destruiria
+  // a ordenação anterior (ex.: ORDER BY created_at DESC, id DESC).
+  const sortKeys: Array<{ col: string; ascending: boolean }> = [];
+  chain['order'] = vi.fn((col: string, opts?: { ascending?: boolean }) => {
+    sortKeys.push({ col, ascending: opts?.ascending ?? false });
+    return apply((rs) =>
       [...rs].sort((a, b) => {
-        const av = a[col] as string;
-        const bv = b[col] as string;
-        if (av === bv) return 0;
-        const cmp = av < bv ? -1 : 1;
-        return opts?.ascending ? cmp : -cmp;
+        for (const k of sortKeys) {
+          const av = a[k.col] as string;
+          const bv = b[k.col] as string;
+          if (av === bv) continue;
+          const cmp = av < bv ? -1 : 1;
+          return k.ascending ? cmp : -cmp;
+        }
+        return 0;
       })
-    )
-  );
+    );
+  });
   const noopMethods = [
-    'select', 'insert', 'update', 'delete', 'not', 'is', 'or', 'maybeSingle',
-    'single', 'filter', 'returns', 'throwOnError', 'abortSignal', 'range',
+    'select', 'insert', 'update', 'delete', 'not', 'is', 'or', 'single',
+    'filter', 'returns', 'throwOnError', 'abortSignal', 'range',
   ];
   for (const m of noopMethods) {
     chain[m] = vi.fn(() => chain);
   }
+  // maybeSingle() emula o contrato real do supabase-js: devolve a PRIMEIRA row
+  // (ou null), não o array completo — hooks que leem `data?.id` dependem disso.
+  chain['maybeSingle'] = vi.fn(() => apply((rs) => (rs.length > 0 ? rs[0] : null)));
   chain.then = (resolve: (value: { data: unknown; error: unknown }) => unknown) => {
     let data = raw;
     if (isArray) {
       let rows = raw as Array<Record<string, unknown>>;
-      for (const op of ops) rows = op(rows);
+      for (const op of ops) rows = op(rows) as Array<Record<string, unknown>>;
       data = rows;
     }
     return Promise.resolve({ data, error: tableErrors[table] ?? null }).then(resolve);
@@ -229,13 +240,15 @@ function teamChannels(): FakeChannel[] {
 }
 
 function createWrapper(qc?: QueryClient) {
-  const client = qc ?? new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+  // gcTime: 60000 — gcTime: 0 GC'aria entries pré-seedadas via setQueryData
+  // (sem observers ativos) antes da mutation rodar, quebrando os testes de cache.
+  const client = qc ?? new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 60000 } } });
   return ({ children }: { children: ReactNode }) =>
     createElement(QueryClientProvider, { client }, children);
 }
 
 function newQueryClient() {
-  return new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+  return new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 60000 } } });
 }
 
 beforeEach(() => {
@@ -316,9 +329,10 @@ describe('Team Chat — Notification System', () => {
       playNotificationSound('message', 'chime', 70);
       await vi.advanceTimersByTimeAsync(1000);
       // 2 notas com envelope: attack linear + decay exponencial para 0.001
+      // (fonte real: exponentialRampToValueAtTime(0.001, ...) — o alvo é o ARG 0)
       expect(oscStartSpy).toHaveBeenCalledTimes(2);
       expect(rampSpy).toHaveBeenCalledTimes(2);
-      expect(rampSpy.mock.calls.some((c: unknown[]) => c[1] === 0.001)).toBe(true);
+      expect(rampSpy.mock.calls.some((c: unknown[]) => c[0] === 0.001)).toBe(true);
       expect(gainSpy).toHaveBeenCalled();
       vi.unstubAllGlobals();
     });
@@ -542,7 +556,12 @@ describe('Team Chat — Data Format Validation', () => {
 
   it('formatTime produces HH:mm format (função real)', () => {
     expect(formatTime('2026-08-17T14:30:00Z')).toMatch(/^\d{2}:\d{2}$/);
-    expect(formatTime('2026-08-17T09:05:00Z')).toBe('09:05');
+    // TZ-safe: esperado calculado do MESMO instante com os componentes locais
+    // (mesma semântica do date-fns format 'HH:mm') — nunca hardcoded.
+    const ts = '2026-08-17T09:05:00Z';
+    const d = new Date(ts);
+    const expected = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    expect(formatTime(ts)).toBe(expected);
   });
 
   it('formatDateSep returns Hoje/Ontem/ptBR (função real)', () => {
@@ -631,7 +650,10 @@ describe('Team Chat — Media & File Handling', () => {
     });
 
     it('returns null when no url resolves', () => {
-      const { container } = render(<MediaContent msg={mediaMsg('image')} resolvedUrl={null} />);
+      // Cenário "sem URL": resolvedUrl null E nenhum fallback na msg
+      // (media_url/media_bucket/media_path todos null) → MediaContent retorna null.
+      const msg = { ...mediaMsg('image'), media_url: null, media_bucket: null, media_path: null };
+      const { container } = render(<MediaContent msg={msg} resolvedUrl={null} />);
       expect(container.firstChild).toBeNull();
     });
   });
@@ -719,7 +741,9 @@ describe('Team Chat — Media & File Handling', () => {
       fireEvent.change(input, {
         target: { files: [new File(['abc'], 'doc.pdf', { type: 'application/pdf' })] },
       });
-      fireEvent.click(screen.getByRole('button', { name: /enviar/i }));
+      // Escopado no dialog: o paperclip (aria-label "Enviar arquivo") TAMBÉM casa
+      // /enviar/i — o botão de submit do preview é o único "Enviar" dentro do dialog.
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Enviar' }));
       await waitFor(() => expect(supabaseStorageUpload).toHaveBeenCalled());
       const [bucket] = (supabase.storage.from as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
       expect(bucket).toBe('team-chat-files');
@@ -741,7 +765,9 @@ describe('Team Chat — Media & File Handling', () => {
       fireEvent.change(input, {
         target: { files: [new File(['abc'], 'doc.pdf', { type: 'application/pdf' })] },
       });
-      fireEvent.click(screen.getByRole('button', { name: /enviar/i }));
+      // Escopado no dialog: o paperclip (aria-label "Enviar arquivo") TAMBÉM casa
+      // /enviar/i — o botão de submit do preview é o único "Enviar" dentro do dialog.
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Enviar' }));
       await waitFor(() =>
         expect(sonnerCalls.some((c) => c[0] === 'error' && String(c[1]).includes('Erro ao enviar arquivo'))).toBe(true)
       );
@@ -786,10 +812,12 @@ describe('Team Chat — useTeamConversations', () => {
     ];
   }
 
-  it('returns [] when no profile is authenticated', async () => {
+  it('não busca conversas quando não há profile autenticado (data undefined, zero fetch)', async () => {
     authProfile = null;
     const { result } = renderHook(() => useTeamConversations(), { wrapper: createWrapper() });
-    await waitFor(() => expect(result.current.data).toEqual([]));
+    // Contrato real do hook: enabled: !!profile → query desabilitada → data undefined
+    await waitFor(() => expect(supabaseFromMock).not.toHaveBeenCalled());
+    expect(result.current.data).toBeUndefined();
   });
 
   it('enriches conversations: direct name/avatar from other member, last message, unread counts', async () => {
@@ -811,7 +839,8 @@ describe('Team Chat — useTeamConversations', () => {
     // Grupo: last_read_at null → TODAS as mensagens de outros contam (m3), a minha (m4) não
     expect(c2?.unread_count).toBe(1);
     expect(c2?.name).toBe('Grupo A');
-    expect(c2?.last_message?.id).toBe('m3');
+    // last_message = mais recente da conversa → m4 (10:31) é mais nova que m3 (10:30)
+    expect(c2?.last_message?.id).toBe('m4');
   });
 
   it('unread count includes all messages from others when last_read_at is null (FIXED gap)', async () => {
@@ -929,7 +958,12 @@ describe('Team Chat — useTeamMessages', () => {
   });
 
   it('applies ilike search filter with sanitized query', async () => {
+    // Fixture com conteúdo que a busca "urgente" realmente encontra (senão o
+    // filtro ilike legítimo devolve 0 rows e o teste falha pelo motivo errado).
     seedMessages(5);
+    tableData['team_messages'] = (tableData['team_messages'] as Array<Record<string, unknown>>).map(
+      (m, i) => ({ ...m, content: `msg ${i + 1} urgente` })
+    );
     const { result } = renderHook(() => useTeamMessages('c1', '  urgente  '), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.messages).toHaveLength(5));
     expect(chainMethodCalls('team_messages', 0, 'ilike')[0]).toEqual(['content', '%urgente%']);
@@ -955,7 +989,11 @@ describe('Team Chat — useTeamMessages', () => {
     expect(filter.filter).toBe('conversation_id=eq.c1');
 
     const callback = onCall[2] as (payload: { new: unknown }) => void;
-    act(() => callback({ new: { id: 'm-novo', conversation_id: 'c1', content: 'chegou' } }));
+    const novo = { id: 'm-novo', conversation_id: 'c1', content: 'chegou', created_at: '2026-08-17T11:00:00Z' };
+    // Espelha o INSERT no DB simulado: o invalidateQueries do hook refetcha e
+    // clobberaria o append otimista se a row nova não existisse no tableData.
+    (tableData['team_messages'] as Array<Record<string, unknown>>).push(novo);
+    act(() => callback({ new: novo }));
     await waitFor(() => expect(result.current.messages.some((m) => m.id === 'm-novo')).toBe(true));
   });
 
@@ -1170,8 +1208,11 @@ describe('Team Chat — Mutations', () => {
 
     it('department conversations add only the creator as member', async () => {
       tableData['team_conversation_members'] = [];
+      // A row seedada representa o resultado do INSERT (mock de insert não
+      // persiste). department_id 'd2' ≠ 'd1' faz o lookup de reuso (única por
+      // departamento) NÃO encontrar nada — o fluxo de criação segue até o INSERT.
       tableData['team_conversations'] = [
-        { id: 'dept-1', type: 'department', name: 'Financeiro', created_by: 'profile-1', created_at: 'x', updated_at: 'x', department_id: 'd1' },
+        { id: 'dept-1', type: 'department', name: 'Financeiro', created_by: 'profile-1', created_at: 'x', updated_at: 'x', department_id: 'd2' },
       ];
       const { result } = renderHook(() => useCreateTeamConversation(), { wrapper: createWrapper() });
       await act(async () => {

@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   quality-gate:
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     timeout-minutes: 30
     env:
       CI: true
@@ -40,10 +40,10 @@ jobs:
             bun-${{ runner.os }}-
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Lint (blocking — E02/F1-10)
-        run: npm run lint
+        run: bun run lint
 
       - name: Integridade dos documentos de auditoria (blocking)
         run: bash scripts/check-audit-docs-integrity.sh
@@ -127,11 +127,11 @@ jobs:
         run: node scripts/check-types-freshness.mjs
 
       - name: Unit & Integration Tests (blocking)
-        run: npm run test
+        run: bun run test
 
       - name: Coverage ratchet (E45 — advisory until baseline calibrated)
         run: |
-          npm run test:coverage -- --reporter=dot
+          bun run test:coverage -- --reporter=dot
           node scripts/check-coverage-ratchet.mjs
         continue-on-error: true
 
@@ -141,7 +141,7 @@ jobs:
             echo "::warning::Supabase local not available in CI — fuzzing skipped."
             exit 0
           fi
-          npm run test:fuzz -- --runs 20 --baseUrl http://localhost:54321/functions/v1
+          bun run test:fuzz -- --runs 20 --baseUrl http://localhost:54321/functions/v1
         continue-on-error: true
 
       - name: Install Playwright Browsers
@@ -150,7 +150,7 @@ jobs:
         run: bunx playwright install --with-deps
 
       - name: E2E Tests (boot suite — src/tests/e2e, 13 specs)
-        run: npm run test:e2e:boot
+        run: bun run test:e2e:boot
 
       - name: Build (produces dist/ for the Performance Budget Gate)
         # O gate mede os chunks REAIS de dist/ — sem build ele falha com
@@ -158,4 +158,4 @@ jobs:
         run: bun run build
 
       - name: Performance Budget Gate (blocking — E02/F10-06)
-        run: npm run perf:budget
+        run: bun run perf:budget

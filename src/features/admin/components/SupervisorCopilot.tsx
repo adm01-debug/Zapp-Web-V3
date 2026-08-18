@@ -26,7 +26,6 @@ const QUICK_QUESTIONS = [
   'Quais são os motivos de encerramento mais comuns?',
 ];
 
-interface QueueRow { id: string; name: string }
 interface AgentRow { id: string; name: string; role: string; is_active: boolean }
 
 /** Supervisor Copilot component. */
@@ -53,7 +52,8 @@ export function SupervisorCopilot() {
       ]);
 
       if (agentRaw.error) logger.warn('[SupervisorCopilot] agents fetch error', agentRaw.error);
-      const queues = queuesRaw as unknown as QueueRow[];
+      // E60: fetchSupervisorQueues já retorna rows tipadas (id/name nullable) — sem cast.
+      const queues = queuesRaw;
       const agents = agentRaw.data ?? [];
       const context = `
 Dados atuais do sistema:

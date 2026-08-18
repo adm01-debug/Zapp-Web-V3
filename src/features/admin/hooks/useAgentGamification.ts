@@ -14,24 +14,8 @@ export { ACHIEVEMENT_TYPES } from './gamification/types';
 /** Re-exported module members. */
 export { calculateLevel, xpForNextLevel, levelProgress } from './gamification/levelUtils';
 
-// Schema drift: profiles/agent_stats/agent_achievements columns nem sempre
-// existem nos tipos gerados do schema zapp. Usamos casts controlados via
-// helpers unwrapRow/unwrapRows para narrar SelectQueryError sem `any` no domínio.
-const db = supabase as unknown as {
-  from: (t: string) => {
-    select: (s: string) => {
-      eq: (c: string, v: unknown) => {
-        maybeSingle: () => Promise<{ data: unknown; error: unknown }>;
-        order: (
-          c: string,
-          o: { ascending: boolean }
-        ) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> };
-      };
-    };
-  };
-};
-
-/** Hook: use Agent Gamification. */
+// E60: agent_stats/agent_achievements/profiles já existem nos tipos gerados —
+// queries tipadas direto via supabase (unwrapRow/unwrapRows continuam no boundary).
 export const useAgentGamification = () => {
   const { user } = useAuth();
 
@@ -39,7 +23,7 @@ export const useAgentGamification = () => {
     queryKey: queryKeys.userProfile.byId(user?.id),
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('profiles')
         .select('id')
         .eq('user_id', user.id)
@@ -56,7 +40,7 @@ export const useAgentGamification = () => {
     queryKey: queryKeys.agentGamification.stats(profileId),
     queryFn: async () => {
       if (!profileId) return null;
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('agent_stats')
         .select('*')
         .eq('profile_id', profileId)
@@ -73,7 +57,7 @@ export const useAgentGamification = () => {
     queryKey: queryKeys.agentGamification.achievements(profileId),
     queryFn: async () => {
       if (!profileId) return [] as Achievement[];
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('agent_achievements')
         .select('*')
         .eq('profile_id', profileId)

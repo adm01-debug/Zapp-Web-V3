@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 import { queryKeys } from '@/services/api/queryKeys';
+import { toRecordOrNull } from './monitoringSchemas';
 
 const log = getLogger('useIdempotencyMissAlerts');
 
@@ -140,7 +141,22 @@ export function useIdempotencyMissAlerts(opts: UseIdempotencyMissAlertsOptions =
         .order('created_at', { ascending: false })
         .limit(1000);
       if (error) throw new Error(error.message);
-      return (data ?? []) as unknown as AuditLogRow[]; // ignore-audit: view Row fields are nullable in generated types; runtime rows match AuditLogRow
+      // E60: evolution_audit_log é tabela tipada (não view) — mapping sem cast.
+      return (data ?? []).map((r) => {
+        const meta = toRecordOrNull(r.metadata);
+        return {
+          id: r.id ?? '',
+          action: r.action ?? '',
+          metadata: meta
+            ? {
+                instance_name:
+                  typeof meta.instance_name === 'string' ? meta.instance_name : null,
+                path: typeof meta.path === 'string' ? meta.path : null,
+              }
+            : null,
+          created_at: r.created_at ?? '',
+        };
+      });
     },
   });
 

@@ -94,6 +94,36 @@ export const accessLevelConfig: Record<string, { label: string; description: str
   full: { label: 'Completo', description: 'Acesso total ao sistema' },
 };
 
+/** Papéis aceitos em convite (contrato invite-user@v1 — sem special_agent). */
+export type InviteRole = 'admin' | 'supervisor' | 'agent';
+
+/** Payload do convite (Etapa 57.5). */
+export interface InviteUserPayload {
+  email: string;
+  role: InviteRole;
+  message?: string;
+}
+
+/**
+ * Extrai a mensagem de erro honesta do servidor em erros de
+ * `supabase.functions.invoke` (supabase-js v2: FunctionsHttpError carrega a
+ * Response em `context`). Retorna null quando não há corpo parseável → o
+ * chamador usa a mensagem genérica local.
+ */
+async function extractInvokeErrorMessage(error: unknown): Promise<string | null> {
+  if (typeof error !== 'object' || error === null || !('context' in error)) return null;
+  const ctx = (error as { context?: unknown }).context as
+    | { json?: () => Promise<{ error?: string }> }
+    | undefined;
+  if (!ctx || typeof ctx.json !== 'function') return null;
+  try {
+    const body = await ctx.json();
+    return typeof body?.error === 'string' && body.error.length > 0 ? body.error : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Hook: use Admin Data. */
 export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
   const queryClient = useQueryClient();
@@ -289,18 +319,12 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
       }
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+        // B30 (Etapa 57.2): criação via invoke — headers automáticos, retry,
+        // 401 com refresh. NUNCA fetch raw.
+        const { data: invokeResult, error: invokeError } = await supabase.functions.invoke(
+          'create-user',
           {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session?.access_token}`,
-            },
-            body: JSON.stringify({
+            body: {
               name: payload.name,
               nickname: payload.nickname || undefined,
               signature: payload.signature || undefined,
@@ -312,13 +336,17 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
               email_email: payload.email_email || undefined,
               google_services: payload.google_services,
               dropbox_email: payload.dropbox_email || undefined,
-            }),
+            },
           }
         );
 
-        const result = await response.json();
-        if (!response.ok) {
-          toast.error(result.error || 'Erro ao criar usuário');
+        if (invokeError) {
+          const serverMsg = await extractInvokeErrorMessage(invokeError);
+          toast.error(serverMsg || 'Erro ao criar usuário');
+          return false;
+        }
+        if (!invokeResult?.success) {
+          toast.error('Erro ao criar usuário');
           return false;
         }
         toast.success('Usuário criado com sucesso!');
@@ -327,6 +355,46 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         return true;
       } catch {
         toast.error('Erro ao criar usuário');
+        return false;
+      }
+    },
+    [fetchData, queryClient]
+  );
+
+  const handleInviteUser = useCallback(
+    async (payload: InviteUserPayload): Promise<boolean> => {
+      if (!payload.email?.trim()) {
+        toast.error('Email é obrigatório');
+        return false;
+      }
+
+      try {
+        const { data, error } = await supabase.functions.invoke('invite-user', {
+          body: {
+            email: payload.email.trim(),
+            role: payload.role,
+            message: payload.message?.trim() || undefined,
+          },
+        });
+
+        if (error) {
+          // Erro honesto do servidor (409 duplicado / 403 não-admin / 429…)
+          // exibido verbatim; sem contexto → mensagem genérica.
+          const serverMsg = await extractInvokeErrorMessage(error);
+          toast.error(serverMsg || 'Erro ao enviar convite');
+          return false;
+        }
+        if (!data?.success) {
+          toast.error('Erro ao enviar convite');
+          return false;
+        }
+
+        toast.success(`Convite enviado para ${payload.email.trim()}!`);
+        fetchData();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
+        return true;
+      } catch {
+        toast.error('Erro ao enviar convite');
         return false;
       }
     },
@@ -342,5 +410,6 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
     handleToggleActive,
     handleSaveUser,
     handleCreateUser,
+    handleInviteUser,
   };
 }

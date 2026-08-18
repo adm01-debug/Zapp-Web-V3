@@ -34,6 +34,8 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "reprocess-failed-messages":    { current: "v1", supported: ["v1"] },
   "instance-pause-control":       { current: "v1", supported: ["v1"] },
   "evolution-notification-dispatcher": { current: "v1", supported: ["v1"] },
+  "zapp-notifications-dispatch": { current: "v1", supported: ["v1"] },
+  "warroom-monthly-test": { current: "v1", supported: ["v1"] },
   "contacts-import":              { current: "v1", supported: ["v1"] },
   "voice-copilot-action":         { current: "v1", supported: ["v1"] },
   "evolution-sync":               { current: "v1", supported: ["v1"] },
@@ -52,6 +54,9 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   // Envio
   "whatsapp-cloud-send":          { current: "v1", supported: ["v1"] },
   "gmail-send":                   { current: "v1", supported: ["v1"] },
+  "invite-user":           { current: "v1", supported: ["v1"] },
+  "zapp-auth-invite":      { current: "v1", supported: ["v1"] },
+  "revoke-session":         { current: "v1", supported: ["v1"] },
   "send-email":                   { current: "v1", supported: ["v1"] },
   "talkx-send":                   { current: "v1", supported: ["v1"] },
   "public-api":                   { current: "v1", supported: ["v1"] },
@@ -76,6 +81,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   // Auth / admin
   "create-user":                  { current: "v1", supported: ["v1"] },
   "approve-password-reset":       { current: "v1", supported: ["v1"] },
+  "request-password-reset":       { current: "v1", supported: ["v1"] },
   "detect-new-device":            { current: "v1", supported: ["v1"] },
   "revoke-session":               { current: "v1", supported: ["v1"] },
   // Etapa 56 — registro paralelo (zapp-auth-sessions, sem diretório próprio
@@ -102,6 +108,7 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "status":                       { current: "v1", supported: ["v1"] },
   "metrics":                      { current: "v1", supported: ["v1"] },
   "zapp-auto-export":             { current: "v1", supported: ["v1"] },
+  "zapp-auth-sessions":        { current: "v1", supported: ["v1"] },
   "send-scheduled-report":        { current: "v2", supported: ["v1", "v2"] },
   "auto-close-conversations":     { current: "v1", supported: ["v1"] },
   "csat-auto-send":               { current: "v1", supported: ["v1"] },
@@ -150,7 +157,6 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "voice-changer":                { current: "v1", supported: ["v1"] },
   "zapp-n8n-sync":                { current: "v1", supported: ["v1"] },
   "zapp-google-calendar-sync":    { current: "v1", supported: ["v1"] },
-  "warroom-monthly-test":         { current: "v1", supported: ["v1"] },
 
   // CRM plugável (Etapa 66)
   "zapp-crm-sync":                { current: "v1", supported: ["v1"] },

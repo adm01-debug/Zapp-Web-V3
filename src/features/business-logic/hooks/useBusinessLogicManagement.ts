@@ -10,6 +10,8 @@ import { extractEvolutionMessageId } from '@/lib/evolutionMessageId';
 import { dbFrom } from '@/integrations/datasource/db';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
 import { useDebouncedValue } from '@/hooks/useDebounce';
+import { selectWeightedVariant } from '@/features/business-logic/abEngine';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Deal } from '@/components/pipeline/DealCard';
 
 const log = getLogger('useBusinessLogicManagement');
@@ -28,6 +30,8 @@ export interface ABVariant {
   read_count: number;
   response_count: number;
   is_winner: boolean;
+  /** Peso configurado da variante na engine A/B (default 1). */
+  variant_weight: number | null;
 }
 
 /** Contact Result interface definition. */
@@ -62,6 +66,16 @@ export interface UseBusinessLogicCampaignsResult {
   addVariant: (name: string, content: string) => Promise<boolean>;
   deleteVariant: (id: string) => Promise<void>;
   declareWinner: (id: string) => Promise<void>;
+  /**
+   * Engine A/B real (E62): atribui uma variante a um destinatário de forma
+   * idempotente via RPC `rpc_campaign_assign_variant` (persistência atômica
+   * no banco — mesmo contato nunca recebe duas variantes).
+   * Sem `variantId`, a seleção ponderada usa a engine local (pesos).
+   */
+  assignVariant: (
+    contactId: string,
+    variantId?: string
+  ) => Promise<{ variant_id: string | null; variant_name: string | null } | null>;
 }
 
 /** Manages A/B campaign variants, analytics, and winner declaration. */
@@ -92,6 +106,8 @@ export function useBusinessLogicCampaignsManagement(
         read_count: v.read_count ?? 0,
         response_count: v.response_count ?? 0,
         is_winner: v.is_winner ?? false,
+        // ignore-audit: coluna variant_weight chega via migration E62 (20260818230000); tipos regerados depois
+        variant_weight: (v as unknown as { variant_weight?: number | null }).variant_weight ?? null,
       })) as ABVariant[];
     },
     enabled: !!campaignId,
@@ -141,7 +157,44 @@ export function useBusinessLogicCampaignsManagement(
     void queryClient.invalidateQueries({ queryKey: VARIANTS_KEY });
   };
 
-  return { variants, loading, addVariant, deleteVariant, declareWinner };
+  /**
+   * Engine A/B (E62): seleção ponderada + persistência atômica e idempotente
+   * via RPC. O RPC garante no banco que um mesmo contato só recebe UMA
+   * variante (ON CONFLICT DO UPDATE ... WHERE variant IS NULL).
+   */
+  const assignVariant = async (
+    contactId: string,
+    variantId?: string
+  ): Promise<{ variant_id: string | null; variant_name: string | null } | null> => {
+    let chosenId = variantId ?? null;
+    if (!chosenId) {
+      chosenId = selectWeightedVariant(variants);
+      if (!chosenId) {
+        toast({
+          title: 'Nenhuma variante configurada',
+          description: 'Cadastre variantes A/B antes de atribuir destinatários.',
+          variant: 'destructive',
+        });
+        return null;
+      }
+    }
+    const { data, error } = await (supabase as unknown as SupabaseClient).rpc(
+      'rpc_campaign_assign_variant',
+      {
+        p_campaign_id: campaignId,
+        p_contact_id: contactId,
+        p_variant_id: chosenId,
+      }
+    );
+    if (error) {
+      toast({ title: 'Erro ao atribuir variante', variant: 'destructive' });
+      return null;
+    }
+    void queryClient.invalidateQueries({ queryKey: VARIANTS_KEY });
+    return data as { variant_id: string | null; variant_name: string | null };
+  };
+
+  return { variants, loading, addVariant, deleteVariant, declareWinner, assignVariant };
 }
 
 // ═══════════════════════════════════════════════════════════

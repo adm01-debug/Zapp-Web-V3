@@ -125,6 +125,31 @@ export const EvolutionNotificationDispatcherV1Schema = z.object({
   dryRun: z.boolean().optional(),
 }).strict();
 
+/**
+ * zapp-notifications-dispatch@v1 — executor DASHBOARD-08 (Etapa 68.4).
+ * Evento que menciona uma conversa → dispatch pelos canais ativos de
+ * `zapp.notification_channels_config`. conversation_id/workspace_id são
+ * obrigatórios para DISPATCH REAL (contrato do produtor); o cron chama com {}
+ * (heartbeat no-op, padrão dos crons do repo) — por isso os campos são
+ * opcionais no gate, mas enums/UUIDs/tipos SÃO validados quando presentes.
+ */
+export const ZappNotificationsDispatchV1Schema = z.object({
+  event_type: z.enum(['conversation_mentioned', 'new_message', 'sla_breach']).optional(),
+  conversation_id: z.string().uuid({ message: 'conversation_id deve ser UUID' }).optional(),
+  workspace_id: z.string().uuid({ message: 'workspace_id deve ser UUID' }).optional(),
+  severity: z.enum(['info', 'warning', 'critical']).optional(),
+  title: z.string().max(500).optional(),
+  message: z.string().max(5000).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+}).strict();
+
+/**
+ * warroom-monthly-test@v1 (#1175) — POST-only, body IGNORADO por design
+ * (payload de saída é fixo; zero risco de injeção/reflexão). Schema permissivo
+ * apenas para cobrir o registro (gate de cobertura exige schema por função).
+ */
+export const WarroomMonthlyTestV1Schema = z.object({}).passthrough();
+
 /** recheck-webhook-signature@v1 — index.ts exige event_id string; observed_signature opcional. */
 export const RecheckWebhookSignatureV1Schema = z.object({
   event_id: z.string().min(1, "event_id é obrigatório").max(200),
@@ -427,13 +452,6 @@ export const EvolutionRetryMetricsV1Schema = EmptyStrictV1Schema;
 
 /** db-health-monitor@v1 — cron de health check; sem body. */
 export const DbHealthMonitorV1Schema = EmptyStrictV1Schema;
-
-/**
- * warroom-monthly-test@v1 — POST service_role (cron mensal, self-contained).
- * Sem entrada: o handler IGNORA o body (payload de saída fixo). Registrado
- * para fechar o drift do espelho de diretórios (dir existia sem registro).
- */
-export const WarroomMonthlyTestV1Schema = EmptyStrictV1Schema;
 
 /** connection-health-check@v1 — GET (todas) ou POST { instanceName?, connectionId? } (verificar agora). */
 export const ConnectionHealthCheckV1Schema = z.object({
@@ -781,7 +799,19 @@ export const ElevenLabsDialogueV1Schema = z.object({
    gmail_email: z.string().email("Email Gmail inválido").max(255).optional(),
    google_services: z.array(z.enum(["google_sheets", "google_docs", "google_calendar", "google_drive"])).optional().default([]),
    dropbox_email: z.string().email("Email Dropbox inválido").max(255).optional(),
- }).passthrough();
+   }).passthrough();
+
+   /**
+   * invite-user@v1 — convite por email (Etapa 57, EF invite-user). Endpoint
+   * interno (admin/supervisor) → estrito: email obrigatório; role fechada com
+   * default 'agent' (espelha CreateUserV1Schema, sem special_agent — convite
+   * só para papéis operacionais); message opcional com teto de 500.
+   */
+   export const InviteUserV1Schema = z.object({
+   email: z.string().email("Email inválido").max(255),
+   role: z.enum(["admin", "supervisor", "agent"]).optional().default("agent"),
+   message: z.string().max(500).optional(),
+   }).strict();
 
  /** approve-password-reset@v1 — valida no index.ts. Schema de registro. */
  /**
@@ -796,6 +826,20 @@ export const ApprovePasswordResetV1Schema = z.object({
   approved: z.boolean().optional(),
   decision: z.string().optional(),
 }).passthrough();
+
+/**
+ * request-password-reset@v1 — solicitação PÚBLICA de reset (Etapa 55).
+ * Endpoint anônimo (página /forgot-password): só email + dados opcionais de
+ * contexto. STRICT por design: superfície pública não aceita campos extras.
+ */
+export const RequestPasswordResetV1Schema = z
+  .object({
+    email: z.string().email("Email inválido").max(254),
+    reason: z.string().max(500).optional(),
+    userAgent: z.string().max(1000).optional(),
+    ipAddress: z.string().max(64).optional(),
+  })
+  .strict();
 
  /**
   * zapp-auth-sessions@v1 — gestão de sessões ativas (Etapa 56). Endpoint
@@ -1048,6 +1092,12 @@ export const ZappGoogleCalendarSyncV1Schema = z.object({
  */
 export const ZappWarroomMonthlyTestV1Schema = z.object({}).strict();
 
+/** revoke-session@v1 — POST { sessionId } (UUID de auth.sessions). */
+export const RevokeSessionV1Schema = z.object({
+  sessionId: z.string().uuid("sessionId deve ser um UUID de auth.sessions"),
+}).strict();
+
+
 export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Webhooks externos
   "evolution-webhook":       { v1: EvolutionWebhookV1Schema, v2: EvolutionWebhookV2Schema },
@@ -1056,12 +1106,15 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
 
   // Internos / UI / cron
   "talkx-send":                 { v1: TalkxSendV1Schema },
+  "revoke-session":       { v1: RevokeSessionV1Schema },
   "send-email":                 { v1: SendEmailV1Schema },
   // evolution-proxy (2026-08-14): proxy server-side — envelope validado manualmente
   // (allowlist de method + path); contrato registrado para o gate de cobertura.
   "gmail-send":                 { v1: GmailSendV1Schema },
   "reprocess-failed-messages":  { v1: ReprocessFailedMessagesV1Schema },
   "evolution-notification-dispatcher": { v1: EvolutionNotificationDispatcherV1Schema },
+  "zapp-notifications-dispatch": { v1: ZappNotificationsDispatchV1Schema },
+  "warroom-monthly-test": { v1: WarroomMonthlyTestV1Schema },
   "recheck-webhook-signature":  { v1: RecheckWebhookSignatureV1Schema },
   "webhook-diagnostic":         { v1: WebhookDiagnosticV1Schema },
   "instance-pause-control":     { v1: InstancePauseControlV1Schema },
@@ -1106,7 +1159,6 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "evolution-templates":           { v1: EvolutionTemplatesV1Schema },
   "evolution-retry-metrics":       { v1: EvolutionRetryMetricsV1Schema },
   "db-health-monitor":             { v1: DbHealthMonitorV1Schema },
-  "warroom-monthly-test":          { v1: WarroomMonthlyTestV1Schema },
   "connection-health-check":       { v1: ConnectionHealthCheckV1Schema },
   "health-check":                  { v1: HealthCheckV1Schema },
   "health":                        { v1: HealthV1Schema },
@@ -1137,7 +1189,9 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "elevenlabs-sfx":                { v1: ElevenLabsSfxV1Schema },
   "elevenlabs-dialogue":           { v1: ElevenLabsDialogueV1Schema },
   "create-user":                   { v1: CreateUserV1Schema },
+  "invite-user":                   { v1: InviteUserV1Schema },
   "approve-password-reset":        { v1: ApprovePasswordResetV1Schema },
+  "request-password-reset":        { v1: RequestPasswordResetV1Schema },
   "detect-new-device":             { v1: AISchemas.DetectNewDeviceV1Schema },
   "revoke-session":                { v1: RevokeSessionV1Schema },
   "webauthn":                      { v1: WebauthnV1Schema },

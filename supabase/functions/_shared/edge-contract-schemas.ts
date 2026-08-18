@@ -103,6 +103,7 @@ export const EDGE_FUNCTION_NAMES = [
   'health',
   'health-check',
   'instance-pause-control',
+  'invite-user',
   'lgpd-scheduled-jobs',
   'login-attempts',
   'main',
@@ -150,14 +151,15 @@ export const EDGE_FUNCTION_NAMES = [
   'whatsapp-cloud-send',
   'whatsapp-cloud-webhook',
   'whatsapp-cloud-webhook-verify',
+  'zapp-auto-export',
+  'zapp-crm-sync',
   'zapp-email-inbound-webhook',
   'zapp-email-send',
-  'zapp-auto-export',
-  'zapp-sentry-sync',
-  'zapp-n8n-sync',
-  'zapp-google-calendar-sync',
   'zapp-get-sip-credentials',
-  'zapp-crm-sync',
+  'zapp-google-calendar-sync',
+  'zapp-n8n-sync',
+  'zapp-notifications-dispatch',
+  'zapp-sentry-sync',
 ] as const;
 
 const JsonValueSchema: z.ZodType<unknown> = z.lazy(() =>
@@ -333,6 +335,25 @@ const specificEdgeFunctionSchemas: Record<string, ContractVersionMap> = {
       })
       .strict(),
   },
+  // DASHBOARD-08 — executor de notificações (espelho do CONTRACT_SCHEMAS).
+  'zapp-notifications-dispatch': {
+    v1: z
+      .object({
+        event_type: z.enum(['conversation_mentioned', 'new_message', 'sla_breach']).optional(),
+        conversation_id: z.string().uuid().optional(),
+        workspace_id: z.string().uuid().optional(),
+        severity: z.enum(['info', 'warning', 'critical']).optional(),
+        title: z.string().max(500).optional(),
+        message: z.string().max(5000).optional(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
+      })
+      .strict(),
+  },
+  // warroom-monthly-test (#1175): POST-only, body IGNORADO por design (payload
+  // fixo de saída) — schema permissivo apenas para cobertura do registro.
+  'warroom-monthly-test': {
+    v1: z.object({}).passthrough(),
+  },
   'detect-new-device': {
     v1: z
       .object({
@@ -442,8 +463,6 @@ const specificEdgeFunctionSchemas: Record<string, ContractVersionMap> = {
       })
       .strict(),
   },
-  // warroom-monthly-test — sem parâmetros de entrada (body ignorado pelo handler).
-  'warroom-monthly-test': { v1: z.object({}).strict() },
   // CRM plugável (Etapa 66) — schema INLINE (nunca importar de contract-schemas.ts: ciclo)
   'zapp-crm-sync': {
     v1: z

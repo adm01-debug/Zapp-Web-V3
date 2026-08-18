@@ -66,7 +66,10 @@ async function fetchSLAMetrics(period: PeriodFilter): Promise<SLADashboardData> 
 
   const [slaResult, profilesResult] = await Promise.all([
     safeClient.from('conversation_sla', (q) =>
-      q.select('*, contacts!inner(assigned_to)').gte('created_at', startDate)
+      // E67 (67.5): embed LEFT (default do PostgREST) — conversas SEM contato
+      // vinculado não podem ser subreportadas (antes: contacts!inner excluía
+      // a row inteira do overall).
+      q.select('*, contacts(assigned_to)').gte('created_at', startDate)
     ),
     supabase.from('profiles').select('id, name, avatar_url'),
   ]);

@@ -9,7 +9,7 @@ on:
 jobs:
   seed-contacts:
     name: Semear contatos E2E em zapp.contacts
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     timeout-minutes: 10
     steps:
       # E2E-05 (2026-08-07): porta 22 da VPS fechada p/ internet — SSH morto.

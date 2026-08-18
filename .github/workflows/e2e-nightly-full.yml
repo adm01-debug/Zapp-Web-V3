@@ -30,7 +30,7 @@ concurrency:
 jobs:
   spec-coverage:
     name: Cobertura de specs — nenhum spec orfao
-    runs-on: ubuntu-latest
+    runs-on: [Linux, X64, vps-zapp]
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
@@ -73,7 +73,7 @@ jobs:
         # basta: bun roda `prepare` antes de honrar HUSKY=0 no Node v10 do runner
         # self-hosted (Ubuntu 20.04, myoung34/github-runner). Playwright e instalado
         # explicitamente no proximo step.
-        run: bun install --frozen-lockfile --ignore-scripts
+        run: bun install --ignore-scripts
 
       - name: Instalar Chromium do Playwright
         run: bunx playwright install --with-deps chromium

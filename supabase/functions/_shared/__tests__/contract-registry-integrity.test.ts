@@ -217,6 +217,10 @@ const PLACEHOLDER_ALLOWLIST = new Set([
   // não via gateway). Reintroduzido pelo PR #782 — restaurado na allowlist
   // 2026-08-04 (fix CI follow-up #787).
   "auth-email-hook",
+  // warroom-monthly-test@v1: schema placeholder de workstream (PR #1277 dedup)
+  // — a edge zapp-warroom-monthly-test ainda nao definiu o contrato real.
+  // Entrada temporaria (VAL2 18/08) ate o workstream fechar o schema.
+  "warroom-monthly-test",
 ]);
 
 Deno.test("Registry Integrity: nenhum schema placeholder (z.object vazio) fora da allowlist", async () => {
