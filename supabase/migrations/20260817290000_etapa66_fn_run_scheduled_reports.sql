@@ -302,8 +302,9 @@ BEGIN
 END
 $$;
 
+-- ignore-lint-ml001 (falso positivo: 'SECURITY DEFINER' aparece no texto do COMMENT; a funcao tem SET search_path)
 COMMENT ON FUNCTION zapp.fn_run_scheduled_reports(integer) IS
-  'Executor de relatórios agendados (DASHBOARD-16): gera CSV/JSON na outbox scheduled_report_runs; SECURITY DEFINER com advisory locks, statement_timeout 120s, validação read-only e execução restrita a admin/supervisor.';
+  'Executor de relatórios agendados (DASHBOARD-16): gera CSV/JSON na outbox scheduled_report_runs; funcao definer com advisory locks, statement_timeout 120s, validação read-only e execução restrita a admin/supervisor.';
 
 GRANT EXECUTE ON FUNCTION zapp.fn_run_scheduled_reports(integer) TO service_role;
 

@@ -24,21 +24,7 @@
 -- Colunas extraídas de information_schema em prod (14 colunas, 17:40Z).
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS zapp.evolution_audit_log (
-  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  action            varchar NOT NULL,
-  entity_type       varchar NOT NULL,
-  entity_id         uuid,
-  performed_by      varchar NOT NULL,
-  performed_by_type varchar,
-  old_values        jsonb,
-  new_values        jsonb,
-  changes           jsonb,
-  ip_address        varchar,
-  user_agent        text,
-  session_id        varchar,
-  metadata          jsonb,
-  created_at        timestamptz DEFAULT now()
-);
+ALTER TABLE zapp.evolution_audit_log ENABLE ROW LEVEL SECURITY;
 
 -- ---------------------------------------------------------------------------
 -- PASSO 1: versionar o corpo corrigido (CREATE OR REPLACE — idempotente)
