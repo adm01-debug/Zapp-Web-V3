@@ -22,6 +22,10 @@ on:
           - self-hosted
           - ubuntu-latest
 
+permissions:
+  contents: read
+  actions: write  # necessário p/ actions/cache@v6 SAVAR (repo default é read)
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -51,7 +55,7 @@ jobs:
     name: Pré-seed — contatos E2E
     if: github.event_name != 'pull_request'
     needs: [validate-user]
-    uses: ./.github/workflows/seed-e2e-contacts.yml
+    uses: ./.github/workflows/validate-e2e-contacts.yml
     secrets:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
@@ -83,6 +87,22 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.14
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('bun.lock') }}-${{ hashFiles('playwright.config.ts') }}
+          restore-keys: |
+            pw-${{ runner.os }}-
 
       - name: Instalar dependências
         # HUSKY=0: husky v9 é ESM-only e quebra no Node antigo do container do runner self-hosted (E2E-04, 2026-08-06)
@@ -117,7 +137,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "# Relatório E2E CRM — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "# Relatório E2E CRM — $(date -u +%Y-%m-%d%H:%M:%SZ)"
             echo ""
             echo "- Alvo: \`$E2E_BASE_URL\`"
             echo "- Resultado do step CRM: \`${{ steps.run_crm.outcome }}\`"
