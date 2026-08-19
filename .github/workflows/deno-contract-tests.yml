@@ -13,7 +13,7 @@ on:
       - 'deno.json'
   # Varredura diária: main pode ficar vermelho sem PR tocando functions
   # (auditoria A6 2026-08-06 — ex.: onda de remoção #922 deixou testes
-  # órfãos lendo index.ts deletados e ninguém viu até o próximo push).
+  # órfaos lendo index.ts deletados e ninguém viu até o próximo push).
   schedule:
     - cron: '0 6 * * *'
 
@@ -29,7 +29,7 @@ concurrency:
 jobs:
   deno-contract-tests:
     name: Contract Tests (Deno)
-    runs-on: [Linux, X64, vps-zapp]
+    runs-on: [Linux, X64,/vps-zapp]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -65,8 +65,8 @@ jobs:
         # Loop por arquivo (isolamento de processo): testes que setam env no
         # escopo de módulo (e2e-send.test.ts) e testes com fetch live
         # (evolution-api/index.test.ts, gmail-tests.test.ts) poluem/leakam no
-        # modo invocação-única — cada arquivo em processo próprio isola isso.
-        # Sem --no-check: type-check faz parte do contrato (TS2339 derruba).
+        # modo invocação-única — cada arquivo em processo pró0rio isola isso.
+        # Sem --no-check: type-check faz parte do contrato (TS-2339 derruba).
         run: |
           set -euo pipefail
           TEST_FILES=$(find supabase/functions -name '*.test.ts' -type f 2>/dev/null || true)

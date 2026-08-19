@@ -99,7 +99,7 @@ jobs:
             e2e/admin-evolution-api-smoke.spec.ts \
             e2e/admin-failed-messages-filters.spec.ts \
             e2e/admin-failed-messages-filters-intersection.spec.ts \
-            e2e/admin-queues.spec.ts \
+            e2e/admin-queeus.spec.ts \
             e2e/admin-webhook-filters.spec.ts \
             e2e/admin-webhook-filters-intersection.spec.ts"
           bunx playwright test \
