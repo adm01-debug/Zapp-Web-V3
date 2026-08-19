@@ -19,23 +19,24 @@ export function useGamificationMutations(
   const addXpMutation = useMutation({
     mutationFn: async ({ xp, reason }: { xp: number; reason: string }) => {
       if (!profileId) throw new Error('No profile ID');
-      // E59 — escrita TRANSACIONAL: o banco soma o delta (xp = xp + $1, FOR
-      // UPDATE) e recalcula o nível (trigger update_level_on_xp_change).
-      // NUNCA computar newXp a partir do cache (race read-modify-write:
-      // 2 eventos simultâneos perdiam 1 incremento).
-      // Nota (fix 2026-08-18): caminho E70 (rpc_grant_xp + ledger) removido —
-      // merge E70×E59 estava quebrado e a migration 20260818190002 (E70) NÃO
-      // está aplicada no banco (DB-as-source: só rpc_add_xp existe).
-      const { data, error } = await supabase.rpc('rpc_add_xp', {
+      // E70 — XP transacional via zapp.rpc_grant_xp (SECURITY DEFINER):
+      // ledger zapp.xp_transactions + upsert atômico em agent_stats (soma só
+      // o delta, FOR UPDATE) e nível recalculado do total acumulado
+      // (FLOOR(SQRT(xp/50))+1, espelhado em levelUtils.ts). NUNCA computar
+      // newXp a partir do cache (race read-modify-write: 2 eventos
+      // simultâneos perdiam 1 incremento).
+      // Aplicada no banco (migration 20260818190002; pg_proc: rpc_grant_xp
+      // presente em zapp — verificado 2026-08-19).
+      const { data, error } = await supabase.rpc('rpc_grant_xp', {
         p_profile_id: profileId,
-        p_xp_delta: xp,
+        p_amount: xp,
         p_reason: reason,
       });
       if (error) throw error;
-      if (!data) throw new Error('rpc_add_xp: resposta vazia');
+      if (!data) throw new Error('rpc_grant_xp: resposta vazia');
       return {
-        newXp: data.xp,
-        newLevel: data.level,
+        newXp: data.new_xp,
+        newLevel: data.new_level,
         leveledUp: data.leveled_up,
         previousLevel: data.previous_level,
       };
@@ -57,13 +58,14 @@ export function useGamificationMutations(
     }) => {
       if (!profileId) throw new Error('No profile ID');
 
-      // E59 — dedupe + incremento ATOMICO no banco (ON CONFLICT DO NOTHING via
-      // índice único agent_achievements_unique + xp/achievements_count
-      // incrementais no mesmo UPDATE). Sem read-then-insert client-side.
-      // Nota (fix 2026-08-18): caminho E70 (rpc_unlock_achievement) removido —
-      // merge E70×E59 estava quebrado e a migration 20260818190002 (E70) NÃO
-      // está aplicada no banco (DB-as-source: só rpc_grant_achievement existe).
-      const { data, error } = await supabase.rpc('rpc_grant_achievement', {
+      // E70 — dedupe transacional via zapp.rpc_unlock_achievement (SECURITY
+      // DEFINER): ON CONFLICT (profile_id, achievement_type) DO NOTHING →
+      // desbloqueia 1x (already_unlocked=true na repetição, sem XP duplo);
+      // tipos repetíveis (daily_goal/streak/message_milestone) seguem
+      // permitidos; XP creditado via rpc_grant_xp ('achievement:<type>').
+      // Sem read-then-insert client-side. Aplicada no banco (migration
+      // 20260818190002; pg_proc: rpc_unlock_achievement presente em zapp).
+      const { data, error } = await supabase.rpc('rpc_unlock_achievement', {
         p_profile_id: profileId,
         p_type: type,
         p_name: name,
@@ -84,21 +86,14 @@ export function useGamificationMutations(
         }
         throw error;
       }
-      if (!data) throw new Error('rpc_grant_achievement: resposta vazia');
+      if (!data) throw new Error('rpc_unlock_achievement: resposta vazia');
 
-      if (data.already_had) {
-        return {
-          alreadyHad: true,
-          newXp: currentStats?.xp ?? 0,
-          newLevel: currentStats?.level ?? 1,
-          leveledUp: false,
-        };
-      }
       return {
-        alreadyHad: false,
-        newXp: data.xp,
-        newLevel: data.level,
+        alreadyHad: data.already_unlocked,
+        newXp: data.new_xp,
+        newLevel: data.new_level,
         leveledUp: data.leveled_up,
+        previousLevel: data.previous_level,
       };
     },
     onSuccess: () => {

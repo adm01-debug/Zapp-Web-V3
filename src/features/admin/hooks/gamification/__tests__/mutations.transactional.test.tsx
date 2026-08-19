@@ -1,14 +1,15 @@
 /**
- * E59 — XP de gamificação com escrita TRANSACIONAL (fim da race condition).
+ * E70 — XP de gamificação com escrita TRANSACIONAL (fim da race condition).
  *
- * Contrato futuro (implementado pela migration 20260818190000_etapa67_gamification_atomic_xp.sql):
- *   - `zapp.rpc_add_xp(p_profile_id, p_xp_delta, p_reason)` — UPDATE atômico
- *     `xp = xp + delta` com FOR UPDATE (serializa escritas concorrentes no
- *     mesmo perfil) e nível recalculado pelo trigger `update_level_on_xp_change`.
- *   - `zapp.rpc_grant_achievement(p_profile_id, p_type, p_name, p_description, p_xp_reward)` —
+ * Contrato (implementado pela migration 20260818190002_etapa70_gamification_xp_transactions.sql):
+ *   - `zapp.rpc_grant_xp(p_profile_id, p_amount, p_reason)` — ledger
+ *     `xp_transactions` + UPDATE atômico `xp = xp + amount` com FOR UPDATE
+ *     (serializa escritas concorrentes no mesmo perfil); nível recalculado no
+ *     RPC (FLOOR(SQRT(xp/50))+1, espelhado em levelUtils.ts).
+ *   - `zapp.rpc_unlock_achievement(p_profile_id, p_type, p_name, p_description, p_xp_reward)` —
  *     INSERT com `ON CONFLICT (profile_id, achievement_type) DO NOTHING`
- *     (dedupe atômico via índice único `agent_achievements_unique`) + incremento
- *     atômico de `xp` e `achievements_count` no MESMO UPDATE.
+ *     (dedupe transacional via índice único `agent_achievements_unique`) +
+ *     XP creditado via rpc_grant_xp e `achievements_count` incrementado.
  *
  * O mock abaixo ESPELHA a semântica SQL linha a linha (é o "banco transacional"
  * em memória). O código antigo (read-modify-write client-side, `mutations.ts`
@@ -60,27 +61,25 @@ const h = vi.hoisted(() => {
     return s;
   };
 
-  /** Espelho de zapp.rpc_add_xp: UPDATE zapp.agent_stats SET xp = xp + delta. */
-  const rpcAddXp = (args: { p_profile_id: string; p_xp_delta: number }) => {
+  /** Espelho de zapp.rpc_grant_xp (E70): ledger + UPDATE atômico xp = xp + amount. */
+  const rpcGrantXp = (args: { p_profile_id: string; p_amount: number }) => {
     const s = getOrCreateStats(args.p_profile_id);
     const previousLevel = s.level;
-    s.xp += args.p_xp_delta; // atômico: xp = xp + $1
-    s.level = levelOf(s.xp); // trigger update_level_on_xp_change
+    s.xp += args.p_amount; // atômico: xp = xp + $1
+    s.level = levelOf(s.xp); // FLOOR(SQRT(xp/50))+1 no RPC (E70)
     return {
       data: {
-        profile_id: s.profile_id,
-        xp: s.xp,
-        level: s.level,
+        new_xp: s.xp,
+        new_level: s.level,
         leveled_up: s.level > previousLevel,
         previous_level: previousLevel,
-        xp_delta: args.p_xp_delta,
       },
       error: null,
     };
   };
 
-  /** Espelho de zapp.rpc_grant_achievement: dedupe ON CONFLICT + xp/count atômicos. */
-  const rpcGrantAchievement = (args: {
+  /** Espelho de zapp.rpc_unlock_achievement (E70): dedupe ON CONFLICT + xp/count atômicos. */
+  const rpcUnlockAchievement = (args: {
     p_profile_id: string;
     p_type: string;
     p_name: string;
@@ -89,7 +88,17 @@ const h = vi.hoisted(() => {
     const dup = achievements.some(
       (a) => a.profile_id === args.p_profile_id && a.achievement_type === args.p_type
     );
-    if (dup) return { data: { already_had: true }, error: null }; // ON CONFLICT DO NOTHING
+    if (dup)
+      return {
+        data: {
+          already_unlocked: true,
+          new_xp: null,
+          new_level: null,
+          leveled_up: false,
+          previous_level: null,
+        },
+        error: null,
+      }; // ON CONFLICT DO NOTHING
     achievements.push({
       id: `ach-${++achievementSeq}`,
       profile_id: args.p_profile_id,
@@ -99,14 +108,14 @@ const h = vi.hoisted(() => {
     });
     const s = getOrCreateStats(args.p_profile_id);
     const previousLevel = s.level;
-    s.xp += args.p_xp_reward; // xp = xp + reward (mesmo UPDATE)
+    s.xp += args.p_xp_reward; // XP via rpc_grant_xp('achievement:<type>')
     s.achievements_count += 1; // achievements_count = count + 1 (mesmo UPDATE)
     s.level = levelOf(s.xp);
     return {
       data: {
-        already_had: false,
-        xp: s.xp,
-        level: s.level,
+        already_unlocked: false,
+        new_xp: s.xp,
+        new_level: s.level,
         leveled_up: s.level > previousLevel,
         previous_level: previousLevel,
       },
@@ -170,8 +179,8 @@ const h = vi.hoisted(() => {
   const client = {
     rpc: vi.fn((name: string, args: Record<string, unknown>) => {
       calls.rpc.push({ name, args });
-      if (name === 'rpc_add_xp') return Promise.resolve(rpcAddXp(args as never));
-      if (name === 'rpc_grant_achievement') return Promise.resolve(rpcGrantAchievement(args as never));
+      if (name === 'rpc_grant_xp') return Promise.resolve(rpcGrantXp(args as never));
+      if (name === 'rpc_unlock_achievement') return Promise.resolve(rpcUnlockAchievement(args as never));
       return Promise.resolve({ data: null, error: { message: `unknown rpc: ${name}` } });
     }),
     from: vi.fn((table: string) => makeFrom(table)),
@@ -248,11 +257,11 @@ describe('E59 — escrita transacional de XP (fim da race read-modify-write)', (
     });
 
     // cada evento carrega o próprio DELTA (contrato: nunca valor absoluto do cache)
-    const addXpCalls = h.calls.rpc.filter((c) => c.name === 'rpc_add_xp');
+    const addXpCalls = h.calls.rpc.filter((c) => c.name === 'rpc_grant_xp');
     expect(addXpCalls).toHaveLength(2);
     for (const c of addXpCalls) {
       expect(c.args.p_profile_id).toBe(PROFILE_ID);
-      expect(c.args.p_xp_delta).toBe(10);
+      expect(c.args.p_amount).toBe(10);
     }
 
     // zero escritas absolutas via .from().update() — o cliente não calcula mais
