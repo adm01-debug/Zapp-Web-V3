@@ -3,10 +3,16 @@
   "description": "Known gaps in the frontend-to-DB contract. Entries here are excluded from audit-contract failures so new unintended gaps are still caught. Each entry must document the reason and tracking status.",
   "allowlist": [
     {
-      "kind": "rpc",
-      "name": "check_download_permission",
-      "reason": "Intentionally absent — frontend fail-open via SQLSTATE 42883 (see CLAUDE.md). Not a bug.",
-      "status": "by-design"
+     "kind": "rpc",
+     "name": "check_download_permission",
+     "reason": "Intentionally absent — frontend fail-open via SQLSTATE 42883 (see CLAUDE.md). Not a bug.",
+     "status": "by-design"
+    },
+    {
+     "kind": "rpc",
+     "name": "sessions_list",
+     "reason": "RPC do schema zapp (auth.sessions) — fora do catálogo Evolution (rpcCatalog.ts é do domínio evolution_*); contrato validado pelo teste de snapshot.",
+     "status": "by-design"
     },
     {
       "kind": "from",

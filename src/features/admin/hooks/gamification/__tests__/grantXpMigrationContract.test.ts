@@ -22,7 +22,7 @@ import { calculateLevel } from '../levelUtils';
 
 const MIGRATION_FILE = join(
   process.cwd(),
-  'supabase/migrations/20260818190000_etapa70_gamification_xp_transactions.sql'
+  'supabase/migrations/20260818190002_etapa70_gamification_xp_transactions.sql'
 );
 
 let sql = '';
@@ -33,7 +33,7 @@ beforeAll(() => {
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Contrato estático do arquivo versionado
 // ─────────────────────────────────────────────────────────────────────────────
-describe('migration 20260818190000 — contrato estático', () => {
+describe('migration 20260818190002 — contrato estático', () => {
   it('arquivo versionado existe e é SQL', () => {
     expect(sql.length).toBeGreaterThan(100);
   });
