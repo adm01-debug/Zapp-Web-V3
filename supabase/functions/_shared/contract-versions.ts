@@ -55,7 +55,9 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "whatsapp-cloud-send":          { current: "v1", supported: ["v1"] },
   "gmail-send":                   { current: "v1", supported: ["v1"] },
   "invite-user":           { current: "v1", supported: ["v1"] },
-  "zapp-auth-invite":      { current: "v1", supported: ["v1"] },
+  // zapp-auth-invite (registro fantasma — a edge virou invite-user) foi
+  // removido do CONTRACT_SCHEMAS em 2026-08-18 e daqui (CONTRACTS) na
+  // validação exaustiva 19/08 (contract-registry-integrity).
   "revoke-session":         { current: "v1", supported: ["v1"] },
   "send-email":                   { current: "v1", supported: ["v1"] },
   "talkx-send":                   { current: "v1", supported: ["v1"] },
