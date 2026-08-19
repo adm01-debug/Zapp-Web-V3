@@ -1,41 +1,41 @@
-# ==========================================================================================================
-# 🤹POST-DEPLOY HEALTH CHECK (Etapa 25)
-#----------------------------------------------------------------------------------------------------------------------
-# Objetivo: após CADA deploy do frontend zapweb (workflow
-# "🚀 Build & Deploy -- ZAPP web v3" = deploy-vps.yml, que sobe a
+# ============================================================
+# 🩺 POST-DEPLOY HEALTH CHECK (Etapa 25)
+# ------------------------------------------------------------
+# Objetivo: após CADA deploy do frontend zappweb (workflow
+# "🚀 Build & Deploy — ZAPP web v3" = deploy-vps.yml, que sobe a
 # imagem zapp-web via Portainer/Traefik), validar que a stack de
 # produção ficou de pé:
 #
 #   1) TTM (Time To Main) do site https://www.zappweb.app.br/:
-#       curl -w time_total deve ser < 3.0s (falha se > 3.0s ou se a
-#       conexão falhou/timeout — HTTP 000).
+#      curl -w time_total deve ser < 3.0s (falha se > 3.0s ou se a
+#      conexão falhou/timeout — HTTP 000).
 #   2) Supabase self-hosted — PostgREST em
-#       https://supabase.atomicabr.com.br/rest/v1/ deve responder.
-#     SEM apikey o PostgREST devolve 401 — isso é NORMAL e conta
+#      https://supabase.atomicabr.com.br/rest/v1/ deve responder.
+#      SEM apikey o PostgREST devolve 401 — isso é NORMAL e conta
 #      como "servidor vivo" (aceitamos 4xx). Falha APENAS em
-#       5xx / timeout / 000.
+#      5xx / timeout / 000.
 #   3) Edge Function get-media-base64 deve responder:
-#      POST sem body devolve 4xx (400/401) — aceitÁvel = função
+#      POST sem body devolve 4xx (400/401) — aceitável = função
 #      viva (aceitamos 4xx). Falha APENAS em 5xx (500/503/...) /
 #      timeout / 000.
 #
 # Implementação 100% bash + curl + bc (sem ações externas).
-# ⚥ʰ bc NÃO vem pré-instalado nas imagens ubunutdo do GitHub Actions
+# ⚠️ bc NÃO vem pré-instalado nas imagens ubuntu do GitHub Actions
 # (verificado no readme oficial do actions/runner-images) — por isso
-# o primeiro step o instala aphés apt-get (ainda é shell puro, sem
+# o primeiro step o instala via apt-get (ainda é shell puro, sem
 # actions do marketplace) e falha FECHADO (fail-closed) se não
 # conseguir, para nunca passar silenciosamente com TTM alto.
 # Gatilho: workflow_run no deploy-vps.yml com types: [completed]
-# (aceita nome do arquivo Ou nome do workflow; usamos nome do
+# (aceita nome do arquivo OU nome do workflow; usamos o nome do
 # arquivo por ser imune a mudanças cosméticas no `name:`).
 # Dispara tanto em sucesso quanto em falha do deploy, para sempre
-# sabermos se o site continua o ar.
-# ==========================================================================================================
-name: 🹹 Post-Deploy Health Check
+# sabermos se o site continua no ar.
+# ============================================================
+name: 🩺 Post-Deploy Health Check
 
 on:
   workflow_run:
-    workflows: ["🚀 Build & Deploy -- ZAPP web v3"]
+    workflows: ["🚀 Build & Deploy — ZAPP web v3"]
     types: [completed]
 
 permissions:
@@ -44,9 +44,9 @@ permissions:
 jobs:
   health-check:
     name: Health check pós-deploy
-    runs-on: [ubunut-latest]
+    runs-on: [ubuntu-latest]
     # Job sem timeout pode ficar preso 6h (default) — 30min cobre qualquer
-    # execução real (curls) e evita ruo orfão consumindo runner.
+    # execução real (curls) e evita run órfão consumindo runner.
     timeout-minutes: 30
     steps:
       - name: "🔧 Preparação — garante bc no runner (fail-closed)"
@@ -55,16 +55,16 @@ jobs:
             echo "bc ausente no runner — instalando via apt-get (shell puro, sem actions externas)..."
             sudo apt-get update -qq && sudo apt-get install -y -qq bc
           fi
-          command -v bc >/dev/null 2>&1 || { echo "::error::BC_UNAVAILABLE .— não f possível obter bc; abortando (fail-closed)"; exit 1; }
+          command -v bc >/dev/null 2>&1 || { echo "::error::BC_UNAVAILABLE — não foi possível obter bc; abortando (fail-closed)"; exit 1; }
           bc --version | head -1
 
-      - name: "️ Contexto do deploy"
+      - name: "ℹ️ Contexto do deploy"
         run: |
-          echo "Workflow de deploy: $7{ github.event.workflow_run.name }"
-          echo "Conclusão do deploy: $7{ github.event.workflow_run.conclusion }"
-          echo "SHA: $7{ github.event.workflow_run.head_sha }"
-          echo "Branch: $7{ github.event.workflow_run.head_branch }"
-          echo "Run: $7{ github.event.workflow_run.html_url }"
+          echo "Workflow de deploy: ${{ github.event.workflow_run.name }}"
+          echo "Conclusão do deploy: ${{ github.event.workflow_run.conclusion }}"
+          echo "SHA: ${{ github.event.workflow_run.head_sha }}"
+          echo "Branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Run: ${{ github.event.workflow_run.html_url }}"
 
       - name: "1/3 — TTM www.zappweb.app.br (< 3.0s)"
         run: |
@@ -73,9 +73,9 @@ jobs:
           TTM=$(echo "$RESP" | awk '{print $2}')
           CODE=${CODE:-000}
           TTM=${TTM:-0}
-          echo "www.zappweb.app.br ✓ HTTP ${CODE} em ${TTM}s"
+          echo "www.zappweb.app.br → HTTP ${CODE} em ${TTM}s"
           if [ "$CODE" = "000" ]; then
-            echo "::error::SITIE_DEAD — conexão falhou/timeout (HTTP 000)"
+            echo "::error::SITE_DEAD — conexão falhou/timeout (HTTP 000)"
             exit 1
           fi
           if [ "$(echo "$TTM > 3.0" | bc -l)" = "1" ]; then
@@ -89,7 +89,7 @@ jobs:
         run: |
           CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 https://supabase.atomicabr.com.br/rest/v1/ || true)
           CODE=${CODE:-000}
-          echo "supabase.atomicabr.com.br/rest/v1/ → ITTP ${CODE}"
+          echo "supabase.atomicabr.com.br/rest/v1/ → HTTP ${CODE}"
           if [ "$CODE" = "000" ]; then
             echo "::error::SUPABASE_DEAD — timeout/conexão (HTTP 000)"
             exit 1
