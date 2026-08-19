@@ -44,12 +44,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS agent_stats_profile_unique
 
 -- Ledger de XP: entrada imutável, com data e motivo.
 CREATE TABLE IF NOT EXISTS zapp.xp_transactions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_id uuid NOT NULL,
-  amount integer NOT NULL CHECK (amount > 0),
-  reason text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+ALTER TABLE zapp.xp_transactions ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS xp_transactions_profile_created_idx
   ON zapp.xp_transactions (profile_id, created_at DESC);

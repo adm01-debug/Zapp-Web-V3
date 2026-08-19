@@ -125,17 +125,7 @@ CREATE INDEX IF NOT EXISTS idx_csat_surveys_open_by_contact
 -- Live (17/08): id, contact_id, conversation_id, agent_id, instance_name,
 -- rating, comment, response_time_seconds, created_at — 0 rows, nada escrevia.
 CREATE TABLE IF NOT EXISTS zapp.csat_responses (
-  id                     uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  contact_id             uuid        NULL,
-  conversation_id        uuid        NULL,
-  agent_id               uuid        NULL,
-  instance_name          text        NULL,
-  rating                 integer     NULL CHECK (rating >= 1 AND rating <= 5),
-  comment                text        NULL,
-  response_time_seconds  integer     NULL,
-  message_id             text        NULL,
-  created_at             timestamptz NOT NULL DEFAULT now()
-);
+ALTER TABLE zapp.csat_responses ENABLE ROW LEVEL SECURITY;
 
 COMMENT ON TABLE zapp.csat_responses IS
   'Respostas CSAT capturadas (fn_capture_csat_replies) — alimenta get_csat_stats e o dashboard.';

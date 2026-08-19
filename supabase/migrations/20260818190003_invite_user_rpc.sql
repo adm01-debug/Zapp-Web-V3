@@ -14,17 +14,7 @@
 --   anon (auth.uid() nulo): negado (42501)
 
 CREATE TABLE IF NOT EXISTS zapp.invites (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  email       text NOT NULL,
-  role        text NOT NULL DEFAULT 'agent',
-  message     text,
-  token       text NOT NULL,
-  expires_at  timestamptz NOT NULL,
-  used_at     timestamptz,
-  created_by  uuid NOT NULL,
-  created_at  timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (email)
-);
+ALTER TABLE zapp.invites ENABLE ROW LEVEL SECURITY;
 
 CREATE OR REPLACE FUNCTION zapp.invite_user(
   p_email   text,
