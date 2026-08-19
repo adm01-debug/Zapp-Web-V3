@@ -33,8 +33,9 @@ on:
       - "supabase/migrations/**.sql"
 
 concurrency:
-  group: migration-smoke-${{ github.ref }}
-  cancel-in-progress: true
+  # PR: grupo unico por numero de PR, sem cancelar. Push/schedule: por ref, cancela.
+  group: migration-smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event.pull_request.number == '' }}
 
 jobs:
   smoke:
