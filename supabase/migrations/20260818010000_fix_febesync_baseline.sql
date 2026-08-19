@@ -8,7 +8,29 @@
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS zapp.evolution_followups (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contact_id      uuid,
+  conversation_id uuid,
+  deal_id         uuid,
+  followup_type   varchar NOT NULL,
+  scheduled_at    timestamptz NOT NULL,
+  template_id     uuid,
+  custom_message  text,
+  status          varchar DEFAULT 'scheduled',
+  sent_at         timestamptz,
+  response_at     timestamptz,
+  error_message   text,
+  attempts        integer DEFAULT 0,
+  max_attempts    integer DEFAULT 3,
+  created_by      varchar,
+  instance_name   varchar DEFAULT 'wpp2',
+  metadata        jsonb,
+  created_at      timestamptz DEFAULT now(),
+  triggered_at    timestamptz
+);
+
 ALTER TABLE zapp.evolution_followups ENABLE ROW LEVEL SECURITY;
+
 
 CREATE INDEX IF NOT EXISTS idx_evolution_followups_status_scheduled
   ON zapp.evolution_followups (status, scheduled_at) WHERE status = 'scheduled';
