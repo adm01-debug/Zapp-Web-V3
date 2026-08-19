@@ -55,7 +55,7 @@ jobs:
     name: Pré-seed — contatos E2E
     if: github.event_name != 'pull_request'
     needs: [validate-user]
-    uses: ./.github/workflows/validate-e2e-contacts.yml
+    uses: ./.github/workflows/seed-e2e-contacts.yml
     secrets:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
