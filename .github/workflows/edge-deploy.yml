@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: edge-deploy
+  group: deploy-vps-v3
   cancel-in-progress: false
 
 jobs:
