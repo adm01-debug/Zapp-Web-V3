@@ -13,13 +13,14 @@ on:
       - 'deno.json'
   # Varredura diária: main pode ficar vermelho sem PR tocando functions
   # (auditoria A6 2026-08-06 — ex.: onda de remoção #922 deixou testes
-  # órfãos lendo index.ts deletados e ninguém viu até o próximo push).
+  # órfaos lendo index.ts deletados e ninguém viu até o próximo push).
   schedule:
     - cron: '0 6 * * *'
 
 permissions:
   contents: read
   checks: write
+  actions: write  # necessário p/ actions/cache@v6 SAVAR (sem isso: "Caching is skipped")
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -28,7 +29,7 @@ concurrency:
 jobs:
   deno-contract-tests:
     name: Contract Tests (Deno)
-    runs-on: [Linux, X64, vps-zapp]
+    runs-on: [Linux, X64,/vps-zapp]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -43,7 +44,10 @@ jobs:
       - name: Cache Deno dependencies
         uses: actions/cache@v6
         with:
-          path: ~/.deno
+          # Deno v2 (Linux): DENO_DIR default = ~/.cache/deno (doc oficial).
+          # O path antigo ~/.deno só tinha o fallback do setup-deno e o cache
+          # deno-* nunca foi salvo (sem actions: write + path errado).
+          path: ~/.cache/deno
           key: deno-${{ runner.os }}-${{ hashFiles('deno.json') }}
           restore-keys: |
             deno-${{ runner.os }}-
@@ -61,8 +65,8 @@ jobs:
         # Loop por arquivo (isolamento de processo): testes que setam env no
         # escopo de módulo (e2e-send.test.ts) e testes com fetch live
         # (evolution-api/index.test.ts, gmail-tests.test.ts) poluem/leakam no
-        # modo invocação-única — cada arquivo em processo próprio isola isso.
-        # Sem --no-check: type-check faz parte do contrato (TS2339 derruba).
+        # modo invocação-única — cada arquivo em processo pró0rio isola isso.
+        # Sem --no-check: type-check faz parte do contrato (TS-2339 derruba).
         run: |
           set -euo pipefail
           TEST_FILES=$(find supabase/functions -name '*.test.ts' -type f 2>/dev/null || true)
