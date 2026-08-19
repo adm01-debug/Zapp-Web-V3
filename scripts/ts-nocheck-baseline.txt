@@ -1,2 +1,1 @@
-src/_archive/healthCheck.archived.ts
 src/integrations/supabase/types-manual.ts
