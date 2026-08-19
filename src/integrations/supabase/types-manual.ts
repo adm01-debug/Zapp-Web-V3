@@ -115,6 +115,25 @@ export type ManualZappFunctions = {
       previous_level: number;
     };
   };
+  // E70 (migration 20260818190002) — unlock de achievement com dedupe
+  // transacional (ON CONFLICT DO NOTHING): already_unlocked=true na repetição
+  // (new_xp/new_level/previous_level NULL); XP creditado via rpc_grant_xp.
+  rpc_unlock_achievement: {
+    Args: {
+      p_profile_id: string;
+      p_type: string;
+      p_name: string;
+      p_description?: string | null;
+      p_xp_reward?: number;
+    };
+    Returns: {
+      already_unlocked: boolean;
+      new_xp: number | null;
+      new_level: number | null;
+      leveled_up: boolean;
+      previous_level: number | null;
+    };
+  };
   // E59 (migration 20260818190000_etapa67_gamification_atomic_xp.sql) — escrita
   // TRANSACIONAL de XP: o banco soma o delta (xp = xp + $1, FOR UPDATE), nunca
   // valor absoluto vindo do cliente (fim da race read-modify-write).
