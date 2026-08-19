@@ -1,0 +1,105 @@
+# gen-types-zapp.yml
+# Regenera src/integrations/supabase/types.ts via postgres-meta da VPS.
+# Disparo manual (workflow_dispatch) — selecione branch alvo (default: main).
+# Segredos necessários no repositório: ZAPP_META_URL e ZAPP_META_TOKEN.
+#
+# Fluxo:
+#   1. Checkout da branch alvo
+#   2. node scripts/gen-types-zapp.mjs → sobrescreve types.ts
+#   3. Ratchet TS e schema-usage — se falhar, workflow aborta (não comita lixo)
+#   4. Se types.ts mudou: commit + push direto na branch alvo
+#   5. Se não mudou: encerra com aviso (schema já em sincronia)
+
+name: Regenerate Supabase types (zapp + evo)
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch alvo (normalmente main)'
+        default: 'main'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  gen-types:
+    name: gen-types-zapp
+    runs-on: [Linux, X64, vps-zapp]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install deps (bun fallback → npm)
+        run: |
+          if command -v bun >/dev/null 2>&1; then
+            bun install --frozen-lockfile
+          else
+            npm install
+          fi
+
+      - name: Regenerar types.ts
+        env:
+          META_URL: ${{ secrets.ZAPP_META_URL }}
+          META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
+        run: node scripts/gen-types-zapp.mjs
+
+      - name: Ratchet TS (guardrail — aborta se regredir)
+        run: |
+          node scripts/check-tsc-ratchet.mjs || {
+            echo "::error::Ratchet TS falhou após regenerar types.ts — não commitando."
+            exit 1
+          }
+
+      - name: Schema-usage guardrail
+        run: |
+          node scripts/check-schema-usage.mjs || {
+            echo "::error::check-schema-usage falhou — types.ts introduziu violação de schema."
+            exit 1
+          }
+
+      - name: Verificar se types.ts mudou
+        id: diff
+        run: |
+          if git diff --quiet src/integrations/supabase/types.ts; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Schema já em sincronia — nenhuma mudança necessária."
+          else
+            LINES=$(wc -l < src/integrations/supabase/types.ts)
+            ADDS=$(git diff src/integrations/supabase/types.ts | grep '^+' | wc -l)
+            DELS=$(git diff src/integrations/supabase/types.ts | grep '^-' | wc -l)
+            echo "changed=true"    >> "$GITHUB_OUTPUT"
+            echo "lines=$LINES"    >> "$GITHUB_OUTPUT"
+            echo "adds=$ADDS"      >> "$GITHUB_OUTPUT"
+            echo "dels=$DELS"      >> "$GITHUB_OUTPUT"
+            echo "diff summary: +${ADDS} -${DELS} (total ${LINES} linhas)"
+          fi
+
+      - name: Commit e push
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/integrations/supabase/types.ts
+          git commit -m "chore(types): regenerate zapp/evo types [auto]
+
++${{ steps.diff.outputs.adds }} -${{ steps.diff.outputs.dels }} | ${{ steps.diff.outputs.lines }} lines
+trigger: workflow_dispatch branch=${{ inputs.branch }}"
+          git push origin HEAD:${{ inputs.branch }}
+          echo "✅ types.ts atualizado e commitado em ${{ inputs.branch }}"
+
+      - name: Nenhuma mudança
+        if: steps.diff.outputs.changed != 'true'
+        run: echo "✅ types.ts já está em sincronia com o schema atual."
