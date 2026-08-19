@@ -26,8 +26,9 @@ on:
       - 'scripts/sql/**'
 
 concurrency:
-  group: db-reference-integrity-${{ github.ref }}
-  cancel-in-progress: true
+  # PR: grupo unico por numero de PR, sem cancelar. Push/schedule: por ref, cancela.
+  group: db-reference-integrity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event.pull_request.number == '' }}
 
 jobs:
   reference-integrity:
