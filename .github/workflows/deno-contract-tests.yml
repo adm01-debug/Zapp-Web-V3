@@ -20,6 +20,7 @@ on:
 permissions:
   contents: read
   checks: write
+  actions: write  # necessário p/ actions/cache@v6 SAVAR (sem isso: "Caching is skipped")
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -43,7 +44,10 @@ jobs:
       - name: Cache Deno dependencies
         uses: actions/cache@v6
         with:
-          path: ~/.deno
+          # Deno v2 (Linux): DENO_DIR default = ~/.cache/deno (doc oficial).
+          # O path antigo ~/.deno só tinha o fallback do setup-deno e o cache
+          # deno-* nunca foi salvo (sem actions: write + path errado).
+          path: ~/.cache/deno
           key: deno-${{ runner.os }}-${{ hashFiles('deno.json') }}
           restore-keys: |
             deno-${{ runner.os }}-
