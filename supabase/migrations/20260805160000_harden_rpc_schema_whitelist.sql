@@ -41,7 +41,7 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION zapp.rpc_schema_tables(text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION zapp.rpc_schema_tables(text) TO authenticated;
+GRANT EXECUTE ON FUNCTION zapp.rpc_schema_tables(text) TO authenticated; -- ignore-lint-ml008: somente metadados information_schema (sem PII/escrita) + whitelist RAISE 42501 na linha 21
 
 -- ─────────────────────────────────────────────────────────────
 -- 2. rpc_schema_columns — explicit whitelist RAISE

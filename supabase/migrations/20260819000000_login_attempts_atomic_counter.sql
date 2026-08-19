@@ -89,8 +89,12 @@ BEGIN
 END;
 $fn$;
 
--- Exposição mínima: nada para PUBLIC/anon; somente authenticated + service_role.
+-- Exposição mínima: somente service_role (a edge login-attempts chama via
+-- createZappAdminClient/SERVICE_ROLE_KEY — supabase/functions/_shared/db-client.ts).
+-- SEM GRANT TO authenticated: o frontend nunca chama esta RPC (grep src/ = 0), e
+-- expô-la a qualquer usuário logado criaria vetor de DoS (inflar attempt_count de
+-- email arbitrário → lockout de terceiros). ML-008 respeitado por remoção do grant.
 REVOKE ALL ON FUNCTION zapp.fn_login_attempt_record_failed(text, text, text, boolean) FROM PUBLIC;
 REVOKE ALL ON FUNCTION zapp.fn_login_attempt_record_failed(text, text, text, boolean) FROM anon;
-GRANT EXECUTE ON FUNCTION zapp.fn_login_attempt_record_failed(text, text, text, boolean) TO authenticated;
+REVOKE ALL ON FUNCTION zapp.fn_login_attempt_record_failed(text, text, text, boolean) FROM authenticated;
 GRANT EXECUTE ON FUNCTION zapp.fn_login_attempt_record_failed(text, text, text, boolean) TO service_role;

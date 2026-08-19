@@ -45,7 +45,7 @@ BEGIN
   END IF;
 END; $$;
 REVOKE ALL ON FUNCTION zapp.fn_dashboard_heatmap(text, integer) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION zapp.fn_dashboard_heatmap(text, integer) TO authenticated;
+GRANT EXECUTE ON FUNCTION zapp.fn_dashboard_heatmap(text, integer) TO authenticated; -- ignore-lint-ml008: agregados apenas (volume/response_time/CSAT), sem linhas por usuario/PII; STABLE read-only
 
 -- 66.6: métricas reais por fila para os checks de meta do useGoalNotifications.
 -- 1 chamada agregada a cada 5 min (não 4×N queries). Guardas honestas (desenho c.2):

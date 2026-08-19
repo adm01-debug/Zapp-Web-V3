@@ -75,7 +75,7 @@ $function$;
 
 -- Reforço de privilégios (idempotente): só authenticated (app) e service_role.
 REVOKE ALL ON FUNCTION zapp.rpc_sla_timeline_aggregate(text, text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION zapp.rpc_sla_timeline_aggregate(text, text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION zapp.rpc_sla_timeline_aggregate(text, text) TO authenticated, service_role; -- ignore-lint-ml008: guarda canônica zapp.fn_require_app_user() no corpo (P0 auditoria, migration 20260806203227); validação do caller é externa ao padrão literal auth.uid()
 
 -- ROLLBACK:
 --   DROP FUNCTION zapp.rpc_sla_timeline_aggregate(text, text);

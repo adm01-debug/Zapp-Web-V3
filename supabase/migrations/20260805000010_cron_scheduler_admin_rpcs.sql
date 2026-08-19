@@ -38,7 +38,7 @@ $$;
 COMMENT ON FUNCTION zapp.rpc_list_cron_jobs() IS
   'Admin RPC — lista todos os jobs pg_cron (somente admins/supervisores). Função privilegiada.';
 
-GRANT EXECUTE ON FUNCTION zapp.rpc_list_cron_jobs() TO authenticated;
+GRANT EXECUTE ON FUNCTION zapp.rpc_list_cron_jobs() TO authenticated; -- ignore-lint-ml008: guarda zapp.is_admin_or_supervisor() na linha 21 (RAISE 42501)
 
 -- ── RPC: rpc_toggle_cron_job ──────────────────────────────────────────────────
 -- Activates or deactivates a pg_cron job by jobname.

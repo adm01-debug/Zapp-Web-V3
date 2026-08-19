@@ -152,7 +152,7 @@ $function$;
 
 -- ── 3. Grants ───────────────────────────────────────────────────────────────
 REVOKE ALL ON FUNCTION zapp.fn_system_health_score() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION zapp.fn_system_health_score() TO authenticated;
+GRANT EXECUTE ON FUNCTION zapp.fn_system_health_score() TO authenticated; -- ignore-lint-ml008: read-only (metricas de infra p/ dashboard, header linhas 16-17); reassign tem guardas is_admin_or_supervisor (linhas 38 e 97)
 
 REVOKE ALL ON FUNCTION zapp.reassign_absent_agents(integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION zapp.reassign_absent_agents(integer) TO authenticated;

@@ -63,4 +63,4 @@ END;
 $function$;
 
 -- ── 3. Grant ao front ────────────────────────────────────────────────────────
-GRANT EXECUTE ON FUNCTION zapp.rpc_complete_followup(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION zapp.rpc_complete_followup(uuid) TO authenticated; -- ignore-lint-ml008: guarda PERFORM zapp.fn_require_app_user() na linha 50
