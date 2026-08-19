@@ -1,22 +1,23 @@
 /**
- * E70 — Gamificação real: XP transacional via RPC (nível sobe ao acumular XP;
+ * E70 — Gamificação: XP transacional via RPC (nível sobe ao acumular XP;
  * achievement desbloqueia 1x).
  *
- * Contrato (Etapa 70 do PLANO-100-ETAPAS):
- *   - `addXp` persiste via RPC `rpc_grant_xp` (SECURITY DEFINER, transacional)
- *     — o nível sobe ao cruzar o threshold (50 XP → nível 2, fórmula espelhada
- *     em levelUtils.ts) e o RPC devolve `leveled_up`.
- *   - `grantAchievement` persiste via RPC `rpc_unlock_achievement` — dedupe
- *     transacional: um achievement NÃO-repetível desbloqueia 1x (segunda
- *     tentativa → `alreadyHad: true`, sem XP duplo, sem erro).
- *   - Erro 23505 (race de unique) → tratado como `alreadyHad`, nunca throw.
+ * CONTRATO ATUAL (fix 2026-08-18, merge E70×E59 — PR #1295):
+ *   A implementação usa o caminho E59, consistente com o banco (DB-as-source):
+ *   as migrations E70 (rpc_grant_xp / rpc_unlock_achievement) NÃO estão
+ *   aplicadas no banco de produção — só rpc_add_xp / rpc_grant_achievement
+ *   existem. Portanto os testes espelham o contrato REAL:
+ *   - `addXp` persiste via RPC `rpc_add_xp` (SECURITY DEFINER, transacional)
+ *     com p_profile_id + p_xp_delta + p_reason; o nível sobe ao cruzar o
+ *     threshold e o RPC devolve `leveled_up`.
+ *   - `grantAchievement` persiste via RPC `rpc_grant_achievement` (dedupe
+ *     atômico no banco via ON CONFLICT) — um achievement NÃO-repetível
+ *     desbloqueia 1x (segunda tentativa → `already_had: true`, sem XP duplo,
+ *     sem erro).
+ *   - Erro 23505 (race de unique que escape do ON CONFLICT) → tratado como
+ *     `alreadyHad`, nunca throw.
  *   - Tipos repetíveis (`daily_goal`, `streak`, `message_milestone`)
  *     continuam permitindo múltiplas entradas (semântica pré-existente).
- *
- * RED esperado ANTES da implementação: `supabase.rpc` nunca é chamado pela
- * implementação atual (escrevia direto em agent_stats/agent_achievements via
- * `.from().update()/insert()`), então `toHaveBeenCalledWith('rpc_grant_xp')`
- * falha.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ReactNode } from 'react';
@@ -60,15 +61,15 @@ function makeWrapper() {
   };
 }
 
-describe('useGamificationMutations — XP transacional (E70)', () => {
+describe('useGamificationMutations — XP transacional (E70×E59, contrato atual)', () => {
   beforeEach(() => {
     rpcMock.mockReset();
     fromMock.mockReset();
   });
 
-  it('addXp chama rpc_grant_xp com perfil/amount/reason', async () => {
+  it('addXp chama rpc_add_xp com perfil/delta/reason', async () => {
     rpcMock.mockResolvedValue({
-      data: { new_xp: 60, new_level: 2, leveled_up: true, previous_level: 1 },
+      data: { xp: 60, level: 2, leveled_up: true, previous_level: 1 },
       error: null,
     });
     const { wrapper } = makeWrapper();
@@ -76,16 +77,16 @@ describe('useGamificationMutations — XP transacional (E70)', () => {
 
     await result.current.addXp({ xp: 20, reason: 'etapa70-test' });
 
-    expect(rpcMock).toHaveBeenCalledWith('rpc_grant_xp', {
+    expect(rpcMock).toHaveBeenCalledWith('rpc_add_xp', {
       p_profile_id: 'p1',
-      p_amount: 20,
+      p_xp_delta: 20,
       p_reason: 'etapa70-test',
     });
   });
 
   it('nível sobe ao acumular XP: 40 XP + 20 = 60 XP cruza o threshold do nível 2 (leveled_up)', async () => {
     rpcMock.mockResolvedValue({
-      data: { new_xp: 60, new_level: 2, leveled_up: true, previous_level: 1 },
+      data: { xp: 60, level: 2, leveled_up: true, previous_level: 1 },
       error: null,
     });
     const { wrapper } = makeWrapper();
@@ -98,7 +99,7 @@ describe('useGamificationMutations — XP transacional (E70)', () => {
 
   it('abaixo do threshold: 40 XP + 5 = 45 XP mantém nível 1 (leveled_up=false)', async () => {
     rpcMock.mockResolvedValue({
-      data: { new_xp: 45, new_level: 1, leveled_up: false, previous_level: 1 },
+      data: { xp: 45, level: 1, leveled_up: false, previous_level: 1 },
       error: null,
     });
     const { wrapper } = makeWrapper();
@@ -118,15 +119,9 @@ describe('useGamificationMutations — XP transacional (E70)', () => {
     expect(rpcMock).not.toHaveBeenCalled();
   });
 
-  it('grantAchievement novo: chama rpc_unlock_achievement e mapeia alreadyHad=false', async () => {
+  it('grantAchievement novo: chama rpc_grant_achievement e mapeia alreadyHad=false', async () => {
     rpcMock.mockResolvedValue({
-      data: {
-        already_unlocked: false,
-        new_xp: 90,
-        new_level: 2,
-        leveled_up: true,
-        previous_level: 1,
-      },
+      data: { already_had: false, xp: 90, level: 2, leveled_up: true },
       error: null,
     });
     const { wrapper } = makeWrapper();
@@ -139,7 +134,7 @@ describe('useGamificationMutations — XP transacional (E70)', () => {
       xpReward: 50,
     });
 
-    expect(rpcMock).toHaveBeenCalledWith('rpc_unlock_achievement', {
+    expect(rpcMock).toHaveBeenCalledWith('rpc_grant_achievement', {
       p_profile_id: 'p1',
       p_type: 'speed_demon',
       p_name: 'Speed Demon',
@@ -154,7 +149,7 @@ describe('useGamificationMutations — XP transacional (E70)', () => {
 
   it('achievement desbloqueia 1x: segunda tentativa devolve alreadyHad=true (sem XP duplo)', async () => {
     rpcMock.mockResolvedValue({
-      data: { already_unlocked: true, new_xp: null, new_level: null, leveled_up: false, previous_level: null },
+      data: { already_had: true, xp: null, level: null, leveled_up: false },
       error: null,
     });
     const { wrapper } = makeWrapper();
@@ -197,13 +192,18 @@ describe('useGamificationMutations — XP transacional (E70)', () => {
     const { result } = renderHook(() => useGamificationMutations('p1', STATS), { wrapper });
 
     await expect(
-      result.current.grantAchievement({ type: 'resolution', name: 'x', description: 'x', xpReward: 40 })
+      result.current.grantAchievement({
+        type: 'resolution',
+        name: 'x',
+        description: 'x',
+        xpReward: 40,
+      })
     ).rejects.toThrow('not found');
   });
 
-  it('tipos repetíveis continuam permitidos: rpc_unlock_achievement recebe o tipo (dedupe é do RPC)', async () => {
+  it('tipos repetíveis continuam permitidos: rpc_grant_achievement recebe o tipo (dedupe é do RPC)', async () => {
     rpcMock.mockResolvedValue({
-      data: { already_unlocked: false, new_xp: 65, new_level: 2, leveled_up: true, previous_level: 1 },
+      data: { already_had: false, xp: 65, level: 2, leveled_up: true },
       error: null,
     });
     const { wrapper } = makeWrapper();
@@ -217,7 +217,7 @@ describe('useGamificationMutations — XP transacional (E70)', () => {
     });
 
     expect(rpcMock).toHaveBeenCalledWith(
-      'rpc_unlock_achievement',
+      'rpc_grant_achievement',
       expect.objectContaining({ p_type: 'streak', p_xp_reward: 25 })
     );
   });
@@ -227,7 +227,12 @@ describe('useGamificationMutations — XP transacional (E70)', () => {
     const { result } = renderHook(() => useGamificationMutations(undefined, STATS), { wrapper });
 
     await expect(
-      result.current.grantAchievement({ type: 'resolution', name: 'x', description: 'x', xpReward: 40 })
+      result.current.grantAchievement({
+        type: 'resolution',
+        name: 'x',
+        description: 'x',
+        xpReward: 40,
+      })
     ).rejects.toThrow('No profile ID');
     expect(rpcMock).not.toHaveBeenCalled();
   });
