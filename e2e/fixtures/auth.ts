@@ -9,8 +9,8 @@ const STORAGE_STATE = '.auth/user.json';
 
 export async function loginViaUI(page: Page) {
   await page.goto('/auth');
-  await page.getByLabel(/e-?mail/i).fill(E2E_USER_EMAIL);
-  await page.getByLabel(/senha|password/i).fill(E2E_USER_PASSWORD);
+  await page.getByRole('textbox', { name: /e-?mail/i }).fill(E2E_USER_EMAIL);
+  await page.getByRole('textbox', { name: /senha|password/i }).fill(E2E_USER_PASSWORD);
   await page.getByRole('button', { name: /entrar|login/i }).click();
   await expect(page).toHaveURL(/^(?!.*\/auth).*$/, { timeout: 15_000 });
 }
