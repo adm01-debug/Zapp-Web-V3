@@ -4,8 +4,8 @@ import { loginViaUI } from './fixtures/auth';
 test.describe('Auth — fluxos estendidos', () => {
   test('credenciais inválidas exibem erro e mantêm em /auth', async ({ page }) => {
     await page.goto('/auth');
-    await page.getByLabel(/e-?mail/i).fill('nao-existe@zappweb.test');
-    await page.getByLabel(/senha|password/i).fill('senha-invalida-xyz-123');
+    await page.getByRole('textbox', { name: /e-?mail/i }).fill('nao-existe@zappweb.test');
+    await page.getByRole('textbox', { name: /senha|password/i }).fill('senha-invalida-xyz-123');
     await page.getByRole('button', { name: /entrar|login/i }).click();
     // Espera mensagem de erro OU permanência na rota
     await page.waitForTimeout(2_000);
@@ -25,7 +25,7 @@ test.describe('Auth — fluxos estendidos', () => {
       await link.click();
     }
     await expect(page).toHaveURL(/forgot-password/);
-    const emailInput = page.getByLabel(/e-?mail/i).first();
+    const emailInput = page.getByRole('textbox', { name: /e-?mail/i }).first();
     if (!(await emailInput.isVisible().catch(() => false))) {
       test.skip(true, 'Formulário /forgot-password não disponível');
     }
