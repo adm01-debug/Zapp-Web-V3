@@ -32003,7 +32003,7 @@ CREATE TABLE IF NOT EXISTS zapp.app_notifications (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT app_notifications_type_check CHECK ((type = ANY (ARRAY['info'::text, 'warning'::text, 'error'::text, 'success'::text, 'sla_breach'::text, 'new_message'::text, 'assignment'::text, 'mention'::text])))
 )
-WITH (autovacuum_freeze_max_age='50000000', autovacuum_analyze_scale_factor='0.05', autovacuum_analyze_threshold='500');
+WITH (autovacuum_freeze_max_age='50000000', autovacuum_analyze_scale_factor='0.05', autovacuum_analyze_threshold='500', autovacuum_vacuum_scale_factor='0.0001', autovacuum_vacuum_threshold='0', autovacuum_vacuum_cost_delay='2');
 
 
 
@@ -64781,7 +64781,7 @@ $pol1141$;
 
 DO $pol1142$
 BEGIN
-  CREATE POLICY csat_surveys_update ON zapp.csat_surveys FOR UPDATE TO authenticated USING (((agent_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()))) WITH CHECK (((agent_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid())));
+  CREATE POLICY csat_surveys_update ON zapp.csat_surveys FOR UPDATE TO authenticated USING (((agent_id = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor(auth.uid()))) WITH CHECK (((agent_id = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1142$;
