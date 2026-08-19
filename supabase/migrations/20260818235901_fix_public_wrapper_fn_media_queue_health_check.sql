@@ -23,4 +23,4 @@ AS $$
 $$;
 
 REVOKE ALL ON FUNCTION public.fn_media_queue_health_check() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.fn_media_queue_health_check() TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.fn_media_queue_health_check() TO authenticated, service_role; -- ignore-lint-ml008: health-check read-only de infra (métricas de fila, sem PII/escrita), chamado pelo n8n — padrão das RPCs do pipeline de mídia
