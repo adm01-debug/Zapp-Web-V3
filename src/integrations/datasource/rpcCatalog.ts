@@ -902,6 +902,10 @@ export const RPC = {
     name: 'rpc_grant_achievement',
     client: 'lovable',
   }),
+  rpc_grant_xp: def<Record<string, unknown>, unknown>({
+    name: 'rpc_grant_xp',
+    client: 'lovable',
+  }),
   rpc_instance_auth_event_trend: def<Record<string, unknown>, unknown>({
     name: 'rpc_instance_auth_event_trend',
     client: 'lovable',
@@ -960,6 +964,10 @@ export const RPC = {
   }),
   rpc_set_whatsapp_mode: def<Record<string, unknown>, unknown>({
     name: 'rpc_set_whatsapp_mode',
+    client: 'lovable',
+  }),
+  rpc_unlock_achievement: def<Record<string, unknown>, unknown>({
+    name: 'rpc_unlock_achievement',
     client: 'lovable',
   }),
   rpc_update_email_health_state: def<Record<string, unknown>, unknown>({
