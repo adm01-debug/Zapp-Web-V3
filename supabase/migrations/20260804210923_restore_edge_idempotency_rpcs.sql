@@ -55,7 +55,7 @@ END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.record_ai_metrics(TEXT,TEXT,INTEGER,TEXT,UUID,TEXT,JSONB) FROM PUBLIC, anon;
-GRANT  EXECUTE ON FUNCTION zapp.record_ai_metrics(TEXT,TEXT,INTEGER,TEXT,UUID,TEXT,JSONB) TO authenticated, service_role;
+GRANT  EXECUTE ON FUNCTION zapp.record_ai_metrics(TEXT,TEXT,INTEGER,TEXT,UUID,TEXT,JSONB) TO authenticated, service_role; -- ignore-lint-ml008: telemetria nao-critica (swallow errors) insert-only em zapp.ai_function_metrics, sem leitura de dados de negocio; consumidor ai-router backend
 
 DO $$
 BEGIN

@@ -41,4 +41,4 @@ AS $$
 $$;
 
 GRANT EXECUTE ON FUNCTION zapp.rpc_contract_inventory() TO service_role;
-GRANT EXECUTE ON FUNCTION zapp.rpc_contract_inventory() TO authenticated;
+GRANT EXECUTE ON FUNCTION zapp.rpc_contract_inventory() TO authenticated; -- ignore-lint-ml008: inventario pg_proc p/ CI audit-contract (consumidor service_role); metadados, sem PII/escrita

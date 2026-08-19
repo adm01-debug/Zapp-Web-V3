@@ -35,4 +35,4 @@ $function$;
 
 -- Reforco de privilegios (idempotente): so authenticated (app) e service_role.
 REVOKE ALL ON FUNCTION zapp.get_companies_by_phones_batch(text[]) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION zapp.get_companies_by_phones_batch(text[]) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION zapp.get_companies_by_phones_batch(text[]) TO authenticated, service_role; -- ignore-lint-ml008: guarda PERFORM zapp.fn_require_app_user() na linha 22
