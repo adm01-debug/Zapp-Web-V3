@@ -22,7 +22,11 @@ jobs:
     name: Analyze (${{ matrix.language }})
     runs-on: [Linux, X64, vps-zapp]
     timeout-minutes: 30
-    continue-on-error: true
+    # SEM continue-on-error: o autobuild quebrava silenciosamente (husky ESM + node10
+    # no runner self-hosted). Corrigido com setup-node@v7 (node22) + HUSKY=0 para
+    # impedir que o prepare:husky rode durante o npm install do autobuild.
+    env:
+      HUSKY: '0'
 
     strategy:
       fail-fast: false
@@ -45,14 +49,16 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           queries: security-extended
+          # build-mode: none — cria o database direto dos fontes, sem rodar
+          # npm install/autobuild. Elimina a quebra silenciosa do autobuild.sh
+          # (husky ESM + node10 no runner self-hosted: SyntaxError → exit 2).
+          # Mantém HUSKY=0 no job (redundância segura) caso algum passo rode npm.
+          build-mode: none
           # TRAP cache desabilitado: a chave inclui hash do source, que muda a
           # cada commit → o cache nunca acerta e cada run grava ~13MB de lixo
           # (203 caches / 2.7GB acumulados em 1 semana, 08/2026). O repo é
           # grande e mutável; o custo do upload supera o benefício do hit.
           trap-caching: false
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4.37.7
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4.37.7

@@ -3738,6 +3738,30 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_canary_log: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: number
+          message_id: string
+          remote_jid: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: number
+          message_id: string
+          remote_jid?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: number
+          message_id?: string
+          remote_jid?: string
+        }
+        Relationships: []
+      }
       vps_comments: {
         Row: {
           author: string
@@ -59260,6 +59284,15 @@ export type Database = {
         }
         Returns: string
       }
+      fn_login_attempt_record_failed: {
+        Args: {
+          p_email: string
+          p_ip_address: string
+          p_success?: boolean
+          p_user_agent: string
+        }
+        Returns: Json
+      }
       fn_lux_alert_check: { Args: never; Returns: Json }
       fn_lux_maintenance: { Args: never; Returns: Json }
       fn_mark_callback_sent: {
@@ -62358,6 +62391,15 @@ export type Database = {
         Returns: Json
       }
       rpc_set_whatsapp_mode: { Args: { p_mode: string }; Returns: string }
+      rpc_sla_timeline_aggregate: {
+        Args: { p_instance?: string; p_remote_jid: string }
+        Returns: {
+          first_inbound_at: string
+          first_outbound_at: string
+          last_message_at: string
+          total_messages: number
+        }[]
+      }
       rpc_system_health_check: { Args: never; Returns: Json }
       rpc_toggle_cron_job: {
         Args: { p_active: boolean; p_jobname: string }

@@ -60,15 +60,15 @@ function makeWrapper() {
   };
 }
 
-describe('useGamificationMutations — XP transacional (E59)', () => {
+describe('useGamificationMutations — XP transacional (E70)', () => {
   beforeEach(() => {
     rpcMock.mockReset();
     fromMock.mockReset();
   });
 
-  it('addXp chama rpc_add_xp com perfil/xp_delta/reason', async () => {
+  it('addXp chama rpc_grant_xp com perfil/amount/reason', async () => {
     rpcMock.mockResolvedValue({
-      data: { profile_id: 'p1', xp_delta: 20, xp: 60, level: 2, previous_level: 1, leveled_up: true, reason: 'etapa70-test' },
+      data: { new_xp: 60, new_level: 2, leveled_up: true, previous_level: 1 },
       error: null,
     });
     const { wrapper } = makeWrapper();
@@ -76,16 +76,16 @@ describe('useGamificationMutations — XP transacional (E59)', () => {
 
     await result.current.addXp({ xp: 20, reason: 'etapa70-test' });
 
-    expect(rpcMock).toHaveBeenCalledWith('rpc_add_xp', {
+    expect(rpcMock).toHaveBeenCalledWith('rpc_grant_xp', {
       p_profile_id: 'p1',
-      p_xp_delta: 20,
+      p_amount: 20,
       p_reason: 'etapa70-test',
     });
   });
 
   it('nível sobe ao acumular XP: 40 XP + 20 = 60 XP cruza o threshold do nível 2 (leveled_up)', async () => {
     rpcMock.mockResolvedValue({
-      data: { profile_id: 'p1', xp_delta: 20, xp: 60, level: 2, previous_level: 1, leveled_up: true, reason: 'etapa70-test' },
+      data: { new_xp: 60, new_level: 2, leveled_up: true, previous_level: 1 },
       error: null,
     });
     const { wrapper } = makeWrapper();
@@ -98,7 +98,7 @@ describe('useGamificationMutations — XP transacional (E59)', () => {
 
   it('abaixo do threshold: 40 XP + 5 = 45 XP mantém nível 1 (leveled_up=false)', async () => {
     rpcMock.mockResolvedValue({
-      data: { profile_id: 'p1', xp_delta: 5, xp: 45, level: 1, previous_level: 1, leveled_up: false, reason: 'etapa70-test' },
+      data: { new_xp: 45, new_level: 1, leveled_up: false, previous_level: 1 },
       error: null,
     });
     const { wrapper } = makeWrapper();
@@ -118,13 +118,12 @@ describe('useGamificationMutations — XP transacional (E59)', () => {
     expect(rpcMock).not.toHaveBeenCalled();
   });
 
-  it('grantAchievement novo: chama rpc_grant_achievement e mapeia alreadyHad=false', async () => {
+  it('grantAchievement novo: chama rpc_unlock_achievement e mapeia alreadyHad=false', async () => {
     rpcMock.mockResolvedValue({
       data: {
-        already_had: false,
-        achievement_id: 'ach-1',
-        xp: 90,
-        level: 2,
+        already_unlocked: false,
+        new_xp: 90,
+        new_level: 2,
         previous_level: 1,
         leveled_up: true,
       },
@@ -140,7 +139,7 @@ describe('useGamificationMutations — XP transacional (E59)', () => {
       xpReward: 50,
     });
 
-    expect(rpcMock).toHaveBeenCalledWith('rpc_grant_achievement', {
+    expect(rpcMock).toHaveBeenCalledWith('rpc_unlock_achievement', {
       p_profile_id: 'p1',
       p_type: 'speed_demon',
       p_name: 'Speed Demon',
@@ -155,7 +154,7 @@ describe('useGamificationMutations — XP transacional (E59)', () => {
 
   it('achievement desbloqueia 1x: segunda tentativa devolve alreadyHad=true (sem XP duplo)', async () => {
     rpcMock.mockResolvedValue({
-      data: { already_had: true },
+      data: { already_unlocked: true, new_xp: 0, new_level: 1, leveled_up: false, previous_level: 1 },
       error: null,
     });
     const { wrapper } = makeWrapper();
@@ -202,9 +201,9 @@ describe('useGamificationMutations — XP transacional (E59)', () => {
     ).rejects.toThrow('not found');
   });
 
-  it('tipos repetíveis continuam permitidos: rpc_grant_achievement recebe o tipo (dedupe é do RPC)', async () => {
+  it('tipos repetíveis continuam permitidos: rpc_unlock_achievement recebe o tipo (dedupe é do RPC)', async () => {
     rpcMock.mockResolvedValue({
-      data: { already_had: false, achievement_id: 'ach-streak', xp: 65, level: 2, previous_level: 1, leveled_up: true },
+      data: { already_unlocked: false, new_xp: 65, new_level: 2, previous_level: 1, leveled_up: true },
       error: null,
     });
     const { wrapper } = makeWrapper();
@@ -218,7 +217,7 @@ describe('useGamificationMutations — XP transacional (E59)', () => {
     });
 
     expect(rpcMock).toHaveBeenCalledWith(
-      'rpc_grant_achievement',
+      'rpc_unlock_achievement',
       expect.objectContaining({ p_type: 'streak', p_xp_reward: 25 })
     );
   });

@@ -16,8 +16,10 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # PR: grupo unico por numero de PR, sem cancelar (auditorias longas nao sao mortas).
+  # Push/schedule: grupo por ref, cancela builds intermediarios de main/develop.
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event.pull_request.number == '' }}
 
 env:
   CI: true

@@ -28,7 +28,8 @@ jobs:
           persist-credentials: false
       - name: 🔒 Run gitleaks
         uses: gitleaks/gitleaks-action@v3
-        continue-on-error: true
+        # SEM continue-on-error: secret scan deve BLOQUEAR merge se vazar credencial.
+        # Resultados continuam como annotations no Check.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_SUMMARY: "false"

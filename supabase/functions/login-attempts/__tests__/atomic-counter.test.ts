@@ -227,10 +227,13 @@ Deno.test("(f) migration: escalação 2^(n-5) com teto 10 no SQL (pow + LEAST)",
   assertMatch(migrationSql, /pow\(\s*2,\s*LEAST\s*\(\s*login_attempts\.attempt_count\s*\+\s*1\s*-\s*5,\s*10\s*\)\s*\)/);
 });
 
-Deno.test("(f) migration: REVOKE PUBLIC/anon + GRANT authenticated/service_role", () => {
+Deno.test("(f) migration: REVOKE PUBLIC/anon + GRANT service_role", () => {
   assertMatch(migrationSql, /REVOKE ALL ON FUNCTION zapp\.fn_login_attempt_record_failed\([^)]*\) FROM PUBLIC;/s);
   assertMatch(migrationSql, /REVOKE ALL ON FUNCTION zapp\.fn_login_attempt_record_failed\([^)]*\) FROM anon;/s);
-  assertMatch(migrationSql, /GRANT EXECUTE ON FUNCTION zapp\.fn_login_attempt_record_failed\([^)]*\) TO authenticated;/s);
+  // A edge chama a RPC SEMPRE via createZappAdminClient (service_role) — nunca
+  // com JWT de usuário autenticado (verificado em index.ts:165). O GRANT TO
+  // authenticated é desnecessário; exigí-lo deixava o teste stale (corrigido
+  // na validação exaustiva 19/08 — atomic-counter.test.ts).
   assertMatch(migrationSql, /GRANT EXECUTE ON FUNCTION zapp\.fn_login_attempt_record_failed\([^)]*\) TO service_role;/s);
 });
 
