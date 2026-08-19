@@ -10227,6 +10227,47 @@ COMMENT ON FUNCTION zapp.fn_log_whatsapp_connection_state_change() IS 'Trigger A
 
 
 
+CREATE OR REPLACE FUNCTION zapp.fn_login_attempt_record_failed(p_email text, p_ip_address text, p_user_agent text, p_success boolean DEFAULT false) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'zapp'
+    AS $$
+DECLARE
+  v_attempt_count integer;
+  v_locked_until timestamptz;
+BEGIN
+  INSERT INTO zapp.login_attempts (
+    email, ip_address, user_agent, success, attempt_count, last_attempt_at, locked_until, updated_at
+  )
+  VALUES (
+    p_email, NULLIF(p_ip_address, 'unknown'), p_user_agent, COALESCE(p_success, false),
+    1, now(), NULL, now()
+  )
+  ON CONFLICT (email) DO UPDATE SET
+    attempt_count    = login_attempts.attempt_count + 1,
+    ip_address       = EXCLUDED.ip_address,
+    user_agent       = EXCLUDED.user_agent,
+    last_attempt_at  = now(),
+    locked_until     = CASE
+      WHEN login_attempts.attempt_count + 1 >= 5
+        THEN now() + (pow(2, LEAST(login_attempts.attempt_count + 1 - 5, 10)) * interval '1 minute')
+      ELSE NULL
+    END,
+    updated_at       = now()
+  RETURNING attempt_count, locked_until
+  INTO v_attempt_count, v_locked_until;
+
+  RETURN jsonb_build_object(
+    'attempt_count',    v_attempt_count,
+    'locked_until',     to_jsonb(v_locked_until),
+    'last_attempt_at',  to_jsonb(now()),
+    'is_locked',        v_locked_until IS NOT NULL
+  );
+END;
+$$;
+
+
+
+
 CREATE OR REPLACE FUNCTION zapp.fn_lux_alert_check() RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'zapp', 'net'
@@ -27745,6 +27786,39 @@ BEGIN
         updated_at = now();
 
   RETURN p_mode;
+END;
+$$;
+
+
+
+
+CREATE OR REPLACE FUNCTION zapp.rpc_sla_timeline_aggregate(p_remote_jid text, p_instance text DEFAULT NULL::text) RETURNS TABLE(first_inbound_at timestamp with time zone, first_outbound_at timestamp with time zone, last_message_at timestamp with time zone, total_messages bigint)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'zapp', 'pg_temp'
+    AS $$
+BEGIN
+  PERFORM zapp.fn_require_app_user();
+
+  IF p_instance IS NOT NULL THEN
+    RETURN QUERY
+      SELECT MIN(created_at) FILTER (WHERE from_me = false OR direction = 'inbound'),
+             MIN(created_at) FILTER (WHERE from_me = true  OR direction = 'outbound'),
+             MAX(created_at),
+             COUNT(*)
+      FROM zapp.evolution_messages
+      WHERE remote_jid    = p_remote_jid
+        AND instance_name = p_instance
+        AND deleted_at   IS NULL;
+  ELSE
+    RETURN QUERY
+      SELECT MIN(created_at) FILTER (WHERE from_me = false OR direction = 'inbound'),
+             MIN(created_at) FILTER (WHERE from_me = true  OR direction = 'outbound'),
+             MAX(created_at),
+             COUNT(*)
+      FROM zapp.evolution_messages
+      WHERE remote_jid  = p_remote_jid
+        AND deleted_at IS NULL;
+  END IF;
 END;
 $$;
 
