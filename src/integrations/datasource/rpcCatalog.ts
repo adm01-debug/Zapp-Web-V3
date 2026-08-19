@@ -826,10 +826,6 @@ export const RPC = {
     name: 'record_voice_telemetry',
     client: 'lovable',
   }),
-  rpc_add_xp: def<Record<string, unknown>, unknown>({
-    name: 'rpc_add_xp',
-    client: 'lovable',
-  }),
   rpc_campaign_assign_variant: def<Record<string, unknown>, unknown>({
     name: 'rpc_campaign_assign_variant',
     client: 'lovable',
@@ -896,10 +892,6 @@ export const RPC = {
   }),
   rpc_get_reactions_batch: def<Record<string, unknown>, unknown>({
     name: 'rpc_get_reactions_batch',
-    client: 'lovable',
-  }),
-  rpc_grant_achievement: def<Record<string, unknown>, unknown>({
-    name: 'rpc_grant_achievement',
     client: 'lovable',
   }),
   rpc_grant_xp: def<Record<string, unknown>, unknown>({
