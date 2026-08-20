@@ -293,7 +293,7 @@ describe('E59 — escrita transacional de XP (fim da race read-modify-write)', (
       wrapper: makeWrapper(),
     });
 
-    let results: { alreadyHad: boolean; newXp: number | null }[] = [];
+    let results: { alreadyHad: boolean; newXp: number | null; newLevel: number | null; leveledUp: boolean; previousLevel: number | null }[] = [];
     await act(async () => {
       results = await Promise.all([
         result.current.grantAchievement({
