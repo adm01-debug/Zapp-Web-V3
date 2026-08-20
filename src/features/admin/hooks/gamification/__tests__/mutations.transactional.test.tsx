@@ -248,7 +248,7 @@ describe('E59 — escrita transacional de XP (fim da race read-modify-write)', (
       wrapper: makeWrapper(),
     });
 
-    let results: { newXp: number }[] = [];
+    let results: { newXp: number | null }[] = [];
     await act(async () => {
       results = await Promise.all([
         result.current.addXp({ xp: 10, reason: 'fast_response' }),
@@ -278,7 +278,7 @@ describe('E59 — escrita transacional de XP (fim da race read-modify-write)', (
       wrapper: makeWrapper(),
     });
 
-    let res: { newXp: number; newLevel: number } | undefined;
+    let res: { newXp: number | null; newLevel: number | null } | undefined;
     await act(async () => {
       res = await result.current.addXp({ xp: 10, reason: 'fast_response' });
     });
@@ -293,7 +293,7 @@ describe('E59 — escrita transacional de XP (fim da race read-modify-write)', (
       wrapper: makeWrapper(),
     });
 
-    let results: { alreadyHad: boolean; newXp: number }[] = [];
+    let results: { alreadyHad: boolean; newXp: number | null }[] = [];
     await act(async () => {
       results = await Promise.all([
         result.current.grantAchievement({
