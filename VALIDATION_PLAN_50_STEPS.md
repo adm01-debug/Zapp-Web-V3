@@ -205,21 +205,21 @@
 
 ---
 
-### ⬜ Etapa 13 — Verificar ações desabilitadas por permissão
+### ✅ Etapa 13 — Verificar acciones deshabilitadas por permiso
 **O quê:** Cruzar rotas com permissions/route_permissions/hasPermission.
-**Status:** ⬜ Pendente
+**Status:** ✅ Concluida (2026-08-20) — ProtectedRoute con requiredRoles/requiredPermission, usePermissions (cache 5min), PermissionMatrix, RPC user_has_permission; 12+ rutas de admin con guard. Detalle: docs/estado/etapas-13-14-15-32-cierre.md
 
 ---
 
-### ⬜ Etapa 14 — Mapear formulários/modais por domínio
+### ✅ Etapa 14 — Mapear formulários/modais por domínio
 **O quê:** Identificar dialogs/forms como sinal de CRUD implementado.
-**Status:** ⬜ Pendente
+**Status:** ✅ Concluida (2026-08-20) — 89 archivos con Dialog/Modal: inbox 58, admin 14, connections 8, auth 4, sla 2, queues/email/dashboard/business-logic 1. Detalle: docs/estado/etapas-13-14-15-32-cierre.md
 
 ---
 
-### ⬜ Etapa 15 — Consolidar inventário frontend
+### ✅ Etapa 15 — Consolidar inventário frontend
 **O quê:** Tabela feature-candidata → camadas presentes (UI/rota/hook/service/i18n/teste)
-**Status:** ⬜ Pendente
+**Status:** ✅ Concluida (2026-08-20) — 13 features + routing; cadeia por feature documentada en docs/estado/etapas-13-14-15-32-cierre.md
 
 ---
 
@@ -459,10 +459,10 @@ audio-memes, audio-messages (público), avatars, comprovantes-financeiro, custom
 
 ---
 
-### ⬜ Etapa 32 — Consolidar matriz recurso × camadas
+### ✅ Etapa 32 — Consolidar matriz recurso × camadas
 **O quê:** Tabela final: recurso → {UI, rota, hook, RPC, tabela, edge, cron, realtime, teste, i18n} + evidências
 **Dependência:** Etapas 26–31
-**Status:** ⬜ Pendente
+**Status:** ✅ Concluida (2026-08-20) — matriz alta-nível (auth, inbox, gamification E70, admin/RLS, connections, email) en docs/estado/etapas-13-14-15-32-cierre.md. Baja-nível (cada tabla miembro) queda como mejora continua fora deste ciclo.
 
 ---
 

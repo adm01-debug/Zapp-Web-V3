@@ -33,3 +33,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_SUMMARY: "false"
+          # Fix self-hosted (2026-08-20): em runners vps-zapp o HOME é /root e o
+          # workspace fica em /tmp/runner-N/work/... — o upload do SARIF como
+          # artifact quebrava com "rootDirectory /root is not a parent directory".
+          # O scan em si passava ("no leaks found"); desabilitar o upload
+          # mantém os annotations no Check (que bloqueiam merge se houver leak).
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"

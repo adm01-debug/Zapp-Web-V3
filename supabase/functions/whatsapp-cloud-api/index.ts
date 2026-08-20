@@ -3,7 +3,7 @@
 // but routes to Meta WhatsApp Cloud API (Graph). Persists outbound messages to Evolution DB
 // via rpc_insert_message so the Inbox UI sees them in the unified evolution_messages table.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { authorizeRoles, errorResponse, jsonResponse, checkRateLimit } from "../_shared/validation.ts";
 import { parseOrReject, buildContractErrorBody } from '../_shared/contract-kit.ts';
@@ -39,7 +39,7 @@ function contractViolation422(field: string, message: string, req: Request): Res
 }
 
 async function loadCredentials(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient<any, string, any>,
   instanceName: string,
 ): Promise<Credentials | null> {
   // The "instance" for official connections is the whatsapp_connections.instance_id.
@@ -51,10 +51,11 @@ async function loadCredentials(
     .maybeSingle();
   if (!conn || conn.api_type !== 'official') return null;
 
+  const c = conn as { id: string; api_type: string };
   const { data: creds } = await supabase
     .from('whatsapp_official_credentials')
     .select('connection_id, phone_number_id, access_token, graph_api_version')
-    .eq('connection_id', conn.id)
+    .eq('connection_id', c.id)
     .maybeSingle();
   return (creds as Credentials | null) ?? null;
 }
@@ -90,7 +91,7 @@ async function callGraph(
 }
 
 async function persistOutbound(
-  externalClient: ReturnType<typeof createClient>,
+  externalClient: SupabaseClient<any, string, any>,
   instanceName: string,
   remoteJid: string,
   wamid: string,

@@ -40,6 +40,7 @@ Deno.serve(async (req: Request) => {
 
 
     const supabase = createZappAdminClient();
+    const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
 
     const action = body.action || 'full-diagnostic';
     const rawInstanceName: unknown = body.instanceName;
@@ -75,10 +76,10 @@ Deno.serve(async (req: Request) => {
       try {
         const whRes = await evolutionClient.get(`webhook/find/${conn.instance_id}`, { timeoutMs: 10000 });
         const whData = (whRes.data ?? {}) as Record<string, unknown>;
-        const webhook = whData?.webhook || whData;
+        const webhook = (whData?.webhook || whData) as Record<string, unknown>;
         const expectedUrl = `${supabaseUrl}/functions/v1/evolution-webhook`;
         const currentUrl = webhook?.url || webhook?.webhookUrl || '';
-        const events = webhook?.events || [];
+        const events = (webhook?.events || []) as string[];
         const criticalEvents = ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED', 'CONTACTS_UPSERT', 'SEND_MESSAGE'];
         const missingEvents = criticalEvents.filter(e => !events.includes(e));
         const missingAll = WEBHOOK_EVENTS.filter(e => !events.includes(e));

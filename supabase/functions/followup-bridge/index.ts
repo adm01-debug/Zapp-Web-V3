@@ -13,7 +13,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { handleCorsPreflight, jsonResponse, errorResponse } from '../_shared/cors.ts';
-import { parseOrReject } from '../_shared/contract-kit.ts';
+import { parseOrReject, z } from '../_shared/contract-kit.ts';
 import { FollowupBridgeV1Schema } from '../_shared/contract-schemas.ts';
 
 // Re-use a single admin client instance per isolate lifetime
@@ -58,7 +58,8 @@ Deno.serve(async (req: Request) => {
 
   const parsed = parseOrReject('followup-bridge', { v1: FollowupBridgeV1Schema }, req, rawBody);
   if (parsed.ok === false) return parsed.response;
-  const { sequence_id, contact_jid, instance_name, trigger_event } = parsed.data;
+  const data = parsed.data as z.infer<typeof FollowupBridgeV1Schema>;
+  const { sequence_id, contact_jid, instance_name, trigger_event } = data;
 
   try {
     // ── 1. Load active rules for the sequence group (real engine table) ────

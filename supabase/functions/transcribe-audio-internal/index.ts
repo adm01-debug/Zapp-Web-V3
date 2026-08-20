@@ -38,8 +38,8 @@ Deno.serve(async (req) => {
     let audioRes;
     try {
       audioRes = await fetch(audioUrl, { signal: AbortSignal.timeout(25000) });
-    } catch (err) {
-      const msg = err && err.message ? err.message : 'timeout';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'timeout';
       await updateTranscription(SUPABASE_URL, SERVICE_ROLE_KEY, messageId, null, 'failed', 'audio_fetch_error', msg);
       return Response.json({ error: 'Audio fetch error: ' + msg }, { status: 502 });
     }
@@ -52,8 +52,8 @@ Deno.serve(async (req) => {
     let audioBlob;
     try {
       audioBlob = await audioRes.blob();
-    } catch (err) {
-      const msg = err && err.message ? err.message : 'error';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'error';
       await updateTranscription(SUPABASE_URL, SERVICE_ROLE_KEY, messageId, null, 'failed', 'blob_read_error', msg);
       return Response.json({ error: 'Blob read error: ' + msg }, { status: 502 });
     }
@@ -80,8 +80,8 @@ Deno.serve(async (req) => {
         body: formData,
         signal: AbortSignal.timeout(90000),
       });
-    } catch (err) {
-      const msg = err && err.message ? err.message : 'error';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'error';
       await updateTranscription(SUPABASE_URL, SERVICE_ROLE_KEY, messageId, null, 'failed', 'elevenlabs_timeout', msg);
       return Response.json({ error: 'ElevenLabs timeout: ' + msg }, { status: 502 });
     }
@@ -99,8 +99,8 @@ Deno.serve(async (req) => {
     await updateTranscription(SUPABASE_URL, SERVICE_ROLE_KEY, messageId, transcription, 'done');
     return Response.json({ ok: true, messageId, chars: transcription.length, preview: transcription.slice(0, 120), detectedFormat: mimeType });
 
-  } catch (err) {
-    const msg = err && err.message ? err.message : 'unknown';
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'unknown';
     console.error('[v6] unhandled error for', messageId, ':', err);
     await updateTranscription(SUPABASE_URL, SERVICE_ROLE_KEY, messageId, null, 'failed', 'internal_error', msg).catch(() => {});
     return Response.json({ error: 'Internal error', detail: msg, messageId }, { status: 500 });
@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
 });
 
 /** Detecta formato real por magic bytes e retorna filename+mimeType corretos */
-async function detectAudioFormat(blob, audioUrl) {
+async function detectAudioFormat(blob: Blob, audioUrl: string): Promise<{ filename: string; mimeType: string }> {
   const baseFilename = (audioUrl.split('/').pop() || 'audio').split('?')[0];
   const stem = baseFilename.replace(/\.[^.]+$/, ''); // remove extensao original
 
@@ -146,9 +146,17 @@ async function detectAudioFormat(blob, audioUrl) {
   return { filename: baseFilename, mimeType: 'audio/ogg' };
 }
 
-async function updateTranscription(supabaseUrl, serviceKey, messageId, text, status, errorCode, errorReason) {
+async function updateTranscription(
+  supabaseUrl: string,
+  serviceKey: string,
+  messageId: string,
+  text: string | null,
+  status: string,
+  errorCode?: string,
+  errorReason?: string,
+) {
   try {
-    const body = { p_message_id: messageId, p_transcription: text, p_status: status };
+    const body: Record<string, unknown> = { p_message_id: messageId, p_transcription: text, p_status: status };
     if (errorCode !== undefined) body.p_error_code = errorCode || null;
     if (errorReason !== undefined) body.p_error_reason = errorReason || null;
     const res = await fetch(supabaseUrl + '/rest/v1/rpc/set_audio_transcription', {
@@ -157,7 +165,7 @@ async function updateTranscription(supabaseUrl, serviceKey, messageId, text, sta
       body: JSON.stringify(body),
     });
     if (!res.ok) console.error('[updateTranscription] HTTP', res.status, 'for', messageId);
-  } catch (err) {
-    console.error('[updateTranscription] error for', messageId, ':', err && err.message ? err.message : err);
+  } catch (err: unknown) {
+    console.error('[updateTranscription] error for', messageId, ':', err instanceof Error ? err.message : err);
   }
 }

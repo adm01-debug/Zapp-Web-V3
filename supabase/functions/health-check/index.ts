@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   if (parsed.ok === false) return parsed.response;
 
   const startTime = Date.now();
-  const status: { status: string; timestamp: string; version: string; checks: Record<string, unknown>; response_time_ms?: number } = {
+  const status: { status: string; timestamp: string; version: string; checks: Record<string, unknown>; response_time_ms?: number; latency_ms?: number } = {
     status: "healthy",
     timestamp: new Date().toISOString(),
     version: "1.0.0",

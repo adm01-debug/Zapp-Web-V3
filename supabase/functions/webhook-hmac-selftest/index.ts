@@ -123,9 +123,11 @@ function resolveValidator(secret: string, strict = false): ValidatorFn {
     try {
       const Svc = mod.WebhookSecurityService as new (...args: unknown[]) => Record<string, unknown>;
       const svc = new Svc(secret, strict);
-      if (typeof svc?.validateRequest === 'function') {
-        return async (req) => normalizeResult(await svc.validateRequest.bind(svc)(req as unknown as Parameters<typeof svc.validateRequest>[0]));
+      if (typeof svc?.validateRequest !== 'function') {
+        throw new Error('WebhookSecurityService.validateRequest is not a function');
       }
+      const validateReq = svc.validateRequest as (req: Request) => Promise<unknown>;
+      return async (req) => normalizeResult(await validateReq.call(svc, req));
     } catch {
       // segue para fallback final
     }

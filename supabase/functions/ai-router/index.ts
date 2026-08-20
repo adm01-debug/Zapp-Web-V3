@@ -1100,7 +1100,7 @@ Deno.serve(async (req) => {
         });
         // Return 200 with partial success details instead of error response
         const response = jsonResponse({
-          ...result.data,
+          ...(result.data as Record<string, unknown> ?? {}),
           success: false,
           partial_success: true,
           error: result.error,
@@ -1141,7 +1141,7 @@ Deno.serve(async (req) => {
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Record request timeout after 3s')), 3_000)
           ),
-        ]).catch(() => {}); // Not critical
+        ]).then(undefined, () => {}); // Not critical
       } catch {
         // Silently fail idempotency recording
       }
@@ -1161,7 +1161,7 @@ Deno.serve(async (req) => {
 
     // IMPROVEMENT 7 & 9: Add correlationId to response headers and include error_details for operation tracking
     const responseBody = {
-      ...result.data,
+      ...(result.data as Record<string, unknown> ?? {}),
       ...(result.error_details && { error_details: result.error_details }),
     };
     const response = jsonResponse(responseBody, 200, req);
@@ -1213,7 +1213,8 @@ async function handleAutoTag(
       return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
-    const { contactId, messages: inputMessages, requestId } = parsed.data;
+    const { contactId, messages: inputMessages } = parsed.data!;
+    const requestId = body?.requestId as string | undefined;
     const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
     const apiKey = getLovableApiKey();
 
@@ -1359,7 +1360,7 @@ Responda APENAS em JSON:
       if (response.status === 429) {
         if (ctx.requestId) {
           try {
-            await supabase.from('webhook_events_processed').delete().eq('event_id', ctx.requestId).catch(() => {});
+            await supabase.from('webhook_events_processed').delete().eq('event_id', ctx.requestId).then(undefined, () => {});
           } catch {
             // Graceful degradation
           }
@@ -1459,10 +1460,10 @@ Responda APENAS em JSON:
 
         const [updateResult, adminsResult] = await Promise.all([
           Object.keys(updateData).length > 0
-            ? supabase.from('contacts').update(updateData).eq('id', validContactId).catch(() => ({}))
+            ? supabase.from('contacts').update(updateData).eq('id', validContactId).then(undefined, () => ({ error: null }))
             : Promise.resolve(null),
           needsUrgentNotification
-            ? supabase.from('user_roles').select('user_id').in('role', ['admin', 'supervisor']).limit(5).catch(() => ({ data: null }))
+            ? supabase.from('user_roles').select('user_id').in('role', ['admin', 'supervisor']).limit(5).then(undefined, () => ({ data: null }))
             : Promise.resolve(null),
         ]);
 
@@ -1522,7 +1523,7 @@ Responda APENAS em JSON:
     metricsMetadata.tag_update_success = tagUpdateResult.success;
 
     // PERF #5 (Improvement 3): Parallelize fire-and-forget metrics RPC calls
-    const rpcCalls: Promise<any>[] = [];
+    const rpcCalls: PromiseLike<any>[] = [];
     if (requestId) {
       rpcCalls.push(
         supabase.rpc('record_processed_request', {
@@ -1532,7 +1533,7 @@ Responda APENAS em JSON:
           p_contact_id: validContactId,
           p_status_code: 200,
           p_result_payload: result,
-        }).catch(() => {})
+        }).then(undefined, () => {})
       );
     }
     rpcCalls.push(
@@ -1544,7 +1545,7 @@ Responda APENAS em JSON:
         p_user_id: ctx.userId,
         p_error_message: null,
         p_metadata: metricsMetadata,
-      }).catch(() => {})
+      }).then(undefined, () => {})
     );
     try {
       await Promise.all(rpcCalls);
@@ -1569,7 +1570,7 @@ Responda APENAS em JSON:
       operations.push({
         operation: 'tag_update',
         status: tagUpdateResult.success ? 'success' : 'failed',
-        message: tagUpdateResult.error || (tagUpdateResult.success ? 'Tags updated successfully' : 'Failed to update tags'),
+        message: String(tagUpdateResult.error || (tagUpdateResult.success ? 'Tags updated successfully' : 'Failed to update tags')),
         metadata: { contactId: validContactId, tagCount: result.tags?.length || 0 },
       });
     }
@@ -1624,7 +1625,8 @@ async function handleConversationSummary(
       return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
-    const { messages, contactName, contactId, requestId } = parsed.data;
+    const { messages, contactName, contactId } = parsed.data!;
+    const requestId = body?.requestId as string | undefined;
     const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
     const apiKey = getLovableApiKey();
 
@@ -1916,10 +1918,10 @@ Foque em:
 
         const [updateResult, adminsResult] = await Promise.all([
           Object.keys(updateData).length > 0
-            ? supabase.from('contacts').update(updateData).eq('id', validContactId).catch(() => ({}))
+            ? supabase.from('contacts').update(updateData).eq('id', validContactId).then(undefined, () => ({ error: null }))
             : Promise.resolve(null),
           needsEscalation
-            ? supabase.from('user_roles').select('user_id').in('role', ['admin', 'supervisor']).limit(5).catch(() => ({ data: null }))
+            ? supabase.from('user_roles').select('user_id').in('role', ['admin', 'supervisor']).limit(5).then(undefined, () => ({ data: null }))
             : Promise.resolve(null),
         ]);
 
@@ -1987,7 +1989,7 @@ Foque em:
             p_contact_id: validContactId,
             p_status_code: 200,
             p_result_payload: analysisData,
-          }).catch(() => {})
+          }).then(undefined, () => {})
         ] : []),
         supabase.rpc('record_ai_metrics', {
           p_function_name: 'ai-conversation-summary',
@@ -1997,7 +1999,7 @@ Foque em:
           p_user_id: ctx.userId,
           p_error_message: null,
           p_metadata: metricsMetadata,
-        }).catch(() => {}),
+        }).then(undefined, () => {}),
       ]);
     } catch {
       // RPC calls not critical
@@ -2036,7 +2038,7 @@ Foque em:
         p_user_id: ctx.userId,
         p_error_message: errMsg,
         p_metadata: { requestId: ctx.requestId },
-      }).catch(() => {});
+      }).then(undefined, () => {});
     } catch {
       // Metrics not critical
     }
@@ -2061,7 +2063,8 @@ async function handleEnhanceMessage(
       return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
-    const { message, tone, contactName, requestId } = parsed.data;
+    const { message, tone, contactName } = parsed.data!;
+    const requestId = body?.requestId as string | undefined;
     const apiKey = getLovableApiKey();
 
     const tonePrompts: Record<string, string> = {
@@ -2205,7 +2208,7 @@ Regras importantes:
             p_contact_id: null,
             p_status_code: 200,
             p_result_payload: { tone, original_length: message.length, enhanced_length: enhancedMessage.length },
-          }).catch(() => {})
+          }).then(undefined, () => {})
         ] : []),
         supabase.rpc('record_ai_metrics', {
           p_function_name: 'ai-enhance-message',
@@ -2215,7 +2218,7 @@ Regras importantes:
           p_user_id: ctx.userId,
           p_error_message: null,
           p_metadata: metricsMetadata,
-        }).catch(() => {}),
+        }).then(undefined, () => {}),
       ]);
     } catch {
       // RPC calls not critical
@@ -2267,7 +2270,8 @@ async function handleClassifyEmoji(
       return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
-    const { image_url, file_name, requestId } = parsed.data;
+    const { image_url, file_name } = parsed.data!;
+    const requestId = body?.requestId as string | undefined;
     const apiKey = getLovableApiKey();
 
     if (!image_url) {
@@ -2419,7 +2423,7 @@ async function handleClassifyEmoji(
             p_contact_id: null,
             p_status_code: 200,
             p_result_payload: { category: result.category, confidence: result.confidence },
-          }).catch(() => {})
+          }).then(undefined, () => {})
         ] : []),
         supabase.rpc('record_ai_metrics', {
           p_function_name: 'ai-classify-emoji',
@@ -2429,7 +2433,7 @@ async function handleClassifyEmoji(
           p_user_id: ctx.userId,
           p_error_message: null,
           p_metadata: metricsMetadata,
-        }).catch(() => {}),
+        }).then(undefined, () => {}),
       ]);
     } catch {
       // RPC calls not critical
@@ -2481,7 +2485,8 @@ async function handleClassifySticker(
       return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
-    const { image_url, requestId } = parsed.data;
+    const { image_url } = parsed.data!;
+    const requestId = body?.requestId as string | undefined;
     const apiKey = getLovableApiKey();
 
     if (!image_url) {
@@ -2627,7 +2632,7 @@ async function handleClassifySticker(
             p_contact_id: null,
             p_status_code: 200,
             p_result_payload: { category: result.category, confidence: result.confidence },
-          }).catch(() => {})
+          }).then(undefined, () => {})
         ] : []),
         supabase.rpc('record_ai_metrics', {
           p_function_name: 'ai-classify-sticker',
@@ -2637,7 +2642,7 @@ async function handleClassifySticker(
           p_user_id: ctx.userId,
           p_error_message: null,
           p_metadata: metricsMetadata,
-        }).catch(() => {}),
+        }).then(undefined, () => {}),
       ]);
     } catch {
       // RPC calls not critical
@@ -2689,7 +2694,8 @@ async function handleChurnAnalysis(
       return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
-    const { contactIds, requestId } = parsed.data;
+    const { contactIds } = parsed.data!;
+    const requestId = body?.requestId as string | undefined;
 
     if (!contactIds || !Array.isArray(contactIds) || contactIds.length === 0) {
       return {
@@ -2866,7 +2872,7 @@ async function handleChurnAnalysis(
               p_contact_id: null,
               p_status_code: 200,
               p_result_payload: { analyzed: results.length, highRisk: results.filter((r: any) => r.riskLevel === 'high' || r.riskLevel === 'critical').length },
-            }).catch(() => {})
+            }).then(undefined, () => {})
           ] : []),
           supabase.rpc('record_ai_metrics', {
             p_function_name: 'ai-churn-analysis',
@@ -2876,7 +2882,7 @@ async function handleChurnAnalysis(
             p_user_id: ctx.userId,
             p_error_message: null,
             p_metadata: metricsMetadata,
-          }).catch(() => {}),
+          }).then(undefined, () => {}),
         ]);
       } catch {
         // RPC calls not critical
@@ -2954,7 +2960,8 @@ async function handleConversationAnalysis(
       return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
-    const { messages, contactName, contactId, requestId } = parsed.data;
+    const { messages, contactName, contactId } = parsed.data!;
+    const requestId = body?.requestId as string | undefined;
     const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
     const apiKey = getLovableApiKey();
 
@@ -3304,7 +3311,7 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
             p_contact_id: validContactId,
             p_status_code: 200,
             p_result_payload: analysisData,
-          }).catch(() => {})
+          }).then(undefined, () => {})
         ] : []),
         supabase.rpc('record_ai_metrics', {
           p_function_name: 'ai-conversation-analysis',
@@ -3314,7 +3321,7 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
           p_user_id: ctx.userId,
           p_error_message: null,
           p_metadata: metricsMetadata,
-        }).catch(() => {}),
+        }).then(undefined, () => {}),
       ]);
     } catch {
       // RPC calls not critical
@@ -3350,7 +3357,7 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
         p_user_id: ctx.userId,
         p_error_message: errMsg,
         p_metadata: { requestId: ctx.requestId },
-      }).catch(() => {});
+      }).then(undefined, () => {});
     } catch {
       // Metrics not critical
     }
@@ -3378,7 +3385,8 @@ async function handleSuggestReply(
       return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
-    const { conversationHistory, contactName, contactId, context, requestId } = parsed.data;
+    const { conversationHistory, contactName, contactId, context } = parsed.data!;
+    const requestId = body?.requestId as string | undefined;
     const apiKey = getLovableApiKey();
     // C.36: Validate contactId upfront for consistent logging
     const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
@@ -3630,7 +3638,7 @@ Responda APENAS em formato JSON com a seguinte estrutura:
             p_contact_id: validContactId,
             p_status_code: 200,
             p_result_payload: { suggestions_count: suggestions.suggestions?.length || 0 },
-          }).catch(() => {})
+          }).then(undefined, () => {})
         ] : []),
         supabase.rpc('record_ai_metrics', {
           p_function_name: 'ai-suggest-reply',
@@ -3640,7 +3648,7 @@ Responda APENAS em formato JSON com a seguinte estrutura:
           p_user_id: ctx.userId,
           p_error_message: null,
           p_metadata: metricsMetadata,
-        }).catch(() => {}),
+        }).then(undefined, () => {}),
       ]);
     } catch {
       // RPC calls not critical
@@ -3692,7 +3700,8 @@ async function handleTranscribeAudio(
       return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
-    const { audioUrl, messageId, languageCode, enableDiarization, tagAudioEvents, requestId } = parsed.data;
+    const { audioUrl, messageId, languageCode, enableDiarization, tagAudioEvents } = parsed.data!;
+    const requestId = body?.requestId as string | undefined;
     const ELEVENLABS_API_KEY = requireEnv("ELEVENLABS_API_KEY");
     const MAX_AUDIO_SIZE = 25 * 1024 * 1024;
 
@@ -3768,7 +3777,7 @@ async function handleTranscribeAudio(
         // C.32: Safe parsing of numeric headers - validate parseInt result is not NaN
         const contentLengthNum = parseInt(contentLength || '0', 10);
         if (!isNaN(contentLengthNum) && contentLengthNum > MAX_AUDIO_SIZE) {
-          await response.body?.cancel().catch(() => {});
+          await response.body?.cancel().then(undefined, () => {});
           throw new Error("Audio file too large (max 25MB)");
         }
 
@@ -3777,7 +3786,7 @@ async function handleTranscribeAudio(
         for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) {
           totalBytes += chunk.byteLength;
           if (totalBytes > MAX_AUDIO_SIZE) {
-            await response.body?.cancel().catch(() => {});
+            await response.body?.cancel().then(undefined, () => {});
             throw new Error("Audio file too large (max 25MB)");
           }
           chunks.push(chunk);
@@ -3864,7 +3873,7 @@ async function handleTranscribeAudio(
 
       const transcriptionResponse = transcriptionResult.response;
       if (!transcriptionResponse.ok) {
-        const errorText = await transcriptionResponse.text().catch(() => "");
+        const errorText = await transcriptionResponse.text().then(undefined, () => "");
         log.error("ElevenLabs STT error", { status: transcriptionResponse.status });
 
         if (transcriptionResponse.status === 429) {
@@ -3956,7 +3965,7 @@ async function handleTranscribeAudio(
               p_contact_id: null,
               p_status_code: 200,
               p_result_payload: { transcript_length: transcript.length, words_count: words.length, message_id: messageId },
-            }).catch(() => {})
+            }).then(undefined, () => {})
           ] : []),
           supabase.rpc('record_ai_metrics', {
             p_function_name: 'ai-transcribe-audio',
@@ -3966,7 +3975,7 @@ async function handleTranscribeAudio(
             p_user_id: ctx.userId,
             p_error_message: null,
             p_metadata: metricsMetadata,
-          }).catch(() => {}),
+          }).then(undefined, () => {}),
         ]);
       } catch {
         // RPC calls not critical
@@ -4061,7 +4070,7 @@ async function handleClassifyTickets(
       return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
-    const { limit } = parsed.data;
+    const { limit = 10 } = parsed.data!;
     const apiKey = getLovableApiKey();
 
     // Fetch contacts without ai_tag classification (unclassified tickets)
@@ -4128,7 +4137,7 @@ Retorne APENAS o JSON array, sem markdown.`,
       metricsMetadata.output_tokens = outputTokens;
       metricsMetadata.model = responseModel;
 
-      const rawText = aiResult.data?.choices?.[0]?.message?.content ?? '';
+      const rawText = (aiResult.data?.choices as Array<{ message?: { content?: string } }> | undefined)?.[0]?.message?.content ?? '';
       let classifications: Array<{ id: string; ai_tag: string; priority: string }> = [];
 
       try {

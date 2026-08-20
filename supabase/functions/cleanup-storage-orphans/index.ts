@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
           });
 
           if (listError) {
-            log.error(`Erro ao listar ${bucketName}/${prefix} (offset=${offset})`, listError);
+            log.error(`Erro ao listar ${bucketName}/${prefix} (offset=${offset})`, listError as unknown as Record<string, unknown>);
             listFailed = true;
             break;
           }
