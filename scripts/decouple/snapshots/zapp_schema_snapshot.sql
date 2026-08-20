@@ -3530,6 +3530,49 @@ $$;
 
 
 
+CREATE OR REPLACE FUNCTION zapp.fn_audit_storage_orphans(p_bucket text DEFAULT 'whatsapp-media'::text, p_days_old integer DEFAULT 30, p_limit integer DEFAULT 100) RETURNS TABLE(bucket_id text, object_name text, object_size bigint, created_at timestamp with time zone, motivo text)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'zapp', 'storage', 'public'
+    AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    o.bucket_id::text,
+    o.name::text,
+    (o.metadata->>'size')::bigint,
+    o.created_at,
+    'sem_referencia_db'::text
+  FROM storage.objects o
+  WHERE o.bucket_id = p_bucket
+    AND o.created_at < now() - (p_days_old || ' days')::interval
+    -- Não referenciado em evolution_media
+    AND NOT EXISTS (
+      SELECT 1 FROM zapp.evolution_media em
+      WHERE em.storage_path = o.name AND em.storage_bucket = o.bucket_id
+    )
+    -- Não referenciado em evolution_messages
+    AND NOT EXISTS (
+      SELECT 1 FROM zapp.evolution_messages m WHERE m.media_path = o.name
+    )
+    -- Não referenciado em stickers (adicionado)
+    AND NOT EXISTS (
+      SELECT 1 FROM zapp.stickers s
+      WHERE s.image_url LIKE '%' || o.name
+         OR s.image_url LIKE '%' || split_part(o.name, '/', 2)
+    )
+    -- Não referenciado em audio_memes (adicionado)
+    AND NOT EXISTS (
+      SELECT 1 FROM zapp.audio_memes am
+      WHERE am.audio_url LIKE '%' || o.name
+         OR am.audio_url LIKE '%' || split_part(o.name, '/', 2)
+    )
+  ORDER BY o.created_at
+  LIMIT p_limit;
+END $$;
+
+
+
+
 CREATE OR REPLACE FUNCTION zapp.fn_audit_trigger() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'zapp', 'monitoring'
@@ -5227,9 +5270,17 @@ CREATE OR REPLACE FUNCTION zapp.fn_check_license_heartbeat() RETURNS text
     AS $$
 DECLARE v_code int; v_body text; v_status text; v_falhas int; v_req bigint;
 BEGIN
-  v_req := ops.fn_provider_call('GET','/license/status',NULL,10000);
-  PERFORM pg_sleep(12);
-  SELECT status_code,content::text INTO v_code,v_body FROM net._http_response WHERE id=v_req;
+  -- [100PLAN S20 v3] URL interna Docker: bypassa Traefik.
+  -- Causa raiz dos sem_resposta: Traefik cold-connection > 10s no contexto pg_cron bg worker.
+  -- Confirmado: wget http://evolution_evolution:8080/license/status do supabase_db = 200ms.
+  -- /license/status e rota EXEMPT no bundle (nao precisa de apikey).
+  v_req := net.http_get(
+    url := 'http://evolution_evolution:8080/license/status',
+    headers := jsonb_build_object('Content-Type','application/json'),
+    timeout_milliseconds := 5000
+  );
+  PERFORM pg_sleep(7);
+  SELECT status_code, content::text INTO v_code, v_body FROM net._http_response WHERE id=v_req;
   v_status := CASE
     WHEN v_code=200 AND (v_body~'"ok"\s*:\s*true' OR v_body~'"status"\s*:\s*"active"') THEN 'active'
     WHEN v_code=200 AND v_body!~'"status"' AND v_body~'"ok"\s*:\s*true' THEN 'active'
@@ -5243,12 +5294,12 @@ BEGIN
       INSERT INTO zapp.evolution_alerts(alert_type,severity,title,message,payload,created_at)
       SELECT 'license_heartbeat','critical','License Evolution INATIVA',
         'Heartbeat falhou '||v_falhas||'x/3h. HTTP='||COALESCE(v_code::text,'NULL')||' status='||left(COALESCE(v_status,'?'),80),
-        jsonb_build_object('http_code',v_code,'status',v_status,'window','3h','threshold',3,'fix','s20v2-sleep12'),now()
+        jsonb_build_object('http_code',v_code,'status',v_status,'url','internal','fix','s20v3'),now()
       WHERE NOT EXISTS(SELECT 1 FROM zapp.evolution_alerts ea WHERE ea.alert_type='license_heartbeat'
         AND ea.resolved_at IS NULL AND ea.created_at>now()-interval '4 hours');
     END IF;
   ELSE
-    UPDATE zapp.evolution_alerts SET resolved_at=now(),resolved_by='fn_check_license_heartbeat:active'
+    UPDATE zapp.evolution_alerts SET resolved_at=now(),resolved_by='fn_check_license_heartbeat:active_internal'
     WHERE alert_type='license_heartbeat' AND resolved_at IS NULL;
   END IF;
   RETURN v_status;
@@ -20929,33 +20980,31 @@ END $$;
 
 
 
-CREATE OR REPLACE FUNCTION zapp.rpc_boundary_register_media(p_message_id uuid, p_remote_jid text, p_media_type text, p_instance_name text, p_mimetype text, p_file_name text, p_storage_path text, p_storage_url text, p_storage_bucket text, p_media_status text, p_queue_id bigint) RETURNS void
+CREATE OR REPLACE FUNCTION zapp.rpc_boundary_register_media(p_message_id text, p_remote_jid text, p_media_type text, p_instance_name text, p_mimetype text, p_file_name text, p_storage_path text, p_storage_url text, p_storage_bucket text, p_media_status text, p_queue_id bigint) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'zapp', 'pg_catalog'
+    SET search_path TO 'zapp', 'evo', 'public'
     AS $_$
 BEGIN
-  -- [100PLAN S18] Fix: cast explícito p_message_id::text na comparação NOT EXISTS
-  -- Bug anterior: `e.message_id = p_message_id` → operator does not exist: text = uuid
-  -- A EXCEPTION WHEN OTHERS silenciava o erro — INSERT nunca executava.
+  -- [100PLAN S18 FIX-v2 2026-08-20] p_message_id agora text (era uuid)
+  -- Fix anterior (S18): cast uuid→text. Fix atual: tipo correto para receber WhatsApp hex.
   INSERT INTO zapp.evolution_media
     (message_id, remote_jid, media_type, instance_name, mime_type, file_name,
      storage_path, storage_url, storage_bucket, storage_path_clean, media_status, created_at)
   SELECT
-    p_message_id::text,   -- cast explícito uuid→text
+    p_message_id,        -- já é text, sem cast necessário
     p_remote_jid, p_media_type, p_instance_name, p_mimetype,
     COALESCE(p_file_name, substring(p_storage_path FROM '[^/]+$')),
     p_storage_path, p_storage_url, p_storage_bucket, p_storage_path, p_media_status, now()
   WHERE NOT EXISTS (
     SELECT 1 FROM zapp.evolution_media e
-    WHERE e.message_id = p_message_id::text  -- cast explícito: text = uuid::text
+    WHERE e.message_id = p_message_id
   );
 EXCEPTION WHEN OTHERS THEN
   INSERT INTO zapp.evolution_audit_log (action, entity_type, entity_id, new_values, metadata, performed_by, created_at)
   VALUES ('media_register_failed', 'evolution_media', gen_random_uuid(),
           jsonb_build_object('queue_id', p_queue_id, 'error', SQLERRM),
           jsonb_build_object('storage_url', p_storage_url), 'rpc_complete_media_download', now());
-END;
-$_$;
+END $_$;
 
 
 
@@ -40570,51 +40619,6 @@ COMMENT ON TABLE zapp.sessions IS 'Módulo inativo/vazio até 2026-08 (sprawl F-
 
 
 
-CREATE TABLE IF NOT EXISTS zapp.sicoob_contact_mapping (
-    contact_id uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT now(),
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    sicoob_singular_id text NOT NULL,
-    sicoob_user_id text NOT NULL,
-    sicoob_vendedor_id text NOT NULL,
-    zappweb_agent_id uuid
-);
-
-
-
-
-COMMENT ON TABLE zapp.sicoob_contact_mapping IS 'DEPRECATED: Parte do fluxo Sicoob inativo desde migração. 0 linhas.';
-
-
-
-
-CREATE TABLE IF NOT EXISTS zapp.sicoob_reply_outbox (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    contact_id uuid NOT NULL,
-    message_id uuid NOT NULL,
-    agent_id uuid,
-    content text NOT NULL,
-    status text DEFAULT 'pending'::text NOT NULL,
-    attempts integer DEFAULT 0 NOT NULL,
-    last_error text,
-    next_attempt_at timestamp with time zone DEFAULT now() NOT NULL,
-    processed_at timestamp with time zone,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT sicoob_reply_outbox_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'processing'::text, 'sent'::text, 'failed'::text, 'abandoned'::text])))
-);
-
-
-ALTER TABLE ONLY zapp.sicoob_reply_outbox REPLICA IDENTITY FULL;
-
-
-
-
-COMMENT ON TABLE zapp.sicoob_reply_outbox IS 'DEPRECATED: Parte do fluxo Sicoob inativo desde migração. 0 linhas. Ver notify_sicoob_on_reply().';
-
-
-
-
 CREATE TABLE IF NOT EXISTS zapp.sla_alert_preferences (
     alert_first_response boolean DEFAULT true NOT NULL,
     alert_resolution boolean DEFAULT true NOT NULL,
@@ -42074,72 +42078,6 @@ ALTER TABLE ONLY zapp._input_normalization_cache REPLICA IDENTITY FULL;
 
 
 COMMENT ON TABLE zapp._input_normalization_cache IS 'Cache da normalização de inputs (dedup de processamento).';
-
-
-
-
-CREATE TABLE IF NOT EXISTS zapp._lgpd_b64 (
-    id integer NOT NULL,
-    data text
-);
-
-
-ALTER TABLE ONLY zapp._lgpd_b64 REPLICA IDENTITY FULL;
-
-
-
-
-COMMENT ON TABLE zapp._lgpd_b64 IS 'Módulo LGPD — nunca ativado em produção até 2026-08; ver F-009';
-
-
-
-
-CREATE TABLE IF NOT EXISTS zapp._lgpd_growth_stats (
-    id bigint NOT NULL,
-    table_name text NOT NULL,
-    row_count bigint NOT NULL,
-    table_bytes bigint,
-    measured_at timestamp without time zone DEFAULT now() NOT NULL
-);
-
-
-ALTER TABLE ONLY zapp._lgpd_growth_stats REPLICA IDENTITY FULL;
-
-
-
-
-COMMENT ON TABLE zapp._lgpd_growth_stats IS 'Módulo LGPD — nunca ativado em produção até 2026-08; ver F-009';
-
-
-
-
-CREATE SEQUENCE IF NOT EXISTS zapp._lgpd_growth_stats_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-
-
-ALTER SEQUENCE zapp._lgpd_growth_stats_id_seq OWNED BY zapp._lgpd_growth_stats.id;
-
-
-
-
-CREATE TABLE IF NOT EXISTS zapp._lgpd_payload (
-    id integer NOT NULL,
-    chunk text
-);
-
-
-ALTER TABLE ONLY zapp._lgpd_payload REPLICA IDENTITY FULL;
-
-
-
-
-COMMENT ON TABLE zapp._lgpd_payload IS 'Módulo LGPD — nunca ativado em produção até 2026-08; ver F-009';
 
 
 
@@ -47701,6 +47639,62 @@ CREATE OR REPLACE VIEW zapp.v_link_analytics WITH (security_invoker='on') AS
 
 
 
+CREATE OR REPLACE VIEW zapp.v_media_orphan_stats WITH (security_invoker='true') AS
+ WITH uuid_orphans AS (
+         SELECT (date_trunc('week'::text, evolution_media.created_at))::date AS semana,
+            evolution_media.media_type,
+            count(*) AS qtd,
+            count(*) FILTER (WHERE (NOT (EXISTS ( SELECT 1
+                   FROM zapp.evolution_messages m
+                  WHERE (m.message_id = evolution_media.message_id))))) AS sem_mensagem_pai
+           FROM zapp.evolution_media
+          WHERE (evolution_media.message_id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'::text)
+          GROUP BY ((date_trunc('week'::text, evolution_media.created_at))::date), evolution_media.media_type
+        ), geral AS (
+         SELECT count(*) AS total_media,
+            count(*) FILTER (WHERE (evolution_media.message_id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-'::text)) AS uuid_format_total,
+            count(*) FILTER (WHERE (evolution_media.message_id ~ '^[0-9A-F3][0-9A-F]'::text)) AS whatsapp_hex_total,
+            count(*) FILTER (WHERE (evolution_media.media_status = 'ready'::text)) AS ready,
+            count(*) FILTER (WHERE (evolution_media.media_status = 'expired'::text)) AS expired,
+            count(*) FILTER (WHERE (evolution_media.media_status = 'permanently_lost'::text)) AS permanently_lost,
+            count(*) FILTER (WHERE (evolution_media.created_at >= (now() - '7 days'::interval))) AS criados_7d,
+            count(*) FILTER (WHERE ((evolution_media.created_at >= (now() - '7 days'::interval)) AND (evolution_media.message_id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-'::text))) AS uuid_orphans_7d,
+            (min(evolution_media.created_at))::date AS mais_antigo,
+            (max(evolution_media.created_at))::date AS mais_recente
+           FROM zapp.evolution_media
+        ), fila AS (
+         SELECT count(*) AS total_fila,
+            count(*) FILTER (WHERE (media_download_queue.status = 'pending'::text)) AS pending,
+            count(*) FILTER (WHERE (media_download_queue.status = 'processing'::text)) AS processing,
+            count(*) FILTER (WHERE (media_download_queue.status = 'done'::text)) AS done,
+            count(*) FILTER (WHERE (media_download_queue.status = 'failed'::text)) AS failed,
+            (max(media_download_queue.processed_at))::timestamp(0) without time zone AS ultimo_processamento
+           FROM evo.media_download_queue
+        )
+ SELECT g.total_media,
+    g.uuid_format_total AS uuid_orphans_total,
+    g.whatsapp_hex_total,
+    round(((100.0 * (g.uuid_format_total)::numeric) / (NULLIF(g.total_media, 0))::numeric), 1) AS pct_uuid_orphans,
+    g.ready,
+    g.expired,
+    g.permanently_lost,
+    g.criados_7d,
+    g.uuid_orphans_7d,
+    round(((100.0 * (g.uuid_orphans_7d)::numeric) / (NULLIF(g.criados_7d, 0))::numeric), 1) AS pct_uuid_7d,
+    g.mais_antigo,
+    g.mais_recente,
+    f.total_fila,
+    f.pending,
+    f.processing,
+    f.done,
+    f.failed,
+    f.ultimo_processamento
+   FROM (geral g
+     CROSS JOIN fila f);
+
+
+
+
 CREATE OR REPLACE VIEW zapp.v_media_pipeline_health WITH (security_invoker='true') AS
  SELECT ( SELECT count(*) AS count
            FROM evo.media_download_queue
@@ -49762,11 +49756,6 @@ ALTER TABLE ONLY zapp._db_size_snapshots ALTER COLUMN id SET DEFAULT nextval('za
 
 
 
-ALTER TABLE ONLY zapp._lgpd_growth_stats ALTER COLUMN id SET DEFAULT nextval('zapp._lgpd_growth_stats_id_seq'::regclass);
-
-
-
-
 ALTER TABLE ONLY zapp._lgpd_retention_policies ALTER COLUMN id SET DEFAULT nextval('zapp._lgpd_retention_policies_id_seq'::regclass);
 
 
@@ -49926,8 +49915,8 @@ $con37$;
 
 DO $con38$
 BEGIN
-  ALTER TABLE ONLY zapp._lgpd_b64
-    ADD CONSTRAINT _lgpd_b64_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp._lgpd_retention_policies
+    ADD CONSTRAINT _lgpd_retention_policies_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con38$;
@@ -49937,8 +49926,8 @@ $con38$;
 
 DO $con39$
 BEGIN
-  ALTER TABLE ONLY zapp._lgpd_growth_stats
-    ADD CONSTRAINT _lgpd_growth_stats_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp._lgpd_retention_policies
+    ADD CONSTRAINT _lgpd_retention_policies_table_name_key UNIQUE (table_name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con39$;
@@ -49948,8 +49937,8 @@ $con39$;
 
 DO $con40$
 BEGIN
-  ALTER TABLE ONLY zapp._lgpd_payload
-    ADD CONSTRAINT _lgpd_payload_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp._pagination_state
+    ADD CONSTRAINT _pagination_state_pkey PRIMARY KEY (cursor_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con40$;
@@ -49959,8 +49948,8 @@ $con40$;
 
 DO $con41$
 BEGIN
-  ALTER TABLE ONLY zapp._lgpd_retention_policies
-    ADD CONSTRAINT _lgpd_retention_policies_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp._snapshot_version_state
+    ADD CONSTRAINT _snapshot_version_state_pkey PRIMARY KEY (table_name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con41$;
@@ -49970,8 +49959,8 @@ $con41$;
 
 DO $con42$
 BEGIN
-  ALTER TABLE ONLY zapp._lgpd_retention_policies
-    ADD CONSTRAINT _lgpd_retention_policies_table_name_key UNIQUE (table_name);
+  ALTER TABLE ONLY zapp._system_health_history
+    ADD CONSTRAINT _system_health_history_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con42$;
@@ -49981,8 +49970,8 @@ $con42$;
 
 DO $con43$
 BEGIN
-  ALTER TABLE ONLY zapp._pagination_state
-    ADD CONSTRAINT _pagination_state_pkey PRIMARY KEY (cursor_id);
+  ALTER TABLE ONLY zapp._system_health_log
+    ADD CONSTRAINT _system_health_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con43$;
@@ -49992,8 +49981,8 @@ $con43$;
 
 DO $con44$
 BEGIN
-  ALTER TABLE ONLY zapp._snapshot_version_state
-    ADD CONSTRAINT _snapshot_version_state_pkey PRIMARY KEY (table_name);
+  ALTER TABLE ONLY zapp.agent_achievements
+    ADD CONSTRAINT agent_achievements_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con44$;
@@ -50003,8 +49992,8 @@ $con44$;
 
 DO $con45$
 BEGIN
-  ALTER TABLE ONLY zapp._system_health_history
-    ADD CONSTRAINT _system_health_history_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.agent_installed_skills
+    ADD CONSTRAINT agent_installed_skills_agent_id_skill_id_key UNIQUE (agent_id, skill_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con45$;
@@ -50014,8 +50003,8 @@ $con45$;
 
 DO $con46$
 BEGIN
-  ALTER TABLE ONLY zapp._system_health_log
-    ADD CONSTRAINT _system_health_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.agent_installed_skills
+    ADD CONSTRAINT agent_installed_skills_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con46$;
@@ -50025,8 +50014,8 @@ $con46$;
 
 DO $con47$
 BEGIN
-  ALTER TABLE ONLY zapp.agent_achievements
-    ADD CONSTRAINT agent_achievements_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.agent_memories
+    ADD CONSTRAINT agent_memories_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con47$;
@@ -50036,8 +50025,8 @@ $con47$;
 
 DO $con48$
 BEGIN
-  ALTER TABLE ONLY zapp.agent_installed_skills
-    ADD CONSTRAINT agent_installed_skills_agent_id_skill_id_key UNIQUE (agent_id, skill_id);
+  ALTER TABLE ONLY zapp.agent_presence
+    ADD CONSTRAINT agent_presence_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con48$;
@@ -50047,8 +50036,8 @@ $con48$;
 
 DO $con49$
 BEGIN
-  ALTER TABLE ONLY zapp.agent_installed_skills
-    ADD CONSTRAINT agent_installed_skills_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.agent_presence
+    ADD CONSTRAINT agent_presence_user_id_key UNIQUE (user_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con49$;
@@ -50058,8 +50047,8 @@ $con49$;
 
 DO $con50$
 BEGIN
-  ALTER TABLE ONLY zapp.agent_memories
-    ADD CONSTRAINT agent_memories_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.agent_skills
+    ADD CONSTRAINT agent_skills_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con50$;
@@ -50069,8 +50058,8 @@ $con50$;
 
 DO $con51$
 BEGIN
-  ALTER TABLE ONLY zapp.agent_presence
-    ADD CONSTRAINT agent_presence_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.agent_skills
+    ADD CONSTRAINT agent_skills_profile_id_skill_name_key UNIQUE (profile_id, skill_name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con51$;
@@ -50080,8 +50069,8 @@ $con51$;
 
 DO $con52$
 BEGIN
-  ALTER TABLE ONLY zapp.agent_presence
-    ADD CONSTRAINT agent_presence_user_id_key UNIQUE (user_id);
+  ALTER TABLE ONLY zapp.agent_stats
+    ADD CONSTRAINT agent_stats_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con52$;
@@ -50091,8 +50080,8 @@ $con52$;
 
 DO $con53$
 BEGIN
-  ALTER TABLE ONLY zapp.agent_skills
-    ADD CONSTRAINT agent_skills_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.agent_stats
+    ADD CONSTRAINT agent_stats_profile_id_key UNIQUE (profile_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con53$;
@@ -50102,8 +50091,8 @@ $con53$;
 
 DO $con54$
 BEGIN
-  ALTER TABLE ONLY zapp.agent_skills
-    ADD CONSTRAINT agent_skills_profile_id_skill_name_key UNIQUE (profile_id, skill_name);
+  ALTER TABLE ONLY zapp.agent_visibility_grants
+    ADD CONSTRAINT agent_visibility_grants_agent_id_can_see_agent_id_key UNIQUE (agent_id, can_see_agent_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con54$;
@@ -50113,8 +50102,8 @@ $con54$;
 
 DO $con55$
 BEGIN
-  ALTER TABLE ONLY zapp.agent_stats
-    ADD CONSTRAINT agent_stats_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.agent_visibility_grants
+    ADD CONSTRAINT agent_visibility_grants_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con55$;
@@ -50124,8 +50113,8 @@ $con55$;
 
 DO $con56$
 BEGIN
-  ALTER TABLE ONLY zapp.agent_stats
-    ADD CONSTRAINT agent_stats_profile_id_key UNIQUE (profile_id);
+  ALTER TABLE ONLY zapp.agents
+    ADD CONSTRAINT agents_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con56$;
@@ -50135,8 +50124,8 @@ $con56$;
 
 DO $con57$
 BEGIN
-  ALTER TABLE ONLY zapp.agent_visibility_grants
-    ADD CONSTRAINT agent_visibility_grants_agent_id_can_see_agent_id_key UNIQUE (agent_id, can_see_agent_id);
+  ALTER TABLE ONLY zapp.ai_conversation_tags
+    ADD CONSTRAINT ai_conversation_tags_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con57$;
@@ -50146,8 +50135,8 @@ $con57$;
 
 DO $con58$
 BEGIN
-  ALTER TABLE ONLY zapp.agent_visibility_grants
-    ADD CONSTRAINT agent_visibility_grants_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.ai_function_metrics
+    ADD CONSTRAINT ai_function_metrics_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con58$;
@@ -50157,8 +50146,8 @@ $con58$;
 
 DO $con59$
 BEGIN
-  ALTER TABLE ONLY zapp.agents
-    ADD CONSTRAINT agents_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.alert_channels
+    ADD CONSTRAINT alert_channels_name_key UNIQUE (name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con59$;
@@ -50168,8 +50157,8 @@ $con59$;
 
 DO $con60$
 BEGIN
-  ALTER TABLE ONLY zapp.ai_conversation_tags
-    ADD CONSTRAINT ai_conversation_tags_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.alert_channels
+    ADD CONSTRAINT alert_channels_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con60$;
@@ -50179,8 +50168,8 @@ $con60$;
 
 DO $con61$
 BEGIN
-  ALTER TABLE ONLY zapp.ai_function_metrics
-    ADD CONSTRAINT ai_function_metrics_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.alert_dispatch_state
+    ADD CONSTRAINT alert_dispatch_state_pkey PRIMARY KEY (alert_key);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con61$;
@@ -50190,8 +50179,8 @@ $con61$;
 
 DO $con62$
 BEGIN
-  ALTER TABLE ONLY zapp.alert_channels
-    ADD CONSTRAINT alert_channels_name_key UNIQUE (name);
+  ALTER TABLE ONLY zapp.alerts
+    ADD CONSTRAINT alerts_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con62$;
@@ -50201,8 +50190,8 @@ $con62$;
 
 DO $con63$
 BEGIN
-  ALTER TABLE ONLY zapp.alert_channels
-    ADD CONSTRAINT alert_channels_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.allowed_countries
+    ADD CONSTRAINT allowed_countries_country_code_key UNIQUE (country_code);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con63$;
@@ -50212,8 +50201,8 @@ $con63$;
 
 DO $con64$
 BEGIN
-  ALTER TABLE ONLY zapp.alert_dispatch_state
-    ADD CONSTRAINT alert_dispatch_state_pkey PRIMARY KEY (alert_key);
+  ALTER TABLE ONLY zapp.allowed_countries
+    ADD CONSTRAINT allowed_countries_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con64$;
@@ -50223,8 +50212,8 @@ $con64$;
 
 DO $con65$
 BEGIN
-  ALTER TABLE ONLY zapp.alerts
-    ADD CONSTRAINT alerts_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.analytics_events
+    ADD CONSTRAINT analytics_events_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con65$;
@@ -50234,8 +50223,8 @@ $con65$;
 
 DO $con66$
 BEGIN
-  ALTER TABLE ONLY zapp.allowed_countries
-    ADD CONSTRAINT allowed_countries_country_code_key UNIQUE (country_code);
+  ALTER TABLE ONLY zapp.api_circuit_breaker
+    ADD CONSTRAINT api_circuit_breaker_pkey PRIMARY KEY (service);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con66$;
@@ -50245,8 +50234,8 @@ $con66$;
 
 DO $con67$
 BEGIN
-  ALTER TABLE ONLY zapp.allowed_countries
-    ADD CONSTRAINT allowed_countries_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.api_keys
+    ADD CONSTRAINT api_keys_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con67$;
@@ -50256,8 +50245,8 @@ $con67$;
 
 DO $con68$
 BEGIN
-  ALTER TABLE ONLY zapp.analytics_events
-    ADD CONSTRAINT analytics_events_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.app_error_logs
+    ADD CONSTRAINT app_error_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con68$;
@@ -50267,8 +50256,8 @@ $con68$;
 
 DO $con69$
 BEGIN
-  ALTER TABLE ONLY zapp.api_circuit_breaker
-    ADD CONSTRAINT api_circuit_breaker_pkey PRIMARY KEY (service);
+  ALTER TABLE ONLY zapp.app_notifications
+    ADD CONSTRAINT app_notifications_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con69$;
@@ -50278,8 +50267,8 @@ $con69$;
 
 DO $con70$
 BEGIN
-  ALTER TABLE ONLY zapp.api_keys
-    ADD CONSTRAINT api_keys_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.app_settings
+    ADD CONSTRAINT app_settings_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con70$;
@@ -50289,8 +50278,8 @@ $con70$;
 
 DO $con71$
 BEGIN
-  ALTER TABLE ONLY zapp.app_error_logs
-    ADD CONSTRAINT app_error_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.audio_dedupe_log
+    ADD CONSTRAINT audio_dedupe_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con71$;
@@ -50300,8 +50289,8 @@ $con71$;
 
 DO $con72$
 BEGIN
-  ALTER TABLE ONLY zapp.app_notifications
-    ADD CONSTRAINT app_notifications_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.audio_meme_categories
+    ADD CONSTRAINT audio_meme_categories_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con72$;
@@ -50311,8 +50300,8 @@ $con72$;
 
 DO $con73$
 BEGIN
-  ALTER TABLE ONLY zapp.app_settings
-    ADD CONSTRAINT app_settings_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.audio_meme_categories
+    ADD CONSTRAINT audio_meme_categories_slug_key UNIQUE (slug);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con73$;
@@ -50322,8 +50311,8 @@ $con73$;
 
 DO $con74$
 BEGIN
-  ALTER TABLE ONLY zapp.audio_dedupe_log
-    ADD CONSTRAINT audio_dedupe_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.audio_meme_favorites
+    ADD CONSTRAINT audio_meme_favorites_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con74$;
@@ -50333,8 +50322,8 @@ $con74$;
 
 DO $con75$
 BEGIN
-  ALTER TABLE ONLY zapp.audio_meme_categories
-    ADD CONSTRAINT audio_meme_categories_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.audio_meme_favorites
+    ADD CONSTRAINT audio_meme_favorites_user_id_meme_id_key UNIQUE (user_id, meme_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con75$;
@@ -50344,8 +50333,8 @@ $con75$;
 
 DO $con76$
 BEGIN
-  ALTER TABLE ONLY zapp.audio_meme_categories
-    ADD CONSTRAINT audio_meme_categories_slug_key UNIQUE (slug);
+  ALTER TABLE ONLY zapp.audio_memes
+    ADD CONSTRAINT audio_memes_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con76$;
@@ -50355,8 +50344,8 @@ $con76$;
 
 DO $con77$
 BEGIN
-  ALTER TABLE ONLY zapp.audio_meme_favorites
-    ADD CONSTRAINT audio_meme_favorites_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.audit_log_tables
+    ADD CONSTRAINT audit_log_tables_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con77$;
@@ -50366,8 +50355,8 @@ $con77$;
 
 DO $con78$
 BEGIN
-  ALTER TABLE ONLY zapp.audio_meme_favorites
-    ADD CONSTRAINT audio_meme_favorites_user_id_meme_id_key UNIQUE (user_id, meme_id);
+  ALTER TABLE ONLY zapp.audit_logs
+    ADD CONSTRAINT audit_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con78$;
@@ -50377,8 +50366,8 @@ $con78$;
 
 DO $con79$
 BEGIN
-  ALTER TABLE ONLY zapp.audio_memes
-    ADD CONSTRAINT audio_memes_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.audit_results
+    ADD CONSTRAINT audit_results_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con79$;
@@ -50388,8 +50377,8 @@ $con79$;
 
 DO $con80$
 BEGIN
-  ALTER TABLE ONLY zapp.audit_log_tables
-    ADD CONSTRAINT audit_log_tables_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.auto_close_config
+    ADD CONSTRAINT auto_close_config_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con80$;
@@ -50399,8 +50388,8 @@ $con80$;
 
 DO $con81$
 BEGIN
-  ALTER TABLE ONLY zapp.audit_logs
-    ADD CONSTRAINT audit_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.auto_export_jobs
+    ADD CONSTRAINT auto_export_jobs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con81$;
@@ -50410,8 +50399,8 @@ $con81$;
 
 DO $con82$
 BEGIN
-  ALTER TABLE ONLY zapp.audit_results
-    ADD CONSTRAINT audit_results_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.automation_executions
+    ADD CONSTRAINT automation_executions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con82$;
@@ -50421,8 +50410,8 @@ $con82$;
 
 DO $con83$
 BEGIN
-  ALTER TABLE ONLY zapp.auto_close_config
-    ADD CONSTRAINT auto_close_config_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.automation_rules
+    ADD CONSTRAINT automation_rules_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con83$;
@@ -50432,8 +50421,8 @@ $con83$;
 
 DO $con84$
 BEGIN
-  ALTER TABLE ONLY zapp.auto_export_jobs
-    ADD CONSTRAINT auto_export_jobs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.automations
+    ADD CONSTRAINT automations_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con84$;
@@ -50443,8 +50432,8 @@ $con84$;
 
 DO $con85$
 BEGIN
-  ALTER TABLE ONLY zapp.automation_executions
-    ADD CONSTRAINT automation_executions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.avatars
+    ADD CONSTRAINT avatars_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con85$;
@@ -50454,8 +50443,8 @@ $con85$;
 
 DO $con86$
 BEGIN
-  ALTER TABLE ONLY zapp.automation_rules
-    ADD CONSTRAINT automation_rules_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.away_messages
+    ADD CONSTRAINT away_messages_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con86$;
@@ -50465,8 +50454,8 @@ $con86$;
 
 DO $con87$
 BEGIN
-  ALTER TABLE ONLY zapp.automations
-    ADD CONSTRAINT automations_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.away_messages
+    ADD CONSTRAINT away_messages_whatsapp_connection_id_key UNIQUE (whatsapp_connection_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con87$;
@@ -50476,8 +50465,8 @@ $con87$;
 
 DO $con88$
 BEGIN
-  ALTER TABLE ONLY zapp.avatars
-    ADD CONSTRAINT avatars_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.batch_jobs
+    ADD CONSTRAINT batch_jobs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con88$;
@@ -50487,8 +50476,8 @@ $con88$;
 
 DO $con89$
 BEGIN
-  ALTER TABLE ONLY zapp.away_messages
-    ADD CONSTRAINT away_messages_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.blocked_countries
+    ADD CONSTRAINT blocked_countries_country_code_key UNIQUE (country_code);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con89$;
@@ -50498,8 +50487,8 @@ $con89$;
 
 DO $con90$
 BEGIN
-  ALTER TABLE ONLY zapp.away_messages
-    ADD CONSTRAINT away_messages_whatsapp_connection_id_key UNIQUE (whatsapp_connection_id);
+  ALTER TABLE ONLY zapp.blocked_countries
+    ADD CONSTRAINT blocked_countries_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con90$;
@@ -50509,8 +50498,8 @@ $con90$;
 
 DO $con91$
 BEGIN
-  ALTER TABLE ONLY zapp.batch_jobs
-    ADD CONSTRAINT batch_jobs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.blocked_ips
+    ADD CONSTRAINT blocked_ips_ip_address_key UNIQUE (ip_address);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con91$;
@@ -50520,8 +50509,8 @@ $con91$;
 
 DO $con92$
 BEGIN
-  ALTER TABLE ONLY zapp.blocked_countries
-    ADD CONSTRAINT blocked_countries_country_code_key UNIQUE (country_code);
+  ALTER TABLE ONLY zapp.blocked_ips
+    ADD CONSTRAINT blocked_ips_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con92$;
@@ -50531,8 +50520,8 @@ $con92$;
 
 DO $con93$
 BEGIN
-  ALTER TABLE ONLY zapp.blocked_countries
-    ADD CONSTRAINT blocked_countries_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.budgets
+    ADD CONSTRAINT budgets_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con93$;
@@ -50542,8 +50531,8 @@ $con93$;
 
 DO $con94$
 BEGIN
-  ALTER TABLE ONLY zapp.blocked_ips
-    ADD CONSTRAINT blocked_ips_ip_address_key UNIQUE (ip_address);
+  ALTER TABLE ONLY zapp.business_hours
+    ADD CONSTRAINT business_hours_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con94$;
@@ -50553,8 +50542,8 @@ $con94$;
 
 DO $con95$
 BEGIN
-  ALTER TABLE ONLY zapp.blocked_ips
-    ADD CONSTRAINT blocked_ips_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.business_hours
+    ADD CONSTRAINT business_hours_whatsapp_connection_id_day_of_week_key UNIQUE (whatsapp_connection_id, day_of_week);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con95$;
@@ -50564,8 +50553,8 @@ $con95$;
 
 DO $con96$
 BEGIN
-  ALTER TABLE ONLY zapp.budgets
-    ADD CONSTRAINT budgets_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.calls
+    ADD CONSTRAINT calls_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con96$;
@@ -50575,8 +50564,8 @@ $con96$;
 
 DO $con97$
 BEGIN
-  ALTER TABLE ONLY zapp.business_hours
-    ADD CONSTRAINT business_hours_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.campaign_ab_variants
+    ADD CONSTRAINT campaign_ab_variants_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con97$;
@@ -50586,8 +50575,8 @@ $con97$;
 
 DO $con98$
 BEGIN
-  ALTER TABLE ONLY zapp.business_hours
-    ADD CONSTRAINT business_hours_whatsapp_connection_id_day_of_week_key UNIQUE (whatsapp_connection_id, day_of_week);
+  ALTER TABLE ONLY zapp.campaign_contacts
+    ADD CONSTRAINT campaign_contacts_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con98$;
@@ -50597,8 +50586,8 @@ $con98$;
 
 DO $con99$
 BEGIN
-  ALTER TABLE ONLY zapp.calls
-    ADD CONSTRAINT calls_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.campaigns
+    ADD CONSTRAINT campaigns_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con99$;
@@ -50608,8 +50597,8 @@ $con99$;
 
 DO $con100$
 BEGIN
-  ALTER TABLE ONLY zapp.campaign_ab_variants
-    ADD CONSTRAINT campaign_ab_variants_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.channel_connections
+    ADD CONSTRAINT channel_connections_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con100$;
@@ -50619,8 +50608,8 @@ $con100$;
 
 DO $con101$
 BEGIN
-  ALTER TABLE ONLY zapp.campaign_contacts
-    ADD CONSTRAINT campaign_contacts_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.channel_provider_routes
+    ADD CONSTRAINT channel_provider_routes_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con101$;
@@ -50630,8 +50619,8 @@ $con101$;
 
 DO $con102$
 BEGIN
-  ALTER TABLE ONLY zapp.campaigns
-    ADD CONSTRAINT campaigns_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.channel_queues
+    ADD CONSTRAINT channel_queues_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con102$;
@@ -50641,8 +50630,8 @@ $con102$;
 
 DO $con103$
 BEGIN
-  ALTER TABLE ONLY zapp.channel_connections
-    ADD CONSTRAINT channel_connections_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.channel_routing_rules
+    ADD CONSTRAINT channel_routing_rules_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con103$;
@@ -50652,8 +50641,8 @@ $con103$;
 
 DO $con104$
 BEGIN
-  ALTER TABLE ONLY zapp.channel_provider_routes
-    ADD CONSTRAINT channel_provider_routes_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.chatbot_executions
+    ADD CONSTRAINT chatbot_executions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con104$;
@@ -50663,8 +50652,8 @@ $con104$;
 
 DO $con105$
 BEGIN
-  ALTER TABLE ONLY zapp.channel_queues
-    ADD CONSTRAINT channel_queues_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.chatbot_flows
+    ADD CONSTRAINT chatbot_flows_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con105$;
@@ -50674,8 +50663,8 @@ $con105$;
 
 DO $con106$
 BEGIN
-  ALTER TABLE ONLY zapp.channel_routing_rules
-    ADD CONSTRAINT channel_routing_rules_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.chunks
+    ADD CONSTRAINT chunks_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con106$;
@@ -50685,8 +50674,8 @@ $con106$;
 
 DO $con107$
 BEGIN
-  ALTER TABLE ONLY zapp.chatbot_executions
-    ADD CONSTRAINT chatbot_executions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.client_wallet_rules
+    ADD CONSTRAINT client_wallet_rules_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con107$;
@@ -50696,8 +50685,8 @@ $con107$;
 
 DO $con108$
 BEGIN
-  ALTER TABLE ONLY zapp.chatbot_flows
-    ADD CONSTRAINT chatbot_flows_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.colaboradores
+    ADD CONSTRAINT colaboradores_id_bitrix_key UNIQUE (id_bitrix);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con108$;
@@ -50707,8 +50696,8 @@ $con108$;
 
 DO $con109$
 BEGIN
-  ALTER TABLE ONLY zapp.chunks
-    ADD CONSTRAINT chunks_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.colaboradores
+    ADD CONSTRAINT colaboradores_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con109$;
@@ -50718,8 +50707,8 @@ $con109$;
 
 DO $con110$
 BEGIN
-  ALTER TABLE ONLY zapp.client_wallet_rules
-    ADD CONSTRAINT client_wallet_rules_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.collections
+    ADD CONSTRAINT collections_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con110$;
@@ -50729,8 +50718,8 @@ $con110$;
 
 DO $con111$
 BEGIN
-  ALTER TABLE ONLY zapp.colaboradores
-    ADD CONSTRAINT colaboradores_id_bitrix_key UNIQUE (id_bitrix);
+  ALTER TABLE ONLY zapp.companies
+    ADD CONSTRAINT companies_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con111$;
@@ -50740,8 +50729,8 @@ $con111$;
 
 DO $con112$
 BEGIN
-  ALTER TABLE ONLY zapp.colaboradores
-    ADD CONSTRAINT colaboradores_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.connection_alert_preferences
+    ADD CONSTRAINT connection_alert_preferences_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con112$;
@@ -50751,8 +50740,8 @@ $con112$;
 
 DO $con113$
 BEGIN
-  ALTER TABLE ONLY zapp.collections
-    ADD CONSTRAINT collections_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.connection_health_logs
+    ADD CONSTRAINT connection_health_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con113$;
@@ -50762,8 +50751,8 @@ $con113$;
 
 DO $con114$
 BEGIN
-  ALTER TABLE ONLY zapp.companies
-    ADD CONSTRAINT companies_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.consent_records
+    ADD CONSTRAINT consent_records_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con114$;
@@ -50773,8 +50762,8 @@ $con114$;
 
 DO $con115$
 BEGIN
-  ALTER TABLE ONLY zapp.connection_alert_preferences
-    ADD CONSTRAINT connection_alert_preferences_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.constraint_changelog
+    ADD CONSTRAINT constraint_changelog_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con115$;
@@ -50784,8 +50773,8 @@ $con115$;
 
 DO $con116$
 BEGIN
-  ALTER TABLE ONLY zapp.connection_health_logs
-    ADD CONSTRAINT connection_health_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.contact_assignments
+    ADD CONSTRAINT contact_assignments_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con116$;
@@ -50795,8 +50784,8 @@ $con116$;
 
 DO $con117$
 BEGIN
-  ALTER TABLE ONLY zapp.consent_records
-    ADD CONSTRAINT consent_records_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.contact_audit_log
+    ADD CONSTRAINT contact_audit_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con117$;
@@ -50806,8 +50795,8 @@ $con117$;
 
 DO $con118$
 BEGIN
-  ALTER TABLE ONLY zapp.constraint_changelog
-    ADD CONSTRAINT constraint_changelog_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.contact_custom_fields
+    ADD CONSTRAINT contact_custom_fields_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con118$;
@@ -50817,8 +50806,8 @@ $con118$;
 
 DO $con119$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_assignments
-    ADD CONSTRAINT contact_assignments_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.contact_export_log
+    ADD CONSTRAINT contact_export_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con119$;
@@ -50828,8 +50817,8 @@ $con119$;
 
 DO $con120$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_audit_log
-    ADD CONSTRAINT contact_audit_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.contact_id_graveyard
+    ADD CONSTRAINT contact_id_graveyard_pkey PRIMARY KEY (deleted_contact_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con120$;
@@ -50839,8 +50828,8 @@ $con120$;
 
 DO $con121$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_custom_fields
-    ADD CONSTRAINT contact_custom_fields_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.contact_identity_lid_staging
+    ADD CONSTRAINT contact_identity_lid_staging_pk UNIQUE (pn_jid, lid_jid, instance_name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con121$;
@@ -50850,8 +50839,8 @@ $con121$;
 
 DO $con122$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_export_log
-    ADD CONSTRAINT contact_export_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.contact_identity_lid_staging
+    ADD CONSTRAINT contact_identity_lid_staging_pkey PRIMARY KEY (_row_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con122$;
@@ -50861,8 +50850,8 @@ $con122$;
 
 DO $con123$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_id_graveyard
-    ADD CONSTRAINT contact_id_graveyard_pkey PRIMARY KEY (deleted_contact_id);
+  ALTER TABLE ONLY zapp.contact_intelligence
+    ADD CONSTRAINT contact_intelligence_contact_id_key UNIQUE (contact_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con123$;
@@ -50872,8 +50861,8 @@ $con123$;
 
 DO $con124$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_identity_lid_staging
-    ADD CONSTRAINT contact_identity_lid_staging_pk UNIQUE (pn_jid, lid_jid, instance_name);
+  ALTER TABLE ONLY zapp.contact_intelligence
+    ADD CONSTRAINT contact_intelligence_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con124$;
@@ -50883,8 +50872,8 @@ $con124$;
 
 DO $con125$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_identity_lid_staging
-    ADD CONSTRAINT contact_identity_lid_staging_pkey PRIMARY KEY (_row_id);
+  ALTER TABLE ONLY zapp.contact_notes
+    ADD CONSTRAINT contact_notes_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con125$;
@@ -50894,8 +50883,8 @@ $con125$;
 
 DO $con126$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_intelligence
-    ADD CONSTRAINT contact_intelligence_contact_id_key UNIQUE (contact_id);
+  ALTER TABLE ONLY zapp.contact_phones
+    ADD CONSTRAINT contact_phones_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con126$;
@@ -50905,8 +50894,8 @@ $con126$;
 
 DO $con127$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_intelligence
-    ADD CONSTRAINT contact_intelligence_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.contact_purchases
+    ADD CONSTRAINT contact_purchases_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con127$;
@@ -50916,8 +50905,8 @@ $con127$;
 
 DO $con128$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_notes
-    ADD CONSTRAINT contact_notes_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.contact_segments
+    ADD CONSTRAINT contact_segments_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con128$;
@@ -50927,8 +50916,8 @@ $con128$;
 
 DO $con129$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_phones
-    ADD CONSTRAINT contact_phones_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.contact_tags
+    ADD CONSTRAINT contact_tags_contact_id_tag_id_key UNIQUE (contact_id, tag_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con129$;
@@ -50938,8 +50927,8 @@ $con129$;
 
 DO $con130$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_purchases
-    ADD CONSTRAINT contact_purchases_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.contact_tags
+    ADD CONSTRAINT contact_tags_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con130$;
@@ -50949,8 +50938,8 @@ $con130$;
 
 DO $con131$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_segments
-    ADD CONSTRAINT contact_segments_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.contatos
+    ADD CONSTRAINT contatos_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con131$;
@@ -50960,8 +50949,8 @@ $con131$;
 
 DO $con132$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_tags
-    ADD CONSTRAINT contact_tags_contact_id_tag_id_key UNIQUE (contact_id, tag_id);
+  ALTER TABLE ONLY zapp.conversation_analyses
+    ADD CONSTRAINT conversation_analyses_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con132$;
@@ -50971,8 +50960,8 @@ $con132$;
 
 DO $con133$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_tags
-    ADD CONSTRAINT contact_tags_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.conversation_audit_logs
+    ADD CONSTRAINT conversation_audit_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con133$;
@@ -50982,8 +50971,8 @@ $con133$;
 
 DO $con134$
 BEGIN
-  ALTER TABLE ONLY zapp.contatos
-    ADD CONSTRAINT contatos_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.conversation_closures
+    ADD CONSTRAINT conversation_closures_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con134$;
@@ -50993,8 +50982,8 @@ $con134$;
 
 DO $con135$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_analyses
-    ADD CONSTRAINT conversation_analyses_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.conversation_events
+    ADD CONSTRAINT conversation_events_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con135$;
@@ -51004,8 +50993,8 @@ $con135$;
 
 DO $con136$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_audit_logs
-    ADD CONSTRAINT conversation_audit_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.conversation_memory
+    ADD CONSTRAINT conversation_memory_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con136$;
@@ -51015,8 +51004,8 @@ $con136$;
 
 DO $con137$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_closures
-    ADD CONSTRAINT conversation_closures_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.conversation_participants
+    ADD CONSTRAINT conversation_participants_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con137$;
@@ -51026,8 +51015,8 @@ $con137$;
 
 DO $con138$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_events
-    ADD CONSTRAINT conversation_events_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.conversation_sla
+    ADD CONSTRAINT conversation_sla_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con138$;
@@ -51037,8 +51026,8 @@ $con138$;
 
 DO $con139$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_memory
-    ADD CONSTRAINT conversation_memory_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.conversation_snoozes
+    ADD CONSTRAINT conversation_snoozes_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con139$;
@@ -51048,8 +51037,8 @@ $con139$;
 
 DO $con140$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_participants
-    ADD CONSTRAINT conversation_participants_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.conversation_summaries
+    ADD CONSTRAINT conversation_summaries_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con140$;
@@ -51059,8 +51048,8 @@ $con140$;
 
 DO $con141$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_sla
-    ADD CONSTRAINT conversation_sla_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.conversation_tasks
+    ADD CONSTRAINT conversation_tasks_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con141$;
@@ -51070,8 +51059,8 @@ $con141$;
 
 DO $con142$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_snoozes
-    ADD CONSTRAINT conversation_snoozes_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.conversation_threads
+    ADD CONSTRAINT conversation_threads_external_contact_id_instance_name_chan_key UNIQUE (external_contact_id, instance_name, channel);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con142$;
@@ -51081,8 +51070,8 @@ $con142$;
 
 DO $con143$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_summaries
-    ADD CONSTRAINT conversation_summaries_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.conversation_threads
+    ADD CONSTRAINT conversation_threads_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con143$;
@@ -51092,8 +51081,8 @@ $con143$;
 
 DO $con144$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_tasks
-    ADD CONSTRAINT conversation_tasks_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.conversation_transfers
+    ADD CONSTRAINT conversation_transfers_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con144$;
@@ -51103,8 +51092,8 @@ $con144$;
 
 DO $con145$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_threads
-    ADD CONSTRAINT conversation_threads_external_contact_id_instance_name_chan_key UNIQUE (external_contact_id, instance_name, channel);
+  ALTER TABLE ONLY zapp.conversation_transfers
+    ADD CONSTRAINT conversation_transfers_ticket_number_key UNIQUE (ticket_number);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con145$;
@@ -51114,8 +51103,8 @@ $con145$;
 
 DO $con146$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_threads
-    ADD CONSTRAINT conversation_threads_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.conversation_pins
+    ADD CONSTRAINT conversations_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con146$;
@@ -51125,8 +51114,8 @@ $con146$;
 
 DO $con147$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_transfers
-    ADD CONSTRAINT conversation_transfers_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.cookie_probe_log
+    ADD CONSTRAINT cookie_probe_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con147$;
@@ -51136,8 +51125,8 @@ $con147$;
 
 DO $con148$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_transfers
-    ADD CONSTRAINT conversation_transfers_ticket_number_key UNIQUE (ticket_number);
+  ALTER TABLE ONLY zapp.cookie_probe_pending
+    ADD CONSTRAINT cookie_probe_pending_pkey PRIMARY KEY (servico);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con148$;
@@ -51147,8 +51136,8 @@ $con148$;
 
 DO $con149$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_pins
-    ADD CONSTRAINT conversations_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.cookies_config
+    ADD CONSTRAINT cookies_config_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con149$;
@@ -51158,8 +51147,8 @@ $con149$;
 
 DO $con150$
 BEGIN
-  ALTER TABLE ONLY zapp.cookie_probe_log
-    ADD CONSTRAINT cookie_probe_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.cookies_config
+    ADD CONSTRAINT cookies_config_servico_key UNIQUE (servico);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con150$;
@@ -51169,8 +51158,8 @@ $con150$;
 
 DO $con151$
 BEGIN
-  ALTER TABLE ONLY zapp.cookie_probe_pending
-    ADD CONSTRAINT cookie_probe_pending_pkey PRIMARY KEY (servico);
+  ALTER TABLE ONLY zapp.credential_audit_logs
+    ADD CONSTRAINT credential_audit_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con151$;
@@ -51180,8 +51169,8 @@ $con151$;
 
 DO $con152$
 BEGIN
-  ALTER TABLE ONLY zapp.cookies_config
-    ADD CONSTRAINT cookies_config_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.credential_vault
+    ADD CONSTRAINT credential_vault_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con152$;
@@ -51191,8 +51180,8 @@ $con152$;
 
 DO $con153$
 BEGIN
-  ALTER TABLE ONLY zapp.cookies_config
-    ADD CONSTRAINT cookies_config_servico_key UNIQUE (servico);
+  ALTER TABLE ONLY zapp.crisis_room_alerts
+    ADD CONSTRAINT crisis_room_alerts_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con153$;
@@ -51202,8 +51191,8 @@ $con153$;
 
 DO $con154$
 BEGIN
-  ALTER TABLE ONLY zapp.credential_audit_logs
-    ADD CONSTRAINT credential_audit_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.crm_sync_config
+    ADD CONSTRAINT crm_sync_config_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con154$;
@@ -51213,8 +51202,8 @@ $con154$;
 
 DO $con155$
 BEGIN
-  ALTER TABLE ONLY zapp.credential_vault
-    ADD CONSTRAINT credential_vault_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.crm_sync_config
+    ADD CONSTRAINT crm_sync_config_provider_key UNIQUE (provider);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con155$;
@@ -51224,8 +51213,8 @@ $con155$;
 
 DO $con156$
 BEGIN
-  ALTER TABLE ONLY zapp.crisis_room_alerts
-    ADD CONSTRAINT crisis_room_alerts_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.cron_inventory
+    ADD CONSTRAINT cron_inventory_pkey PRIMARY KEY (jobid);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con156$;
@@ -51235,8 +51224,8 @@ $con156$;
 
 DO $con157$
 BEGIN
-  ALTER TABLE ONLY zapp.crm_sync_config
-    ADD CONSTRAINT crm_sync_config_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.cron_schedule_executions
+    ADD CONSTRAINT cron_schedule_executions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con157$;
@@ -51246,8 +51235,8 @@ $con157$;
 
 DO $con158$
 BEGIN
-  ALTER TABLE ONLY zapp.crm_sync_config
-    ADD CONSTRAINT crm_sync_config_provider_key UNIQUE (provider);
+  ALTER TABLE ONLY zapp.cron_schedules
+    ADD CONSTRAINT cron_schedules_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con158$;
@@ -51257,8 +51246,8 @@ $con158$;
 
 DO $con159$
 BEGIN
-  ALTER TABLE ONLY zapp.cron_inventory
-    ADD CONSTRAINT cron_inventory_pkey PRIMARY KEY (jobid);
+  ALTER TABLE ONLY zapp.csat_auto_config
+    ADD CONSTRAINT csat_auto_config_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con159$;
@@ -51268,8 +51257,8 @@ $con159$;
 
 DO $con160$
 BEGIN
-  ALTER TABLE ONLY zapp.cron_schedule_executions
-    ADD CONSTRAINT cron_schedule_executions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.csat_responses
+    ADD CONSTRAINT csat_responses_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con160$;
@@ -51279,8 +51268,8 @@ $con160$;
 
 DO $con161$
 BEGIN
-  ALTER TABLE ONLY zapp.cron_schedules
-    ADD CONSTRAINT cron_schedules_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.csat_surveys
+    ADD CONSTRAINT csat_surveys_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con161$;
@@ -51290,8 +51279,8 @@ $con161$;
 
 DO $con162$
 BEGIN
-  ALTER TABLE ONLY zapp.csat_auto_config
-    ADD CONSTRAINT csat_auto_config_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.custom_emojis
+    ADD CONSTRAINT custom_emojis_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con162$;
@@ -51301,8 +51290,8 @@ $con162$;
 
 DO $con163$
 BEGIN
-  ALTER TABLE ONLY zapp.csat_responses
-    ADD CONSTRAINT csat_responses_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.dashboard_queries
+    ADD CONSTRAINT dashboard_queries_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con163$;
@@ -51312,8 +51301,8 @@ $con163$;
 
 DO $con164$
 BEGIN
-  ALTER TABLE ONLY zapp.csat_surveys
-    ADD CONSTRAINT csat_surveys_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.data_deletion_requests
+    ADD CONSTRAINT data_deletion_requests_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con164$;
@@ -51323,8 +51312,8 @@ $con164$;
 
 DO $con165$
 BEGIN
-  ALTER TABLE ONLY zapp.custom_emojis
-    ADD CONSTRAINT custom_emojis_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.dead_letter_queue
+    ADD CONSTRAINT dead_letter_queue_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con165$;
@@ -51334,8 +51323,8 @@ $con165$;
 
 DO $con166$
 BEGIN
-  ALTER TABLE ONLY zapp.dashboard_queries
-    ADD CONSTRAINT dashboard_queries_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.deal_activities
+    ADD CONSTRAINT deal_activities_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con166$;
@@ -51345,8 +51334,8 @@ $con166$;
 
 DO $con167$
 BEGIN
-  ALTER TABLE ONLY zapp.data_deletion_requests
-    ADD CONSTRAINT data_deletion_requests_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.department_invitations
+    ADD CONSTRAINT department_invitations_code_key UNIQUE (code);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con167$;
@@ -51356,8 +51345,8 @@ $con167$;
 
 DO $con168$
 BEGIN
-  ALTER TABLE ONLY zapp.dead_letter_queue
-    ADD CONSTRAINT dead_letter_queue_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.department_invitations
+    ADD CONSTRAINT department_invitations_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con168$;
@@ -51367,8 +51356,8 @@ $con168$;
 
 DO $con169$
 BEGIN
-  ALTER TABLE ONLY zapp.deal_activities
-    ADD CONSTRAINT deal_activities_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.departments
+    ADD CONSTRAINT departments_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con169$;
@@ -51378,8 +51367,8 @@ $con169$;
 
 DO $con170$
 BEGIN
-  ALTER TABLE ONLY zapp.department_invitations
-    ADD CONSTRAINT department_invitations_code_key UNIQUE (code);
+  ALTER TABLE ONLY zapp.deploy_connections
+    ADD CONSTRAINT deploy_connections_agent_id_channel_key UNIQUE (agent_id, channel);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con170$;
@@ -51389,8 +51378,8 @@ $con170$;
 
 DO $con171$
 BEGIN
-  ALTER TABLE ONLY zapp.department_invitations
-    ADD CONSTRAINT department_invitations_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.deploy_connections
+    ADD CONSTRAINT deploy_connections_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con171$;
@@ -51400,8 +51389,8 @@ $con171$;
 
 DO $con172$
 BEGIN
-  ALTER TABLE ONLY zapp.departments
-    ADD CONSTRAINT departments_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.dept_mapping
+    ADD CONSTRAINT dept_mapping_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con172$;
@@ -51411,8 +51400,8 @@ $con172$;
 
 DO $con173$
 BEGIN
-  ALTER TABLE ONLY zapp.deploy_connections
-    ADD CONSTRAINT deploy_connections_agent_id_channel_key UNIQUE (agent_id, channel);
+  ALTER TABLE ONLY zapp.dev_diagnostic_logs
+    ADD CONSTRAINT dev_diagnostic_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con173$;
@@ -51422,8 +51411,8 @@ $con173$;
 
 DO $con174$
 BEGIN
-  ALTER TABLE ONLY zapp.deploy_connections
-    ADD CONSTRAINT deploy_connections_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.dispatch_error_logs
+    ADD CONSTRAINT dispatch_error_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con174$;
@@ -51433,8 +51422,8 @@ $con174$;
 
 DO $con175$
 BEGIN
-  ALTER TABLE ONLY zapp.dept_mapping
-    ADD CONSTRAINT dept_mapping_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.dlq_audit_log
+    ADD CONSTRAINT dlq_audit_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con175$;
@@ -51444,8 +51433,8 @@ $con175$;
 
 DO $con176$
 BEGIN
-  ALTER TABLE ONLY zapp.dev_diagnostic_logs
-    ADD CONSTRAINT dev_diagnostic_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.documents
+    ADD CONSTRAINT documents_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con176$;
@@ -51455,8 +51444,8 @@ $con176$;
 
 DO $con177$
 BEGIN
-  ALTER TABLE ONLY zapp.dispatch_error_logs
-    ADD CONSTRAINT dispatch_error_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.email_health_logs
+    ADD CONSTRAINT email_health_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con177$;
@@ -51466,8 +51455,8 @@ $con177$;
 
 DO $con178$
 BEGIN
-  ALTER TABLE ONLY zapp.dlq_audit_log
-    ADD CONSTRAINT dlq_audit_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.email_health_summary
+    ADD CONSTRAINT email_health_summary_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con178$;
@@ -51477,8 +51466,8 @@ $con178$;
 
 DO $con179$
 BEGIN
-  ALTER TABLE ONLY zapp.documents
-    ADD CONSTRAINT documents_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.email_revalidation_jobs
+    ADD CONSTRAINT email_revalidation_jobs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con179$;
@@ -51488,8 +51477,8 @@ $con179$;
 
 DO $con180$
 BEGIN
-  ALTER TABLE ONLY zapp.email_health_logs
-    ADD CONSTRAINT email_health_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.email_watch_history
+    ADD CONSTRAINT email_watch_history_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con180$;
@@ -51499,8 +51488,8 @@ $con180$;
 
 DO $con181$
 BEGIN
-  ALTER TABLE ONLY zapp.email_health_summary
-    ADD CONSTRAINT email_health_summary_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.emails
+    ADD CONSTRAINT emails_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con181$;
@@ -51510,8 +51499,8 @@ $con181$;
 
 DO $con182$
 BEGIN
-  ALTER TABLE ONLY zapp.email_revalidation_jobs
-    ADD CONSTRAINT email_revalidation_jobs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.embedding_configs
+    ADD CONSTRAINT embedding_configs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con182$;
@@ -51521,8 +51510,8 @@ $con182$;
 
 DO $con183$
 BEGIN
-  ALTER TABLE ONLY zapp.email_watch_history
-    ADD CONSTRAINT email_watch_history_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.empresas
+    ADD CONSTRAINT empresas_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con183$;
@@ -51532,8 +51521,8 @@ $con183$;
 
 DO $con184$
 BEGIN
-  ALTER TABLE ONLY zapp.emails
-    ADD CONSTRAINT emails_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.engineering_principles
+    ADD CONSTRAINT engineering_principles_code_key UNIQUE (code);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con184$;
@@ -51543,8 +51532,8 @@ $con184$;
 
 DO $con185$
 BEGIN
-  ALTER TABLE ONLY zapp.embedding_configs
-    ADD CONSTRAINT embedding_configs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.engineering_principles
+    ADD CONSTRAINT engineering_principles_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con185$;
@@ -51554,8 +51543,8 @@ $con185$;
 
 DO $con186$
 BEGIN
-  ALTER TABLE ONLY zapp.empresas
-    ADD CONSTRAINT empresas_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.entity_versions
+    ADD CONSTRAINT entity_versions_entity_type_entity_id_version_number_key UNIQUE (entity_type, entity_id, version_number);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con186$;
@@ -51565,8 +51554,8 @@ $con186$;
 
 DO $con187$
 BEGIN
-  ALTER TABLE ONLY zapp.engineering_principles
-    ADD CONSTRAINT engineering_principles_code_key UNIQUE (code);
+  ALTER TABLE ONLY zapp.entity_versions
+    ADD CONSTRAINT entity_versions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con187$;
@@ -51576,8 +51565,8 @@ $con187$;
 
 DO $con188$
 BEGIN
-  ALTER TABLE ONLY zapp.engineering_principles
-    ADD CONSTRAINT engineering_principles_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.environments
+    ADD CONSTRAINT environments_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con188$;
@@ -51587,8 +51576,8 @@ $con188$;
 
 DO $con189$
 BEGIN
-  ALTER TABLE ONLY zapp.entity_versions
-    ADD CONSTRAINT entity_versions_entity_type_entity_id_version_number_key UNIQUE (entity_type, entity_id, version_number);
+  ALTER TABLE ONLY zapp.evaluation_datasets
+    ADD CONSTRAINT evaluation_datasets_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con189$;
@@ -51598,8 +51587,8 @@ $con189$;
 
 DO $con190$
 BEGIN
-  ALTER TABLE ONLY zapp.entity_versions
-    ADD CONSTRAINT entity_versions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evaluation_runs
+    ADD CONSTRAINT evaluation_runs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con190$;
@@ -51609,8 +51598,8 @@ $con190$;
 
 DO $con191$
 BEGIN
-  ALTER TABLE ONLY zapp.environments
-    ADD CONSTRAINT environments_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evo_reconcile_contact_snapshot
+    ADD CONSTRAINT evo_reconcile_contact_snapshot_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con191$;
@@ -51620,8 +51609,8 @@ $con191$;
 
 DO $con192$
 BEGIN
-  ALTER TABLE ONLY zapp.evaluation_datasets
-    ADD CONSTRAINT evaluation_datasets_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_alerts
+    ADD CONSTRAINT evolution_alerts_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con192$;
@@ -51631,8 +51620,8 @@ $con192$;
 
 DO $con193$
 BEGIN
-  ALTER TABLE ONLY zapp.evaluation_runs
-    ADD CONSTRAINT evaluation_runs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_api_consumers
+    ADD CONSTRAINT evolution_api_consumers_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con193$;
@@ -51642,8 +51631,8 @@ $con193$;
 
 DO $con194$
 BEGIN
-  ALTER TABLE ONLY zapp.evo_reconcile_contact_snapshot
-    ADD CONSTRAINT evo_reconcile_contact_snapshot_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_audit_log
+    ADD CONSTRAINT evolution_audit_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con194$;
@@ -51653,8 +51642,8 @@ $con194$;
 
 DO $con195$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_alerts
-    ADD CONSTRAINT evolution_alerts_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_automation_logs
+    ADD CONSTRAINT evolution_automation_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con195$;
@@ -51664,8 +51653,8 @@ $con195$;
 
 DO $con196$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_api_consumers
-    ADD CONSTRAINT evolution_api_consumers_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_bitrix_queue
+    ADD CONSTRAINT evolution_bitrix_queue_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con196$;
@@ -51675,8 +51664,8 @@ $con196$;
 
 DO $con197$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_audit_log
-    ADD CONSTRAINT evolution_audit_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_burnin_tracker
+    ADD CONSTRAINT evolution_burnin_tracker_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con197$;
@@ -51686,8 +51675,8 @@ $con197$;
 
 DO $con198$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_automation_logs
-    ADD CONSTRAINT evolution_automation_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_business_hours
+    ADD CONSTRAINT evolution_business_hours_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con198$;
@@ -51697,8 +51686,8 @@ $con198$;
 
 DO $con199$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_bitrix_queue
-    ADD CONSTRAINT evolution_bitrix_queue_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_calls
+    ADD CONSTRAINT evolution_calls_call_id_key UNIQUE (call_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con199$;
@@ -51708,8 +51697,8 @@ $con199$;
 
 DO $con200$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_burnin_tracker
-    ADD CONSTRAINT evolution_burnin_tracker_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_calls
+    ADD CONSTRAINT evolution_calls_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con200$;
@@ -51719,8 +51708,8 @@ $con200$;
 
 DO $con201$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_business_hours
-    ADD CONSTRAINT evolution_business_hours_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_chatbot_responses
+    ADD CONSTRAINT evolution_chatbot_responses_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con201$;
@@ -51730,8 +51719,8 @@ $con201$;
 
 DO $con202$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_calls
-    ADD CONSTRAINT evolution_calls_call_id_key UNIQUE (call_id);
+  ALTER TABLE ONLY zapp.evolution_contact_rate_limits
+    ADD CONSTRAINT evolution_contact_rate_limits_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con202$;
@@ -51741,8 +51730,8 @@ $con202$;
 
 DO $con203$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_calls
-    ADD CONSTRAINT evolution_calls_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_daily_metrics
+    ADD CONSTRAINT evolution_daily_metrics_metric_date_key UNIQUE (metric_date);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con203$;
@@ -51752,8 +51741,8 @@ $con203$;
 
 DO $con204$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_chatbot_responses
-    ADD CONSTRAINT evolution_chatbot_responses_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_daily_metrics
+    ADD CONSTRAINT evolution_daily_metrics_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con204$;
@@ -51763,8 +51752,8 @@ $con204$;
 
 DO $con205$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_contact_rate_limits
-    ADD CONSTRAINT evolution_contact_rate_limits_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_deals
+    ADD CONSTRAINT evolution_deals_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con205$;
@@ -51774,8 +51763,8 @@ $con205$;
 
 DO $con206$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_daily_metrics
-    ADD CONSTRAINT evolution_daily_metrics_metric_date_key UNIQUE (metric_date);
+  ALTER TABLE ONLY zapp.evolution_fallback_events
+    ADD CONSTRAINT evolution_fallback_events_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con206$;
@@ -51785,8 +51774,8 @@ $con206$;
 
 DO $con207$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_daily_metrics
-    ADD CONSTRAINT evolution_daily_metrics_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_followup_rules
+    ADD CONSTRAINT evolution_followup_rules_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con207$;
@@ -51796,8 +51785,8 @@ $con207$;
 
 DO $con208$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_deals
-    ADD CONSTRAINT evolution_deals_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_followups
+    ADD CONSTRAINT evolution_followups_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con208$;
@@ -51807,8 +51796,8 @@ $con208$;
 
 DO $con209$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_fallback_events
-    ADD CONSTRAINT evolution_fallback_events_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_group_messages
+    ADD CONSTRAINT evolution_group_messages_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con209$;
@@ -51818,8 +51807,8 @@ $con209$;
 
 DO $con210$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_followup_rules
-    ADD CONSTRAINT evolution_followup_rules_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_group_participants
+    ADD CONSTRAINT evolution_group_participants_group_id_participant_jid_key UNIQUE (group_id, participant_jid);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con210$;
@@ -51829,8 +51818,8 @@ $con210$;
 
 DO $con211$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_followups
-    ADD CONSTRAINT evolution_followups_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_group_participants
+    ADD CONSTRAINT evolution_group_participants_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con211$;
@@ -51840,8 +51829,8 @@ $con211$;
 
 DO $con212$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_group_messages
-    ADD CONSTRAINT evolution_group_messages_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_group_rules
+    ADD CONSTRAINT evolution_group_rules_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con212$;
@@ -51851,8 +51840,8 @@ $con212$;
 
 DO $con213$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_group_participants
-    ADD CONSTRAINT evolution_group_participants_group_id_participant_jid_key UNIQUE (group_id, participant_jid);
+  ALTER TABLE ONLY zapp.evolution_groups
+    ADD CONSTRAINT evolution_groups_connection_group_key UNIQUE (whatsapp_connection_id, group_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con213$;
@@ -51862,8 +51851,8 @@ $con213$;
 
 DO $con214$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_group_participants
-    ADD CONSTRAINT evolution_group_participants_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_groups
+    ADD CONSTRAINT evolution_groups_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con214$;
@@ -51873,8 +51862,8 @@ $con214$;
 
 DO $con215$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_group_rules
-    ADD CONSTRAINT evolution_group_rules_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_health_logs
+    ADD CONSTRAINT evolution_health_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con215$;
@@ -51884,8 +51873,8 @@ $con215$;
 
 DO $con216$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_groups
-    ADD CONSTRAINT evolution_groups_connection_group_key UNIQUE (whatsapp_connection_id, group_id);
+  ALTER TABLE ONLY zapp.evolution_holidays
+    ADD CONSTRAINT evolution_holidays_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con216$;
@@ -51895,8 +51884,8 @@ $con216$;
 
 DO $con217$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_groups
-    ADD CONSTRAINT evolution_groups_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_incident_runbook
+    ADD CONSTRAINT evolution_incident_runbook_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con217$;
@@ -51906,8 +51895,8 @@ $con217$;
 
 DO $con218$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_health_logs
-    ADD CONSTRAINT evolution_health_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_instance_credentials
+    ADD CONSTRAINT evolution_instance_credentials_connection_id_key UNIQUE (connection_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con218$;
@@ -51917,8 +51906,8 @@ $con218$;
 
 DO $con219$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_holidays
-    ADD CONSTRAINT evolution_holidays_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_instance_credentials
+    ADD CONSTRAINT evolution_instance_credentials_instance_name_key UNIQUE (instance_name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con219$;
@@ -51928,8 +51917,8 @@ $con219$;
 
 DO $con220$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_incident_runbook
-    ADD CONSTRAINT evolution_incident_runbook_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_instance_credentials
+    ADD CONSTRAINT evolution_instance_credentials_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con220$;
@@ -51939,8 +51928,8 @@ $con220$;
 
 DO $con221$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_instance_credentials
-    ADD CONSTRAINT evolution_instance_credentials_connection_id_key UNIQUE (connection_id);
+  ALTER TABLE ONLY zapp.evolution_ip_blocklist
+    ADD CONSTRAINT evolution_ip_blocklist_pkey PRIMARY KEY (ip_address);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con221$;
@@ -51950,8 +51939,8 @@ $con221$;
 
 DO $con222$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_instance_credentials
-    ADD CONSTRAINT evolution_instance_credentials_instance_name_key UNIQUE (instance_name);
+  ALTER TABLE ONLY zapp.evolution_keyword_automations
+    ADD CONSTRAINT evolution_keyword_automations_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con222$;
@@ -51961,8 +51950,8 @@ $con222$;
 
 DO $con223$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_instance_credentials
-    ADD CONSTRAINT evolution_instance_credentials_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_label_associations
+    ADD CONSTRAINT evolution_label_associations_label_id_remote_jid_key UNIQUE (label_id, remote_jid);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con223$;
@@ -51972,8 +51961,8 @@ $con223$;
 
 DO $con224$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_ip_blocklist
-    ADD CONSTRAINT evolution_ip_blocklist_pkey PRIMARY KEY (ip_address);
+  ALTER TABLE ONLY zapp.evolution_label_associations
+    ADD CONSTRAINT evolution_label_associations_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con224$;
@@ -51983,8 +51972,8 @@ $con224$;
 
 DO $con225$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_keyword_automations
-    ADD CONSTRAINT evolution_keyword_automations_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_labels
+    ADD CONSTRAINT evolution_labels_label_id_key UNIQUE (label_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con225$;
@@ -51994,8 +51983,8 @@ $con225$;
 
 DO $con226$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_label_associations
-    ADD CONSTRAINT evolution_label_associations_label_id_remote_jid_key UNIQUE (label_id, remote_jid);
+  ALTER TABLE ONLY zapp.evolution_labels
+    ADD CONSTRAINT evolution_labels_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con226$;
@@ -52005,8 +51994,8 @@ $con226$;
 
 DO $con227$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_label_associations
-    ADD CONSTRAINT evolution_label_associations_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_license_health_log
+    ADD CONSTRAINT evolution_license_health_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con227$;
@@ -52016,8 +52005,8 @@ $con227$;
 
 DO $con228$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_labels
-    ADD CONSTRAINT evolution_labels_label_id_key UNIQUE (label_id);
+  ALTER TABLE ONLY zapp.evolution_logpatch_audit
+    ADD CONSTRAINT evolution_logpatch_audit_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con228$;
@@ -52027,8 +52016,8 @@ $con228$;
 
 DO $con229$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_labels
-    ADD CONSTRAINT evolution_labels_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_media
+    ADD CONSTRAINT evolution_media_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con229$;
@@ -52038,8 +52027,8 @@ $con229$;
 
 DO $con230$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_license_health_log
-    ADD CONSTRAINT evolution_license_health_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_message_queue
+    ADD CONSTRAINT evolution_message_queue_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con230$;
@@ -52049,8 +52038,8 @@ $con230$;
 
 DO $con231$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_logpatch_audit
-    ADD CONSTRAINT evolution_logpatch_audit_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_message_templates
+    ADD CONSTRAINT evolution_message_templates_name_key UNIQUE (name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con231$;
@@ -52060,8 +52049,8 @@ $con231$;
 
 DO $con232$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_media
-    ADD CONSTRAINT evolution_media_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_message_templates
+    ADD CONSTRAINT evolution_message_templates_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con232$;
@@ -52071,8 +52060,8 @@ $con232$;
 
 DO $con233$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_message_queue
-    ADD CONSTRAINT evolution_message_queue_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_messages_wpp2_archive
+    ADD CONSTRAINT evolution_messages_wpp2_archive_message_id_instance_name_key UNIQUE (message_id, instance_name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con233$;
@@ -52082,8 +52071,8 @@ $con233$;
 
 DO $con234$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_message_templates
-    ADD CONSTRAINT evolution_message_templates_name_key UNIQUE (name);
+  ALTER TABLE ONLY zapp.evolution_messages_wpp2_archive
+    ADD CONSTRAINT evolution_messages_wpp2_archive_pkey PRIMARY KEY (id, instance_name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con234$;
@@ -52093,8 +52082,8 @@ $con234$;
 
 DO $con235$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_message_templates
-    ADD CONSTRAINT evolution_message_templates_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_mirror_batches
+    ADD CONSTRAINT evolution_mirror_batches_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con235$;
@@ -52104,8 +52093,8 @@ $con235$;
 
 DO $con236$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_messages_wpp2_archive
-    ADD CONSTRAINT evolution_messages_wpp2_archive_message_id_instance_name_key UNIQUE (message_id, instance_name);
+  ALTER TABLE ONLY zapp.evolution_mirror_batches
+    ADD CONSTRAINT evolution_mirror_batches_s3_key_key UNIQUE (s3_key);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con236$;
@@ -52115,8 +52104,8 @@ $con236$;
 
 DO $con237$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_messages_wpp2_archive
-    ADD CONSTRAINT evolution_messages_wpp2_archive_pkey PRIMARY KEY (id, instance_name);
+  ALTER TABLE ONLY zapp.evolution_mirror_checkpoints
+    ADD CONSTRAINT evolution_mirror_checkpoints_checkpoint_key_key UNIQUE (checkpoint_key);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con237$;
@@ -52126,8 +52115,8 @@ $con237$;
 
 DO $con238$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_mirror_batches
-    ADD CONSTRAINT evolution_mirror_batches_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_mirror_checkpoints
+    ADD CONSTRAINT evolution_mirror_checkpoints_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con238$;
@@ -52137,8 +52126,8 @@ $con238$;
 
 DO $con239$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_mirror_batches
-    ADD CONSTRAINT evolution_mirror_batches_s3_key_key UNIQUE (s3_key);
+  ALTER TABLE ONLY zapp.evolution_mirror_media_queue
+    ADD CONSTRAINT evolution_mirror_media_queue_message_id_key UNIQUE (message_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con239$;
@@ -52148,8 +52137,8 @@ $con239$;
 
 DO $con240$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_mirror_checkpoints
-    ADD CONSTRAINT evolution_mirror_checkpoints_checkpoint_key_key UNIQUE (checkpoint_key);
+  ALTER TABLE ONLY zapp.evolution_mirror_media_queue
+    ADD CONSTRAINT evolution_mirror_media_queue_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con240$;
@@ -52159,8 +52148,8 @@ $con240$;
 
 DO $con241$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_mirror_checkpoints
-    ADD CONSTRAINT evolution_mirror_checkpoints_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_mirror_runs
+    ADD CONSTRAINT evolution_mirror_runs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con241$;
@@ -52170,8 +52159,8 @@ $con241$;
 
 DO $con242$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_mirror_media_queue
-    ADD CONSTRAINT evolution_mirror_media_queue_message_id_key UNIQUE (message_id);
+  ALTER TABLE ONLY zapp.evolution_monthly_audit_log
+    ADD CONSTRAINT evolution_monthly_audit_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con242$;
@@ -52181,8 +52170,8 @@ $con242$;
 
 DO $con243$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_mirror_media_queue
-    ADD CONSTRAINT evolution_mirror_media_queue_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_notification_config
+    ADD CONSTRAINT evolution_notification_config_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con243$;
@@ -52192,8 +52181,8 @@ $con243$;
 
 DO $con244$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_mirror_runs
-    ADD CONSTRAINT evolution_mirror_runs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_notification_log
+    ADD CONSTRAINT evolution_notification_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con244$;
@@ -52203,8 +52192,8 @@ $con244$;
 
 DO $con245$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_monthly_audit_log
-    ADD CONSTRAINT evolution_monthly_audit_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_notification_outbox
+    ADD CONSTRAINT evolution_notification_outbox_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con245$;
@@ -52214,8 +52203,8 @@ $con245$;
 
 DO $con246$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_notification_config
-    ADD CONSTRAINT evolution_notification_config_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_notifications
+    ADD CONSTRAINT evolution_notifications_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con246$;
@@ -52225,8 +52214,8 @@ $con246$;
 
 DO $con247$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_notification_log
-    ADD CONSTRAINT evolution_notification_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_performance_metrics
+    ADD CONSTRAINT evolution_performance_metrics_metric_date_metric_type_key UNIQUE (metric_date, metric_type);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con247$;
@@ -52236,8 +52225,8 @@ $con247$;
 
 DO $con248$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_notification_outbox
-    ADD CONSTRAINT evolution_notification_outbox_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_performance_metrics
+    ADD CONSTRAINT evolution_performance_metrics_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con248$;
@@ -52247,8 +52236,8 @@ $con248$;
 
 DO $con249$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_notifications
-    ADD CONSTRAINT evolution_notifications_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_quick_replies
+    ADD CONSTRAINT evolution_quick_replies_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con249$;
@@ -52258,8 +52247,8 @@ $con249$;
 
 DO $con250$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_performance_metrics
-    ADD CONSTRAINT evolution_performance_metrics_metric_date_metric_type_key UNIQUE (metric_date, metric_type);
+  ALTER TABLE ONLY zapp.evolution_quick_replies
+    ADD CONSTRAINT evolution_quick_replies_shortcut_key UNIQUE (shortcut);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con250$;
@@ -52269,8 +52258,8 @@ $con250$;
 
 DO $con251$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_performance_metrics
-    ADD CONSTRAINT evolution_performance_metrics_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_reactions
+    ADD CONSTRAINT evolution_reactions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con251$;
@@ -52280,8 +52269,8 @@ $con251$;
 
 DO $con252$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_quick_replies
-    ADD CONSTRAINT evolution_quick_replies_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_realtime_events
+    ADD CONSTRAINT evolution_realtime_events_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con252$;
@@ -52291,8 +52280,8 @@ $con252$;
 
 DO $con253$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_quick_replies
-    ADD CONSTRAINT evolution_quick_replies_shortcut_key UNIQUE (shortcut);
+  ALTER TABLE ONLY zapp.evolution_retry_metrics
+    ADD CONSTRAINT evolution_retry_metrics_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con253$;
@@ -52302,8 +52291,8 @@ $con253$;
 
 DO $con254$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_reactions
-    ADD CONSTRAINT evolution_reactions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_sales_pipeline
+    ADD CONSTRAINT evolution_sales_pipeline_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con254$;
@@ -52313,8 +52302,8 @@ $con254$;
 
 DO $con255$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_realtime_events
-    ADD CONSTRAINT evolution_realtime_events_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_scheduled_messages
+    ADD CONSTRAINT evolution_scheduled_messages_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con255$;
@@ -52324,44 +52313,11 @@ $con255$;
 
 DO $con256$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_retry_metrics
-    ADD CONSTRAINT evolution_retry_metrics_pkey PRIMARY KEY (id);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$con256$;
-
-
-
-
-DO $con257$
-BEGIN
-  ALTER TABLE ONLY zapp.evolution_sales_pipeline
-    ADD CONSTRAINT evolution_sales_pipeline_pkey PRIMARY KEY (id);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$con257$;
-
-
-
-
-DO $con258$
-BEGIN
-  ALTER TABLE ONLY zapp.evolution_scheduled_messages
-    ADD CONSTRAINT evolution_scheduled_messages_pkey PRIMARY KEY (id);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$con258$;
-
-
-
-
-DO $con259$
-BEGIN
   ALTER TABLE ONLY zapp.evolution_send_idempotency
     ADD CONSTRAINT evolution_send_idempotency_pkey PRIMARY KEY (idem_key, instance_name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con259$;
+$con256$;
 
 
 
@@ -52371,10 +52327,43 @@ COMMENT ON CONSTRAINT evolution_send_idempotency_pkey ON zapp.evolution_send_ide
 
 
 
-DO $con260$
+DO $con257$
 BEGIN
   ALTER TABLE ONLY zapp.evolution_sentiment_analysis
     ADD CONSTRAINT evolution_sentiment_analysis_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$con257$;
+
+
+
+
+DO $con258$
+BEGIN
+  ALTER TABLE ONLY zapp.evolution_settings
+    ADD CONSTRAINT evolution_settings_key_key UNIQUE (key);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$con258$;
+
+
+
+
+DO $con259$
+BEGIN
+  ALTER TABLE ONLY zapp.evolution_settings
+    ADD CONSTRAINT evolution_settings_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$con259$;
+
+
+
+
+DO $con260$
+BEGIN
+  ALTER TABLE ONLY zapp.evolution_source_schema_map
+    ADD CONSTRAINT evolution_source_schema_map_database_name_schema_name_table_key UNIQUE (database_name, schema_name, table_name, column_name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con260$;
@@ -52384,8 +52373,8 @@ $con260$;
 
 DO $con261$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_settings
-    ADD CONSTRAINT evolution_settings_key_key UNIQUE (key);
+  ALTER TABLE ONLY zapp.evolution_source_schema_map
+    ADD CONSTRAINT evolution_source_schema_map_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con261$;
@@ -52395,8 +52384,8 @@ $con261$;
 
 DO $con262$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_settings
-    ADD CONSTRAINT evolution_settings_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_source_shadow_log
+    ADD CONSTRAINT evolution_source_shadow_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con262$;
@@ -52406,8 +52395,8 @@ $con262$;
 
 DO $con263$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_source_schema_map
-    ADD CONSTRAINT evolution_source_schema_map_database_name_schema_name_table_key UNIQUE (database_name, schema_name, table_name, column_name);
+  ALTER TABLE ONLY zapp.evolution_spam_keywords
+    ADD CONSTRAINT evolution_spam_keywords_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con263$;
@@ -52417,8 +52406,8 @@ $con263$;
 
 DO $con264$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_source_schema_map
-    ADD CONSTRAINT evolution_source_schema_map_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_stage_mapping
+    ADD CONSTRAINT evolution_stage_mapping_pkey PRIMARY KEY (stage_key);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con264$;
@@ -52428,8 +52417,8 @@ $con264$;
 
 DO $con265$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_source_shadow_log
-    ADD CONSTRAINT evolution_source_shadow_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_status_reactions
+    ADD CONSTRAINT evolution_status_reactions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con265$;
@@ -52439,8 +52428,8 @@ $con265$;
 
 DO $con266$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_spam_keywords
-    ADD CONSTRAINT evolution_spam_keywords_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_tag_assignments
+    ADD CONSTRAINT evolution_tag_assignments_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con266$;
@@ -52450,8 +52439,8 @@ $con266$;
 
 DO $con267$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_stage_mapping
-    ADD CONSTRAINT evolution_stage_mapping_pkey PRIMARY KEY (stage_key);
+  ALTER TABLE ONLY zapp.evolution_tag_assignments
+    ADD CONSTRAINT evolution_tag_assignments_tag_id_entity_type_entity_id_key UNIQUE (tag_id, entity_type, entity_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con267$;
@@ -52461,8 +52450,8 @@ $con267$;
 
 DO $con268$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_status_reactions
-    ADD CONSTRAINT evolution_status_reactions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_tags
+    ADD CONSTRAINT evolution_tags_name_key UNIQUE (name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con268$;
@@ -52472,8 +52461,8 @@ $con268$;
 
 DO $con269$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_tag_assignments
-    ADD CONSTRAINT evolution_tag_assignments_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_tags
+    ADD CONSTRAINT evolution_tags_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con269$;
@@ -52483,8 +52472,8 @@ $con269$;
 
 DO $con270$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_tag_assignments
-    ADD CONSTRAINT evolution_tag_assignments_tag_id_entity_type_entity_id_key UNIQUE (tag_id, entity_type, entity_id);
+  ALTER TABLE ONLY zapp.evolution_tasks
+    ADD CONSTRAINT evolution_tasks_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con270$;
@@ -52494,8 +52483,8 @@ $con270$;
 
 DO $con271$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_tags
-    ADD CONSTRAINT evolution_tags_name_key UNIQUE (name);
+  ALTER TABLE ONLY zapp.evolution_template_usage
+    ADD CONSTRAINT evolution_template_usage_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con271$;
@@ -52505,8 +52494,8 @@ $con271$;
 
 DO $con272$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_tags
-    ADD CONSTRAINT evolution_tags_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_webhook_dlq
+    ADD CONSTRAINT evolution_webhook_dlq_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con272$;
@@ -52516,8 +52505,8 @@ $con272$;
 
 DO $con273$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_tasks
-    ADD CONSTRAINT evolution_tasks_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_whatsapp_status
+    ADD CONSTRAINT evolution_whatsapp_status_msg_id_key UNIQUE (message_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con273$;
@@ -52527,8 +52516,8 @@ $con273$;
 
 DO $con274$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_template_usage
-    ADD CONSTRAINT evolution_template_usage_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.evolution_whatsapp_status
+    ADD CONSTRAINT evolution_whatsapp_status_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con274$;
@@ -52538,8 +52527,8 @@ $con274$;
 
 DO $con275$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_webhook_dlq
-    ADD CONSTRAINT evolution_webhook_dlq_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.extensions
+    ADD CONSTRAINT extensions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con275$;
@@ -52549,8 +52538,8 @@ $con275$;
 
 DO $con276$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_whatsapp_status
-    ADD CONSTRAINT evolution_whatsapp_status_msg_id_key UNIQUE (message_id);
+  ALTER TABLE ONLY zapp.failed_messages
+    ADD CONSTRAINT failed_messages_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con276$;
@@ -52560,8 +52549,8 @@ $con276$;
 
 DO $con277$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_whatsapp_status
-    ADD CONSTRAINT evolution_whatsapp_status_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.favorite_contacts
+    ADD CONSTRAINT favorite_contacts_contact_id_user_id_key UNIQUE (contact_id, user_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con277$;
@@ -52571,8 +52560,8 @@ $con277$;
 
 DO $con278$
 BEGIN
-  ALTER TABLE ONLY zapp.extensions
-    ADD CONSTRAINT extensions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.favorite_contacts
+    ADD CONSTRAINT favorite_contacts_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con278$;
@@ -52582,8 +52571,8 @@ $con278$;
 
 DO $con279$
 BEGIN
-  ALTER TABLE ONLY zapp.failed_messages
-    ADD CONSTRAINT failed_messages_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.favorite_messages
+    ADD CONSTRAINT favorite_messages_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con279$;
@@ -52593,8 +52582,8 @@ $con279$;
 
 DO $con280$
 BEGIN
-  ALTER TABLE ONLY zapp.favorite_contacts
-    ADD CONSTRAINT favorite_contacts_contact_id_user_id_key UNIQUE (contact_id, user_id);
+  ALTER TABLE ONLY zapp.favorite_messages
+    ADD CONSTRAINT favorite_messages_user_message_key UNIQUE (user_id, message_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con280$;
@@ -52604,8 +52593,8 @@ $con280$;
 
 DO $con281$
 BEGIN
-  ALTER TABLE ONLY zapp.favorite_contacts
-    ADD CONSTRAINT favorite_contacts_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.feature_flags
+    ADD CONSTRAINT feature_flags_pkey PRIMARY KEY (key);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con281$;
@@ -52615,8 +52604,8 @@ $con281$;
 
 DO $con282$
 BEGIN
-  ALTER TABLE ONLY zapp.favorite_messages
-    ADD CONSTRAINT favorite_messages_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.file_scan_logs
+    ADD CONSTRAINT file_scan_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con282$;
@@ -52626,8 +52615,8 @@ $con282$;
 
 DO $con283$
 BEGIN
-  ALTER TABLE ONLY zapp.favorite_messages
-    ADD CONSTRAINT favorite_messages_user_message_key UNIQUE (user_id, message_id);
+  ALTER TABLE ONLY zapp.finetune_jobs
+    ADD CONSTRAINT finetune_jobs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con283$;
@@ -52637,8 +52626,8 @@ $con283$;
 
 DO $con284$
 BEGIN
-  ALTER TABLE ONLY zapp.feature_flags
-    ADD CONSTRAINT feature_flags_pkey PRIMARY KEY (key);
+  ALTER TABLE ONLY zapp.fn_health_score_cache
+    ADD CONSTRAINT fn_health_score_cache_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con284$;
@@ -52648,8 +52637,8 @@ $con284$;
 
 DO $con285$
 BEGIN
-  ALTER TABLE ONLY zapp.file_scan_logs
-    ADD CONSTRAINT file_scan_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.fn_health_score_history
+    ADD CONSTRAINT fn_health_score_history_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con285$;
@@ -52659,8 +52648,8 @@ $con285$;
 
 DO $con286$
 BEGIN
-  ALTER TABLE ONLY zapp.finetune_jobs
-    ADD CONSTRAINT finetune_jobs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.followup_executions
+    ADD CONSTRAINT followup_executions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con286$;
@@ -52670,8 +52659,8 @@ $con286$;
 
 DO $con287$
 BEGIN
-  ALTER TABLE ONLY zapp.fn_health_score_cache
-    ADD CONSTRAINT fn_health_score_cache_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.followup_sequences
+    ADD CONSTRAINT followup_sequences_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con287$;
@@ -52681,8 +52670,8 @@ $con287$;
 
 DO $con288$
 BEGIN
-  ALTER TABLE ONLY zapp.fn_health_score_history
-    ADD CONSTRAINT fn_health_score_history_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.followup_steps
+    ADD CONSTRAINT followup_steps_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con288$;
@@ -52692,8 +52681,8 @@ $con288$;
 
 DO $con289$
 BEGIN
-  ALTER TABLE ONLY zapp.followup_executions
-    ADD CONSTRAINT followup_executions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.forensic_snapshots
+    ADD CONSTRAINT forensic_snapshots_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con289$;
@@ -52703,8 +52692,8 @@ $con289$;
 
 DO $con290$
 BEGIN
-  ALTER TABLE ONLY zapp.followup_sequences
-    ADD CONSTRAINT followup_sequences_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.forwarded_messages
+    ADD CONSTRAINT forwarded_messages_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con290$;
@@ -52714,8 +52703,8 @@ $con290$;
 
 DO $con291$
 BEGIN
-  ALTER TABLE ONLY zapp.followup_steps
-    ADD CONSTRAINT followup_steps_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.geo_blocking_settings
+    ADD CONSTRAINT geo_blocking_settings_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con291$;
@@ -52725,8 +52714,8 @@ $con291$;
 
 DO $con292$
 BEGIN
-  ALTER TABLE ONLY zapp.forensic_snapshots
-    ADD CONSTRAINT forensic_snapshots_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.global_settings
+    ADD CONSTRAINT global_settings_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con292$;
@@ -52736,8 +52725,8 @@ $con292$;
 
 DO $con293$
 BEGIN
-  ALTER TABLE ONLY zapp.forwarded_messages
-    ADD CONSTRAINT forwarded_messages_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.goals_configurations
+    ADD CONSTRAINT goals_configurations_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con293$;
@@ -52747,8 +52736,8 @@ $con293$;
 
 DO $con294$
 BEGIN
-  ALTER TABLE ONLY zapp.geo_blocking_settings
-    ADD CONSTRAINT geo_blocking_settings_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.goals_configurations
+    ADD CONSTRAINT goals_configurations_profile_id_goal_type_key UNIQUE (profile_id, goal_type);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con294$;
@@ -52758,8 +52747,8 @@ $con294$;
 
 DO $con295$
 BEGIN
-  ALTER TABLE ONLY zapp.global_settings
-    ADD CONSTRAINT global_settings_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.goals_configurations
+    ADD CONSTRAINT goals_configurations_queue_id_goal_type_key UNIQUE (queue_id, goal_type);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con295$;
@@ -52769,8 +52758,8 @@ $con295$;
 
 DO $con296$
 BEGIN
-  ALTER TABLE ONLY zapp.goals_configurations
-    ADD CONSTRAINT goals_configurations_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.google_calendar_config
+    ADD CONSTRAINT google_calendar_config_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con296$;
@@ -52780,8 +52769,8 @@ $con296$;
 
 DO $con297$
 BEGIN
-  ALTER TABLE ONLY zapp.goals_configurations
-    ADD CONSTRAINT goals_configurations_profile_id_goal_type_key UNIQUE (profile_id, goal_type);
+  ALTER TABLE ONLY zapp.hmac_selftest_audit
+    ADD CONSTRAINT hmac_selftest_audit_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con297$;
@@ -52791,8 +52780,8 @@ $con297$;
 
 DO $con298$
 BEGIN
-  ALTER TABLE ONLY zapp.goals_configurations
-    ADD CONSTRAINT goals_configurations_queue_id_goal_type_key UNIQUE (queue_id, goal_type);
+  ALTER TABLE ONLY zapp.inbox_custom_scopes
+    ADD CONSTRAINT inbox_custom_scopes_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con298$;
@@ -52802,8 +52791,8 @@ $con298$;
 
 DO $con299$
 BEGIN
-  ALTER TABLE ONLY zapp.google_calendar_config
-    ADD CONSTRAINT google_calendar_config_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.installed_templates
+    ADD CONSTRAINT installed_templates_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con299$;
@@ -52813,8 +52802,8 @@ $con299$;
 
 DO $con300$
 BEGIN
-  ALTER TABLE ONLY zapp.hmac_selftest_audit
-    ADD CONSTRAINT hmac_selftest_audit_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.instance_auth_events
+    ADD CONSTRAINT instance_auth_events_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con300$;
@@ -52824,8 +52813,8 @@ $con300$;
 
 DO $con301$
 BEGIN
-  ALTER TABLE ONLY zapp.inbox_custom_scopes
-    ADD CONSTRAINT inbox_custom_scopes_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.instance_processing_pauses
+    ADD CONSTRAINT instance_processing_pauses_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con301$;
@@ -52835,8 +52824,8 @@ $con301$;
 
 DO $con302$
 BEGIN
-  ALTER TABLE ONLY zapp.installed_templates
-    ADD CONSTRAINT installed_templates_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.instance_registry
+    ADD CONSTRAINT instance_registry_instance_name_key UNIQUE (instance_name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con302$;
@@ -52846,8 +52835,8 @@ $con302$;
 
 DO $con303$
 BEGIN
-  ALTER TABLE ONLY zapp.instance_auth_events
-    ADD CONSTRAINT instance_auth_events_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.instance_registry
+    ADD CONSTRAINT instance_registry_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con303$;
@@ -52857,8 +52846,8 @@ $con303$;
 
 DO $con304$
 BEGIN
-  ALTER TABLE ONLY zapp.instance_processing_pauses
-    ADD CONSTRAINT instance_processing_pauses_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.integration_profiles
+    ADD CONSTRAINT integration_profiles_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con304$;
@@ -52868,8 +52857,8 @@ $con304$;
 
 DO $con305$
 BEGIN
-  ALTER TABLE ONLY zapp.instance_registry
-    ADD CONSTRAINT instance_registry_instance_name_key UNIQUE (instance_name);
+  ALTER TABLE ONLY zapp.integration_registry
+    ADD CONSTRAINT integration_registry_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con305$;
@@ -52879,8 +52868,8 @@ $con305$;
 
 DO $con306$
 BEGIN
-  ALTER TABLE ONLY zapp.instance_registry
-    ADD CONSTRAINT instance_registry_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.integrations
+    ADD CONSTRAINT integrations_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con306$;
@@ -52890,8 +52879,8 @@ $con306$;
 
 DO $con307$
 BEGIN
-  ALTER TABLE ONLY zapp.integration_profiles
-    ADD CONSTRAINT integration_profiles_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.interactions
+    ADD CONSTRAINT interactions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con307$;
@@ -52901,8 +52890,8 @@ $con307$;
 
 DO $con308$
 BEGIN
-  ALTER TABLE ONLY zapp.integration_registry
-    ADD CONSTRAINT integration_registry_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.invites
+    ADD CONSTRAINT invites_email_key UNIQUE (email);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con308$;
@@ -52912,8 +52901,8 @@ $con308$;
 
 DO $con309$
 BEGIN
-  ALTER TABLE ONLY zapp.integrations
-    ADD CONSTRAINT integrations_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.invites
+    ADD CONSTRAINT invites_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con309$;
@@ -52923,8 +52912,8 @@ $con309$;
 
 DO $con310$
 BEGIN
-  ALTER TABLE ONLY zapp.interactions
-    ADD CONSTRAINT interactions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.ip_whitelist
+    ADD CONSTRAINT ip_whitelist_ip_address_key UNIQUE (ip_address);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con310$;
@@ -52934,8 +52923,8 @@ $con310$;
 
 DO $con311$
 BEGIN
-  ALTER TABLE ONLY zapp.invites
-    ADD CONSTRAINT invites_email_key UNIQUE (email);
+  ALTER TABLE ONLY zapp.ip_whitelist
+    ADD CONSTRAINT ip_whitelist_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con311$;
@@ -52945,8 +52934,8 @@ $con311$;
 
 DO $con312$
 BEGIN
-  ALTER TABLE ONLY zapp.invites
-    ADD CONSTRAINT invites_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.lgpd_consent_audit_archive
+    ADD CONSTRAINT lgpd_consent_audit_archive_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con312$;
@@ -52956,8 +52945,8 @@ $con312$;
 
 DO $con313$
 BEGIN
-  ALTER TABLE ONLY zapp.ip_whitelist
-    ADD CONSTRAINT ip_whitelist_ip_address_key UNIQUE (ip_address);
+  ALTER TABLE ONLY zapp.lgpd_consent_audit
+    ADD CONSTRAINT lgpd_consent_audit_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con313$;
@@ -52967,8 +52956,8 @@ $con313$;
 
 DO $con314$
 BEGIN
-  ALTER TABLE ONLY zapp.ip_whitelist
-    ADD CONSTRAINT ip_whitelist_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.license_heartbeat_log
+    ADD CONSTRAINT license_heartbeat_log_pkey PRIMARY KEY (checked_at);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con314$;
@@ -52978,8 +52967,8 @@ $con314$;
 
 DO $con315$
 BEGIN
-  ALTER TABLE ONLY zapp.lgpd_consent_audit_archive
-    ADD CONSTRAINT lgpd_consent_audit_archive_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.login_attempts
+    ADD CONSTRAINT login_attempts_email_unique UNIQUE (email);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con315$;
@@ -52989,8 +52978,8 @@ $con315$;
 
 DO $con316$
 BEGIN
-  ALTER TABLE ONLY zapp.lgpd_consent_audit
-    ADD CONSTRAINT lgpd_consent_audit_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.login_attempts
+    ADD CONSTRAINT login_attempts_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con316$;
@@ -53000,8 +52989,8 @@ $con316$;
 
 DO $con317$
 BEGIN
-  ALTER TABLE ONLY zapp.license_heartbeat_log
-    ADD CONSTRAINT license_heartbeat_log_pkey PRIMARY KEY (checked_at);
+  ALTER TABLE ONLY zapp.lux_system_alerts
+    ADD CONSTRAINT lux_system_alerts_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con317$;
@@ -53011,8 +53000,8 @@ $con317$;
 
 DO $con318$
 BEGIN
-  ALTER TABLE ONLY zapp.login_attempts
-    ADD CONSTRAINT login_attempts_email_unique UNIQUE (email);
+  ALTER TABLE ONLY zapp.message_attempts
+    ADD CONSTRAINT message_attempts_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con318$;
@@ -53022,8 +53011,8 @@ $con318$;
 
 DO $con319$
 BEGIN
-  ALTER TABLE ONLY zapp.login_attempts
-    ADD CONSTRAINT login_attempts_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.message_audit_log
+    ADD CONSTRAINT message_audit_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con319$;
@@ -53033,8 +53022,8 @@ $con319$;
 
 DO $con320$
 BEGIN
-  ALTER TABLE ONLY zapp.lux_system_alerts
-    ADD CONSTRAINT lux_system_alerts_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.message_queue
+    ADD CONSTRAINT message_queue_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con320$;
@@ -53044,8 +53033,8 @@ $con320$;
 
 DO $con321$
 BEGIN
-  ALTER TABLE ONLY zapp.message_attempts
-    ADD CONSTRAINT message_attempts_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.message_reactions
+    ADD CONSTRAINT message_reactions_message_id_contact_id_emoji_key UNIQUE (message_id, contact_id, emoji);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con321$;
@@ -53055,8 +53044,8 @@ $con321$;
 
 DO $con322$
 BEGIN
-  ALTER TABLE ONLY zapp.message_audit_log
-    ADD CONSTRAINT message_audit_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.message_reactions
+    ADD CONSTRAINT message_reactions_message_id_user_id_emoji_key UNIQUE (message_id, user_id, emoji);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con322$;
@@ -53066,8 +53055,8 @@ $con322$;
 
 DO $con323$
 BEGIN
-  ALTER TABLE ONLY zapp.message_queue
-    ADD CONSTRAINT message_queue_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.message_reactions
+    ADD CONSTRAINT message_reactions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con323$;
@@ -53077,8 +53066,8 @@ $con323$;
 
 DO $con324$
 BEGIN
-  ALTER TABLE ONLY zapp.message_reactions
-    ADD CONSTRAINT message_reactions_message_id_contact_id_emoji_key UNIQUE (message_id, contact_id, emoji);
+  ALTER TABLE ONLY zapp.message_reports
+    ADD CONSTRAINT message_reports_message_reporter_key UNIQUE (message_id, reporter_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con324$;
@@ -53088,8 +53077,8 @@ $con324$;
 
 DO $con325$
 BEGIN
-  ALTER TABLE ONLY zapp.message_reactions
-    ADD CONSTRAINT message_reactions_message_id_user_id_emoji_key UNIQUE (message_id, user_id, emoji);
+  ALTER TABLE ONLY zapp.message_reports
+    ADD CONSTRAINT message_reports_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con325$;
@@ -53099,8 +53088,8 @@ $con325$;
 
 DO $con326$
 BEGIN
-  ALTER TABLE ONLY zapp.message_reactions
-    ADD CONSTRAINT message_reactions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.message_templates
+    ADD CONSTRAINT message_templates_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con326$;
@@ -53110,8 +53099,8 @@ $con326$;
 
 DO $con327$
 BEGIN
-  ALTER TABLE ONLY zapp.message_reports
-    ADD CONSTRAINT message_reports_message_reporter_key UNIQUE (message_id, reporter_id);
+  ALTER TABLE ONLY zapp.mfa_sessions
+    ADD CONSTRAINT mfa_sessions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con327$;
@@ -53121,8 +53110,8 @@ $con327$;
 
 DO $con328$
 BEGIN
-  ALTER TABLE ONLY zapp.message_reports
-    ADD CONSTRAINT message_reports_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.migration_audit
+    ADD CONSTRAINT migration_audit_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con328$;
@@ -53132,8 +53121,8 @@ $con328$;
 
 DO $con329$
 BEGIN
-  ALTER TABLE ONLY zapp.message_templates
-    ADD CONSTRAINT message_templates_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.n8n_config
+    ADD CONSTRAINT n8n_config_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con329$;
@@ -53143,8 +53132,8 @@ $con329$;
 
 DO $con330$
 BEGIN
-  ALTER TABLE ONLY zapp.mfa_sessions
-    ADD CONSTRAINT mfa_sessions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.n8n_variables
+    ADD CONSTRAINT n8n_variables_key_key UNIQUE (key);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con330$;
@@ -53154,8 +53143,8 @@ $con330$;
 
 DO $con331$
 BEGIN
-  ALTER TABLE ONLY zapp.migration_audit
-    ADD CONSTRAINT migration_audit_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.n8n_variables
+    ADD CONSTRAINT n8n_variables_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con331$;
@@ -53165,8 +53154,8 @@ $con331$;
 
 DO $con332$
 BEGIN
-  ALTER TABLE ONLY zapp.n8n_config
-    ADD CONSTRAINT n8n_config_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.notification_channels_config
+    ADD CONSTRAINT notification_channels_config_channel_name_key UNIQUE (channel_name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con332$;
@@ -53176,8 +53165,8 @@ $con332$;
 
 DO $con333$
 BEGIN
-  ALTER TABLE ONLY zapp.n8n_variables
-    ADD CONSTRAINT n8n_variables_key_key UNIQUE (key);
+  ALTER TABLE ONLY zapp.notification_channels_config
+    ADD CONSTRAINT notification_channels_config_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con333$;
@@ -53187,8 +53176,8 @@ $con333$;
 
 DO $con334$
 BEGIN
-  ALTER TABLE ONLY zapp.n8n_variables
-    ADD CONSTRAINT n8n_variables_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.notification_delivery_log
+    ADD CONSTRAINT notification_delivery_log_event_channel_uniq UNIQUE (event_key, channel_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con334$;
@@ -53198,8 +53187,8 @@ $con334$;
 
 DO $con335$
 BEGIN
-  ALTER TABLE ONLY zapp.notification_channels_config
-    ADD CONSTRAINT notification_channels_config_channel_name_key UNIQUE (channel_name);
+  ALTER TABLE ONLY zapp.notification_delivery_log
+    ADD CONSTRAINT notification_delivery_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con335$;
@@ -53209,8 +53198,8 @@ $con335$;
 
 DO $con336$
 BEGIN
-  ALTER TABLE ONLY zapp.notification_channels_config
-    ADD CONSTRAINT notification_channels_config_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.notification_templates
+    ADD CONSTRAINT notification_templates_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con336$;
@@ -53220,8 +53209,8 @@ $con336$;
 
 DO $con337$
 BEGIN
-  ALTER TABLE ONLY zapp.notification_delivery_log
-    ADD CONSTRAINT notification_delivery_log_event_channel_uniq UNIQUE (event_key, channel_id);
+  ALTER TABLE ONLY zapp.notifications
+    ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con337$;
@@ -53231,8 +53220,8 @@ $con337$;
 
 DO $con338$
 BEGIN
-  ALTER TABLE ONLY zapp.notification_delivery_log
-    ADD CONSTRAINT notification_delivery_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.number_reputation
+    ADD CONSTRAINT number_reputation_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con338$;
@@ -53242,8 +53231,8 @@ $con338$;
 
 DO $con339$
 BEGIN
-  ALTER TABLE ONLY zapp.notification_templates
-    ADD CONSTRAINT notification_templates_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.number_reputation
+    ADD CONSTRAINT number_reputation_whatsapp_connection_id_key UNIQUE (whatsapp_connection_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con339$;
@@ -53253,8 +53242,8 @@ $con339$;
 
 DO $con340$
 BEGIN
-  ALTER TABLE ONLY zapp.notifications
-    ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.onboarding_steps
+    ADD CONSTRAINT onboarding_steps_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con340$;
@@ -53264,8 +53253,8 @@ $con340$;
 
 DO $con341$
 BEGIN
-  ALTER TABLE ONLY zapp.number_reputation
-    ADD CONSTRAINT number_reputation_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.outbound_delivery_audit
+    ADD CONSTRAINT outbound_delivery_audit_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con341$;
@@ -53275,8 +53264,8 @@ $con341$;
 
 DO $con342$
 BEGIN
-  ALTER TABLE ONLY zapp.number_reputation
-    ADD CONSTRAINT number_reputation_whatsapp_connection_id_key UNIQUE (whatsapp_connection_id);
+  ALTER TABLE ONLY zapp.outbound_message_queue
+    ADD CONSTRAINT outbound_message_queue_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con342$;
@@ -53286,8 +53275,8 @@ $con342$;
 
 DO $con343$
 BEGIN
-  ALTER TABLE ONLY zapp.onboarding_steps
-    ADD CONSTRAINT onboarding_steps_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.outbox_events
+    ADD CONSTRAINT outbox_events_idempotency_key_key UNIQUE (idempotency_key);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con343$;
@@ -53297,8 +53286,8 @@ $con343$;
 
 DO $con344$
 BEGIN
-  ALTER TABLE ONLY zapp.outbound_delivery_audit
-    ADD CONSTRAINT outbound_delivery_audit_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.outbox_events
+    ADD CONSTRAINT outbox_events_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con344$;
@@ -53308,8 +53297,8 @@ $con344$;
 
 DO $con345$
 BEGIN
-  ALTER TABLE ONLY zapp.outbound_message_queue
-    ADD CONSTRAINT outbound_message_queue_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.passkey_credentials
+    ADD CONSTRAINT passkey_credentials_credential_id_key UNIQUE (credential_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con345$;
@@ -53319,8 +53308,8 @@ $con345$;
 
 DO $con346$
 BEGIN
-  ALTER TABLE ONLY zapp.outbox_events
-    ADD CONSTRAINT outbox_events_idempotency_key_key UNIQUE (idempotency_key);
+  ALTER TABLE ONLY zapp.passkey_credentials
+    ADD CONSTRAINT passkey_credentials_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con346$;
@@ -53330,8 +53319,8 @@ $con346$;
 
 DO $con347$
 BEGIN
-  ALTER TABLE ONLY zapp.outbox_events
-    ADD CONSTRAINT outbox_events_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.password_reset_requests
+    ADD CONSTRAINT password_reset_requests_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con347$;
@@ -53341,8 +53330,8 @@ $con347$;
 
 DO $con348$
 BEGIN
-  ALTER TABLE ONLY zapp.passkey_credentials
-    ADD CONSTRAINT passkey_credentials_credential_id_key UNIQUE (credential_id);
+  ALTER TABLE ONLY zapp.password_reset_tokens
+    ADD CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con348$;
@@ -53352,8 +53341,8 @@ $con348$;
 
 DO $con349$
 BEGIN
-  ALTER TABLE ONLY zapp.passkey_credentials
-    ADD CONSTRAINT passkey_credentials_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.perfis_usuarios
+    ADD CONSTRAINT perfis_usuarios_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con349$;
@@ -53363,8 +53352,8 @@ $con349$;
 
 DO $con350$
 BEGIN
-  ALTER TABLE ONLY zapp.password_reset_requests
-    ADD CONSTRAINT password_reset_requests_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.performance_snapshots
+    ADD CONSTRAINT performance_snapshots_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con350$;
@@ -53374,8 +53363,8 @@ $con350$;
 
 DO $con351$
 BEGIN
-  ALTER TABLE ONLY zapp.password_reset_tokens
-    ADD CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.permissions
+    ADD CONSTRAINT permissions_key_key UNIQUE (key);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con351$;
@@ -53385,8 +53374,8 @@ $con351$;
 
 DO $con352$
 BEGIN
-  ALTER TABLE ONLY zapp.perfis_usuarios
-    ADD CONSTRAINT perfis_usuarios_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.permissions
+    ADD CONSTRAINT permissions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con352$;
@@ -53396,8 +53385,8 @@ $con352$;
 
 DO $con353$
 BEGIN
-  ALTER TABLE ONLY zapp.performance_snapshots
-    ADD CONSTRAINT performance_snapshots_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.personal_stickers
+    ADD CONSTRAINT personal_stickers_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con353$;
@@ -53407,8 +53396,8 @@ $con353$;
 
 DO $con354$
 BEGIN
-  ALTER TABLE ONLY zapp.permissions
-    ADD CONSTRAINT permissions_key_key UNIQUE (key);
+  ALTER TABLE ONLY zapp.pii_access_log
+    ADD CONSTRAINT pii_access_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con354$;
@@ -53418,8 +53407,8 @@ $con354$;
 
 DO $con355$
 BEGIN
-  ALTER TABLE ONLY zapp.permissions
-    ADD CONSTRAINT permissions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.pinned_conversations
+    ADD CONSTRAINT pinned_conversations_contact_id_pinned_by_key UNIQUE (contact_id, pinned_by);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con355$;
@@ -53429,8 +53418,8 @@ $con355$;
 
 DO $con356$
 BEGIN
-  ALTER TABLE ONLY zapp.personal_stickers
-    ADD CONSTRAINT personal_stickers_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.pinned_conversations
+    ADD CONSTRAINT pinned_conversations_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con356$;
@@ -53440,8 +53429,8 @@ $con356$;
 
 DO $con357$
 BEGIN
-  ALTER TABLE ONLY zapp.pii_access_log
-    ADD CONSTRAINT pii_access_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.pinned_messages
+    ADD CONSTRAINT pinned_messages_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con357$;
@@ -53451,8 +53440,8 @@ $con357$;
 
 DO $con358$
 BEGIN
-  ALTER TABLE ONLY zapp.pinned_conversations
-    ADD CONSTRAINT pinned_conversations_contact_id_pinned_by_key UNIQUE (contact_id, pinned_by);
+  ALTER TABLE ONLY zapp.pinned_messages
+    ADD CONSTRAINT pinned_messages_user_message_key UNIQUE (pinned_by, message_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con358$;
@@ -53462,8 +53451,8 @@ $con358$;
 
 DO $con359$
 BEGIN
-  ALTER TABLE ONLY zapp.pinned_conversations
-    ADD CONSTRAINT pinned_conversations_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.processed_requests
+    ADD CONSTRAINT processed_requests_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con359$;
@@ -53473,8 +53462,8 @@ $con359$;
 
 DO $con360$
 BEGIN
-  ALTER TABLE ONLY zapp.pinned_messages
-    ADD CONSTRAINT pinned_messages_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.processed_requests
+    ADD CONSTRAINT processed_requests_request_id_action_key UNIQUE (request_id, action);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con360$;
@@ -53484,8 +53473,8 @@ $con360$;
 
 DO $con361$
 BEGIN
-  ALTER TABLE ONLY zapp.pinned_messages
-    ADD CONSTRAINT pinned_messages_user_message_key UNIQUE (pinned_by, message_id);
+  ALTER TABLE ONLY zapp.processed_webhook_events
+    ADD CONSTRAINT processed_webhook_events_pkey PRIMARY KEY (event_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con361$;
@@ -53495,8 +53484,8 @@ $con361$;
 
 DO $con362$
 BEGIN
-  ALTER TABLE ONLY zapp.processed_requests
-    ADD CONSTRAINT processed_requests_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.profiles
+    ADD CONSTRAINT profiles_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con362$;
@@ -53506,8 +53495,8 @@ $con362$;
 
 DO $con363$
 BEGIN
-  ALTER TABLE ONLY zapp.processed_requests
-    ADD CONSTRAINT processed_requests_request_id_action_key UNIQUE (request_id, action);
+  ALTER TABLE ONLY zapp.profiles
+    ADD CONSTRAINT profiles_user_id_key UNIQUE (user_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con363$;
@@ -53517,8 +53506,8 @@ $con363$;
 
 DO $con364$
 BEGIN
-  ALTER TABLE ONLY zapp.processed_webhook_events
-    ADD CONSTRAINT processed_webhook_events_pkey PRIMARY KEY (event_id);
+  ALTER TABLE ONLY zapp.provider_configs
+    ADD CONSTRAINT provider_configs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con364$;
@@ -53528,8 +53517,8 @@ $con364$;
 
 DO $con365$
 BEGIN
-  ALTER TABLE ONLY zapp.profiles
-    ADD CONSTRAINT profiles_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.provider_message_log
+    ADD CONSTRAINT provider_message_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con365$;
@@ -53539,8 +53528,8 @@ $con365$;
 
 DO $con366$
 BEGIN
-  ALTER TABLE ONLY zapp.profiles
-    ADD CONSTRAINT profiles_user_id_key UNIQUE (user_id);
+  ALTER TABLE ONLY zapp.provider_session_logs
+    ADD CONSTRAINT provider_session_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con366$;
@@ -53550,8 +53539,8 @@ $con366$;
 
 DO $con367$
 BEGIN
-  ALTER TABLE ONLY zapp.provider_configs
-    ADD CONSTRAINT provider_configs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.provider_sessions
+    ADD CONSTRAINT provider_sessions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con367$;
@@ -53561,8 +53550,8 @@ $con367$;
 
 DO $con368$
 BEGIN
-  ALTER TABLE ONLY zapp.provider_message_log
-    ADD CONSTRAINT provider_message_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.qr_attempts
+    ADD CONSTRAINT qr_attempts_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con368$;
@@ -53572,8 +53561,8 @@ $con368$;
 
 DO $con369$
 BEGIN
-  ALTER TABLE ONLY zapp.provider_session_logs
-    ADD CONSTRAINT provider_session_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.query_telemetry
+    ADD CONSTRAINT query_telemetry_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con369$;
@@ -53583,8 +53572,8 @@ $con369$;
 
 DO $con370$
 BEGIN
-  ALTER TABLE ONLY zapp.provider_sessions
-    ADD CONSTRAINT provider_sessions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.queue_analytics
+    ADD CONSTRAINT queue_analytics_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con370$;
@@ -53594,8 +53583,8 @@ $con370$;
 
 DO $con371$
 BEGIN
-  ALTER TABLE ONLY zapp.qr_attempts
-    ADD CONSTRAINT qr_attempts_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.queue_goals
+    ADD CONSTRAINT queue_goals_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con371$;
@@ -53605,8 +53594,8 @@ $con371$;
 
 DO $con372$
 BEGIN
-  ALTER TABLE ONLY zapp.query_telemetry
-    ADD CONSTRAINT query_telemetry_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.queue_goals
+    ADD CONSTRAINT queue_goals_queue_id_key UNIQUE (queue_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con372$;
@@ -53616,8 +53605,8 @@ $con372$;
 
 DO $con373$
 BEGIN
-  ALTER TABLE ONLY zapp.queue_analytics
-    ADD CONSTRAINT queue_analytics_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.queue_items
+    ADD CONSTRAINT queue_items_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con373$;
@@ -53627,8 +53616,8 @@ $con373$;
 
 DO $con374$
 BEGIN
-  ALTER TABLE ONLY zapp.queue_goals
-    ADD CONSTRAINT queue_goals_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.queue_members
+    ADD CONSTRAINT queue_members_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con374$;
@@ -53638,8 +53627,8 @@ $con374$;
 
 DO $con375$
 BEGIN
-  ALTER TABLE ONLY zapp.queue_goals
-    ADD CONSTRAINT queue_goals_queue_id_key UNIQUE (queue_id);
+  ALTER TABLE ONLY zapp.queue_members
+    ADD CONSTRAINT queue_members_queue_id_profile_id_key UNIQUE (queue_id, profile_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con375$;
@@ -53649,8 +53638,8 @@ $con375$;
 
 DO $con376$
 BEGIN
-  ALTER TABLE ONLY zapp.queue_items
-    ADD CONSTRAINT queue_items_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.queue_positions
+    ADD CONSTRAINT queue_positions_contact_uniq UNIQUE (contact_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con376$;
@@ -53660,8 +53649,8 @@ $con376$;
 
 DO $con377$
 BEGIN
-  ALTER TABLE ONLY zapp.queue_members
-    ADD CONSTRAINT queue_members_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.queue_positions
+    ADD CONSTRAINT queue_positions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con377$;
@@ -53671,8 +53660,8 @@ $con377$;
 
 DO $con378$
 BEGIN
-  ALTER TABLE ONLY zapp.queue_members
-    ADD CONSTRAINT queue_members_queue_id_profile_id_key UNIQUE (queue_id, profile_id);
+  ALTER TABLE ONLY zapp.queue_routing_rules
+    ADD CONSTRAINT queue_routing_rules_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con378$;
@@ -53682,8 +53671,8 @@ $con378$;
 
 DO $con379$
 BEGIN
-  ALTER TABLE ONLY zapp.queue_positions
-    ADD CONSTRAINT queue_positions_contact_uniq UNIQUE (contact_id);
+  ALTER TABLE ONLY zapp.queue_skill_requirements
+    ADD CONSTRAINT queue_skill_requirements_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con379$;
@@ -53693,8 +53682,8 @@ $con379$;
 
 DO $con380$
 BEGIN
-  ALTER TABLE ONLY zapp.queue_positions
-    ADD CONSTRAINT queue_positions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.queue_skill_requirements
+    ADD CONSTRAINT queue_skill_requirements_queue_id_skill_name_key UNIQUE (queue_id, skill_name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con380$;
@@ -53704,8 +53693,8 @@ $con380$;
 
 DO $con381$
 BEGIN
-  ALTER TABLE ONLY zapp.queue_routing_rules
-    ADD CONSTRAINT queue_routing_rules_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.queues
+    ADD CONSTRAINT queues_name_key UNIQUE (name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con381$;
@@ -53715,8 +53704,8 @@ $con381$;
 
 DO $con382$
 BEGIN
-  ALTER TABLE ONLY zapp.queue_skill_requirements
-    ADD CONSTRAINT queue_skill_requirements_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.queues
+    ADD CONSTRAINT queues_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con382$;
@@ -53726,8 +53715,8 @@ $con382$;
 
 DO $con383$
 BEGIN
-  ALTER TABLE ONLY zapp.queue_skill_requirements
-    ADD CONSTRAINT queue_skill_requirements_queue_id_skill_name_key UNIQUE (queue_id, skill_name);
+  ALTER TABLE ONLY zapp.quick_replies
+    ADD CONSTRAINT quick_replies_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con383$;
@@ -53737,8 +53726,8 @@ $con383$;
 
 DO $con384$
 BEGIN
-  ALTER TABLE ONLY zapp.queues
-    ADD CONSTRAINT queues_name_key UNIQUE (name);
+  ALTER TABLE ONLY zapp.quick_replies
+    ADD CONSTRAINT quick_replies_shortcut_key UNIQUE (shortcut);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con384$;
@@ -53748,8 +53737,8 @@ $con384$;
 
 DO $con385$
 BEGIN
-  ALTER TABLE ONLY zapp.queues
-    ADD CONSTRAINT queues_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.rate_limit_configs
+    ADD CONSTRAINT rate_limit_configs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con385$;
@@ -53759,8 +53748,8 @@ $con385$;
 
 DO $con386$
 BEGIN
-  ALTER TABLE ONLY zapp.quick_replies
-    ADD CONSTRAINT quick_replies_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.rate_limit_logs
+    ADD CONSTRAINT rate_limit_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con386$;
@@ -53770,8 +53759,8 @@ $con386$;
 
 DO $con387$
 BEGIN
-  ALTER TABLE ONLY zapp.quick_replies
-    ADD CONSTRAINT quick_replies_shortcut_key UNIQUE (shortcut);
+  ALTER TABLE ONLY zapp.realtime_message_fanout
+    ADD CONSTRAINT realtime_message_fanout_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con387$;
@@ -53781,8 +53770,8 @@ $con387$;
 
 DO $con388$
 BEGIN
-  ALTER TABLE ONLY zapp.rate_limit_configs
-    ADD CONSTRAINT rate_limit_configs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.reconnection_logs
+    ADD CONSTRAINT reconnection_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con388$;
@@ -53792,8 +53781,8 @@ $con388$;
 
 DO $con389$
 BEGIN
-  ALTER TABLE ONLY zapp.rate_limit_logs
-    ADD CONSTRAINT rate_limit_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.reminders
+    ADD CONSTRAINT reminders_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con389$;
@@ -53803,8 +53792,8 @@ $con389$;
 
 DO $con390$
 BEGIN
-  ALTER TABLE ONLY zapp.realtime_message_fanout
-    ADD CONSTRAINT realtime_message_fanout_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.reprocess_jobs
+    ADD CONSTRAINT reprocess_jobs_idempotency_key_key UNIQUE (idempotency_key);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con390$;
@@ -53814,8 +53803,8 @@ $con390$;
 
 DO $con391$
 BEGIN
-  ALTER TABLE ONLY zapp.reconnection_logs
-    ADD CONSTRAINT reconnection_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.reprocess_jobs
+    ADD CONSTRAINT reprocess_jobs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con391$;
@@ -53825,8 +53814,8 @@ $con391$;
 
 DO $con392$
 BEGIN
-  ALTER TABLE ONLY zapp.reminders
-    ADD CONSTRAINT reminders_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.restore_test_log
+    ADD CONSTRAINT restore_test_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con392$;
@@ -53836,8 +53825,8 @@ $con392$;
 
 DO $con393$
 BEGIN
-  ALTER TABLE ONLY zapp.reprocess_jobs
-    ADD CONSTRAINT reprocess_jobs_idempotency_key_key UNIQUE (idempotency_key);
+  ALTER TABLE ONLY zapp.rls_denied_log
+    ADD CONSTRAINT rls_denied_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con393$;
@@ -53847,8 +53836,8 @@ $con393$;
 
 DO $con394$
 BEGIN
-  ALTER TABLE ONLY zapp.reprocess_jobs
-    ADD CONSTRAINT reprocess_jobs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.role_permissions
+    ADD CONSTRAINT role_permissions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con394$;
@@ -53858,8 +53847,8 @@ $con394$;
 
 DO $con395$
 BEGIN
-  ALTER TABLE ONLY zapp.restore_test_log
-    ADD CONSTRAINT restore_test_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.role_permissions
+    ADD CONSTRAINT role_permissions_role_id_permission_id_key UNIQUE (role_id, permission_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con395$;
@@ -53869,8 +53858,8 @@ $con395$;
 
 DO $con396$
 BEGIN
-  ALTER TABLE ONLY zapp.rls_denied_log
-    ADD CONSTRAINT rls_denied_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.role_permissions
+    ADD CONSTRAINT role_permissions_role_permission_id_key UNIQUE (role, permission_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con396$;
@@ -53880,8 +53869,8 @@ $con396$;
 
 DO $con397$
 BEGIN
-  ALTER TABLE ONLY zapp.role_permissions
-    ADD CONSTRAINT role_permissions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.roles
+    ADD CONSTRAINT roles_key_key UNIQUE (key);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con397$;
@@ -53891,8 +53880,8 @@ $con397$;
 
 DO $con398$
 BEGIN
-  ALTER TABLE ONLY zapp.role_permissions
-    ADD CONSTRAINT role_permissions_role_id_permission_id_key UNIQUE (role_id, permission_id);
+  ALTER TABLE ONLY zapp.roles
+    ADD CONSTRAINT roles_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con398$;
@@ -53902,8 +53891,8 @@ $con398$;
 
 DO $con399$
 BEGIN
-  ALTER TABLE ONLY zapp.role_permissions
-    ADD CONSTRAINT role_permissions_role_permission_id_key UNIQUE (role, permission_id);
+  ALTER TABLE ONLY zapp.route_permissions
+    ADD CONSTRAINT route_permissions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con399$;
@@ -53913,8 +53902,8 @@ $con399$;
 
 DO $con400$
 BEGIN
-  ALTER TABLE ONLY zapp.roles
-    ADD CONSTRAINT roles_key_key UNIQUE (key);
+  ALTER TABLE ONLY zapp.rpc_rate_limits
+    ADD CONSTRAINT rpc_rate_limits_identifier_rpc_name_window_start_key UNIQUE (identifier, rpc_name, window_start);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con400$;
@@ -53924,8 +53913,8 @@ $con400$;
 
 DO $con401$
 BEGIN
-  ALTER TABLE ONLY zapp.roles
-    ADD CONSTRAINT roles_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.rpc_rate_limits
+    ADD CONSTRAINT rpc_rate_limits_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con401$;
@@ -53935,8 +53924,8 @@ $con401$;
 
 DO $con402$
 BEGIN
-  ALTER TABLE ONLY zapp.route_permissions
-    ADD CONSTRAINT route_permissions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.sales_deals
+    ADD CONSTRAINT sales_deals_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con402$;
@@ -53946,8 +53935,8 @@ $con402$;
 
 DO $con403$
 BEGIN
-  ALTER TABLE ONLY zapp.rpc_rate_limits
-    ADD CONSTRAINT rpc_rate_limits_identifier_rpc_name_window_start_key UNIQUE (identifier, rpc_name, window_start);
+  ALTER TABLE ONLY zapp.sales_pipeline_stages
+    ADD CONSTRAINT sales_pipeline_stages_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con403$;
@@ -53957,8 +53946,8 @@ $con403$;
 
 DO $con404$
 BEGIN
-  ALTER TABLE ONLY zapp.rpc_rate_limits
-    ADD CONSTRAINT rpc_rate_limits_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.saved_filters
+    ADD CONSTRAINT saved_filters_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con404$;
@@ -53968,8 +53957,8 @@ $con404$;
 
 DO $con405$
 BEGIN
-  ALTER TABLE ONLY zapp.sales_deals
-    ADD CONSTRAINT sales_deals_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.scheduled_job_log
+    ADD CONSTRAINT scheduled_job_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con405$;
@@ -53979,8 +53968,8 @@ $con405$;
 
 DO $con406$
 BEGIN
-  ALTER TABLE ONLY zapp.sales_pipeline_stages
-    ADD CONSTRAINT sales_pipeline_stages_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.scheduled_messages
+    ADD CONSTRAINT scheduled_messages_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con406$;
@@ -53990,8 +53979,8 @@ $con406$;
 
 DO $con407$
 BEGIN
-  ALTER TABLE ONLY zapp.saved_filters
-    ADD CONSTRAINT saved_filters_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.scheduled_report_runs
+    ADD CONSTRAINT scheduled_report_runs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con407$;
@@ -54001,8 +53990,8 @@ $con407$;
 
 DO $con408$
 BEGIN
-  ALTER TABLE ONLY zapp.scheduled_job_log
-    ADD CONSTRAINT scheduled_job_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.scheduled_reports
+    ADD CONSTRAINT scheduled_reports_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con408$;
@@ -54012,8 +54001,8 @@ $con408$;
 
 DO $con409$
 BEGIN
-  ALTER TABLE ONLY zapp.scheduled_messages
-    ADD CONSTRAINT scheduled_messages_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.schema_migrations
+    ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con409$;
@@ -54023,8 +54012,8 @@ $con409$;
 
 DO $con410$
 BEGIN
-  ALTER TABLE ONLY zapp.scheduled_report_runs
-    ADD CONSTRAINT scheduled_report_runs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.search_history
+    ADD CONSTRAINT search_history_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con410$;
@@ -54034,8 +54023,8 @@ $con410$;
 
 DO $con411$
 BEGIN
-  ALTER TABLE ONLY zapp.scheduled_reports
-    ADD CONSTRAINT scheduled_reports_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.search_insights
+    ADD CONSTRAINT search_insights_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con411$;
@@ -54045,8 +54034,8 @@ $con411$;
 
 DO $con412$
 BEGIN
-  ALTER TABLE ONLY zapp.schema_migrations
-    ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+  ALTER TABLE ONLY zapp.security_acl_alerts
+    ADD CONSTRAINT security_acl_alerts_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con412$;
@@ -54056,8 +54045,8 @@ $con412$;
 
 DO $con413$
 BEGIN
-  ALTER TABLE ONLY zapp.search_history
-    ADD CONSTRAINT search_history_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.security_alerts
+    ADD CONSTRAINT security_alerts_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con413$;
@@ -54067,8 +54056,8 @@ $con413$;
 
 DO $con414$
 BEGIN
-  ALTER TABLE ONLY zapp.search_insights
-    ADD CONSTRAINT search_insights_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.security_audit_logs
+    ADD CONSTRAINT security_audit_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con414$;
@@ -54078,8 +54067,8 @@ $con414$;
 
 DO $con415$
 BEGIN
-  ALTER TABLE ONLY zapp.security_acl_alerts
-    ADD CONSTRAINT security_acl_alerts_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.security_events
+    ADD CONSTRAINT security_events_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con415$;
@@ -54089,8 +54078,8 @@ $con415$;
 
 DO $con416$
 BEGIN
-  ALTER TABLE ONLY zapp.security_alerts
-    ADD CONSTRAINT security_alerts_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.sentiment_alerts
+    ADD CONSTRAINT sentiment_alerts_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con416$;
@@ -54100,8 +54089,8 @@ $con416$;
 
 DO $con417$
 BEGIN
-  ALTER TABLE ONLY zapp.security_audit_logs
-    ADD CONSTRAINT security_audit_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.sentry_config
+    ADD CONSTRAINT sentry_config_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con417$;
@@ -54111,8 +54100,8 @@ $con417$;
 
 DO $con418$
 BEGIN
-  ALTER TABLE ONLY zapp.security_events
-    ADD CONSTRAINT security_events_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.service_channels
+    ADD CONSTRAINT service_channels_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con418$;
@@ -54122,8 +54111,8 @@ $con418$;
 
 DO $con419$
 BEGIN
-  ALTER TABLE ONLY zapp.sentiment_alerts
-    ADD CONSTRAINT sentiment_alerts_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.sessions
+    ADD CONSTRAINT sessions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con419$;
@@ -54133,8 +54122,8 @@ $con419$;
 
 DO $con420$
 BEGIN
-  ALTER TABLE ONLY zapp.sentry_config
-    ADD CONSTRAINT sentry_config_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.sla_alert_preferences
+    ADD CONSTRAINT sla_alert_preferences_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con420$;
@@ -54144,8 +54133,8 @@ $con420$;
 
 DO $con421$
 BEGIN
-  ALTER TABLE ONLY zapp.service_channels
-    ADD CONSTRAINT service_channels_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.sla_configurations
+    ADD CONSTRAINT sla_configurations_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con421$;
@@ -54155,8 +54144,8 @@ $con421$;
 
 DO $con422$
 BEGIN
-  ALTER TABLE ONLY zapp.sessions
-    ADD CONSTRAINT sessions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.sla_delivery_rules
+    ADD CONSTRAINT sla_delivery_rules_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con422$;
@@ -54166,8 +54155,8 @@ $con422$;
 
 DO $con423$
 BEGIN
-  ALTER TABLE ONLY zapp.sicoob_contact_mapping
-    ADD CONSTRAINT sicoob_contact_mapping_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.sla_delivery_violations
+    ADD CONSTRAINT sla_delivery_violations_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con423$;
@@ -54177,8 +54166,8 @@ $con423$;
 
 DO $con424$
 BEGIN
-  ALTER TABLE ONLY zapp.sicoob_contact_mapping
-    ADD CONSTRAINT sicoob_contact_mapping_sicoob_user_id_sicoob_singular_id_key UNIQUE (sicoob_user_id, sicoob_singular_id);
+  ALTER TABLE ONLY zapp.sla_history
+    ADD CONSTRAINT sla_history_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con424$;
@@ -54188,8 +54177,8 @@ $con424$;
 
 DO $con425$
 BEGIN
-  ALTER TABLE ONLY zapp.sicoob_reply_outbox
-    ADD CONSTRAINT sicoob_reply_outbox_message_id_key UNIQUE (message_id);
+  ALTER TABLE ONLY zapp.sla_rules
+    ADD CONSTRAINT sla_rules_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con425$;
@@ -54199,8 +54188,8 @@ $con425$;
 
 DO $con426$
 BEGIN
-  ALTER TABLE ONLY zapp.sicoob_reply_outbox
-    ADD CONSTRAINT sicoob_reply_outbox_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.sla_violations
+    ADD CONSTRAINT sla_violations_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con426$;
@@ -54210,8 +54199,8 @@ $con426$;
 
 DO $con427$
 BEGIN
-  ALTER TABLE ONLY zapp.sla_alert_preferences
-    ADD CONSTRAINT sla_alert_preferences_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.solicitacoes_vale
+    ADD CONSTRAINT solicitacoes_vale_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con427$;
@@ -54221,8 +54210,8 @@ $con427$;
 
 DO $con428$
 BEGIN
-  ALTER TABLE ONLY zapp.sla_configurations
-    ADD CONSTRAINT sla_configurations_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.sticker_categories
+    ADD CONSTRAINT sticker_categories_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con428$;
@@ -54232,8 +54221,8 @@ $con428$;
 
 DO $con429$
 BEGIN
-  ALTER TABLE ONLY zapp.sla_delivery_rules
-    ADD CONSTRAINT sla_delivery_rules_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.sticker_categories
+    ADD CONSTRAINT sticker_categories_slug_key UNIQUE (slug);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con429$;
@@ -54243,8 +54232,8 @@ $con429$;
 
 DO $con430$
 BEGIN
-  ALTER TABLE ONLY zapp.sla_delivery_violations
-    ADD CONSTRAINT sla_delivery_violations_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.sticker_favorites
+    ADD CONSTRAINT sticker_favorites_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con430$;
@@ -54254,8 +54243,8 @@ $con430$;
 
 DO $con431$
 BEGIN
-  ALTER TABLE ONLY zapp.sla_history
-    ADD CONSTRAINT sla_history_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.sticker_favorites
+    ADD CONSTRAINT sticker_favorites_user_id_sticker_id_key UNIQUE (user_id, sticker_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con431$;
@@ -54265,8 +54254,8 @@ $con431$;
 
 DO $con432$
 BEGIN
-  ALTER TABLE ONLY zapp.sla_rules
-    ADD CONSTRAINT sla_rules_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.stickers
+    ADD CONSTRAINT stickers_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con432$;
@@ -54276,8 +54265,8 @@ $con432$;
 
 DO $con433$
 BEGIN
-  ALTER TABLE ONLY zapp.sla_violations
-    ADD CONSTRAINT sla_violations_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.sticky_assignments
+    ADD CONSTRAINT sticky_assignments_contact_id_key UNIQUE (contact_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con433$;
@@ -54287,8 +54276,8 @@ $con433$;
 
 DO $con434$
 BEGIN
-  ALTER TABLE ONLY zapp.solicitacoes_vale
-    ADD CONSTRAINT solicitacoes_vale_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.sticky_assignments
+    ADD CONSTRAINT sticky_assignments_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con434$;
@@ -54298,8 +54287,8 @@ $con434$;
 
 DO $con435$
 BEGIN
-  ALTER TABLE ONLY zapp.sticker_categories
-    ADD CONSTRAINT sticker_categories_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.storage_cleanup_logs
+    ADD CONSTRAINT storage_cleanup_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con435$;
@@ -54309,8 +54298,8 @@ $con435$;
 
 DO $con436$
 BEGIN
-  ALTER TABLE ONLY zapp.sticker_categories
-    ADD CONSTRAINT sticker_categories_slug_key UNIQUE (slug);
+  ALTER TABLE ONLY zapp.stress_test_metrics
+    ADD CONSTRAINT stress_test_metrics_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con436$;
@@ -54320,8 +54309,8 @@ $con436$;
 
 DO $con437$
 BEGIN
-  ALTER TABLE ONLY zapp.sticker_favorites
-    ADD CONSTRAINT sticker_favorites_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.stress_test_runs
+    ADD CONSTRAINT stress_test_runs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con437$;
@@ -54331,8 +54320,8 @@ $con437$;
 
 DO $con438$
 BEGIN
-  ALTER TABLE ONLY zapp.sticker_favorites
-    ADD CONSTRAINT sticker_favorites_user_id_sticker_id_key UNIQUE (user_id, sticker_id);
+  ALTER TABLE ONLY zapp.sts_performance_metrics
+    ADD CONSTRAINT sts_performance_metrics_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con438$;
@@ -54342,8 +54331,8 @@ $con438$;
 
 DO $con439$
 BEGIN
-  ALTER TABLE ONLY zapp.stickers
-    ADD CONSTRAINT stickers_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.sts_telemetry
+    ADD CONSTRAINT sts_telemetry_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con439$;
@@ -54353,8 +54342,8 @@ $con439$;
 
 DO $con440$
 BEGIN
-  ALTER TABLE ONLY zapp.sticky_assignments
-    ADD CONSTRAINT sticky_assignments_contact_id_key UNIQUE (contact_id);
+  ALTER TABLE ONLY zapp.sts_troubleshooting_report
+    ADD CONSTRAINT sts_troubleshooting_report_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con440$;
@@ -54364,8 +54353,8 @@ $con440$;
 
 DO $con441$
 BEGIN
-  ALTER TABLE ONLY zapp.sticky_assignments
-    ADD CONSTRAINT sticky_assignments_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.supabase_projects
+    ADD CONSTRAINT supabase_projects_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con441$;
@@ -54375,8 +54364,8 @@ $con441$;
 
 DO $con442$
 BEGIN
-  ALTER TABLE ONLY zapp.storage_cleanup_logs
-    ADD CONSTRAINT storage_cleanup_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.supabase_projects
+    ADD CONSTRAINT supabase_projects_project_name_key UNIQUE (project_name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con442$;
@@ -54386,8 +54375,8 @@ $con442$;
 
 DO $con443$
 BEGIN
-  ALTER TABLE ONLY zapp.stress_test_metrics
-    ADD CONSTRAINT stress_test_metrics_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.supplier_pix_keys
+    ADD CONSTRAINT supplier_pix_keys_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con443$;
@@ -54397,8 +54386,8 @@ $con443$;
 
 DO $con444$
 BEGIN
-  ALTER TABLE ONLY zapp.stress_test_runs
-    ADD CONSTRAINT stress_test_runs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.system_connections
+    ADD CONSTRAINT system_connections_name_provider_unique UNIQUE (name, provider);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con444$;
@@ -54408,8 +54397,8 @@ $con444$;
 
 DO $con445$
 BEGIN
-  ALTER TABLE ONLY zapp.sts_performance_metrics
-    ADD CONSTRAINT sts_performance_metrics_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.system_connections
+    ADD CONSTRAINT system_connections_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con445$;
@@ -54419,8 +54408,8 @@ $con445$;
 
 DO $con446$
 BEGIN
-  ALTER TABLE ONLY zapp.sts_telemetry
-    ADD CONSTRAINT sts_telemetry_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.system_docs
+    ADD CONSTRAINT system_docs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con446$;
@@ -54430,8 +54419,8 @@ $con446$;
 
 DO $con447$
 BEGIN
-  ALTER TABLE ONLY zapp.sts_troubleshooting_report
-    ADD CONSTRAINT sts_troubleshooting_report_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.system_health_incidents
+    ADD CONSTRAINT system_health_incidents_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con447$;
@@ -54441,8 +54430,8 @@ $con447$;
 
 DO $con448$
 BEGIN
-  ALTER TABLE ONLY zapp.supabase_projects
-    ADD CONSTRAINT supabase_projects_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.system_kill_switches
+    ADD CONSTRAINT system_kill_switches_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con448$;
@@ -54452,8 +54441,8 @@ $con448$;
 
 DO $con449$
 BEGIN
-  ALTER TABLE ONLY zapp.supabase_projects
-    ADD CONSTRAINT supabase_projects_project_name_key UNIQUE (project_name);
+  ALTER TABLE ONLY zapp.system_kill_switches
+    ADD CONSTRAINT system_kill_switches_switch_name_key UNIQUE (switch_name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con449$;
@@ -54463,8 +54452,8 @@ $con449$;
 
 DO $con450$
 BEGIN
-  ALTER TABLE ONLY zapp.supplier_pix_keys
-    ADD CONSTRAINT supplier_pix_keys_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.system_logs
+    ADD CONSTRAINT system_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con450$;
@@ -54474,8 +54463,8 @@ $con450$;
 
 DO $con451$
 BEGIN
-  ALTER TABLE ONLY zapp.system_connections
-    ADD CONSTRAINT system_connections_name_provider_unique UNIQUE (name, provider);
+  ALTER TABLE ONLY zapp.system_settings
+    ADD CONSTRAINT system_settings_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con451$;
@@ -54485,8 +54474,8 @@ $con451$;
 
 DO $con452$
 BEGIN
-  ALTER TABLE ONLY zapp.system_connections
-    ADD CONSTRAINT system_connections_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.tags
+    ADD CONSTRAINT tags_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con452$;
@@ -54496,8 +54485,8 @@ $con452$;
 
 DO $con453$
 BEGIN
-  ALTER TABLE ONLY zapp.system_docs
-    ADD CONSTRAINT system_docs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.talkx_blacklist
+    ADD CONSTRAINT talkx_blacklist_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con453$;
@@ -54507,8 +54496,8 @@ $con453$;
 
 DO $con454$
 BEGIN
-  ALTER TABLE ONLY zapp.system_health_incidents
-    ADD CONSTRAINT system_health_incidents_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.talkx_campaigns
+    ADD CONSTRAINT talkx_campaigns_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con454$;
@@ -54518,8 +54507,8 @@ $con454$;
 
 DO $con455$
 BEGIN
-  ALTER TABLE ONLY zapp.system_kill_switches
-    ADD CONSTRAINT system_kill_switches_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.talkx_recipients
+    ADD CONSTRAINT talkx_recipients_campaign_id_contact_id_key UNIQUE (campaign_id, contact_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con455$;
@@ -54529,8 +54518,8 @@ $con455$;
 
 DO $con456$
 BEGIN
-  ALTER TABLE ONLY zapp.system_kill_switches
-    ADD CONSTRAINT system_kill_switches_switch_name_key UNIQUE (switch_name);
+  ALTER TABLE ONLY zapp.talkx_recipients
+    ADD CONSTRAINT talkx_recipients_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con456$;
@@ -54540,8 +54529,8 @@ $con456$;
 
 DO $con457$
 BEGIN
-  ALTER TABLE ONLY zapp.system_logs
-    ADD CONSTRAINT system_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.task_queues
+    ADD CONSTRAINT task_queues_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con457$;
@@ -54551,8 +54540,8 @@ $con457$;
 
 DO $con458$
 BEGIN
-  ALTER TABLE ONLY zapp.system_settings
-    ADD CONSTRAINT system_settings_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.team_conversation_members
+    ADD CONSTRAINT team_conversation_members_conv_profile_uniq UNIQUE (conversation_id, profile_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con458$;
@@ -54562,8 +54551,8 @@ $con458$;
 
 DO $con459$
 BEGIN
-  ALTER TABLE ONLY zapp.tags
-    ADD CONSTRAINT tags_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.team_conversation_members
+    ADD CONSTRAINT team_conversation_members_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con459$;
@@ -54573,8 +54562,8 @@ $con459$;
 
 DO $con460$
 BEGIN
-  ALTER TABLE ONLY zapp.talkx_blacklist
-    ADD CONSTRAINT talkx_blacklist_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.team_conversations
+    ADD CONSTRAINT team_conversations_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con460$;
@@ -54584,8 +54573,8 @@ $con460$;
 
 DO $con461$
 BEGIN
-  ALTER TABLE ONLY zapp.talkx_campaigns
-    ADD CONSTRAINT talkx_campaigns_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.team_message_reactions
+    ADD CONSTRAINT team_message_reactions_message_id_profile_id_emoji_key UNIQUE (message_id, profile_id, emoji);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con461$;
@@ -54595,8 +54584,8 @@ $con461$;
 
 DO $con462$
 BEGIN
-  ALTER TABLE ONLY zapp.talkx_recipients
-    ADD CONSTRAINT talkx_recipients_campaign_id_contact_id_key UNIQUE (campaign_id, contact_id);
+  ALTER TABLE ONLY zapp.team_message_reactions
+    ADD CONSTRAINT team_message_reactions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con462$;
@@ -54606,8 +54595,8 @@ $con462$;
 
 DO $con463$
 BEGIN
-  ALTER TABLE ONLY zapp.talkx_recipients
-    ADD CONSTRAINT talkx_recipients_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.team_message_receipts
+    ADD CONSTRAINT team_message_receipts_message_id_profile_id_key UNIQUE (message_id, profile_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con463$;
@@ -54617,8 +54606,8 @@ $con463$;
 
 DO $con464$
 BEGIN
-  ALTER TABLE ONLY zapp.task_queues
-    ADD CONSTRAINT task_queues_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.team_message_receipts
+    ADD CONSTRAINT team_message_receipts_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con464$;
@@ -54628,8 +54617,8 @@ $con464$;
 
 DO $con465$
 BEGIN
-  ALTER TABLE ONLY zapp.team_conversation_members
-    ADD CONSTRAINT team_conversation_members_conv_profile_uniq UNIQUE (conversation_id, profile_id);
+  ALTER TABLE ONLY zapp.team_messages
+    ADD CONSTRAINT team_messages_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con465$;
@@ -54639,8 +54628,8 @@ $con465$;
 
 DO $con466$
 BEGIN
-  ALTER TABLE ONLY zapp.team_conversation_members
-    ADD CONSTRAINT team_conversation_members_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.tenants
+    ADD CONSTRAINT tenants_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con466$;
@@ -54650,8 +54639,8 @@ $con466$;
 
 DO $con467$
 BEGIN
-  ALTER TABLE ONLY zapp.team_conversations
-    ADD CONSTRAINT team_conversations_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.test_cases
+    ADD CONSTRAINT test_cases_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con467$;
@@ -54661,8 +54650,8 @@ $con467$;
 
 DO $con468$
 BEGIN
-  ALTER TABLE ONLY zapp.team_message_reactions
-    ADD CONSTRAINT team_message_reactions_message_id_profile_id_emoji_key UNIQUE (message_id, profile_id, emoji);
+  ALTER TABLE ONLY zapp.transfer_comments
+    ADD CONSTRAINT transfer_comments_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con468$;
@@ -54672,8 +54661,8 @@ $con468$;
 
 DO $con469$
 BEGIN
-  ALTER TABLE ONLY zapp.team_message_reactions
-    ADD CONSTRAINT team_message_reactions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.system_docs
+    ADD CONSTRAINT uk_system_docs_hash UNIQUE (doc_name, content_hash);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con469$;
@@ -54683,8 +54672,8 @@ $con469$;
 
 DO $con470$
 BEGIN
-  ALTER TABLE ONLY zapp.team_message_receipts
-    ADD CONSTRAINT team_message_receipts_message_id_profile_id_key UNIQUE (message_id, profile_id);
+  ALTER TABLE ONLY zapp._consumer_dlq
+    ADD CONSTRAINT uq__consumer_dlq_hash UNIQUE (payload_hash);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con470$;
@@ -54694,8 +54683,8 @@ $con470$;
 
 DO $con471$
 BEGIN
-  ALTER TABLE ONLY zapp.team_message_receipts
-    ADD CONSTRAINT team_message_receipts_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.api_keys
+    ADD CONSTRAINT uq_api_keys_key_hash UNIQUE (key_hash);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con471$;
@@ -54705,8 +54694,8 @@ $con471$;
 
 DO $con472$
 BEGIN
-  ALTER TABLE ONLY zapp.team_messages
-    ADD CONSTRAINT team_messages_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.campaign_contacts
+    ADD CONSTRAINT uq_campaign_contacts_campaign_contact UNIQUE (campaign_id, contact_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con472$;
@@ -54716,8 +54705,8 @@ $con472$;
 
 DO $con473$
 BEGIN
-  ALTER TABLE ONLY zapp.tenants
-    ADD CONSTRAINT tenants_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.solicitacoes_vale
+    ADD CONSTRAINT uq_colab_periodo UNIQUE (id_bitrix, periodo);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con473$;
@@ -54727,8 +54716,8 @@ $con473$;
 
 DO $con474$
 BEGIN
-  ALTER TABLE ONLY zapp.test_cases
-    ADD CONSTRAINT test_cases_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.supplier_pix_keys
+    ADD CONSTRAINT uq_company_pix UNIQUE (bitrix_company_id, pix_key);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con474$;
@@ -54738,8 +54727,8 @@ $con474$;
 
 DO $con475$
 BEGIN
-  ALTER TABLE ONLY zapp.transfer_comments
-    ADD CONSTRAINT transfer_comments_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.contact_assignments
+    ADD CONSTRAINT uq_contact_assignments_contact UNIQUE (contact_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con475$;
@@ -54749,8 +54738,8 @@ $con475$;
 
 DO $con476$
 BEGIN
-  ALTER TABLE ONLY zapp.system_docs
-    ADD CONSTRAINT uk_system_docs_hash UNIQUE (doc_name, content_hash);
+  ALTER TABLE ONLY zapp.conversation_memory
+    ADD CONSTRAINT uq_conversation_memory_contact UNIQUE (contact_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con476$;
@@ -54760,8 +54749,8 @@ $con476$;
 
 DO $con477$
 BEGIN
-  ALTER TABLE ONLY zapp._consumer_dlq
-    ADD CONSTRAINT uq__consumer_dlq_hash UNIQUE (payload_hash);
+  ALTER TABLE ONLY zapp.email_watch_history
+    ADD CONSTRAINT uq_email_watch_account UNIQUE (account_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con477$;
@@ -54771,8 +54760,8 @@ $con477$;
 
 DO $con478$
 BEGIN
-  ALTER TABLE ONLY zapp.api_keys
-    ADD CONSTRAINT uq_api_keys_key_hash UNIQUE (key_hash);
+  ALTER TABLE ONLY zapp.evolution_followup_rules
+    ADD CONSTRAINT uq_followup_rules_type_stage UNIQUE (trigger_type, sequence_group, sequence_order);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con478$;
@@ -54782,8 +54771,8 @@ $con478$;
 
 DO $con479$
 BEGIN
-  ALTER TABLE ONLY zapp.campaign_contacts
-    ADD CONSTRAINT uq_campaign_contacts_campaign_contact UNIQUE (campaign_id, contact_id);
+  ALTER TABLE ONLY zapp.evolution_monthly_audit_log
+    ADD CONSTRAINT uq_monthly_audit_month UNIQUE (audit_month);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con479$;
@@ -54793,8 +54782,8 @@ $con479$;
 
 DO $con480$
 BEGIN
-  ALTER TABLE ONLY zapp.solicitacoes_vale
-    ADD CONSTRAINT uq_colab_periodo UNIQUE (id_bitrix, periodo);
+  ALTER TABLE ONLY zapp.onboarding_steps
+    ADD CONSTRAINT uq_onboarding_steps_user_step UNIQUE (user_id, step_key);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con480$;
@@ -54804,8 +54793,8 @@ $con480$;
 
 DO $con481$
 BEGIN
-  ALTER TABLE ONLY zapp.supplier_pix_keys
-    ADD CONSTRAINT uq_company_pix UNIQUE (bitrix_company_id, pix_key);
+  ALTER TABLE ONLY zapp.permissions
+    ADD CONSTRAINT uq_permissions_name UNIQUE (name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con481$;
@@ -54815,8 +54804,8 @@ $con481$;
 
 DO $con482$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_assignments
-    ADD CONSTRAINT uq_contact_assignments_contact UNIQUE (contact_id);
+  ALTER TABLE ONLY zapp.evolution_reactions
+    ADD CONSTRAINT uq_reaction_per_user UNIQUE (message_id, instance_name, remote_jid, from_me);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con482$;
@@ -54826,8 +54815,8 @@ $con482$;
 
 DO $con483$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_memory
-    ADD CONSTRAINT uq_conversation_memory_contact UNIQUE (contact_id);
+  ALTER TABLE ONLY zapp.tags
+    ADD CONSTRAINT uq_tags_name UNIQUE (name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con483$;
@@ -54837,8 +54826,8 @@ $con483$;
 
 DO $con484$
 BEGIN
-  ALTER TABLE ONLY zapp.email_watch_history
-    ADD CONSTRAINT uq_email_watch_account UNIQUE (account_id);
+  ALTER TABLE ONLY zapp.talkx_blacklist
+    ADD CONSTRAINT uq_talkx_blacklist_contact UNIQUE (contact_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con484$;
@@ -54848,8 +54837,8 @@ $con484$;
 
 DO $con485$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_followup_rules
-    ADD CONSTRAINT uq_followup_rules_type_stage UNIQUE (trigger_type, sequence_group, sequence_order);
+  ALTER TABLE ONLY zapp.webhook_preferences
+    ADD CONSTRAINT uq_webhook_preferences_user UNIQUE (user_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con485$;
@@ -54859,8 +54848,8 @@ $con485$;
 
 DO $con486$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_monthly_audit_log
-    ADD CONSTRAINT uq_monthly_audit_month UNIQUE (audit_month);
+  ALTER TABLE ONLY zapp.user_devices
+    ADD CONSTRAINT user_devices_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con486$;
@@ -54870,8 +54859,8 @@ $con486$;
 
 DO $con487$
 BEGIN
-  ALTER TABLE ONLY zapp.onboarding_steps
-    ADD CONSTRAINT uq_onboarding_steps_user_step UNIQUE (user_id, step_key);
+  ALTER TABLE ONLY zapp.user_devices
+    ADD CONSTRAINT user_devices_user_id_device_fingerprint_key UNIQUE (user_id, device_fingerprint);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con487$;
@@ -54881,8 +54870,8 @@ $con487$;
 
 DO $con488$
 BEGIN
-  ALTER TABLE ONLY zapp.permissions
-    ADD CONSTRAINT uq_permissions_name UNIQUE (name);
+  ALTER TABLE ONLY zapp.user_roles
+    ADD CONSTRAINT user_roles_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con488$;
@@ -54892,8 +54881,8 @@ $con488$;
 
 DO $con489$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_reactions
-    ADD CONSTRAINT uq_reaction_per_user UNIQUE (message_id, instance_name, remote_jid, from_me);
+  ALTER TABLE ONLY zapp.user_roles
+    ADD CONSTRAINT user_roles_user_id_role_key UNIQUE (user_id, role);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con489$;
@@ -54903,8 +54892,8 @@ $con489$;
 
 DO $con490$
 BEGIN
-  ALTER TABLE ONLY zapp.tags
-    ADD CONSTRAINT uq_tags_name UNIQUE (name);
+  ALTER TABLE ONLY zapp.user_roles
+    ADD CONSTRAINT user_roles_user_id_workspace_id_key UNIQUE (user_id, workspace_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con490$;
@@ -54914,8 +54903,8 @@ $con490$;
 
 DO $con491$
 BEGIN
-  ALTER TABLE ONLY zapp.talkx_blacklist
-    ADD CONSTRAINT uq_talkx_blacklist_contact UNIQUE (contact_id);
+  ALTER TABLE ONLY zapp.user_service_accounts
+    ADD CONSTRAINT user_service_accounts_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con491$;
@@ -54925,8 +54914,8 @@ $con491$;
 
 DO $con492$
 BEGIN
-  ALTER TABLE ONLY zapp.webhook_preferences
-    ADD CONSTRAINT uq_webhook_preferences_user UNIQUE (user_id);
+  ALTER TABLE ONLY zapp.user_service_accounts
+    ADD CONSTRAINT user_service_accounts_user_id_service_type_key UNIQUE (user_id, service_type);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con492$;
@@ -54936,8 +54925,8 @@ $con492$;
 
 DO $con493$
 BEGIN
-  ALTER TABLE ONLY zapp.user_devices
-    ADD CONSTRAINT user_devices_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.user_sessions
+    ADD CONSTRAINT user_sessions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con493$;
@@ -54947,8 +54936,8 @@ $con493$;
 
 DO $con494$
 BEGIN
-  ALTER TABLE ONLY zapp.user_devices
-    ADD CONSTRAINT user_devices_user_id_device_fingerprint_key UNIQUE (user_id, device_fingerprint);
+  ALTER TABLE ONLY zapp.user_settings
+    ADD CONSTRAINT user_settings_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con494$;
@@ -54958,8 +54947,8 @@ $con494$;
 
 DO $con495$
 BEGIN
-  ALTER TABLE ONLY zapp.user_roles
-    ADD CONSTRAINT user_roles_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp._vault_corrupted_quarantine
+    ADD CONSTRAINT vault_corrupted_quarantine_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con495$;
@@ -54969,8 +54958,8 @@ $con495$;
 
 DO $con496$
 BEGIN
-  ALTER TABLE ONLY zapp.user_roles
-    ADD CONSTRAINT user_roles_user_id_role_key UNIQUE (user_id, role);
+  ALTER TABLE ONLY zapp.vault_healthcheck_log
+    ADD CONSTRAINT vault_healthcheck_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con496$;
@@ -54980,8 +54969,8 @@ $con496$;
 
 DO $con497$
 BEGIN
-  ALTER TABLE ONLY zapp.user_roles
-    ADD CONSTRAINT user_roles_user_id_workspace_id_key UNIQUE (user_id, workspace_id);
+  ALTER TABLE ONLY zapp.voice_command_logs
+    ADD CONSTRAINT voice_command_logs_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con497$;
@@ -54991,8 +54980,8 @@ $con497$;
 
 DO $con498$
 BEGIN
-  ALTER TABLE ONLY zapp.user_service_accounts
-    ADD CONSTRAINT user_service_accounts_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.voice_conversion_queue
+    ADD CONSTRAINT voice_conversion_queue_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con498$;
@@ -55002,8 +54991,8 @@ $con498$;
 
 DO $con499$
 BEGIN
-  ALTER TABLE ONLY zapp.user_service_accounts
-    ADD CONSTRAINT user_service_accounts_user_id_service_type_key UNIQUE (user_id, service_type);
+  ALTER TABLE ONLY zapp.voip_profile_credentials
+    ADD CONSTRAINT voip_profile_credentials_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con499$;
@@ -55013,8 +55002,8 @@ $con499$;
 
 DO $con500$
 BEGIN
-  ALTER TABLE ONLY zapp.user_sessions
-    ADD CONSTRAINT user_sessions_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.voip_profile_credentials
+    ADD CONSTRAINT voip_profile_credentials_profile_id_key UNIQUE (profile_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con500$;
@@ -55024,8 +55013,8 @@ $con500$;
 
 DO $con501$
 BEGIN
-  ALTER TABLE ONLY zapp.user_settings
-    ADD CONSTRAINT user_settings_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.warroom_alerts
+    ADD CONSTRAINT warroom_alerts_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con501$;
@@ -55035,8 +55024,8 @@ $con501$;
 
 DO $con502$
 BEGIN
-  ALTER TABLE ONLY zapp._vault_corrupted_quarantine
-    ADD CONSTRAINT vault_corrupted_quarantine_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.webauthn_challenges
+    ADD CONSTRAINT webauthn_challenges_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con502$;
@@ -55046,8 +55035,8 @@ $con502$;
 
 DO $con503$
 BEGIN
-  ALTER TABLE ONLY zapp.vault_healthcheck_log
-    ADD CONSTRAINT vault_healthcheck_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.webhook_audit_log
+    ADD CONSTRAINT webhook_audit_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con503$;
@@ -55057,8 +55046,8 @@ $con503$;
 
 DO $con504$
 BEGIN
-  ALTER TABLE ONLY zapp.voice_command_logs
-    ADD CONSTRAINT voice_command_logs_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.webhook_endpoints
+    ADD CONSTRAINT webhook_endpoints_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con504$;
@@ -55068,8 +55057,8 @@ $con504$;
 
 DO $con505$
 BEGIN
-  ALTER TABLE ONLY zapp.voice_conversion_queue
-    ADD CONSTRAINT voice_conversion_queue_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.webhook_event_dedup
+    ADD CONSTRAINT webhook_event_dedup_pkey PRIMARY KEY (event_key);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con505$;
@@ -55079,8 +55068,8 @@ $con505$;
 
 DO $con506$
 BEGIN
-  ALTER TABLE ONLY zapp.voip_profile_credentials
-    ADD CONSTRAINT voip_profile_credentials_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.webhook_events
+    ADD CONSTRAINT webhook_events_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con506$;
@@ -55090,8 +55079,8 @@ $con506$;
 
 DO $con507$
 BEGIN
-  ALTER TABLE ONLY zapp.voip_profile_credentials
-    ADD CONSTRAINT voip_profile_credentials_profile_id_key UNIQUE (profile_id);
+  ALTER TABLE ONLY zapp.webhook_events_processed
+    ADD CONSTRAINT webhook_events_processed_event_id_uq UNIQUE (event_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con507$;
@@ -55101,8 +55090,8 @@ $con507$;
 
 DO $con508$
 BEGIN
-  ALTER TABLE ONLY zapp.warroom_alerts
-    ADD CONSTRAINT warroom_alerts_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.webhook_events_processed
+    ADD CONSTRAINT webhook_events_processed_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con508$;
@@ -55112,8 +55101,8 @@ $con508$;
 
 DO $con509$
 BEGIN
-  ALTER TABLE ONLY zapp.webauthn_challenges
-    ADD CONSTRAINT webauthn_challenges_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.webhook_health_alerts
+    ADD CONSTRAINT webhook_health_alerts_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con509$;
@@ -55123,8 +55112,8 @@ $con509$;
 
 DO $con510$
 BEGIN
-  ALTER TABLE ONLY zapp.webhook_audit_log
-    ADD CONSTRAINT webhook_audit_log_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.webhook_health_checks
+    ADD CONSTRAINT webhook_health_checks_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con510$;
@@ -55134,8 +55123,8 @@ $con510$;
 
 DO $con511$
 BEGIN
-  ALTER TABLE ONLY zapp.webhook_endpoints
-    ADD CONSTRAINT webhook_endpoints_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.webhook_idempotency
+    ADD CONSTRAINT webhook_idempotency_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con511$;
@@ -55145,8 +55134,8 @@ $con511$;
 
 DO $con512$
 BEGIN
-  ALTER TABLE ONLY zapp.webhook_event_dedup
-    ADD CONSTRAINT webhook_event_dedup_pkey PRIMARY KEY (event_key);
+  ALTER TABLE ONLY zapp.webhook_idempotency
+    ADD CONSTRAINT webhook_idempotency_source_id_key UNIQUE (source, webhook_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con512$;
@@ -55156,8 +55145,8 @@ $con512$;
 
 DO $con513$
 BEGIN
-  ALTER TABLE ONLY zapp.webhook_events
-    ADD CONSTRAINT webhook_events_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.webhook_preferences
+    ADD CONSTRAINT webhook_preferences_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con513$;
@@ -55167,8 +55156,8 @@ $con513$;
 
 DO $con514$
 BEGIN
-  ALTER TABLE ONLY zapp.webhook_events_processed
-    ADD CONSTRAINT webhook_events_processed_event_id_uq UNIQUE (event_id);
+  ALTER TABLE ONLY zapp.webhook_rate_limits
+    ADD CONSTRAINT webhook_rate_limits_instance_event_window_key UNIQUE (instance_id, event_type, window_start);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con514$;
@@ -55178,8 +55167,8 @@ $con514$;
 
 DO $con515$
 BEGIN
-  ALTER TABLE ONLY zapp.webhook_events_processed
-    ADD CONSTRAINT webhook_events_processed_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.webhook_rate_limits
+    ADD CONSTRAINT webhook_rate_limits_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con515$;
@@ -55189,8 +55178,8 @@ $con515$;
 
 DO $con516$
 BEGIN
-  ALTER TABLE ONLY zapp.webhook_health_alerts
-    ADD CONSTRAINT webhook_health_alerts_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.webhook_reprocess_queue
+    ADD CONSTRAINT webhook_reprocess_queue_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con516$;
@@ -55200,8 +55189,8 @@ $con516$;
 
 DO $con517$
 BEGIN
-  ALTER TABLE ONLY zapp.webhook_health_checks
-    ADD CONSTRAINT webhook_health_checks_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.whatsapp_cloud_webhook_pings
+    ADD CONSTRAINT whatsapp_cloud_webhook_pings_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con517$;
@@ -55211,8 +55200,8 @@ $con517$;
 
 DO $con518$
 BEGIN
-  ALTER TABLE ONLY zapp.webhook_idempotency
-    ADD CONSTRAINT webhook_idempotency_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.whatsapp_connection_queues
+    ADD CONSTRAINT whatsapp_connection_queues_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con518$;
@@ -55222,8 +55211,8 @@ $con518$;
 
 DO $con519$
 BEGIN
-  ALTER TABLE ONLY zapp.webhook_idempotency
-    ADD CONSTRAINT webhook_idempotency_source_id_key UNIQUE (source, webhook_id);
+  ALTER TABLE ONLY zapp.whatsapp_connection_queues
+    ADD CONSTRAINT whatsapp_connection_queues_whatsapp_connection_id_queue_id_key UNIQUE (whatsapp_connection_id, queue_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con519$;
@@ -55233,8 +55222,8 @@ $con519$;
 
 DO $con520$
 BEGIN
-  ALTER TABLE ONLY zapp.webhook_preferences
-    ADD CONSTRAINT webhook_preferences_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.whatsapp_connections
+    ADD CONSTRAINT whatsapp_connections_instance_name_key UNIQUE (instance_name);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con520$;
@@ -55244,8 +55233,8 @@ $con520$;
 
 DO $con521$
 BEGIN
-  ALTER TABLE ONLY zapp.webhook_rate_limits
-    ADD CONSTRAINT webhook_rate_limits_instance_event_window_key UNIQUE (instance_id, event_type, window_start);
+  ALTER TABLE ONLY zapp.whatsapp_connections
+    ADD CONSTRAINT whatsapp_connections_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con521$;
@@ -55255,8 +55244,8 @@ $con521$;
 
 DO $con522$
 BEGIN
-  ALTER TABLE ONLY zapp.webhook_rate_limits
-    ADD CONSTRAINT webhook_rate_limits_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.whatsapp_flows
+    ADD CONSTRAINT whatsapp_flows_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con522$;
@@ -55266,8 +55255,8 @@ $con522$;
 
 DO $con523$
 BEGIN
-  ALTER TABLE ONLY zapp.webhook_reprocess_queue
-    ADD CONSTRAINT webhook_reprocess_queue_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.whatsapp_groups
+    ADD CONSTRAINT whatsapp_groups_group_id_key UNIQUE (group_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con523$;
@@ -55277,8 +55266,8 @@ $con523$;
 
 DO $con524$
 BEGIN
-  ALTER TABLE ONLY zapp.whatsapp_cloud_webhook_pings
-    ADD CONSTRAINT whatsapp_cloud_webhook_pings_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.whatsapp_groups
+    ADD CONSTRAINT whatsapp_groups_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con524$;
@@ -55288,8 +55277,8 @@ $con524$;
 
 DO $con525$
 BEGIN
-  ALTER TABLE ONLY zapp.whatsapp_connection_queues
-    ADD CONSTRAINT whatsapp_connection_queues_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.whatsapp_official_credentials
+    ADD CONSTRAINT whatsapp_official_credentials_connection_id_key UNIQUE (connection_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con525$;
@@ -55299,8 +55288,8 @@ $con525$;
 
 DO $con526$
 BEGIN
-  ALTER TABLE ONLY zapp.whatsapp_connection_queues
-    ADD CONSTRAINT whatsapp_connection_queues_whatsapp_connection_id_queue_id_key UNIQUE (whatsapp_connection_id, queue_id);
+  ALTER TABLE ONLY zapp.whatsapp_official_credentials
+    ADD CONSTRAINT whatsapp_official_credentials_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con526$;
@@ -55310,8 +55299,8 @@ $con526$;
 
 DO $con527$
 BEGIN
-  ALTER TABLE ONLY zapp.whatsapp_connections
-    ADD CONSTRAINT whatsapp_connections_instance_name_key UNIQUE (instance_name);
+  ALTER TABLE ONLY zapp.whatsapp_templates
+    ADD CONSTRAINT whatsapp_templates_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con527$;
@@ -55321,8 +55310,8 @@ $con527$;
 
 DO $con528$
 BEGIN
-  ALTER TABLE ONLY zapp.whatsapp_connections
-    ADD CONSTRAINT whatsapp_connections_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.whisper_files
+    ADD CONSTRAINT whisper_files_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con528$;
@@ -55332,8 +55321,8 @@ $con528$;
 
 DO $con529$
 BEGIN
-  ALTER TABLE ONLY zapp.whatsapp_flows
-    ADD CONSTRAINT whatsapp_flows_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.whisper_messages
+    ADD CONSTRAINT whisper_messages_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con529$;
@@ -55343,8 +55332,8 @@ $con529$;
 
 DO $con530$
 BEGIN
-  ALTER TABLE ONLY zapp.whatsapp_groups
-    ADD CONSTRAINT whatsapp_groups_group_id_key UNIQUE (group_id);
+  ALTER TABLE ONLY zapp.workspace_members
+    ADD CONSTRAINT workspace_members_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con530$;
@@ -55354,8 +55343,8 @@ $con530$;
 
 DO $con531$
 BEGIN
-  ALTER TABLE ONLY zapp.whatsapp_groups
-    ADD CONSTRAINT whatsapp_groups_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.workspace_secrets
+    ADD CONSTRAINT workspace_secrets_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con531$;
@@ -55365,8 +55354,8 @@ $con531$;
 
 DO $con532$
 BEGIN
-  ALTER TABLE ONLY zapp.whatsapp_official_credentials
-    ADD CONSTRAINT whatsapp_official_credentials_connection_id_key UNIQUE (connection_id);
+  ALTER TABLE ONLY zapp.workspace_settings
+    ADD CONSTRAINT workspace_settings_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con532$;
@@ -55376,8 +55365,8 @@ $con532$;
 
 DO $con533$
 BEGIN
-  ALTER TABLE ONLY zapp.whatsapp_official_credentials
-    ADD CONSTRAINT whatsapp_official_credentials_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.workspace_settings
+    ADD CONSTRAINT workspace_settings_workspace_id_key UNIQUE (workspace_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con533$;
@@ -55387,8 +55376,8 @@ $con533$;
 
 DO $con534$
 BEGIN
-  ALTER TABLE ONLY zapp.whatsapp_templates
-    ADD CONSTRAINT whatsapp_templates_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.workspaces
+    ADD CONSTRAINT workspaces_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con534$;
@@ -55398,8 +55387,8 @@ $con534$;
 
 DO $con535$
 BEGIN
-  ALTER TABLE ONLY zapp.whisper_files
-    ADD CONSTRAINT whisper_files_pkey PRIMARY KEY (id);
+  ALTER TABLE ONLY zapp.xp_transactions
+    ADD CONSTRAINT xp_transactions_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con535$;
@@ -55409,88 +55398,11 @@ $con535$;
 
 DO $con536$
 BEGIN
-  ALTER TABLE ONLY zapp.whisper_messages
-    ADD CONSTRAINT whisper_messages_pkey PRIMARY KEY (id);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$con536$;
-
-
-
-
-DO $con537$
-BEGIN
-  ALTER TABLE ONLY zapp.workspace_members
-    ADD CONSTRAINT workspace_members_pkey PRIMARY KEY (id);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$con537$;
-
-
-
-
-DO $con538$
-BEGIN
-  ALTER TABLE ONLY zapp.workspace_secrets
-    ADD CONSTRAINT workspace_secrets_pkey PRIMARY KEY (id);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$con538$;
-
-
-
-
-DO $con539$
-BEGIN
-  ALTER TABLE ONLY zapp.workspace_settings
-    ADD CONSTRAINT workspace_settings_pkey PRIMARY KEY (id);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$con539$;
-
-
-
-
-DO $con540$
-BEGIN
-  ALTER TABLE ONLY zapp.workspace_settings
-    ADD CONSTRAINT workspace_settings_workspace_id_key UNIQUE (workspace_id);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$con540$;
-
-
-
-
-DO $con541$
-BEGIN
-  ALTER TABLE ONLY zapp.workspaces
-    ADD CONSTRAINT workspaces_pkey PRIMARY KEY (id);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$con541$;
-
-
-
-
-DO $con542$
-BEGIN
-  ALTER TABLE ONLY zapp.xp_transactions
-    ADD CONSTRAINT xp_transactions_pkey PRIMARY KEY (id);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$con542$;
-
-
-
-
-DO $con543$
-BEGIN
   ALTER TABLE ONLY zapp.zapp_audit_log
     ADD CONSTRAINT zapp_audit_log_pkey PRIMARY KEY (id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con543$;
+$con536$;
 
 
 
@@ -56575,11 +56487,6 @@ CREATE INDEX IF NOT EXISTS idx_lgpd_consent_audit_contact_id ON zapp.lgpd_consen
 
 
 
-CREATE INDEX IF NOT EXISTS idx_lgpd_growth_stats_table_date ON zapp._lgpd_growth_stats USING btree (table_name, measured_at DESC);
-
-
-
-
 CREATE INDEX IF NOT EXISTS idx_login_attempts_email_locked ON zapp.login_attempts USING btree (email, locked_until) WHERE (locked_until IS NOT NULL);
 
 
@@ -57156,31 +57063,6 @@ CREATE INDEX IF NOT EXISTS idx_sf_sticker ON zapp.sticker_favorites USING btree 
 
 
 CREATE INDEX IF NOT EXISTS idx_sf_user ON zapp.sticker_favorites USING btree (user_id);
-
-
-
-
-CREATE INDEX IF NOT EXISTS idx_sicoob_contact_mapping_agent_id ON zapp.sicoob_contact_mapping USING btree (zappweb_agent_id);
-
-
-
-
-CREATE INDEX IF NOT EXISTS idx_sicoob_contact_mapping_contact_id ON zapp.sicoob_contact_mapping USING btree (contact_id);
-
-
-
-
-CREATE INDEX IF NOT EXISTS idx_sicoob_outbox_contact_id ON zapp.sicoob_reply_outbox USING btree (contact_id);
-
-
-
-
-CREATE INDEX IF NOT EXISTS idx_sicoob_outbox_pending ON zapp.sicoob_reply_outbox USING btree (next_attempt_at) WHERE (status = ANY (ARRAY['pending'::text, 'processing'::text]));
-
-
-
-
-CREATE INDEX IF NOT EXISTS idx_sicoob_outbox_status ON zapp.sicoob_reply_outbox USING btree (status, next_attempt_at);
 
 
 
@@ -58961,11 +58843,6 @@ CREATE OR REPLACE TRIGGER trg_set_transfer_ticket BEFORE INSERT ON zapp.conversa
 
 
 
-CREATE OR REPLACE TRIGGER trg_sicoob_reply_outbox_updated_at BEFORE UPDATE ON zapp.sicoob_reply_outbox FOR EACH ROW EXECUTE FUNCTION zapp.set_updated_at();
-
-
-
-
 CREATE OR REPLACE TRIGGER trg_sticker_category_count AFTER INSERT OR DELETE OR UPDATE OF category ON zapp.stickers FOR EACH ROW EXECUTE FUNCTION zapp.fn_update_sticker_category_count();
 
 
@@ -59326,79 +59203,79 @@ CREATE OR REPLACE TRIGGER update_whatsapp_templates_updated_at BEFORE UPDATE ON 
 
 
 
-DO $con544$
+DO $con537$
 BEGIN
   ALTER TABLE ONLY zapp.agent_presence
     ADD CONSTRAINT agent_presence_current_queue_id_fkey FOREIGN KEY (current_queue_id) REFERENCES zapp.queues(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con544$;
+$con537$;
 
 
 
 
-DO $con545$
+DO $con538$
 BEGIN
   ALTER TABLE ONLY zapp.agent_presence
     ADD CONSTRAINT agent_presence_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con545$;
+$con538$;
 
 
 
 
-DO $con546$
+DO $con539$
 BEGIN
   ALTER TABLE ONLY zapp.agent_stats
     ADD CONSTRAINT agent_stats_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con546$;
+$con539$;
 
 
 
 
-DO $con547$
+DO $con540$
 BEGIN
   ALTER TABLE ONLY zapp.agent_visibility_grants
     ADD CONSTRAINT agent_visibility_grants_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con547$;
+$con540$;
 
 
 
 
-DO $con548$
+DO $con541$
 BEGIN
   ALTER TABLE ONLY zapp.agent_visibility_grants
     ADD CONSTRAINT agent_visibility_grants_can_see_agent_id_fkey FOREIGN KEY (can_see_agent_id) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con548$;
+$con541$;
 
 
 
 
-DO $con549$
+DO $con542$
 BEGIN
   ALTER TABLE ONLY zapp.agent_visibility_grants
     ADD CONSTRAINT agent_visibility_grants_granted_by_fkey FOREIGN KEY (granted_by) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con549$;
+$con542$;
 
 
 
 
-DO $con550$
+DO $con543$
 BEGIN
   ALTER TABLE ONLY zapp.ai_conversation_tags
     ADD CONSTRAINT ai_conversation_tags_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con550$;
+$con543$;
 
 
 
@@ -59408,10 +59285,87 @@ COMMENT ON CONSTRAINT ai_conversation_tags_contact_id_fkey ON zapp.ai_conversati
 
 
 
-DO $con551$
+DO $con544$
 BEGIN
   ALTER TABLE ONLY zapp.allowed_countries
     ADD CONSTRAINT allowed_countries_added_by_fkey FOREIGN KEY (added_by) REFERENCES auth.users(id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$con544$;
+
+
+
+
+DO $con545$
+BEGIN
+  ALTER TABLE ONLY zapp.analytics_events
+    ADD CONSTRAINT analytics_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES zapp.profiles(user_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$con545$;
+
+
+
+
+DO $con546$
+BEGIN
+  ALTER TABLE ONLY zapp.analytics_events
+    ADD CONSTRAINT analytics_events_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES zapp.workspaces(id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$con546$;
+
+
+
+
+DO $con547$
+BEGIN
+  ALTER TABLE ONLY zapp.app_notifications
+    ADD CONSTRAINT app_notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$con547$;
+
+
+
+
+DO $con548$
+BEGIN
+  ALTER TABLE ONLY zapp.audio_meme_favorites
+    ADD CONSTRAINT audio_meme_favorites_meme_id_fkey FOREIGN KEY (meme_id) REFERENCES zapp.audio_memes(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$con548$;
+
+
+
+
+DO $con549$
+BEGIN
+  ALTER TABLE ONLY zapp.auto_close_config
+    ADD CONSTRAINT auto_close_config_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$con549$;
+
+
+
+
+DO $con550$
+BEGIN
+  ALTER TABLE ONLY zapp.auto_export_jobs
+    ADD CONSTRAINT auto_export_jobs_created_by_fkey FOREIGN KEY (created_by) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$con550$;
+
+
+
+
+DO $con551$
+BEGIN
+  ALTER TABLE ONLY zapp.automation_executions
+    ADD CONSTRAINT automation_executions_department_id_fkey FOREIGN KEY (department_id) REFERENCES zapp.departments(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con551$;
@@ -59421,8 +59375,8 @@ $con551$;
 
 DO $con552$
 BEGIN
-  ALTER TABLE ONLY zapp.analytics_events
-    ADD CONSTRAINT analytics_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES zapp.profiles(user_id);
+  ALTER TABLE ONLY zapp.automation_executions
+    ADD CONSTRAINT automation_executions_rule_id_fkey FOREIGN KEY (rule_id) REFERENCES zapp.automation_rules(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con552$;
@@ -59432,8 +59386,8 @@ $con552$;
 
 DO $con553$
 BEGIN
-  ALTER TABLE ONLY zapp.analytics_events
-    ADD CONSTRAINT analytics_events_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES zapp.workspaces(id);
+  ALTER TABLE ONLY zapp.automation_rules
+    ADD CONSTRAINT automation_rules_department_id_fkey FOREIGN KEY (department_id) REFERENCES zapp.departments(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con553$;
@@ -59443,8 +59397,8 @@ $con553$;
 
 DO $con554$
 BEGIN
-  ALTER TABLE ONLY zapp.app_notifications
-    ADD CONSTRAINT app_notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.automations
+    ADD CONSTRAINT automations_channel_id_fkey FOREIGN KEY (channel_id) REFERENCES zapp.service_channels(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con554$;
@@ -59454,8 +59408,8 @@ $con554$;
 
 DO $con555$
 BEGIN
-  ALTER TABLE ONLY zapp.audio_meme_favorites
-    ADD CONSTRAINT audio_meme_favorites_meme_id_fkey FOREIGN KEY (meme_id) REFERENCES zapp.audio_memes(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.automations
+    ADD CONSTRAINT automations_department_id_fkey FOREIGN KEY (department_id) REFERENCES zapp.departments(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con555$;
@@ -59465,8 +59419,8 @@ $con555$;
 
 DO $con556$
 BEGIN
-  ALTER TABLE ONLY zapp.auto_close_config
-    ADD CONSTRAINT auto_close_config_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.blocked_countries
+    ADD CONSTRAINT blocked_countries_blocked_by_fkey FOREIGN KEY (blocked_by) REFERENCES auth.users(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con556$;
@@ -59476,8 +59430,8 @@ $con556$;
 
 DO $con557$
 BEGIN
-  ALTER TABLE ONLY zapp.auto_export_jobs
-    ADD CONSTRAINT auto_export_jobs_created_by_fkey FOREIGN KEY (created_by) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.blocked_ips
+    ADD CONSTRAINT blocked_ips_blocked_by_fkey FOREIGN KEY (blocked_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con557$;
@@ -59487,8 +59441,8 @@ $con557$;
 
 DO $con558$
 BEGIN
-  ALTER TABLE ONLY zapp.automation_executions
-    ADD CONSTRAINT automation_executions_department_id_fkey FOREIGN KEY (department_id) REFERENCES zapp.departments(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.calls
+    ADD CONSTRAINT calls_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con558$;
@@ -59498,8 +59452,8 @@ $con558$;
 
 DO $con559$
 BEGIN
-  ALTER TABLE ONLY zapp.automation_executions
-    ADD CONSTRAINT automation_executions_rule_id_fkey FOREIGN KEY (rule_id) REFERENCES zapp.automation_rules(id);
+  ALTER TABLE ONLY zapp.calls
+    ADD CONSTRAINT calls_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con559$;
@@ -59509,8 +59463,8 @@ $con559$;
 
 DO $con560$
 BEGIN
-  ALTER TABLE ONLY zapp.automation_rules
-    ADD CONSTRAINT automation_rules_department_id_fkey FOREIGN KEY (department_id) REFERENCES zapp.departments(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.campaign_ab_variants
+    ADD CONSTRAINT campaign_ab_variants_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES zapp.campaigns(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con560$;
@@ -59520,8 +59474,8 @@ $con560$;
 
 DO $con561$
 BEGIN
-  ALTER TABLE ONLY zapp.automations
-    ADD CONSTRAINT automations_channel_id_fkey FOREIGN KEY (channel_id) REFERENCES zapp.service_channels(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.campaign_contacts
+    ADD CONSTRAINT campaign_contacts_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES zapp.campaigns(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con561$;
@@ -59531,8 +59485,8 @@ $con561$;
 
 DO $con562$
 BEGIN
-  ALTER TABLE ONLY zapp.automations
-    ADD CONSTRAINT automations_department_id_fkey FOREIGN KEY (department_id) REFERENCES zapp.departments(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.campaign_contacts
+    ADD CONSTRAINT campaign_contacts_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con562$;
@@ -59542,8 +59496,8 @@ $con562$;
 
 DO $con563$
 BEGIN
-  ALTER TABLE ONLY zapp.blocked_countries
-    ADD CONSTRAINT blocked_countries_blocked_by_fkey FOREIGN KEY (blocked_by) REFERENCES auth.users(id);
+  ALTER TABLE ONLY zapp.campaigns
+    ADD CONSTRAINT campaigns_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con563$;
@@ -59553,8 +59507,8 @@ $con563$;
 
 DO $con564$
 BEGIN
-  ALTER TABLE ONLY zapp.blocked_ips
-    ADD CONSTRAINT blocked_ips_blocked_by_fkey FOREIGN KEY (blocked_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.channel_connections
+    ADD CONSTRAINT channel_connections_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con564$;
@@ -59564,8 +59518,8 @@ $con564$;
 
 DO $con565$
 BEGIN
-  ALTER TABLE ONLY zapp.calls
-    ADD CONSTRAINT calls_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.channel_provider_routes
+    ADD CONSTRAINT channel_provider_routes_channel_connection_id_fkey FOREIGN KEY (channel_connection_id) REFERENCES zapp.channel_connections(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con565$;
@@ -59575,8 +59529,8 @@ $con565$;
 
 DO $con566$
 BEGIN
-  ALTER TABLE ONLY zapp.calls
-    ADD CONSTRAINT calls_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.channel_provider_routes
+    ADD CONSTRAINT channel_provider_routes_current_provider_id_fkey FOREIGN KEY (current_provider_id) REFERENCES zapp.provider_configs(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con566$;
@@ -59586,8 +59540,8 @@ $con566$;
 
 DO $con567$
 BEGIN
-  ALTER TABLE ONLY zapp.campaign_ab_variants
-    ADD CONSTRAINT campaign_ab_variants_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES zapp.campaigns(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.channel_provider_routes
+    ADD CONSTRAINT channel_provider_routes_fallback_provider_id_fkey FOREIGN KEY (fallback_provider_id) REFERENCES zapp.provider_configs(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con567$;
@@ -59597,8 +59551,8 @@ $con567$;
 
 DO $con568$
 BEGIN
-  ALTER TABLE ONLY zapp.campaign_contacts
-    ADD CONSTRAINT campaign_contacts_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES zapp.campaigns(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.channel_provider_routes
+    ADD CONSTRAINT channel_provider_routes_primary_provider_id_fkey FOREIGN KEY (primary_provider_id) REFERENCES zapp.provider_configs(id) ON DELETE RESTRICT;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con568$;
@@ -59608,8 +59562,8 @@ $con568$;
 
 DO $con569$
 BEGIN
-  ALTER TABLE ONLY zapp.campaign_contacts
-    ADD CONSTRAINT campaign_contacts_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.channel_provider_routes
+    ADD CONSTRAINT channel_provider_routes_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con569$;
@@ -59619,8 +59573,8 @@ $con569$;
 
 DO $con570$
 BEGIN
-  ALTER TABLE ONLY zapp.campaigns
-    ADD CONSTRAINT campaigns_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id);
+  ALTER TABLE ONLY zapp.channel_routing_rules
+    ADD CONSTRAINT channel_routing_rules_channel_connection_id_fkey FOREIGN KEY (channel_connection_id) REFERENCES zapp.channel_connections(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con570$;
@@ -59630,8 +59584,8 @@ $con570$;
 
 DO $con571$
 BEGIN
-  ALTER TABLE ONLY zapp.channel_connections
-    ADD CONSTRAINT channel_connections_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id);
+  ALTER TABLE ONLY zapp.channel_routing_rules
+    ADD CONSTRAINT channel_routing_rules_queue_id_fkey FOREIGN KEY (queue_id) REFERENCES zapp.queues(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con571$;
@@ -59641,8 +59595,8 @@ $con571$;
 
 DO $con572$
 BEGIN
-  ALTER TABLE ONLY zapp.channel_provider_routes
-    ADD CONSTRAINT channel_provider_routes_channel_connection_id_fkey FOREIGN KEY (channel_connection_id) REFERENCES zapp.channel_connections(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.chatbot_executions
+    ADD CONSTRAINT chatbot_executions_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con572$;
@@ -59652,8 +59606,8 @@ $con572$;
 
 DO $con573$
 BEGIN
-  ALTER TABLE ONLY zapp.channel_provider_routes
-    ADD CONSTRAINT channel_provider_routes_current_provider_id_fkey FOREIGN KEY (current_provider_id) REFERENCES zapp.provider_configs(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.chatbot_executions
+    ADD CONSTRAINT chatbot_executions_flow_id_fkey FOREIGN KEY (flow_id) REFERENCES zapp.chatbot_flows(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con573$;
@@ -59663,8 +59617,8 @@ $con573$;
 
 DO $con574$
 BEGIN
-  ALTER TABLE ONLY zapp.channel_provider_routes
-    ADD CONSTRAINT channel_provider_routes_fallback_provider_id_fkey FOREIGN KEY (fallback_provider_id) REFERENCES zapp.provider_configs(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.chatbot_flows
+    ADD CONSTRAINT chatbot_flows_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con574$;
@@ -59674,8 +59628,8 @@ $con574$;
 
 DO $con575$
 BEGIN
-  ALTER TABLE ONLY zapp.channel_provider_routes
-    ADD CONSTRAINT channel_provider_routes_primary_provider_id_fkey FOREIGN KEY (primary_provider_id) REFERENCES zapp.provider_configs(id) ON DELETE RESTRICT;
+  ALTER TABLE ONLY zapp.contact_intelligence
+    ADD CONSTRAINT ci_contact_id_fk FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con575$;
@@ -59685,8 +59639,8 @@ $con575$;
 
 DO $con576$
 BEGIN
-  ALTER TABLE ONLY zapp.channel_provider_routes
-    ADD CONSTRAINT channel_provider_routes_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.client_wallet_rules
+    ADD CONSTRAINT client_wallet_rules_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con576$;
@@ -59696,8 +59650,8 @@ $con576$;
 
 DO $con577$
 BEGIN
-  ALTER TABLE ONLY zapp.channel_routing_rules
-    ADD CONSTRAINT channel_routing_rules_channel_connection_id_fkey FOREIGN KEY (channel_connection_id) REFERENCES zapp.channel_connections(id);
+  ALTER TABLE ONLY zapp.connection_health_logs
+    ADD CONSTRAINT connection_health_logs_connection_id_fkey FOREIGN KEY (connection_id) REFERENCES zapp.whatsapp_connections(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con577$;
@@ -59707,8 +59661,8 @@ $con577$;
 
 DO $con578$
 BEGIN
-  ALTER TABLE ONLY zapp.channel_routing_rules
-    ADD CONSTRAINT channel_routing_rules_queue_id_fkey FOREIGN KEY (queue_id) REFERENCES zapp.queues(id);
+  ALTER TABLE ONLY zapp.contact_custom_fields
+    ADD CONSTRAINT contact_custom_fields_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con578$;
@@ -59718,8 +59672,8 @@ $con578$;
 
 DO $con579$
 BEGIN
-  ALTER TABLE ONLY zapp.chatbot_executions
-    ADD CONSTRAINT chatbot_executions_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
+  ALTER TABLE ONLY zapp.contact_notes
+    ADD CONSTRAINT contact_notes_author_id_fkey FOREIGN KEY (author_id) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con579$;
@@ -59729,8 +59683,8 @@ $con579$;
 
 DO $con580$
 BEGIN
-  ALTER TABLE ONLY zapp.chatbot_executions
-    ADD CONSTRAINT chatbot_executions_flow_id_fkey FOREIGN KEY (flow_id) REFERENCES zapp.chatbot_flows(id);
+  ALTER TABLE ONLY zapp.contact_notes
+    ADD CONSTRAINT contact_notes_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con580$;
@@ -59740,8 +59694,8 @@ $con580$;
 
 DO $con581$
 BEGIN
-  ALTER TABLE ONLY zapp.chatbot_flows
-    ADD CONSTRAINT chatbot_flows_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id);
+  ALTER TABLE ONLY zapp.contact_phones
+    ADD CONSTRAINT contact_phones_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con581$;
@@ -59751,8 +59705,8 @@ $con581$;
 
 DO $con582$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_intelligence
-    ADD CONSTRAINT ci_contact_id_fk FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+  ALTER TABLE ONLY zapp.contact_purchases
+    ADD CONSTRAINT contact_purchases_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con582$;
@@ -59762,8 +59716,8 @@ $con582$;
 
 DO $con583$
 BEGIN
-  ALTER TABLE ONLY zapp.client_wallet_rules
-    ADD CONSTRAINT client_wallet_rules_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.contact_purchases
+    ADD CONSTRAINT contact_purchases_deal_id_fkey FOREIGN KEY (deal_id) REFERENCES zapp.sales_deals(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con583$;
@@ -59773,8 +59727,8 @@ $con583$;
 
 DO $con584$
 BEGIN
-  ALTER TABLE ONLY zapp.connection_health_logs
-    ADD CONSTRAINT connection_health_logs_connection_id_fkey FOREIGN KEY (connection_id) REFERENCES zapp.whatsapp_connections(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.contact_segments
+    ADD CONSTRAINT contact_segments_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con584$;
@@ -59784,8 +59738,8 @@ $con584$;
 
 DO $con585$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_custom_fields
-    ADD CONSTRAINT contact_custom_fields_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.contact_tags
+    ADD CONSTRAINT contact_tags_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con585$;
@@ -59795,8 +59749,8 @@ $con585$;
 
 DO $con586$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_notes
-    ADD CONSTRAINT contact_notes_author_id_fkey FOREIGN KEY (author_id) REFERENCES zapp.profiles(id);
+  ALTER TABLE ONLY zapp.contact_tags
+    ADD CONSTRAINT contact_tags_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES zapp.tags(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con586$;
@@ -59806,8 +59760,8 @@ $con586$;
 
 DO $con587$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_notes
-    ADD CONSTRAINT contact_notes_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.conversation_analyses
+    ADD CONSTRAINT conversation_analyses_analyzed_by_fkey FOREIGN KEY (analyzed_by) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con587$;
@@ -59817,8 +59771,8 @@ $con587$;
 
 DO $con588$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_phones
-    ADD CONSTRAINT contact_phones_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
+  ALTER TABLE ONLY zapp.conversation_analyses
+    ADD CONSTRAINT conversation_analyses_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con588$;
@@ -59828,8 +59782,8 @@ $con588$;
 
 DO $con589$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_purchases
-    ADD CONSTRAINT contact_purchases_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.conversation_audit_logs
+    ADD CONSTRAINT conversation_audit_logs_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con589$;
@@ -59839,8 +59793,8 @@ $con589$;
 
 DO $con590$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_purchases
-    ADD CONSTRAINT contact_purchases_deal_id_fkey FOREIGN KEY (deal_id) REFERENCES zapp.sales_deals(id);
+  ALTER TABLE ONLY zapp.conversation_audit_logs
+    ADD CONSTRAINT conversation_audit_logs_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES zapp.conversation_pins(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con590$;
@@ -59850,8 +59804,8 @@ $con590$;
 
 DO $con591$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_segments
-    ADD CONSTRAINT contact_segments_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.conversation_audit_logs
+    ADD CONSTRAINT conversation_audit_logs_performed_by_fkey FOREIGN KEY (performed_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con591$;
@@ -59861,8 +59815,8 @@ $con591$;
 
 DO $con592$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_tags
-    ADD CONSTRAINT contact_tags_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
+  ALTER TABLE ONLY zapp.conversation_closures
+    ADD CONSTRAINT conversation_closures_closed_by_fkey FOREIGN KEY (closed_by) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con592$;
@@ -59872,8 +59826,8 @@ $con592$;
 
 DO $con593$
 BEGIN
-  ALTER TABLE ONLY zapp.contact_tags
-    ADD CONSTRAINT contact_tags_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES zapp.tags(id);
+  ALTER TABLE ONLY zapp.conversation_closures
+    ADD CONSTRAINT conversation_closures_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con593$;
@@ -59883,8 +59837,8 @@ $con593$;
 
 DO $con594$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_analyses
-    ADD CONSTRAINT conversation_analyses_analyzed_by_fkey FOREIGN KEY (analyzed_by) REFERENCES zapp.profiles(id);
+  ALTER TABLE ONLY zapp.conversation_events
+    ADD CONSTRAINT conversation_events_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con594$;
@@ -59894,8 +59848,8 @@ $con594$;
 
 DO $con595$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_analyses
-    ADD CONSTRAINT conversation_analyses_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.conversation_events
+    ADD CONSTRAINT conversation_events_from_agent_id_fkey FOREIGN KEY (from_agent_id) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con595$;
@@ -59905,8 +59859,8 @@ $con595$;
 
 DO $con596$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_audit_logs
-    ADD CONSTRAINT conversation_audit_logs_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.conversation_events
+    ADD CONSTRAINT conversation_events_from_queue_id_fkey FOREIGN KEY (from_queue_id) REFERENCES zapp.queues(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con596$;
@@ -59916,8 +59870,8 @@ $con596$;
 
 DO $con597$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_audit_logs
-    ADD CONSTRAINT conversation_audit_logs_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES zapp.conversation_pins(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.conversation_events
+    ADD CONSTRAINT conversation_events_performed_by_fkey FOREIGN KEY (performed_by) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con597$;
@@ -59927,8 +59881,8 @@ $con597$;
 
 DO $con598$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_audit_logs
-    ADD CONSTRAINT conversation_audit_logs_performed_by_fkey FOREIGN KEY (performed_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.conversation_events
+    ADD CONSTRAINT conversation_events_to_agent_id_fkey FOREIGN KEY (to_agent_id) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con598$;
@@ -59938,8 +59892,8 @@ $con598$;
 
 DO $con599$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_closures
-    ADD CONSTRAINT conversation_closures_closed_by_fkey FOREIGN KEY (closed_by) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.conversation_events
+    ADD CONSTRAINT conversation_events_to_queue_id_fkey FOREIGN KEY (to_queue_id) REFERENCES zapp.queues(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con599$;
@@ -59949,8 +59903,8 @@ $con599$;
 
 DO $con600$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_closures
-    ADD CONSTRAINT conversation_closures_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.conversation_memory
+    ADD CONSTRAINT conversation_memory_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con600$;
@@ -59960,8 +59914,8 @@ $con600$;
 
 DO $con601$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_events
-    ADD CONSTRAINT conversation_events_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.conversation_memory
+    ADD CONSTRAINT conversation_memory_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con601$;
@@ -59971,8 +59925,8 @@ $con601$;
 
 DO $con602$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_events
-    ADD CONSTRAINT conversation_events_from_agent_id_fkey FOREIGN KEY (from_agent_id) REFERENCES zapp.profiles(id);
+  ALTER TABLE ONLY zapp.conversation_participants
+    ADD CONSTRAINT conversation_participants_thread_id_fkey FOREIGN KEY (thread_id) REFERENCES zapp.conversation_threads(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con602$;
@@ -59982,8 +59936,8 @@ $con602$;
 
 DO $con603$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_events
-    ADD CONSTRAINT conversation_events_from_queue_id_fkey FOREIGN KEY (from_queue_id) REFERENCES zapp.queues(id);
+  ALTER TABLE ONLY zapp.conversation_sla
+    ADD CONSTRAINT conversation_sla_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con603$;
@@ -59993,8 +59947,8 @@ $con603$;
 
 DO $con604$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_events
-    ADD CONSTRAINT conversation_events_performed_by_fkey FOREIGN KEY (performed_by) REFERENCES zapp.profiles(id);
+  ALTER TABLE ONLY zapp.conversation_sla
+    ADD CONSTRAINT conversation_sla_sla_configuration_id_fkey FOREIGN KEY (sla_configuration_id) REFERENCES zapp.sla_configurations(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con604$;
@@ -60004,8 +59958,8 @@ $con604$;
 
 DO $con605$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_events
-    ADD CONSTRAINT conversation_events_to_agent_id_fkey FOREIGN KEY (to_agent_id) REFERENCES zapp.profiles(id);
+  ALTER TABLE ONLY zapp.conversation_snoozes
+    ADD CONSTRAINT conversation_snoozes_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con605$;
@@ -60015,8 +59969,8 @@ $con605$;
 
 DO $con606$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_events
-    ADD CONSTRAINT conversation_events_to_queue_id_fkey FOREIGN KEY (to_queue_id) REFERENCES zapp.queues(id);
+  ALTER TABLE ONLY zapp.conversation_snoozes
+    ADD CONSTRAINT conversation_snoozes_snoozed_by_fkey FOREIGN KEY (snoozed_by) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con606$;
@@ -60026,8 +59980,8 @@ $con606$;
 
 DO $con607$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_memory
-    ADD CONSTRAINT conversation_memory_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.conversation_tasks
+    ADD CONSTRAINT conversation_tasks_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con607$;
@@ -60037,8 +59991,8 @@ $con607$;
 
 DO $con608$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_memory
-    ADD CONSTRAINT conversation_memory_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.conversation_tasks
+    ADD CONSTRAINT conversation_tasks_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con608$;
@@ -60048,8 +60002,8 @@ $con608$;
 
 DO $con609$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_participants
-    ADD CONSTRAINT conversation_participants_thread_id_fkey FOREIGN KEY (thread_id) REFERENCES zapp.conversation_threads(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.conversation_transfers
+    ADD CONSTRAINT conversation_transfers_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con609$;
@@ -60059,8 +60013,8 @@ $con609$;
 
 DO $con610$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_sla
-    ADD CONSTRAINT conversation_sla_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
+  ALTER TABLE ONLY zapp.crisis_room_alerts
+    ADD CONSTRAINT crisis_room_alerts_acknowledged_by_fkey FOREIGN KEY (acknowledged_by) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con610$;
@@ -60070,8 +60024,8 @@ $con610$;
 
 DO $con611$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_sla
-    ADD CONSTRAINT conversation_sla_sla_configuration_id_fkey FOREIGN KEY (sla_configuration_id) REFERENCES zapp.sla_configurations(id);
+  ALTER TABLE ONLY zapp.crm_sync_config
+    ADD CONSTRAINT crm_sync_config_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con611$;
@@ -60081,8 +60035,8 @@ $con611$;
 
 DO $con612$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_snoozes
-    ADD CONSTRAINT conversation_snoozes_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.cron_inventory
+    ADD CONSTRAINT cron_inventory_replaced_by_fkey FOREIGN KEY (replaced_by) REFERENCES zapp.cron_inventory(jobid);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con612$;
@@ -60092,8 +60046,8 @@ $con612$;
 
 DO $con613$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_snoozes
-    ADD CONSTRAINT conversation_snoozes_snoozed_by_fkey FOREIGN KEY (snoozed_by) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.csat_auto_config
+    ADD CONSTRAINT csat_auto_config_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con613$;
@@ -60103,8 +60057,8 @@ $con613$;
 
 DO $con614$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_tasks
-    ADD CONSTRAINT conversation_tasks_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.csat_auto_config
+    ADD CONSTRAINT csat_auto_config_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con614$;
@@ -60114,8 +60068,8 @@ $con614$;
 
 DO $con615$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_tasks
-    ADD CONSTRAINT conversation_tasks_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.csat_surveys
+    ADD CONSTRAINT csat_surveys_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con615$;
@@ -60125,8 +60079,8 @@ $con615$;
 
 DO $con616$
 BEGIN
-  ALTER TABLE ONLY zapp.conversation_transfers
-    ADD CONSTRAINT conversation_transfers_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
+  ALTER TABLE ONLY zapp.csat_surveys
+    ADD CONSTRAINT csat_surveys_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con616$;
@@ -60136,8 +60090,8 @@ $con616$;
 
 DO $con617$
 BEGIN
-  ALTER TABLE ONLY zapp.crisis_room_alerts
-    ADD CONSTRAINT crisis_room_alerts_acknowledged_by_fkey FOREIGN KEY (acknowledged_by) REFERENCES zapp.profiles(id);
+  ALTER TABLE ONLY zapp.csat_surveys
+    ADD CONSTRAINT csat_surveys_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con617$;
@@ -60147,8 +60101,8 @@ $con617$;
 
 DO $con618$
 BEGIN
-  ALTER TABLE ONLY zapp.crm_sync_config
-    ADD CONSTRAINT crm_sync_config_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.deal_activities
+    ADD CONSTRAINT deal_activities_deal_id_fkey FOREIGN KEY (deal_id) REFERENCES zapp.sales_deals(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con618$;
@@ -60158,8 +60112,8 @@ $con618$;
 
 DO $con619$
 BEGIN
-  ALTER TABLE ONLY zapp.cron_inventory
-    ADD CONSTRAINT cron_inventory_replaced_by_fkey FOREIGN KEY (replaced_by) REFERENCES zapp.cron_inventory(jobid);
+  ALTER TABLE ONLY zapp.deal_activities
+    ADD CONSTRAINT deal_activities_performed_by_fkey FOREIGN KEY (performed_by) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con619$;
@@ -60169,8 +60123,8 @@ $con619$;
 
 DO $con620$
 BEGIN
-  ALTER TABLE ONLY zapp.csat_auto_config
-    ADD CONSTRAINT csat_auto_config_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES zapp.profiles(id);
+  ALTER TABLE ONLY zapp.department_invitations
+    ADD CONSTRAINT department_invitations_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con620$;
@@ -60180,8 +60134,8 @@ $con620$;
 
 DO $con621$
 BEGIN
-  ALTER TABLE ONLY zapp.csat_auto_config
-    ADD CONSTRAINT csat_auto_config_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id);
+  ALTER TABLE ONLY zapp.department_invitations
+    ADD CONSTRAINT department_invitations_department_id_fkey FOREIGN KEY (department_id) REFERENCES zapp.departments(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con621$;
@@ -60191,8 +60145,8 @@ $con621$;
 
 DO $con622$
 BEGIN
-  ALTER TABLE ONLY zapp.csat_surveys
-    ADD CONSTRAINT csat_surveys_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.department_invitations
+    ADD CONSTRAINT department_invitations_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES auth.users(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con622$;
@@ -60202,8 +60156,8 @@ $con622$;
 
 DO $con623$
 BEGIN
-  ALTER TABLE ONLY zapp.csat_surveys
-    ADD CONSTRAINT csat_surveys_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.dev_diagnostic_logs
+    ADD CONSTRAINT dev_diagnostic_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con623$;
@@ -60213,8 +60167,8 @@ $con623$;
 
 DO $con624$
 BEGIN
-  ALTER TABLE ONLY zapp.csat_surveys
-    ADD CONSTRAINT csat_surveys_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.dlq_audit_log
+    ADD CONSTRAINT dlq_audit_log_performed_by_fkey FOREIGN KEY (performed_by) REFERENCES auth.users(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con624$;
@@ -60224,8 +60178,8 @@ $con624$;
 
 DO $con625$
 BEGIN
-  ALTER TABLE ONLY zapp.deal_activities
-    ADD CONSTRAINT deal_activities_deal_id_fkey FOREIGN KEY (deal_id) REFERENCES zapp.sales_deals(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.email_revalidation_jobs
+    ADD CONSTRAINT email_revalidation_jobs_account_id_fkey FOREIGN KEY (account_id) REFERENCES email_app.email_accounts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con625$;
@@ -60235,8 +60189,8 @@ $con625$;
 
 DO $con626$
 BEGIN
-  ALTER TABLE ONLY zapp.deal_activities
-    ADD CONSTRAINT deal_activities_performed_by_fkey FOREIGN KEY (performed_by) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.emails
+    ADD CONSTRAINT emails_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con626$;
@@ -60246,8 +60200,8 @@ $con626$;
 
 DO $con627$
 BEGIN
-  ALTER TABLE ONLY zapp.department_invitations
-    ADD CONSTRAINT department_invitations_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
+  ALTER TABLE ONLY zapp.evolution_instance_credentials
+    ADD CONSTRAINT evolution_instance_credentials_vault_secret_id_fkey FOREIGN KEY (vault_secret_id) REFERENCES vault.secrets(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con627$;
@@ -60257,8 +60211,8 @@ $con627$;
 
 DO $con628$
 BEGIN
-  ALTER TABLE ONLY zapp.department_invitations
-    ADD CONSTRAINT department_invitations_department_id_fkey FOREIGN KEY (department_id) REFERENCES zapp.departments(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.evolution_notification_outbox
+    ADD CONSTRAINT evolution_notification_outbox_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES zapp.evolution_notifications(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con628$;
@@ -60268,8 +60222,8 @@ $con628$;
 
 DO $con629$
 BEGIN
-  ALTER TABLE ONLY zapp.department_invitations
-    ADD CONSTRAINT department_invitations_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES auth.users(id);
+  ALTER TABLE ONLY zapp.evolution_status_reactions
+    ADD CONSTRAINT evolution_status_reactions_status_id_fkey FOREIGN KEY (status_id) REFERENCES zapp.evolution_whatsapp_status(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con629$;
@@ -60279,8 +60233,8 @@ $con629$;
 
 DO $con630$
 BEGIN
-  ALTER TABLE ONLY zapp.dev_diagnostic_logs
-    ADD CONSTRAINT dev_diagnostic_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.evolution_whatsapp_status
+    ADD CONSTRAINT evolution_whatsapp_status_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con630$;
@@ -60290,8 +60244,8 @@ $con630$;
 
 DO $con631$
 BEGIN
-  ALTER TABLE ONLY zapp.dlq_audit_log
-    ADD CONSTRAINT dlq_audit_log_performed_by_fkey FOREIGN KEY (performed_by) REFERENCES auth.users(id);
+  ALTER TABLE ONLY zapp.extensions
+    ADD CONSTRAINT extensions_tenant_external_id_fkey FOREIGN KEY (tenant_external_id) REFERENCES zapp.tenants(external_id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con631$;
@@ -60301,8 +60255,8 @@ $con631$;
 
 DO $con632$
 BEGIN
-  ALTER TABLE ONLY zapp.email_revalidation_jobs
-    ADD CONSTRAINT email_revalidation_jobs_account_id_fkey FOREIGN KEY (account_id) REFERENCES email_app.email_accounts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.favorite_contacts
+    ADD CONSTRAINT favorite_contacts_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con632$;
@@ -60312,8 +60266,8 @@ $con632$;
 
 DO $con633$
 BEGIN
-  ALTER TABLE ONLY zapp.emails
-    ADD CONSTRAINT emails_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.evolution_calls
+    ADD CONSTRAINT fk_calls_contact FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con633$;
@@ -60323,8 +60277,8 @@ $con633$;
 
 DO $con634$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_instance_credentials
-    ADD CONSTRAINT evolution_instance_credentials_vault_secret_id_fkey FOREIGN KEY (vault_secret_id) REFERENCES vault.secrets(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.evolution_deals
+    ADD CONSTRAINT fk_deals_contact FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con634$;
@@ -60334,8 +60288,8 @@ $con634$;
 
 DO $con635$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_notification_outbox
-    ADD CONSTRAINT evolution_notification_outbox_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES zapp.evolution_notifications(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.evolution_followups
+    ADD CONSTRAINT fk_followups_contact FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con635$;
@@ -60345,8 +60299,8 @@ $con635$;
 
 DO $con636$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_status_reactions
-    ADD CONSTRAINT evolution_status_reactions_status_id_fkey FOREIGN KEY (status_id) REFERENCES zapp.evolution_whatsapp_status(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.evolution_notifications
+    ADD CONSTRAINT fk_notifications_contact FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con636$;
@@ -60356,8 +60310,8 @@ $con636$;
 
 DO $con637$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_whatsapp_status
-    ADD CONSTRAINT evolution_whatsapp_status_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
+  ALTER TABLE ONLY zapp.evolution_sentiment_analysis
+    ADD CONSTRAINT fk_sentiment_contact FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con637$;
@@ -60367,8 +60321,8 @@ $con637$;
 
 DO $con638$
 BEGIN
-  ALTER TABLE ONLY zapp.extensions
-    ADD CONSTRAINT extensions_tenant_external_id_fkey FOREIGN KEY (tenant_external_id) REFERENCES zapp.tenants(external_id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.evolution_tasks
+    ADD CONSTRAINT fk_tasks_contact FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con638$;
@@ -60378,8 +60332,8 @@ $con638$;
 
 DO $con639$
 BEGIN
-  ALTER TABLE ONLY zapp.favorite_contacts
-    ADD CONSTRAINT favorite_contacts_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.followup_executions
+    ADD CONSTRAINT followup_executions_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con639$;
@@ -60389,8 +60343,8 @@ $con639$;
 
 DO $con640$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_calls
-    ADD CONSTRAINT fk_calls_contact FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.followup_executions
+    ADD CONSTRAINT followup_executions_sequence_id_fkey FOREIGN KEY (sequence_id) REFERENCES zapp.followup_sequences(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con640$;
@@ -60400,8 +60354,8 @@ $con640$;
 
 DO $con641$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_deals
-    ADD CONSTRAINT fk_deals_contact FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.followup_sequences
+    ADD CONSTRAINT followup_sequences_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con641$;
@@ -60411,8 +60365,8 @@ $con641$;
 
 DO $con642$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_followups
-    ADD CONSTRAINT fk_followups_contact FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.followup_steps
+    ADD CONSTRAINT followup_steps_sequence_id_fkey FOREIGN KEY (sequence_id) REFERENCES zapp.followup_sequences(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con642$;
@@ -60422,8 +60376,8 @@ $con642$;
 
 DO $con643$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_notifications
-    ADD CONSTRAINT fk_notifications_contact FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.geo_blocking_settings
+    ADD CONSTRAINT geo_blocking_settings_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con643$;
@@ -60433,8 +60387,8 @@ $con643$;
 
 DO $con644$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_sentiment_analysis
-    ADD CONSTRAINT fk_sentiment_contact FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.instance_processing_pauses
+    ADD CONSTRAINT instance_processing_pauses_paused_by_fkey FOREIGN KEY (paused_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con644$;
@@ -60444,8 +60398,8 @@ $con644$;
 
 DO $con645$
 BEGIN
-  ALTER TABLE ONLY zapp.evolution_tasks
-    ADD CONSTRAINT fk_tasks_contact FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.instance_registry
+    ADD CONSTRAINT instance_registry_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con645$;
@@ -60455,8 +60409,8 @@ $con645$;
 
 DO $con646$
 BEGIN
-  ALTER TABLE ONLY zapp.followup_executions
-    ADD CONSTRAINT followup_executions_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
+  ALTER TABLE ONLY zapp.ip_whitelist
+    ADD CONSTRAINT ip_whitelist_added_by_fkey FOREIGN KEY (added_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con646$;
@@ -60466,8 +60420,8 @@ $con646$;
 
 DO $con647$
 BEGIN
-  ALTER TABLE ONLY zapp.followup_executions
-    ADD CONSTRAINT followup_executions_sequence_id_fkey FOREIGN KEY (sequence_id) REFERENCES zapp.followup_sequences(id);
+  ALTER TABLE ONLY zapp.message_reactions
+    ADD CONSTRAINT message_reactions_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con647$;
@@ -60477,8 +60431,8 @@ $con647$;
 
 DO $con648$
 BEGIN
-  ALTER TABLE ONLY zapp.followup_sequences
-    ADD CONSTRAINT followup_sequences_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id);
+  ALTER TABLE ONLY zapp.message_reactions
+    ADD CONSTRAINT message_reactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con648$;
@@ -60488,8 +60442,8 @@ $con648$;
 
 DO $con649$
 BEGIN
-  ALTER TABLE ONLY zapp.followup_steps
-    ADD CONSTRAINT followup_steps_sequence_id_fkey FOREIGN KEY (sequence_id) REFERENCES zapp.followup_sequences(id);
+  ALTER TABLE ONLY zapp.mfa_sessions
+    ADD CONSTRAINT mfa_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con649$;
@@ -60499,8 +60453,8 @@ $con649$;
 
 DO $con650$
 BEGIN
-  ALTER TABLE ONLY zapp.geo_blocking_settings
-    ADD CONSTRAINT geo_blocking_settings_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id);
+  ALTER TABLE ONLY zapp.n8n_config
+    ADD CONSTRAINT n8n_config_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con650$;
@@ -60510,8 +60464,8 @@ $con650$;
 
 DO $con651$
 BEGIN
-  ALTER TABLE ONLY zapp.instance_processing_pauses
-    ADD CONSTRAINT instance_processing_pauses_paused_by_fkey FOREIGN KEY (paused_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.notification_delivery_log
+    ADD CONSTRAINT notification_delivery_log_channel_id_fkey FOREIGN KEY (channel_id) REFERENCES zapp.notification_channels_config(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con651$;
@@ -60521,8 +60475,8 @@ $con651$;
 
 DO $con652$
 BEGIN
-  ALTER TABLE ONLY zapp.instance_registry
-    ADD CONSTRAINT instance_registry_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES zapp.profiles(id);
+  ALTER TABLE ONLY zapp.outbound_message_queue
+    ADD CONSTRAINT outbound_message_queue_audio_meme_id_fkey FOREIGN KEY (audio_meme_id) REFERENCES zapp.audio_memes(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con652$;
@@ -60532,8 +60486,8 @@ $con652$;
 
 DO $con653$
 BEGIN
-  ALTER TABLE ONLY zapp.ip_whitelist
-    ADD CONSTRAINT ip_whitelist_added_by_fkey FOREIGN KEY (added_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.outbound_message_queue
+    ADD CONSTRAINT outbound_message_queue_sticker_id_fkey FOREIGN KEY (sticker_id) REFERENCES zapp.stickers(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con653$;
@@ -60543,8 +60497,8 @@ $con653$;
 
 DO $con654$
 BEGIN
-  ALTER TABLE ONLY zapp.message_reactions
-    ADD CONSTRAINT message_reactions_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.password_reset_requests
+    ADD CONSTRAINT password_reset_requests_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES auth.users(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con654$;
@@ -60554,8 +60508,8 @@ $con654$;
 
 DO $con655$
 BEGIN
-  ALTER TABLE ONLY zapp.message_reactions
-    ADD CONSTRAINT message_reactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.password_reset_tokens
+    ADD CONSTRAINT password_reset_tokens_request_id_fkey FOREIGN KEY (request_id) REFERENCES zapp.password_reset_requests(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con655$;
@@ -60565,8 +60519,8 @@ $con655$;
 
 DO $con656$
 BEGIN
-  ALTER TABLE ONLY zapp.mfa_sessions
-    ADD CONSTRAINT mfa_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.perfis_usuarios
+    ADD CONSTRAINT perfis_usuarios_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con656$;
@@ -60576,8 +60530,8 @@ $con656$;
 
 DO $con657$
 BEGIN
-  ALTER TABLE ONLY zapp.n8n_config
-    ADD CONSTRAINT n8n_config_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.pii_access_log
+    ADD CONSTRAINT pii_access_log_accessed_by_fkey FOREIGN KEY (accessed_by) REFERENCES auth.users(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con657$;
@@ -60587,8 +60541,8 @@ $con657$;
 
 DO $con658$
 BEGIN
-  ALTER TABLE ONLY zapp.notification_delivery_log
-    ADD CONSTRAINT notification_delivery_log_channel_id_fkey FOREIGN KEY (channel_id) REFERENCES zapp.notification_channels_config(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.pinned_conversations
+    ADD CONSTRAINT pinned_conversations_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con658$;
@@ -60598,8 +60552,8 @@ $con658$;
 
 DO $con659$
 BEGIN
-  ALTER TABLE ONLY zapp.outbound_message_queue
-    ADD CONSTRAINT outbound_message_queue_audio_meme_id_fkey FOREIGN KEY (audio_meme_id) REFERENCES zapp.audio_memes(id);
+  ALTER TABLE ONLY zapp.pinned_conversations
+    ADD CONSTRAINT pinned_conversations_pinned_by_fkey FOREIGN KEY (pinned_by) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con659$;
@@ -60609,8 +60563,8 @@ $con659$;
 
 DO $con660$
 BEGIN
-  ALTER TABLE ONLY zapp.outbound_message_queue
-    ADD CONSTRAINT outbound_message_queue_sticker_id_fkey FOREIGN KEY (sticker_id) REFERENCES zapp.stickers(id);
+  ALTER TABLE ONLY zapp.profiles
+    ADD CONSTRAINT profiles_department_id_fkey FOREIGN KEY (department_id) REFERENCES zapp.departments(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con660$;
@@ -60620,8 +60574,8 @@ $con660$;
 
 DO $con661$
 BEGIN
-  ALTER TABLE ONLY zapp.password_reset_requests
-    ADD CONSTRAINT password_reset_requests_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES auth.users(id);
+  ALTER TABLE ONLY zapp.profiles
+    ADD CONSTRAINT profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con661$;
@@ -60631,8 +60585,8 @@ $con661$;
 
 DO $con662$
 BEGIN
-  ALTER TABLE ONLY zapp.password_reset_tokens
-    ADD CONSTRAINT password_reset_tokens_request_id_fkey FOREIGN KEY (request_id) REFERENCES zapp.password_reset_requests(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.provider_session_logs
+    ADD CONSTRAINT provider_session_logs_provider_id_fkey FOREIGN KEY (provider_id) REFERENCES zapp.provider_configs(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con662$;
@@ -60642,8 +60596,8 @@ $con662$;
 
 DO $con663$
 BEGIN
-  ALTER TABLE ONLY zapp.perfis_usuarios
-    ADD CONSTRAINT perfis_usuarios_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.provider_session_logs
+    ADD CONSTRAINT provider_session_logs_session_id_fkey FOREIGN KEY (session_id) REFERENCES zapp.provider_sessions(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con663$;
@@ -60653,8 +60607,8 @@ $con663$;
 
 DO $con664$
 BEGIN
-  ALTER TABLE ONLY zapp.pii_access_log
-    ADD CONSTRAINT pii_access_log_accessed_by_fkey FOREIGN KEY (accessed_by) REFERENCES auth.users(id);
+  ALTER TABLE ONLY zapp.provider_sessions
+    ADD CONSTRAINT provider_sessions_channel_connection_id_fkey FOREIGN KEY (channel_connection_id) REFERENCES zapp.channel_connections(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con664$;
@@ -60664,8 +60618,8 @@ $con664$;
 
 DO $con665$
 BEGIN
-  ALTER TABLE ONLY zapp.pinned_conversations
-    ADD CONSTRAINT pinned_conversations_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.provider_sessions
+    ADD CONSTRAINT provider_sessions_provider_id_fkey FOREIGN KEY (provider_id) REFERENCES zapp.provider_configs(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con665$;
@@ -60675,8 +60629,8 @@ $con665$;
 
 DO $con666$
 BEGIN
-  ALTER TABLE ONLY zapp.pinned_conversations
-    ADD CONSTRAINT pinned_conversations_pinned_by_fkey FOREIGN KEY (pinned_by) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.provider_sessions
+    ADD CONSTRAINT provider_sessions_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con666$;
@@ -60686,8 +60640,8 @@ $con666$;
 
 DO $con667$
 BEGIN
-  ALTER TABLE ONLY zapp.profiles
-    ADD CONSTRAINT profiles_department_id_fkey FOREIGN KEY (department_id) REFERENCES zapp.departments(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.qr_attempts
+    ADD CONSTRAINT qr_attempts_connection_id_fkey FOREIGN KEY (connection_id) REFERENCES zapp.whatsapp_connections(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con667$;
@@ -60697,8 +60651,8 @@ $con667$;
 
 DO $con668$
 BEGIN
-  ALTER TABLE ONLY zapp.profiles
-    ADD CONSTRAINT profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.queue_analytics
+    ADD CONSTRAINT queue_analytics_queue_id_fkey FOREIGN KEY (queue_id) REFERENCES zapp.queues(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con668$;
@@ -60708,8 +60662,8 @@ $con668$;
 
 DO $con669$
 BEGIN
-  ALTER TABLE ONLY zapp.provider_session_logs
-    ADD CONSTRAINT provider_session_logs_provider_id_fkey FOREIGN KEY (provider_id) REFERENCES zapp.provider_configs(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.queue_members
+    ADD CONSTRAINT queue_members_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con669$;
@@ -60719,8 +60673,8 @@ $con669$;
 
 DO $con670$
 BEGIN
-  ALTER TABLE ONLY zapp.provider_session_logs
-    ADD CONSTRAINT provider_session_logs_session_id_fkey FOREIGN KEY (session_id) REFERENCES zapp.provider_sessions(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.queue_members
+    ADD CONSTRAINT queue_members_queue_id_fkey FOREIGN KEY (queue_id) REFERENCES zapp.queues(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con670$;
@@ -60730,8 +60684,8 @@ $con670$;
 
 DO $con671$
 BEGIN
-  ALTER TABLE ONLY zapp.provider_sessions
-    ADD CONSTRAINT provider_sessions_channel_connection_id_fkey FOREIGN KEY (channel_connection_id) REFERENCES zapp.channel_connections(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.queue_positions
+    ADD CONSTRAINT queue_positions_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con671$;
@@ -60741,8 +60695,8 @@ $con671$;
 
 DO $con672$
 BEGIN
-  ALTER TABLE ONLY zapp.provider_sessions
-    ADD CONSTRAINT provider_sessions_provider_id_fkey FOREIGN KEY (provider_id) REFERENCES zapp.provider_configs(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.queue_routing_rules
+    ADD CONSTRAINT queue_routing_rules_queue_id_fkey FOREIGN KEY (queue_id) REFERENCES zapp.queues(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con672$;
@@ -60752,8 +60706,8 @@ $con672$;
 
 DO $con673$
 BEGIN
-  ALTER TABLE ONLY zapp.provider_sessions
-    ADD CONSTRAINT provider_sessions_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.queues
+    ADD CONSTRAINT queues_department_id_fkey FOREIGN KEY (department_id) REFERENCES zapp.departments(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con673$;
@@ -60763,8 +60717,8 @@ $con673$;
 
 DO $con674$
 BEGIN
-  ALTER TABLE ONLY zapp.qr_attempts
-    ADD CONSTRAINT qr_attempts_connection_id_fkey FOREIGN KEY (connection_id) REFERENCES zapp.whatsapp_connections(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.quick_replies
+    ADD CONSTRAINT quick_replies_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con674$;
@@ -60774,8 +60728,8 @@ $con674$;
 
 DO $con675$
 BEGIN
-  ALTER TABLE ONLY zapp.queue_analytics
-    ADD CONSTRAINT queue_analytics_queue_id_fkey FOREIGN KEY (queue_id) REFERENCES zapp.queues(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.reconnection_logs
+    ADD CONSTRAINT reconnection_logs_connection_id_fkey FOREIGN KEY (connection_id) REFERENCES zapp.channel_connections(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con675$;
@@ -60785,8 +60739,8 @@ $con675$;
 
 DO $con676$
 BEGIN
-  ALTER TABLE ONLY zapp.queue_members
-    ADD CONSTRAINT queue_members_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.reminders
+    ADD CONSTRAINT reminders_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con676$;
@@ -60796,8 +60750,8 @@ $con676$;
 
 DO $con677$
 BEGIN
-  ALTER TABLE ONLY zapp.queue_members
-    ADD CONSTRAINT queue_members_queue_id_fkey FOREIGN KEY (queue_id) REFERENCES zapp.queues(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.reprocess_jobs
+    ADD CONSTRAINT reprocess_jobs_requested_by_fkey FOREIGN KEY (requested_by) REFERENCES auth.users(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con677$;
@@ -60807,8 +60761,8 @@ $con677$;
 
 DO $con678$
 BEGIN
-  ALTER TABLE ONLY zapp.queue_positions
-    ADD CONSTRAINT queue_positions_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
+  ALTER TABLE ONLY zapp.role_permissions
+    ADD CONSTRAINT role_permissions_permission_id_fkey FOREIGN KEY (permission_id) REFERENCES zapp.permissions(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con678$;
@@ -60818,8 +60772,8 @@ $con678$;
 
 DO $con679$
 BEGIN
-  ALTER TABLE ONLY zapp.queue_routing_rules
-    ADD CONSTRAINT queue_routing_rules_queue_id_fkey FOREIGN KEY (queue_id) REFERENCES zapp.queues(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.sales_deals
+    ADD CONSTRAINT sales_deals_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con679$;
@@ -60829,8 +60783,8 @@ $con679$;
 
 DO $con680$
 BEGIN
-  ALTER TABLE ONLY zapp.queues
-    ADD CONSTRAINT queues_department_id_fkey FOREIGN KEY (department_id) REFERENCES zapp.departments(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.sales_deals
+    ADD CONSTRAINT sales_deals_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con680$;
@@ -60840,8 +60794,8 @@ $con680$;
 
 DO $con681$
 BEGIN
-  ALTER TABLE ONLY zapp.quick_replies
-    ADD CONSTRAINT quick_replies_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.sales_deals
+    ADD CONSTRAINT sales_deals_stage_id_fkey FOREIGN KEY (stage_id) REFERENCES zapp.sales_pipeline_stages(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con681$;
@@ -60851,8 +60805,8 @@ $con681$;
 
 DO $con682$
 BEGIN
-  ALTER TABLE ONLY zapp.reconnection_logs
-    ADD CONSTRAINT reconnection_logs_connection_id_fkey FOREIGN KEY (connection_id) REFERENCES zapp.channel_connections(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.scheduled_messages
+    ADD CONSTRAINT scheduled_messages_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con682$;
@@ -60862,8 +60816,8 @@ $con682$;
 
 DO $con683$
 BEGIN
-  ALTER TABLE ONLY zapp.reminders
-    ADD CONSTRAINT reminders_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.scheduled_messages
+    ADD CONSTRAINT scheduled_messages_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con683$;
@@ -60873,8 +60827,8 @@ $con683$;
 
 DO $con684$
 BEGIN
-  ALTER TABLE ONLY zapp.reprocess_jobs
-    ADD CONSTRAINT reprocess_jobs_requested_by_fkey FOREIGN KEY (requested_by) REFERENCES auth.users(id);
+  ALTER TABLE ONLY zapp.scheduled_report_runs
+    ADD CONSTRAINT scheduled_report_runs_report_id_fkey FOREIGN KEY (report_id) REFERENCES zapp.scheduled_reports(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con684$;
@@ -60884,8 +60838,8 @@ $con684$;
 
 DO $con685$
 BEGIN
-  ALTER TABLE ONLY zapp.role_permissions
-    ADD CONSTRAINT role_permissions_permission_id_fkey FOREIGN KEY (permission_id) REFERENCES zapp.permissions(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.security_audit_logs
+    ADD CONSTRAINT security_audit_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES zapp.profiles(user_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con685$;
@@ -60895,8 +60849,8 @@ $con685$;
 
 DO $con686$
 BEGIN
-  ALTER TABLE ONLY zapp.sales_deals
-    ADD CONSTRAINT sales_deals_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES zapp.profiles(id);
+  ALTER TABLE ONLY zapp.sla_delivery_violations
+    ADD CONSTRAINT sla_delivery_violations_resolved_by_fkey FOREIGN KEY (resolved_by) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con686$;
@@ -60906,8 +60860,8 @@ $con686$;
 
 DO $con687$
 BEGIN
-  ALTER TABLE ONLY zapp.sales_deals
-    ADD CONSTRAINT sales_deals_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
+  ALTER TABLE ONLY zapp.sla_history
+    ADD CONSTRAINT sla_history_resolved_by_fkey FOREIGN KEY (resolved_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con687$;
@@ -60917,8 +60871,8 @@ $con687$;
 
 DO $con688$
 BEGIN
-  ALTER TABLE ONLY zapp.sales_deals
-    ADD CONSTRAINT sales_deals_stage_id_fkey FOREIGN KEY (stage_id) REFERENCES zapp.sales_pipeline_stages(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.sla_history
+    ADD CONSTRAINT sla_history_sla_config_id_fkey FOREIGN KEY (sla_config_id) REFERENCES zapp.sla_configurations(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con688$;
@@ -60928,8 +60882,8 @@ $con688$;
 
 DO $con689$
 BEGIN
-  ALTER TABLE ONLY zapp.scheduled_messages
-    ADD CONSTRAINT scheduled_messages_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.sla_history
+    ADD CONSTRAINT sla_history_thread_id_fkey FOREIGN KEY (thread_id) REFERENCES zapp.conversation_threads(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con689$;
@@ -60939,8 +60893,8 @@ $con689$;
 
 DO $con690$
 BEGIN
-  ALTER TABLE ONLY zapp.scheduled_messages
-    ADD CONSTRAINT scheduled_messages_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id);
+  ALTER TABLE ONLY zapp.sla_rules
+    ADD CONSTRAINT sla_rules_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con690$;
@@ -60950,8 +60904,8 @@ $con690$;
 
 DO $con691$
 BEGIN
-  ALTER TABLE ONLY zapp.scheduled_report_runs
-    ADD CONSTRAINT scheduled_report_runs_report_id_fkey FOREIGN KEY (report_id) REFERENCES zapp.scheduled_reports(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.sla_rules
+    ADD CONSTRAINT sla_rules_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con691$;
@@ -60961,8 +60915,8 @@ $con691$;
 
 DO $con692$
 BEGIN
-  ALTER TABLE ONLY zapp.security_audit_logs
-    ADD CONSTRAINT security_audit_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES zapp.profiles(user_id);
+  ALTER TABLE ONLY zapp.sticker_favorites
+    ADD CONSTRAINT sticker_favorites_sticker_id_fkey FOREIGN KEY (sticker_id) REFERENCES zapp.stickers(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con692$;
@@ -60972,8 +60926,8 @@ $con692$;
 
 DO $con693$
 BEGIN
-  ALTER TABLE ONLY zapp.sicoob_contact_mapping
-    ADD CONSTRAINT sicoob_contact_mapping_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.stickers
+    ADD CONSTRAINT stickers_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con693$;
@@ -60983,8 +60937,8 @@ $con693$;
 
 DO $con694$
 BEGIN
-  ALTER TABLE ONLY zapp.sicoob_contact_mapping
-    ADD CONSTRAINT sicoob_contact_mapping_zappweb_agent_id_fkey FOREIGN KEY (zappweb_agent_id) REFERENCES zapp.profiles(id);
+  ALTER TABLE ONLY zapp.sticky_assignments
+    ADD CONSTRAINT sticky_assignments_agent_profile_id_fkey FOREIGN KEY (agent_profile_id) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con694$;
@@ -60994,8 +60948,8 @@ $con694$;
 
 DO $con695$
 BEGIN
-  ALTER TABLE ONLY zapp.sla_delivery_violations
-    ADD CONSTRAINT sla_delivery_violations_resolved_by_fkey FOREIGN KEY (resolved_by) REFERENCES zapp.profiles(id);
+  ALTER TABLE ONLY zapp.sticky_assignments
+    ADD CONSTRAINT sticky_assignments_channel_connection_id_fkey FOREIGN KEY (channel_connection_id) REFERENCES zapp.channel_connections(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con695$;
@@ -61005,8 +60959,8 @@ $con695$;
 
 DO $con696$
 BEGIN
-  ALTER TABLE ONLY zapp.sla_history
-    ADD CONSTRAINT sla_history_resolved_by_fkey FOREIGN KEY (resolved_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.sticky_assignments
+    ADD CONSTRAINT sticky_assignments_queue_id_fkey FOREIGN KEY (queue_id) REFERENCES zapp.queues(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con696$;
@@ -61016,8 +60970,8 @@ $con696$;
 
 DO $con697$
 BEGIN
-  ALTER TABLE ONLY zapp.sla_history
-    ADD CONSTRAINT sla_history_sla_config_id_fkey FOREIGN KEY (sla_config_id) REFERENCES zapp.sla_configurations(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.system_connections
+    ADD CONSTRAINT system_connections_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con697$;
@@ -61027,8 +60981,8 @@ $con697$;
 
 DO $con698$
 BEGIN
-  ALTER TABLE ONLY zapp.sla_history
-    ADD CONSTRAINT sla_history_thread_id_fkey FOREIGN KEY (thread_id) REFERENCES zapp.conversation_threads(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.system_health_incidents
+    ADD CONSTRAINT system_health_incidents_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con698$;
@@ -61038,8 +60992,8 @@ $con698$;
 
 DO $con699$
 BEGIN
-  ALTER TABLE ONLY zapp.sla_rules
-    ADD CONSTRAINT sla_rules_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.tags
+    ADD CONSTRAINT tags_created_by_fkey FOREIGN KEY (created_by) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con699$;
@@ -61049,8 +61003,8 @@ $con699$;
 
 DO $con700$
 BEGIN
-  ALTER TABLE ONLY zapp.sla_rules
-    ADD CONSTRAINT sla_rules_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.talkx_blacklist
+    ADD CONSTRAINT talkx_blacklist_blocked_by_fkey FOREIGN KEY (blocked_by) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con700$;
@@ -61060,8 +61014,8 @@ $con700$;
 
 DO $con701$
 BEGIN
-  ALTER TABLE ONLY zapp.sticker_favorites
-    ADD CONSTRAINT sticker_favorites_sticker_id_fkey FOREIGN KEY (sticker_id) REFERENCES zapp.stickers(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.talkx_blacklist
+    ADD CONSTRAINT talkx_blacklist_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con701$;
@@ -61071,8 +61025,8 @@ $con701$;
 
 DO $con702$
 BEGIN
-  ALTER TABLE ONLY zapp.stickers
-    ADD CONSTRAINT stickers_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.talkx_campaigns
+    ADD CONSTRAINT talkx_campaigns_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con702$;
@@ -61082,8 +61036,8 @@ $con702$;
 
 DO $con703$
 BEGIN
-  ALTER TABLE ONLY zapp.sticky_assignments
-    ADD CONSTRAINT sticky_assignments_agent_profile_id_fkey FOREIGN KEY (agent_profile_id) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.talkx_recipients
+    ADD CONSTRAINT talkx_recipients_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES zapp.talkx_campaigns(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con703$;
@@ -61093,8 +61047,8 @@ $con703$;
 
 DO $con704$
 BEGIN
-  ALTER TABLE ONLY zapp.sticky_assignments
-    ADD CONSTRAINT sticky_assignments_channel_connection_id_fkey FOREIGN KEY (channel_connection_id) REFERENCES zapp.channel_connections(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.talkx_recipients
+    ADD CONSTRAINT talkx_recipients_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con704$;
@@ -61104,8 +61058,8 @@ $con704$;
 
 DO $con705$
 BEGIN
-  ALTER TABLE ONLY zapp.sticky_assignments
-    ADD CONSTRAINT sticky_assignments_queue_id_fkey FOREIGN KEY (queue_id) REFERENCES zapp.queues(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.team_conversation_members
+    ADD CONSTRAINT team_conversation_members_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES zapp.team_conversations(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con705$;
@@ -61115,8 +61069,8 @@ $con705$;
 
 DO $con706$
 BEGIN
-  ALTER TABLE ONLY zapp.system_connections
-    ADD CONSTRAINT system_connections_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.team_conversation_members
+    ADD CONSTRAINT team_conversation_members_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con706$;
@@ -61126,8 +61080,8 @@ $con706$;
 
 DO $con707$
 BEGIN
-  ALTER TABLE ONLY zapp.system_health_incidents
-    ADD CONSTRAINT system_health_incidents_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.team_conversations
+    ADD CONSTRAINT team_conversations_created_by_fkey FOREIGN KEY (created_by) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con707$;
@@ -61137,8 +61091,8 @@ $con707$;
 
 DO $con708$
 BEGIN
-  ALTER TABLE ONLY zapp.tags
-    ADD CONSTRAINT tags_created_by_fkey FOREIGN KEY (created_by) REFERENCES zapp.profiles(id);
+  ALTER TABLE ONLY zapp.team_conversations
+    ADD CONSTRAINT team_conversations_department_id_fkey FOREIGN KEY (department_id) REFERENCES zapp.departments(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con708$;
@@ -61148,8 +61102,8 @@ $con708$;
 
 DO $con709$
 BEGIN
-  ALTER TABLE ONLY zapp.talkx_blacklist
-    ADD CONSTRAINT talkx_blacklist_blocked_by_fkey FOREIGN KEY (blocked_by) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.team_message_receipts
+    ADD CONSTRAINT team_message_receipts_message_id_fkey FOREIGN KEY (message_id) REFERENCES zapp.team_messages(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con709$;
@@ -61159,8 +61113,8 @@ $con709$;
 
 DO $con710$
 BEGIN
-  ALTER TABLE ONLY zapp.talkx_blacklist
-    ADD CONSTRAINT talkx_blacklist_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
+  ALTER TABLE ONLY zapp.team_message_receipts
+    ADD CONSTRAINT team_message_receipts_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con710$;
@@ -61170,8 +61124,8 @@ $con710$;
 
 DO $con711$
 BEGIN
-  ALTER TABLE ONLY zapp.talkx_campaigns
-    ADD CONSTRAINT talkx_campaigns_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id);
+  ALTER TABLE ONLY zapp.team_messages
+    ADD CONSTRAINT team_messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES zapp.team_conversations(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con711$;
@@ -61181,8 +61135,8 @@ $con711$;
 
 DO $con712$
 BEGIN
-  ALTER TABLE ONLY zapp.talkx_recipients
-    ADD CONSTRAINT talkx_recipients_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES zapp.talkx_campaigns(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.team_messages
+    ADD CONSTRAINT team_messages_reply_to_id_fkey FOREIGN KEY (reply_to_id) REFERENCES zapp.team_messages(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con712$;
@@ -61192,8 +61146,8 @@ $con712$;
 
 DO $con713$
 BEGIN
-  ALTER TABLE ONLY zapp.talkx_recipients
-    ADD CONSTRAINT talkx_recipients_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
+  ALTER TABLE ONLY zapp.team_messages
+    ADD CONSTRAINT team_messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con713$;
@@ -61203,8 +61157,8 @@ $con713$;
 
 DO $con714$
 BEGIN
-  ALTER TABLE ONLY zapp.team_conversation_members
-    ADD CONSTRAINT team_conversation_members_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES zapp.team_conversations(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.transfer_comments
+    ADD CONSTRAINT transfer_comments_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con714$;
@@ -61214,8 +61168,8 @@ $con714$;
 
 DO $con715$
 BEGIN
-  ALTER TABLE ONLY zapp.team_conversation_members
-    ADD CONSTRAINT team_conversation_members_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES zapp.profiles(id);
+  ALTER TABLE ONLY zapp.transfer_comments
+    ADD CONSTRAINT transfer_comments_transfer_id_fkey FOREIGN KEY (transfer_id) REFERENCES zapp.conversation_transfers(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con715$;
@@ -61225,8 +61179,8 @@ $con715$;
 
 DO $con716$
 BEGIN
-  ALTER TABLE ONLY zapp.team_conversations
-    ADD CONSTRAINT team_conversations_created_by_fkey FOREIGN KEY (created_by) REFERENCES zapp.profiles(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.user_roles
+    ADD CONSTRAINT user_roles_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES zapp.profiles(user_id) ON UPDATE CASCADE ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con716$;
@@ -61236,8 +61190,8 @@ $con716$;
 
 DO $con717$
 BEGIN
-  ALTER TABLE ONLY zapp.team_conversations
-    ADD CONSTRAINT team_conversations_department_id_fkey FOREIGN KEY (department_id) REFERENCES zapp.departments(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.user_roles
+    ADD CONSTRAINT user_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con717$;
@@ -61247,8 +61201,8 @@ $con717$;
 
 DO $con718$
 BEGIN
-  ALTER TABLE ONLY zapp.team_message_receipts
-    ADD CONSTRAINT team_message_receipts_message_id_fkey FOREIGN KEY (message_id) REFERENCES zapp.team_messages(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.user_sessions
+    ADD CONSTRAINT user_sessions_device_id_fkey FOREIGN KEY (device_id) REFERENCES zapp.user_devices(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con718$;
@@ -61258,8 +61212,8 @@ $con718$;
 
 DO $con719$
 BEGIN
-  ALTER TABLE ONLY zapp.team_message_receipts
-    ADD CONSTRAINT team_message_receipts_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.voice_conversion_queue
+    ADD CONSTRAINT voice_conversion_queue_requested_by_fkey FOREIGN KEY (requested_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con719$;
@@ -61269,8 +61223,8 @@ $con719$;
 
 DO $con720$
 BEGIN
-  ALTER TABLE ONLY zapp.team_messages
-    ADD CONSTRAINT team_messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES zapp.team_conversations(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.voip_profile_credentials
+    ADD CONSTRAINT voip_profile_credentials_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con720$;
@@ -61280,8 +61234,8 @@ $con720$;
 
 DO $con721$
 BEGIN
-  ALTER TABLE ONLY zapp.team_messages
-    ADD CONSTRAINT team_messages_reply_to_id_fkey FOREIGN KEY (reply_to_id) REFERENCES zapp.team_messages(id) ON DELETE SET NULL;
+  ALTER TABLE ONLY zapp.warroom_alerts
+    ADD CONSTRAINT warroom_alerts_dismissed_by_fkey FOREIGN KEY (dismissed_by) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con721$;
@@ -61291,8 +61245,8 @@ $con721$;
 
 DO $con722$
 BEGIN
-  ALTER TABLE ONLY zapp.team_messages
-    ADD CONSTRAINT team_messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES zapp.profiles(id);
+  ALTER TABLE ONLY zapp.whatsapp_official_credentials
+    ADD CONSTRAINT whatsapp_official_credentials_connection_id_fkey FOREIGN KEY (connection_id) REFERENCES zapp.whatsapp_connections(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con722$;
@@ -61302,8 +61256,8 @@ $con722$;
 
 DO $con723$
 BEGIN
-  ALTER TABLE ONLY zapp.transfer_comments
-    ADD CONSTRAINT transfer_comments_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES zapp.profiles(id);
+  ALTER TABLE ONLY zapp.whatsapp_templates
+    ADD CONSTRAINT whatsapp_templates_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con723$;
@@ -61313,8 +61267,8 @@ $con723$;
 
 DO $con724$
 BEGIN
-  ALTER TABLE ONLY zapp.transfer_comments
-    ADD CONSTRAINT transfer_comments_transfer_id_fkey FOREIGN KEY (transfer_id) REFERENCES zapp.conversation_transfers(id) ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.whisper_messages
+    ADD CONSTRAINT whisper_messages_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con724$;
@@ -61324,8 +61278,8 @@ $con724$;
 
 DO $con725$
 BEGIN
-  ALTER TABLE ONLY zapp.user_roles
-    ADD CONSTRAINT user_roles_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES zapp.profiles(user_id) ON UPDATE CASCADE ON DELETE CASCADE;
+  ALTER TABLE ONLY zapp.whisper_messages
+    ADD CONSTRAINT whisper_messages_target_agent_id_fkey FOREIGN KEY (target_agent_id) REFERENCES zapp.profiles(id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $con725$;
@@ -61333,108 +61287,99 @@ $con725$;
 
 
 
-DO $con726$
+DO $pol726$
 BEGIN
-  ALTER TABLE ONLY zapp.user_roles
-    ADD CONSTRAINT user_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id);
+  CREATE POLICY "Admin/supervisor can read fallback events" ON zapp.evolution_fallback_events FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor(auth.uid()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con726$;
+$pol726$;
 
 
 
 
-DO $con727$
+DO $pol727$
 BEGIN
-  ALTER TABLE ONLY zapp.user_sessions
-    ADD CONSTRAINT user_sessions_device_id_fkey FOREIGN KEY (device_id) REFERENCES zapp.user_devices(id) ON DELETE SET NULL;
+  CREATE POLICY "Admins and supervisors manage sticky" ON zapp.sticky_assignments TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con727$;
+$pol727$;
 
 
 
 
-DO $con728$
+DO $pol728$
 BEGIN
-  ALTER TABLE ONLY zapp.voice_conversion_queue
-    ADD CONSTRAINT voice_conversion_queue_requested_by_fkey FOREIGN KEY (requested_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+  CREATE POLICY "Admins can delete crisis alerts" ON zapp.crisis_room_alerts FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con728$;
+$pol728$;
 
 
 
 
-DO $con729$
+DO $pol729$
 BEGIN
-  ALTER TABLE ONLY zapp.voip_profile_credentials
-    ADD CONSTRAINT voip_profile_credentials_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES zapp.profiles(id) ON DELETE CASCADE;
+  CREATE POLICY "Admins can delete rate limits" ON zapp.webhook_rate_limits FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con729$;
+$pol729$;
 
 
 
 
-DO $con730$
+DO $pol730$
 BEGIN
-  ALTER TABLE ONLY zapp.warroom_alerts
-    ADD CONSTRAINT warroom_alerts_dismissed_by_fkey FOREIGN KEY (dismissed_by) REFERENCES zapp.profiles(id);
+  CREATE POLICY "Admins can insert crisis alerts" ON zapp.crisis_room_alerts FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con730$;
+$pol730$;
 
 
 
 
-DO $con731$
+DO $pol731$
 BEGIN
-  ALTER TABLE ONLY zapp.whatsapp_official_credentials
-    ADD CONSTRAINT whatsapp_official_credentials_connection_id_fkey FOREIGN KEY (connection_id) REFERENCES zapp.whatsapp_connections(id) ON DELETE CASCADE;
+  CREATE POLICY "Admins can insert rate limits" ON zapp.webhook_rate_limits FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con731$;
+$pol731$;
 
 
 
 
-DO $con732$
+DO $pol732$
 BEGIN
-  ALTER TABLE ONLY zapp.whatsapp_templates
-    ADD CONSTRAINT whatsapp_templates_whatsapp_connection_id_fkey FOREIGN KEY (whatsapp_connection_id) REFERENCES zapp.whatsapp_connections(id);
+  CREATE POLICY "Admins can manage flags" ON zapp.feature_flags TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con732$;
+$pol732$;
 
 
 
 
-DO $con733$
+DO $pol733$
 BEGIN
-  ALTER TABLE ONLY zapp.whisper_messages
-    ADD CONSTRAINT whisper_messages_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES evo.evolution_contacts(id);
+  CREATE POLICY "Admins can update crisis alerts" ON zapp.crisis_room_alerts FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con733$;
+$pol733$;
 
 
 
 
-DO $con734$
+DO $pol734$
 BEGIN
-  ALTER TABLE ONLY zapp.whisper_messages
-    ADD CONSTRAINT whisper_messages_target_agent_id_fkey FOREIGN KEY (target_agent_id) REFERENCES zapp.profiles(id);
+  CREATE POLICY "Admins can update rate limits" ON zapp.webhook_rate_limits FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$con734$;
+$pol734$;
 
 
 
 
 DO $pol735$
 BEGIN
-  CREATE POLICY "Admin/supervisor can read fallback events" ON zapp.evolution_fallback_events FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor(auth.uid()));
+  CREATE POLICY "Admins can view all service accounts" ON zapp.user_service_accounts FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol735$;
@@ -61444,7 +61389,7 @@ $pol735$;
 
 DO $pol736$
 BEGIN
-  CREATE POLICY "Admins and supervisors manage sticky" ON zapp.sticky_assignments TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Admins can view rate limits" ON zapp.webhook_rate_limits FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol736$;
@@ -61454,7 +61399,7 @@ $pol736$;
 
 DO $pol737$
 BEGIN
-  CREATE POLICY "Admins can delete crisis alerts" ON zapp.crisis_room_alerts FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Admins manage provider logs" ON zapp.provider_session_logs TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol737$;
@@ -61464,7 +61409,7 @@ $pol737$;
 
 DO $pol738$
 BEGIN
-  CREATE POLICY "Admins can delete rate limits" ON zapp.webhook_rate_limits FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Admins manage routes" ON zapp.channel_provider_routes TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol738$;
@@ -61474,7 +61419,7 @@ $pol738$;
 
 DO $pol739$
 BEGIN
-  CREATE POLICY "Admins can insert crisis alerts" ON zapp.crisis_room_alerts FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Admins manage sessions" ON zapp.provider_sessions TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol739$;
@@ -61484,7 +61429,7 @@ $pol739$;
 
 DO $pol740$
 BEGIN
-  CREATE POLICY "Admins can insert rate limits" ON zapp.webhook_rate_limits FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Admins read dedup" ON zapp.webhook_event_dedup FOR SELECT TO authenticated USING (zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol740$;
@@ -61494,7 +61439,7 @@ $pol740$;
 
 DO $pol741$
 BEGIN
-  CREATE POLICY "Admins can manage flags" ON zapp.feature_flags TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Admins view all security audit logs" ON zapp.security_audit_logs FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'dev'::zapp.app_role)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol741$;
@@ -61504,7 +61449,9 @@ $pol741$;
 
 DO $pol742$
 BEGIN
-  CREATE POLICY "Admins can update crisis alerts" ON zapp.crisis_room_alerts FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Admins view dlq" ON zapp.dlq_audit_log FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.user_roles
+  WHERE ((user_roles.user_id = ( SELECT auth.uid() AS uid)) AND (user_roles.role = ANY (ARRAY['admin'::zapp.app_role, 'supervisor'::zapp.app_role]))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol742$;
@@ -61514,7 +61461,7 @@ $pol742$;
 
 DO $pol743$
 BEGIN
-  CREATE POLICY "Admins can update rate limits" ON zapp.webhook_rate_limits FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Admins view rls_denied_log" ON zapp.rls_denied_log FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'supervisor'::zapp.app_role)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol743$;
@@ -61524,7 +61471,10 @@ $pol743$;
 
 DO $pol744$
 BEGIN
-  CREATE POLICY "Admins can view all service accounts" ON zapp.user_service_accounts FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Agents can view own sticky" ON zapp.sticky_assignments FOR SELECT TO authenticated USING (((agent_profile_id = ( SELECT profiles.id
+   FROM zapp.profiles
+  WHERE (profiles.user_id = ( SELECT auth.uid() AS uid))
+ LIMIT 1)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol744$;
@@ -61534,7 +61484,7 @@ $pol744$;
 
 DO $pol745$
 BEGIN
-  CREATE POLICY "Admins can view rate limits" ON zapp.webhook_rate_limits FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Archive read-only for service role" ON zapp.lgpd_consent_audit_archive USING ((( SELECT auth.role() AS role) = 'service_role'::text));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol745$;
@@ -61544,7 +61494,7 @@ $pol745$;
 
 DO $pol746$
 BEGIN
-  CREATE POLICY "Admins manage provider logs" ON zapp.provider_session_logs TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Authenticated can view crisis alerts" ON zapp.crisis_room_alerts FOR SELECT TO authenticated USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol746$;
@@ -61554,7 +61504,7 @@ $pol746$;
 
 DO $pol747$
 BEGIN
-  CREATE POLICY "Admins manage routes" ON zapp.channel_provider_routes TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Authenticated read routes" ON zapp.channel_provider_routes FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol747$;
@@ -61564,7 +61514,7 @@ $pol747$;
 
 DO $pol748$
 BEGIN
-  CREATE POLICY "Admins manage sessions" ON zapp.provider_sessions TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Block anon access to webauthn challenges" ON zapp.webauthn_challenges TO anon USING (false) WITH CHECK (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol748$;
@@ -61574,7 +61524,7 @@ $pol748$;
 
 DO $pol749$
 BEGIN
-  CREATE POLICY "Admins read dedup" ON zapp.webhook_event_dedup FOR SELECT TO authenticated USING (zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role));
+  CREATE POLICY "Block authenticated deletes on security audit logs" ON zapp.security_audit_logs FOR DELETE TO authenticated USING (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol749$;
@@ -61584,7 +61534,7 @@ $pol749$;
 
 DO $pol750$
 BEGIN
-  CREATE POLICY "Admins view all security audit logs" ON zapp.security_audit_logs FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'dev'::zapp.app_role)));
+  CREATE POLICY "Block authenticated updates on security audit logs" ON zapp.security_audit_logs FOR UPDATE TO authenticated USING (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol750$;
@@ -61594,9 +61544,7 @@ $pol750$;
 
 DO $pol751$
 BEGIN
-  CREATE POLICY "Admins view dlq" ON zapp.dlq_audit_log FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.user_roles
-  WHERE ((user_roles.user_id = ( SELECT auth.uid() AS uid)) AND (user_roles.role = ANY (ARRAY['admin'::zapp.app_role, 'supervisor'::zapp.app_role]))))));
+  CREATE POLICY "Only admins can delete service accounts" ON zapp.user_service_accounts FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol751$;
@@ -61606,7 +61554,7 @@ $pol751$;
 
 DO $pol752$
 BEGIN
-  CREATE POLICY "Admins view rls_denied_log" ON zapp.rls_denied_log FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'supervisor'::zapp.app_role)));
+  CREATE POLICY "Only admins can insert service accounts" ON zapp.user_service_accounts FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol752$;
@@ -61616,10 +61564,7 @@ $pol752$;
 
 DO $pol753$
 BEGIN
-  CREATE POLICY "Agents can view own sticky" ON zapp.sticky_assignments FOR SELECT TO authenticated USING (((agent_profile_id = ( SELECT profiles.id
-   FROM zapp.profiles
-  WHERE (profiles.user_id = ( SELECT auth.uid() AS uid))
- LIMIT 1)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
+  CREATE POLICY "Only admins can manage custom scopes" ON zapp.inbox_custom_scopes TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol753$;
@@ -61629,7 +61574,7 @@ $pol753$;
 
 DO $pol754$
 BEGIN
-  CREATE POLICY "Archive read-only for service role" ON zapp.lgpd_consent_audit_archive USING ((( SELECT auth.role() AS role) = 'service_role'::text));
+  CREATE POLICY "Only admins can update service accounts" ON zapp.user_service_accounts FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol754$;
@@ -61639,7 +61584,7 @@ $pol754$;
 
 DO $pol755$
 BEGIN
-  CREATE POLICY "Authenticated can view crisis alerts" ON zapp.crisis_room_alerts FOR SELECT TO authenticated USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
+  CREATE POLICY "Retention policy admin only" ON zapp._lgpd_retention_policies USING ((( SELECT auth.role() AS role) = 'service_role'::text));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol755$;
@@ -61649,7 +61594,7 @@ $pol755$;
 
 DO $pol756$
 BEGIN
-  CREATE POLICY "Authenticated read routes" ON zapp.channel_provider_routes FOR SELECT TO authenticated USING (true);
+  CREATE POLICY "Service role can insert analytics" ON zapp.analytics_events FOR INSERT TO service_role WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol756$;
@@ -61659,7 +61604,7 @@ $pol756$;
 
 DO $pol757$
 BEGIN
-  CREATE POLICY "Block anon access to webauthn challenges" ON zapp.webauthn_challenges TO anon USING (false) WITH CHECK (false);
+  CREATE POLICY "Service role can read all analytics" ON zapp.analytics_events FOR SELECT TO service_role USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol757$;
@@ -61669,7 +61614,7 @@ $pol757$;
 
 DO $pol758$
 BEGIN
-  CREATE POLICY "Block authenticated deletes on security audit logs" ON zapp.security_audit_logs FOR DELETE TO authenticated USING (false);
+  CREATE POLICY "Service role inserts security audit logs" ON zapp.security_audit_logs FOR INSERT TO service_role WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol758$;
@@ -61679,7 +61624,7 @@ $pol758$;
 
 DO $pol759$
 BEGIN
-  CREATE POLICY "Block authenticated updates on security audit logs" ON zapp.security_audit_logs FOR UPDATE TO authenticated USING (false);
+  CREATE POLICY "Service writes dedup" ON zapp.webhook_event_dedup FOR INSERT TO authenticated WITH CHECK (zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol759$;
@@ -61689,7 +61634,7 @@ $pol759$;
 
 DO $pol760$
 BEGIN
-  CREATE POLICY "Growth stats service role only" ON zapp._lgpd_growth_stats USING ((( SELECT auth.role() AS role) = 'service_role'::text));
+  CREATE POLICY "Users can insert own voice logs" ON zapp.voice_command_logs FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol760$;
@@ -61699,7 +61644,7 @@ $pol760$;
 
 DO $pol761$
 BEGIN
-  CREATE POLICY "Only admins can delete service accounts" ON zapp.user_service_accounts FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Users can manage own MFA sessions" ON zapp.mfa_sessions TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol761$;
@@ -61709,7 +61654,7 @@ $pol761$;
 
 DO $pol762$
 BEGIN
-  CREATE POLICY "Only admins can insert service accounts" ON zapp.user_service_accounts FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Users can manage own challenges" ON zapp.webauthn_challenges TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol762$;
@@ -61719,7 +61664,7 @@ $pol762$;
 
 DO $pol763$
 BEGIN
-  CREATE POLICY "Only admins can manage custom scopes" ON zapp.inbox_custom_scopes TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Users can read own analytics" ON zapp.analytics_events FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol763$;
@@ -61729,7 +61674,10 @@ $pol763$;
 
 DO $pol764$
 BEGIN
-  CREATE POLICY "Only admins can update service accounts" ON zapp.user_service_accounts FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
+  CREATE POLICY "Users can read own consent audit" ON zapp.lgpd_consent_audit FOR SELECT USING ((contact_id IN ( SELECT c.id
+   FROM (zapp.contacts c
+     JOIN zapp.workspaces w ON ((c.workspace_id = w.id)))
+  WHERE (w.owner_id = ( SELECT auth.uid() AS uid)))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol764$;
@@ -61739,7 +61687,7 @@ $pol764$;
 
 DO $pol765$
 BEGIN
-  CREATE POLICY "Retention policy admin only" ON zapp._lgpd_retention_policies USING ((( SELECT auth.role() AS role) = 'service_role'::text));
+  CREATE POLICY "Users can read own voice logs" ON zapp.voice_command_logs FOR SELECT TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol765$;
@@ -61749,7 +61697,9 @@ $pol765$;
 
 DO $pol766$
 BEGIN
-  CREATE POLICY "Service role can insert analytics" ON zapp.analytics_events FOR INSERT TO service_role WITH CHECK (true);
+  CREATE POLICY "Users can read workspace analytics" ON zapp.analytics_events FOR SELECT TO authenticated USING ((workspace_id IN ( SELECT workspace_members.workspace_id
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = ( SELECT auth.uid() AS uid)))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol766$;
@@ -61759,7 +61709,7 @@ $pol766$;
 
 DO $pol767$
 BEGIN
-  CREATE POLICY "Service role can read all analytics" ON zapp.analytics_events FOR SELECT TO service_role USING (true);
+  CREATE POLICY "Users can view own service accounts" ON zapp.user_service_accounts FOR SELECT TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol767$;
@@ -61769,7 +61719,7 @@ $pol767$;
 
 DO $pol768$
 BEGIN
-  CREATE POLICY "Service role inserts security audit logs" ON zapp.security_audit_logs FOR INSERT TO service_role WITH CHECK (true);
+  CREATE POLICY "Users can view scan logs" ON zapp.file_scan_logs FOR SELECT USING ((( SELECT auth.role() AS role) = 'authenticated'::text));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol768$;
@@ -61779,115 +61729,10 @@ $pol768$;
 
 DO $pol769$
 BEGIN
-  CREATE POLICY "Service writes dedup" ON zapp.webhook_event_dedup FOR INSERT TO authenticated WITH CHECK (zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol769$;
-
-
-
-
-DO $pol770$
-BEGIN
-  CREATE POLICY "Users can insert own voice logs" ON zapp.voice_command_logs FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol770$;
-
-
-
-
-DO $pol771$
-BEGIN
-  CREATE POLICY "Users can manage own MFA sessions" ON zapp.mfa_sessions TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol771$;
-
-
-
-
-DO $pol772$
-BEGIN
-  CREATE POLICY "Users can manage own challenges" ON zapp.webauthn_challenges TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol772$;
-
-
-
-
-DO $pol773$
-BEGIN
-  CREATE POLICY "Users can read own analytics" ON zapp.analytics_events FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol773$;
-
-
-
-
-DO $pol774$
-BEGIN
-  CREATE POLICY "Users can read own consent audit" ON zapp.lgpd_consent_audit FOR SELECT USING ((contact_id IN ( SELECT c.id
-   FROM (zapp.contacts c
-     JOIN zapp.workspaces w ON ((c.workspace_id = w.id)))
-  WHERE (w.owner_id = ( SELECT auth.uid() AS uid)))));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol774$;
-
-
-
-
-DO $pol775$
-BEGIN
-  CREATE POLICY "Users can read own voice logs" ON zapp.voice_command_logs FOR SELECT TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol775$;
-
-
-
-
-DO $pol776$
-BEGIN
-  CREATE POLICY "Users can read workspace analytics" ON zapp.analytics_events FOR SELECT TO authenticated USING ((workspace_id IN ( SELECT workspace_members.workspace_id
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = ( SELECT auth.uid() AS uid)))));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol776$;
-
-
-
-
-DO $pol777$
-BEGIN
-  CREATE POLICY "Users can view own service accounts" ON zapp.user_service_accounts FOR SELECT TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol777$;
-
-
-
-
-DO $pol778$
-BEGIN
-  CREATE POLICY "Users can view scan logs" ON zapp.file_scan_logs FOR SELECT USING ((( SELECT auth.role() AS role) = 'authenticated'::text));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol778$;
-
-
-
-
-DO $pol779$
-BEGIN
   CREATE POLICY "Users can view their own security logs" ON zapp.security_audit_logs FOR SELECT USING ((( SELECT auth.uid() AS uid) = user_id));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol779$;
+$pol769$;
 
 
 
@@ -61916,18 +61761,6 @@ ALTER TABLE zapp._input_normalization_cache ENABLE ROW LEVEL SECURITY;
 
 
 
-ALTER TABLE zapp._lgpd_b64 ENABLE ROW LEVEL SECURITY;
-
-
-
-ALTER TABLE zapp._lgpd_growth_stats ENABLE ROW LEVEL SECURITY;
-
-
-
-ALTER TABLE zapp._lgpd_payload ENABLE ROW LEVEL SECURITY;
-
-
-
 ALTER TABLE zapp._lgpd_retention_policies ENABLE ROW LEVEL SECURITY;
 
 
@@ -61952,47 +61785,47 @@ ALTER TABLE zapp._vault_corrupted_quarantine ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol780$
+DO $pol770$
 BEGIN
   CREATE POLICY admin_read_only ON zapp._system_health_history FOR SELECT TO authenticated USING (zapp.is_admin_painel());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol780$;
+$pol770$;
 
 
 
 
-DO $pol781$
+DO $pol771$
 BEGIN
   CREATE POLICY admin_read_only ON zapp._system_health_log FOR SELECT TO authenticated USING (zapp.is_admin_painel());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol781$;
+$pol771$;
 
 
 
 
-DO $pol782$
+DO $pol772$
 BEGIN
   CREATE POLICY admin_read_only ON zapp._vault_corrupted_quarantine FOR SELECT TO authenticated USING (zapp.is_admin_painel());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol782$;
+$pol772$;
 
 
 
 
-DO $pol783$
+DO $pol773$
 BEGIN
   CREATE POLICY "admins can manage integration profiles" ON zapp.integration_profiles TO authenticated USING (zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role)) WITH CHECK (zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol783$;
+$pol773$;
 
 
 
 
-DO $pol784$
+DO $pol774$
 BEGIN
   CREATE POLICY admins_only_whatsapp_creds ON zapp.whatsapp_official_credentials TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.profiles p
@@ -62001,19 +61834,19 @@ BEGIN
   WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'dev'::text]))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol784$;
+$pol774$;
 
 
 
 
-DO $pol785$
+DO $pol775$
 BEGIN
   CREATE POLICY admins_read_errors ON zapp.app_error_logs FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.profiles
   WHERE ((profiles.id = ( SELECT auth.uid() AS uid)) AND (profiles.role = ANY (ARRAY['admin'::text, 'owner'::text]))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol785$;
+$pol775$;
 
 
 
@@ -62070,42 +61903,42 @@ ALTER TABLE zapp.alerts ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol786$
+DO $pol776$
 BEGIN
   CREATE POLICY allow_admin_insert ON zapp.perfis_usuarios FOR INSERT WITH CHECK (zapp.is_admin_painel());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol786$;
+$pol776$;
 
 
 
 
-DO $pol787$
+DO $pol777$
 BEGIN
   CREATE POLICY allow_admin_select_all ON zapp.perfis_usuarios FOR SELECT USING ((zapp.is_admin_painel() OR (( SELECT auth.uid() AS uid) = id)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol787$;
+$pol777$;
 
 
 
 
-DO $pol788$
+DO $pol778$
 BEGIN
   CREATE POLICY allow_admin_update ON zapp.perfis_usuarios FOR UPDATE USING (zapp.is_admin_painel()) WITH CHECK (zapp.is_admin_painel());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol788$;
+$pol778$;
 
 
 
 
-DO $pol789$
+DO $pol779$
 BEGIN
   CREATE POLICY allow_service_role ON zapp.evolution_logpatch_audit TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol789$;
+$pol779$;
 
 
 
@@ -62114,42 +61947,42 @@ ALTER TABLE zapp.allowed_countries ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol790$
+DO $pol780$
 BEGIN
   CREATE POLICY amc_admin_write ON zapp.audio_meme_categories TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol790$;
+$pol780$;
 
 
 
 
-DO $pol791$
+DO $pol781$
 BEGIN
   CREATE POLICY amc_auth_read ON zapp.audio_meme_categories FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol791$;
+$pol781$;
 
 
 
 
-DO $pol792$
+DO $pol782$
 BEGIN
   CREATE POLICY amc_select_all ON zapp.audio_meme_categories FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol792$;
+$pol782$;
 
 
 
 
-DO $pol793$
+DO $pol783$
 BEGIN
   CREATE POLICY amc_service_all ON zapp.audio_meme_categories TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol793$;
+$pol783$;
 
 
 
@@ -62182,12 +62015,12 @@ ALTER TABLE zapp.audio_dedupe_log ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol794$
+DO $pol784$
 BEGIN
   CREATE POLICY audio_dedupe_svc ON zapp.audio_dedupe_log TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol794$;
+$pol784$;
 
 
 
@@ -62204,12 +62037,12 @@ ALTER TABLE zapp.audio_memes ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol795$
+DO $pol785$
 BEGIN
   CREATE POLICY audit_insert ON zapp.zapp_audit_log FOR INSERT WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol795$;
+$pol785$;
 
 
 
@@ -62222,9 +62055,119 @@ ALTER TABLE zapp.audit_logs ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol796$
+DO $pol786$
 BEGIN
   CREATE POLICY audit_logs_admin_select ON zapp.audit_logs FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'dev'::zapp.app_role)));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol786$;
+
+
+
+
+DO $pol787$
+BEGIN
+  CREATE POLICY audit_logs_insert ON zapp.audit_logs FOR INSERT TO authenticated WITH CHECK (((user_id = ( SELECT p.id
+   FROM zapp.profiles p
+  WHERE (p.user_id = ( SELECT auth.uid() AS uid)))) OR (user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol787$;
+
+
+
+
+DO $pol788$
+BEGIN
+  CREATE POLICY audit_logs_self_select ON zapp.audit_logs FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol788$;
+
+
+
+
+ALTER TABLE zapp.audit_results ENABLE ROW LEVEL SECURITY;
+
+
+
+DO $pol789$
+BEGIN
+  CREATE POLICY audit_service ON zapp.zapp_audit_log TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol789$;
+
+
+
+
+DO $pol790$
+BEGIN
+  CREATE POLICY auth_access ON zapp.alerts TO authenticated USING ((workspace_id IN ( SELECT workspace_members.workspace_id
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = ( SELECT auth.uid() AS uid))))) WITH CHECK ((workspace_id IN ( SELECT workspace_members.workspace_id
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = ( SELECT auth.uid() AS uid)))));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol790$;
+
+
+
+
+DO $pol791$
+BEGIN
+  CREATE POLICY auth_admin_write_agents ON zapp.agents TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol791$;
+
+
+
+
+DO $pol792$
+BEGIN
+  CREATE POLICY auth_admin_write_app_settings ON zapp.app_settings TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol792$;
+
+
+
+
+DO $pol793$
+BEGIN
+  CREATE POLICY auth_admin_write_integration_registry ON zapp.integration_registry TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol793$;
+
+
+
+
+DO $pol794$
+BEGIN
+  CREATE POLICY auth_admin_write_role_permissions ON zapp.role_permissions TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol794$;
+
+
+
+
+DO $pol795$
+BEGIN
+  CREATE POLICY auth_admin_write_route_permissions ON zapp.route_permissions TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol795$;
+
+
+
+
+DO $pol796$
+BEGIN
+  CREATE POLICY auth_admin_write_service_channels ON zapp.service_channels TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol796$;
@@ -62234,9 +62177,7 @@ $pol796$;
 
 DO $pol797$
 BEGIN
-  CREATE POLICY audit_logs_insert ON zapp.audit_logs FOR INSERT TO authenticated WITH CHECK (((user_id = ( SELECT p.id
-   FROM zapp.profiles p
-  WHERE (p.user_id = ( SELECT auth.uid() AS uid)))) OR (user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
+  CREATE POLICY auth_delete_admin ON zapp.alert_dispatch_state FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol797$;
@@ -62246,7 +62187,7 @@ $pol797$;
 
 DO $pol798$
 BEGIN
-  CREATE POLICY audit_logs_self_select ON zapp.audit_logs FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
+  CREATE POLICY auth_delete_admin ON zapp.processed_webhook_events FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol798$;
@@ -62254,13 +62195,9 @@ $pol798$;
 
 
 
-ALTER TABLE zapp.audit_results ENABLE ROW LEVEL SECURITY;
-
-
-
 DO $pol799$
 BEGIN
-  CREATE POLICY audit_service ON zapp.zapp_audit_log TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY auth_delete_admin ON zapp.restore_test_log FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol799$;
@@ -62270,11 +62207,7 @@ $pol799$;
 
 DO $pol800$
 BEGIN
-  CREATE POLICY auth_access ON zapp.alerts TO authenticated USING ((workspace_id IN ( SELECT workspace_members.workspace_id
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = ( SELECT auth.uid() AS uid))))) WITH CHECK ((workspace_id IN ( SELECT workspace_members.workspace_id
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = ( SELECT auth.uid() AS uid)))));
+  CREATE POLICY auth_delete_admin ON zapp.rpc_rate_limits FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol800$;
@@ -62284,7 +62217,7 @@ $pol800$;
 
 DO $pol801$
 BEGIN
-  CREATE POLICY auth_admin_write_agents ON zapp.agents TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_delete_admin ON zapp.webhook_health_alerts FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol801$;
@@ -62294,7 +62227,7 @@ $pol801$;
 
 DO $pol802$
 BEGIN
-  CREATE POLICY auth_admin_write_app_settings ON zapp.app_settings TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_delete_own ON zapp.saved_filters FOR DELETE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol802$;
@@ -62304,7 +62237,7 @@ $pol802$;
 
 DO $pol803$
 BEGIN
-  CREATE POLICY auth_admin_write_integration_registry ON zapp.integration_registry TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_delete_own_snooze ON zapp.conversation_snoozes FOR DELETE TO authenticated USING (((snoozed_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol803$;
@@ -62314,7 +62247,7 @@ $pol803$;
 
 DO $pol804$
 BEGIN
-  CREATE POLICY auth_admin_write_role_permissions ON zapp.role_permissions TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_insert_admin ON zapp.alert_dispatch_state FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol804$;
@@ -62324,7 +62257,7 @@ $pol804$;
 
 DO $pol805$
 BEGIN
-  CREATE POLICY auth_admin_write_route_permissions ON zapp.route_permissions TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_insert_admin ON zapp.processed_webhook_events FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol805$;
@@ -62334,7 +62267,7 @@ $pol805$;
 
 DO $pol806$
 BEGIN
-  CREATE POLICY auth_admin_write_service_channels ON zapp.service_channels TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_insert_admin ON zapp.restore_test_log FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol806$;
@@ -62344,7 +62277,7 @@ $pol806$;
 
 DO $pol807$
 BEGIN
-  CREATE POLICY auth_delete_admin ON zapp.alert_dispatch_state FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_insert_admin ON zapp.rpc_rate_limits FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol807$;
@@ -62354,7 +62287,7 @@ $pol807$;
 
 DO $pol808$
 BEGIN
-  CREATE POLICY auth_delete_admin ON zapp.processed_webhook_events FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_insert_admin ON zapp.webhook_health_alerts FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol808$;
@@ -62364,7 +62297,7 @@ $pol808$;
 
 DO $pol809$
 BEGIN
-  CREATE POLICY auth_delete_admin ON zapp.restore_test_log FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_insert_own ON zapp.saved_filters FOR INSERT TO authenticated WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol809$;
@@ -62374,7 +62307,7 @@ $pol809$;
 
 DO $pol810$
 BEGIN
-  CREATE POLICY auth_delete_admin ON zapp.rpc_rate_limits FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_insert_own_snooze ON zapp.conversation_snoozes FOR INSERT TO authenticated WITH CHECK ((snoozed_by = zapp.get_profile_id_for_user(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol810$;
@@ -62384,7 +62317,7 @@ $pol810$;
 
 DO $pol811$
 BEGIN
-  CREATE POLICY auth_delete_admin ON zapp.webhook_health_alerts FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_own_or_admin ON zapp.agent_achievements TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol811$;
@@ -62394,7 +62327,7 @@ $pol811$;
 
 DO $pol812$
 BEGIN
-  CREATE POLICY auth_delete_own ON zapp.saved_filters FOR DELETE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
+  CREATE POLICY auth_own_or_admin ON zapp.agent_skills TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol812$;
@@ -62404,7 +62337,7 @@ $pol812$;
 
 DO $pol813$
 BEGIN
-  CREATE POLICY auth_delete_own_snooze ON zapp.conversation_snoozes FOR DELETE TO authenticated USING (((snoozed_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_own_or_admin ON zapp.agent_stats TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol813$;
@@ -62414,7 +62347,7 @@ $pol813$;
 
 DO $pol814$
 BEGIN
-  CREATE POLICY auth_insert_admin ON zapp.alert_dispatch_state FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_own_or_admin ON zapp.audio_meme_favorites TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol814$;
@@ -62424,7 +62357,7 @@ $pol814$;
 
 DO $pol815$
 BEGIN
-  CREATE POLICY auth_insert_admin ON zapp.processed_webhook_events FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_own_or_admin ON zapp.chatbot_flows TO authenticated USING (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor())) WITH CHECK (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol815$;
@@ -62434,7 +62367,7 @@ $pol815$;
 
 DO $pol816$
 BEGIN
-  CREATE POLICY auth_insert_admin ON zapp.restore_test_log FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_own_select ON zapp.search_history FOR SELECT TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol816$;
@@ -62444,7 +62377,7 @@ $pol816$;
 
 DO $pol817$
 BEGIN
-  CREATE POLICY auth_insert_admin ON zapp.rpc_rate_limits FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_own_write ON zapp.search_history TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol817$;
@@ -62454,7 +62387,7 @@ $pol817$;
 
 DO $pol818$
 BEGIN
-  CREATE POLICY auth_insert_admin ON zapp.webhook_health_alerts FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_read_app_settings ON zapp.app_settings FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol818$;
@@ -62464,7 +62397,9 @@ $pol818$;
 
 DO $pol819$
 BEGIN
-  CREATE POLICY auth_insert_own ON zapp.saved_filters FOR INSERT TO authenticated WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+  CREATE POLICY auth_read_evolution_audit_log ON zapp.evolution_audit_log FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol819$;
@@ -62474,7 +62409,9 @@ $pol819$;
 
 DO $pol820$
 BEGIN
-  CREATE POLICY auth_insert_own_snooze ON zapp.conversation_snoozes FOR INSERT TO authenticated WITH CHECK ((snoozed_by = zapp.get_profile_id_for_user(auth.uid())));
+  CREATE POLICY auth_read_evolution_automation_logs ON zapp.evolution_automation_logs FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol820$;
@@ -62484,7 +62421,9 @@ $pol820$;
 
 DO $pol821$
 BEGIN
-  CREATE POLICY auth_own_or_admin ON zapp.agent_achievements TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_read_evolution_bitrix_queue ON zapp.evolution_bitrix_queue FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members wm
+  WHERE (wm.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol821$;
@@ -62494,7 +62433,9 @@ $pol821$;
 
 DO $pol822$
 BEGIN
-  CREATE POLICY auth_own_or_admin ON zapp.agent_skills TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_read_evolution_calls ON zapp.evolution_calls FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol822$;
@@ -62504,7 +62445,9 @@ $pol822$;
 
 DO $pol823$
 BEGIN
-  CREATE POLICY auth_own_or_admin ON zapp.agent_stats TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_read_evolution_chatbot_responses ON zapp.evolution_chatbot_responses FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members wm
+  WHERE (wm.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol823$;
@@ -62514,7 +62457,9 @@ $pol823$;
 
 DO $pol824$
 BEGIN
-  CREATE POLICY auth_own_or_admin ON zapp.audio_meme_favorites TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_read_evolution_contact_rate_limits ON zapp.evolution_contact_rate_limits FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol824$;
@@ -62524,7 +62469,9 @@ $pol824$;
 
 DO $pol825$
 BEGIN
-  CREATE POLICY auth_own_or_admin ON zapp.chatbot_flows TO authenticated USING (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor())) WITH CHECK (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_read_evolution_daily_metrics ON zapp.evolution_daily_metrics FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol825$;
@@ -62534,7 +62481,9 @@ $pol825$;
 
 DO $pol826$
 BEGIN
-  CREATE POLICY auth_own_select ON zapp.search_history FOR SELECT TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_read_evolution_deals ON zapp.evolution_deals FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members wm
+  WHERE (wm.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol826$;
@@ -62544,7 +62493,9 @@ $pol826$;
 
 DO $pol827$
 BEGIN
-  CREATE POLICY auth_own_write ON zapp.search_history TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_read_evolution_followups ON zapp.evolution_followups FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members wm
+  WHERE (wm.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol827$;
@@ -62554,7 +62505,9 @@ $pol827$;
 
 DO $pol828$
 BEGIN
-  CREATE POLICY auth_read_app_settings ON zapp.app_settings FOR SELECT TO authenticated USING (true);
+  CREATE POLICY auth_read_evolution_group_messages ON zapp.evolution_group_messages FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol828$;
@@ -62564,7 +62517,7 @@ $pol828$;
 
 DO $pol829$
 BEGIN
-  CREATE POLICY auth_read_evolution_audit_log ON zapp.evolution_audit_log FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+  CREATE POLICY auth_read_evolution_group_participants ON zapp.evolution_group_participants FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -62576,7 +62529,7 @@ $pol829$;
 
 DO $pol830$
 BEGIN
-  CREATE POLICY auth_read_evolution_automation_logs ON zapp.evolution_automation_logs FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+  CREATE POLICY auth_read_evolution_groups ON zapp.evolution_groups FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -62588,7 +62541,7 @@ $pol830$;
 
 DO $pol831$
 BEGIN
-  CREATE POLICY auth_read_evolution_bitrix_queue ON zapp.evolution_bitrix_queue FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+  CREATE POLICY auth_read_evolution_message_queue ON zapp.evolution_message_queue FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members wm
   WHERE (wm.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -62600,9 +62553,9 @@ $pol831$;
 
 DO $pol832$
 BEGIN
-  CREATE POLICY auth_read_evolution_calls ON zapp.evolution_calls FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY auth_read_evolution_message_templates ON zapp.evolution_message_templates FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members wm
+  WHERE (wm.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol832$;
@@ -62612,9 +62565,9 @@ $pol832$;
 
 DO $pol833$
 BEGIN
-  CREATE POLICY auth_read_evolution_chatbot_responses ON zapp.evolution_chatbot_responses FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members wm
-  WHERE (wm.user_id = auth.uid()))));
+  CREATE POLICY auth_read_evolution_mirror_batches ON zapp.evolution_mirror_batches FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol833$;
@@ -62624,7 +62577,7 @@ $pol833$;
 
 DO $pol834$
 BEGIN
-  CREATE POLICY auth_read_evolution_contact_rate_limits ON zapp.evolution_contact_rate_limits FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+  CREATE POLICY auth_read_evolution_mirror_checkpoints ON zapp.evolution_mirror_checkpoints FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -62636,7 +62589,7 @@ $pol834$;
 
 DO $pol835$
 BEGIN
-  CREATE POLICY auth_read_evolution_daily_metrics ON zapp.evolution_daily_metrics FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+  CREATE POLICY auth_read_evolution_mirror_media_queue ON zapp.evolution_mirror_media_queue FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -62648,9 +62601,9 @@ $pol835$;
 
 DO $pol836$
 BEGIN
-  CREATE POLICY auth_read_evolution_deals ON zapp.evolution_deals FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members wm
-  WHERE (wm.user_id = auth.uid()))));
+  CREATE POLICY auth_read_evolution_mirror_runs ON zapp.evolution_mirror_runs FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol836$;
@@ -62660,9 +62613,9 @@ $pol836$;
 
 DO $pol837$
 BEGIN
-  CREATE POLICY auth_read_evolution_followups ON zapp.evolution_followups FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members wm
-  WHERE (wm.user_id = auth.uid()))));
+  CREATE POLICY auth_read_evolution_notification_log ON zapp.evolution_notification_log FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol837$;
@@ -62672,9 +62625,9 @@ $pol837$;
 
 DO $pol838$
 BEGIN
-  CREATE POLICY auth_read_evolution_group_messages ON zapp.evolution_group_messages FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY auth_read_evolution_performance_metrics ON zapp.evolution_performance_metrics FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members wm
+  WHERE (wm.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol838$;
@@ -62684,7 +62637,7 @@ $pol838$;
 
 DO $pol839$
 BEGIN
-  CREATE POLICY auth_read_evolution_group_participants ON zapp.evolution_group_participants FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+  CREATE POLICY auth_read_evolution_realtime_events ON zapp.evolution_realtime_events FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -62696,7 +62649,7 @@ $pol839$;
 
 DO $pol840$
 BEGIN
-  CREATE POLICY auth_read_evolution_groups ON zapp.evolution_groups FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+  CREATE POLICY auth_read_evolution_retry_metrics ON zapp.evolution_retry_metrics FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -62708,9 +62661,9 @@ $pol840$;
 
 DO $pol841$
 BEGIN
-  CREATE POLICY auth_read_evolution_message_queue ON zapp.evolution_message_queue FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members wm
-  WHERE (wm.user_id = auth.uid()))));
+  CREATE POLICY auth_read_evolution_send_idempotency ON zapp.evolution_send_idempotency FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol841$;
@@ -62720,7 +62673,7 @@ $pol841$;
 
 DO $pol842$
 BEGIN
-  CREATE POLICY auth_read_evolution_message_templates ON zapp.evolution_message_templates FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+  CREATE POLICY auth_read_evolution_sentiment_analysis ON zapp.evolution_sentiment_analysis FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members wm
   WHERE (wm.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -62732,7 +62685,7 @@ $pol842$;
 
 DO $pol843$
 BEGIN
-  CREATE POLICY auth_read_evolution_mirror_batches ON zapp.evolution_mirror_batches FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+  CREATE POLICY auth_read_evolution_source_schema_map ON zapp.evolution_source_schema_map FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -62744,9 +62697,9 @@ $pol843$;
 
 DO $pol844$
 BEGIN
-  CREATE POLICY auth_read_evolution_mirror_checkpoints ON zapp.evolution_mirror_checkpoints FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY auth_read_evolution_tags ON zapp.evolution_tags FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members wm
+  WHERE (wm.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol844$;
@@ -62756,7 +62709,7 @@ $pol844$;
 
 DO $pol845$
 BEGIN
-  CREATE POLICY auth_read_evolution_mirror_media_queue ON zapp.evolution_mirror_media_queue FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+  CREATE POLICY auth_read_evolution_template_usage ON zapp.evolution_template_usage FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -62768,7 +62721,7 @@ $pol845$;
 
 DO $pol846$
 BEGIN
-  CREATE POLICY auth_read_evolution_mirror_runs ON zapp.evolution_mirror_runs FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+  CREATE POLICY auth_read_evolution_webhook_dlq ON zapp.evolution_webhook_dlq FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -62780,9 +62733,7 @@ $pol846$;
 
 DO $pol847$
 BEGIN
-  CREATE POLICY auth_read_evolution_notification_log ON zapp.evolution_notification_log FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY auth_read_integration_registry ON zapp.integration_registry FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol847$;
@@ -62792,9 +62743,9 @@ $pol847$;
 
 DO $pol848$
 BEGIN
-  CREATE POLICY auth_read_evolution_performance_metrics ON zapp.evolution_performance_metrics FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members wm
-  WHERE (wm.user_id = auth.uid()))));
+  CREATE POLICY auth_read_role_permissions ON zapp.role_permissions FOR SELECT TO authenticated USING ((zapp.is_admin_or_supervisor() OR (role IN ( SELECT user_roles.role
+   FROM zapp.user_roles
+  WHERE (user_roles.user_id = ( SELECT auth.uid() AS uid))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol848$;
@@ -62804,9 +62755,7 @@ $pol848$;
 
 DO $pol849$
 BEGIN
-  CREATE POLICY auth_read_evolution_realtime_events ON zapp.evolution_realtime_events FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY auth_read_route_permissions ON zapp.route_permissions FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol849$;
@@ -62816,9 +62765,7 @@ $pol849$;
 
 DO $pol850$
 BEGIN
-  CREATE POLICY auth_read_evolution_retry_metrics ON zapp.evolution_retry_metrics FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY auth_read_service_channels ON zapp.service_channels FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol850$;
@@ -62828,9 +62775,7 @@ $pol850$;
 
 DO $pol851$
 BEGIN
-  CREATE POLICY auth_read_evolution_send_idempotency ON zapp.evolution_send_idempotency FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY auth_secure_100 ON zapp.search_history FOR SELECT TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol851$;
@@ -62840,9 +62785,7 @@ $pol851$;
 
 DO $pol852$
 BEGIN
-  CREATE POLICY auth_read_evolution_sentiment_analysis ON zapp.evolution_sentiment_analysis FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members wm
-  WHERE (wm.user_id = auth.uid()))));
+  CREATE POLICY auth_secure_101 ON zapp.security_acl_alerts TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol852$;
@@ -62852,9 +62795,7 @@ $pol852$;
 
 DO $pol853$
 BEGIN
-  CREATE POLICY auth_read_evolution_source_schema_map ON zapp.evolution_source_schema_map FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY auth_secure_102 ON zapp.sentiment_alerts TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol853$;
@@ -62864,9 +62805,7 @@ $pol853$;
 
 DO $pol854$
 BEGIN
-  CREATE POLICY auth_read_evolution_tags ON zapp.evolution_tags FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members wm
-  WHERE (wm.user_id = auth.uid()))));
+  CREATE POLICY auth_secure_105 ON zapp.sla_alert_preferences TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol854$;
@@ -62876,9 +62815,7 @@ $pol854$;
 
 DO $pol855$
 BEGIN
-  CREATE POLICY auth_read_evolution_template_usage ON zapp.evolution_template_usage FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY auth_secure_106 ON zapp.sla_configurations TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol855$;
@@ -62888,9 +62825,7 @@ $pol855$;
 
 DO $pol856$
 BEGIN
-  CREATE POLICY auth_read_evolution_webhook_dlq ON zapp.evolution_webhook_dlq FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY auth_secure_107 ON zapp.sla_delivery_rules TO authenticated USING ((zapp.is_admin_or_supervisor() OR zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)))) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol856$;
@@ -62900,7 +62835,7 @@ $pol856$;
 
 DO $pol857$
 BEGIN
-  CREATE POLICY auth_read_integration_registry ON zapp.integration_registry FOR SELECT TO authenticated USING (true);
+  CREATE POLICY auth_secure_108 ON zapp.sla_delivery_violations TO authenticated USING ((zapp.is_admin_or_supervisor() OR zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)))) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol857$;
@@ -62910,9 +62845,7 @@ $pol857$;
 
 DO $pol858$
 BEGIN
-  CREATE POLICY auth_read_role_permissions ON zapp.role_permissions FOR SELECT TO authenticated USING ((zapp.is_admin_or_supervisor() OR (role IN ( SELECT user_roles.role
-   FROM zapp.user_roles
-  WHERE (user_roles.user_id = ( SELECT auth.uid() AS uid))))));
+  CREATE POLICY auth_secure_109 ON zapp.sla_rules FOR SELECT TO authenticated USING ((zapp.is_admin_or_supervisor() OR zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol858$;
@@ -62922,7 +62855,7 @@ $pol858$;
 
 DO $pol859$
 BEGIN
-  CREATE POLICY auth_read_route_permissions ON zapp.route_permissions FOR SELECT TO authenticated USING (true);
+  CREATE POLICY auth_secure_110 ON zapp.stickers FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol859$;
@@ -62932,7 +62865,7 @@ $pol859$;
 
 DO $pol860$
 BEGIN
-  CREATE POLICY auth_read_service_channels ON zapp.service_channels FOR SELECT TO authenticated USING (true);
+  CREATE POLICY auth_secure_111 ON zapp.system_connections FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol860$;
@@ -62942,7 +62875,7 @@ $pol860$;
 
 DO $pol861$
 BEGIN
-  CREATE POLICY auth_secure_100 ON zapp.search_history FOR SELECT TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_112 ON zapp.system_docs TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol861$;
@@ -62952,7 +62885,7 @@ $pol861$;
 
 DO $pol862$
 BEGIN
-  CREATE POLICY auth_secure_101 ON zapp.security_acl_alerts TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_113 ON zapp.system_kill_switches TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol862$;
@@ -62962,7 +62895,7 @@ $pol862$;
 
 DO $pol863$
 BEGIN
-  CREATE POLICY auth_secure_102 ON zapp.sentiment_alerts TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_114 ON zapp.system_logs TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol863$;
@@ -62972,7 +62905,7 @@ $pol863$;
 
 DO $pol864$
 BEGIN
-  CREATE POLICY auth_secure_105 ON zapp.sla_alert_preferences TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_115 ON zapp.tags TO authenticated USING ((zapp.is_admin_or_supervisor() OR (created_by = zapp.get_profile_id_for_user(auth.uid())))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (created_by = zapp.get_profile_id_for_user(auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol864$;
@@ -62982,7 +62915,7 @@ $pol864$;
 
 DO $pol865$
 BEGIN
-  CREATE POLICY auth_secure_106 ON zapp.sla_configurations TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_116 ON zapp.team_conversation_members TO authenticated USING ((zapp.is_admin_or_supervisor() OR (profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid)))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol865$;
@@ -62992,7 +62925,7 @@ $pol865$;
 
 DO $pol866$
 BEGIN
-  CREATE POLICY auth_secure_107 ON zapp.sla_delivery_rules TO authenticated USING ((zapp.is_admin_or_supervisor() OR zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)))) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_117 ON zapp.team_message_reactions TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol866$;
@@ -63002,7 +62935,7 @@ $pol866$;
 
 DO $pol867$
 BEGIN
-  CREATE POLICY auth_secure_108 ON zapp.sla_delivery_violations TO authenticated USING ((zapp.is_admin_or_supervisor() OR zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)))) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_119 ON zapp.transfer_comments TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol867$;
@@ -63012,7 +62945,7 @@ $pol867$;
 
 DO $pol868$
 BEGIN
-  CREATE POLICY auth_secure_109 ON zapp.sla_rules FOR SELECT TO authenticated USING ((zapp.is_admin_or_supervisor() OR zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid))));
+  CREATE POLICY auth_secure_120 ON zapp.warroom_alerts TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol868$;
@@ -63022,7 +62955,7 @@ $pol868$;
 
 DO $pol869$
 BEGIN
-  CREATE POLICY auth_secure_110 ON zapp.stickers FOR SELECT TO authenticated USING (true);
+  CREATE POLICY auth_secure_121 ON zapp.webhook_health_checks TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol869$;
@@ -63032,7 +62965,7 @@ $pol869$;
 
 DO $pol870$
 BEGIN
-  CREATE POLICY auth_secure_111 ON zapp.system_connections FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_122 ON zapp.whatsapp_cloud_webhook_pings TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol870$;
@@ -63042,7 +62975,7 @@ $pol870$;
 
 DO $pol871$
 BEGIN
-  CREATE POLICY auth_secure_112 ON zapp.system_docs TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_123 ON zapp.whatsapp_connections FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'agent'::zapp.app_role) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol871$;
@@ -63052,7 +62985,7 @@ $pol871$;
 
 DO $pol872$
 BEGIN
-  CREATE POLICY auth_secure_113 ON zapp.system_kill_switches TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_124 ON zapp.whatsapp_flows TO authenticated USING (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor())) WITH CHECK (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol872$;
@@ -63062,7 +62995,8 @@ $pol872$;
 
 DO $pol873$
 BEGIN
-  CREATE POLICY auth_secure_114 ON zapp.system_logs TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_125 ON zapp.whatsapp_groups TO authenticated USING ((zapp.is_admin_or_supervisor() OR (whatsapp_connection_id IN ( SELECT whatsapp_connections.id
+   FROM zapp.whatsapp_connections)))) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol873$;
@@ -63072,7 +63006,7 @@ $pol873$;
 
 DO $pol874$
 BEGIN
-  CREATE POLICY auth_secure_115 ON zapp.tags TO authenticated USING ((zapp.is_admin_or_supervisor() OR (created_by = zapp.get_profile_id_for_user(auth.uid())))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (created_by = zapp.get_profile_id_for_user(auth.uid()))));
+  CREATE POLICY auth_secure_126 ON zapp.whatsapp_templates TO authenticated USING (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor())) WITH CHECK (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol874$;
@@ -63082,7 +63016,7 @@ $pol874$;
 
 DO $pol875$
 BEGIN
-  CREATE POLICY auth_secure_116 ON zapp.team_conversation_members TO authenticated USING ((zapp.is_admin_or_supervisor() OR (profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid)))));
+  CREATE POLICY auth_secure_127 ON zapp.whisper_files TO authenticated USING (zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid))) WITH CHECK (((sender_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol875$;
@@ -63092,7 +63026,7 @@ $pol875$;
 
 DO $pol876$
 BEGIN
-  CREATE POLICY auth_secure_117 ON zapp.team_message_reactions TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_128 ON zapp.workspace_members TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol876$;
@@ -63102,7 +63036,11 @@ $pol876$;
 
 DO $pol877$
 BEGIN
-  CREATE POLICY auth_secure_119 ON zapp.transfer_comments TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_129 ON zapp.workspace_settings TO authenticated USING (((workspace_id IN ( SELECT w.id
+   FROM zapp.workspaces w
+  WHERE (w.owner_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((workspace_id IN ( SELECT w.id
+   FROM zapp.workspaces w
+  WHERE (w.owner_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol877$;
@@ -63112,7 +63050,7 @@ $pol877$;
 
 DO $pol878$
 BEGIN
-  CREATE POLICY auth_secure_120 ON zapp.warroom_alerts TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_130 ON zapp.workspaces TO authenticated USING (((owner_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((owner_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol878$;
@@ -63122,7 +63060,7 @@ $pol878$;
 
 DO $pol879$
 BEGIN
-  CREATE POLICY auth_secure_121 ON zapp.webhook_health_checks TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_131 ON zapp.zapp_audit_log FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol879$;
@@ -63132,7 +63070,7 @@ $pol879$;
 
 DO $pol880$
 BEGIN
-  CREATE POLICY auth_secure_122 ON zapp.whatsapp_cloud_webhook_pings TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_135 ON zapp.profiles FOR SELECT TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor() OR (user_id IN ( SELECT zapp.get_visible_agent_ids(( SELECT auth.uid() AS uid)) AS get_visible_agent_ids))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol880$;
@@ -63142,7 +63080,7 @@ $pol880$;
 
 DO $pol881$
 BEGIN
-  CREATE POLICY auth_secure_123 ON zapp.whatsapp_connections FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'agent'::zapp.app_role) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_136 ON zapp.sessions FOR SELECT TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol881$;
@@ -63152,7 +63090,7 @@ $pol881$;
 
 DO $pol882$
 BEGIN
-  CREATE POLICY auth_secure_124 ON zapp.whatsapp_flows TO authenticated USING (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor())) WITH CHECK (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_137 ON zapp.webhook_endpoints FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol882$;
@@ -63162,8 +63100,7 @@ $pol882$;
 
 DO $pol883$
 BEGIN
-  CREATE POLICY auth_secure_125 ON zapp.whatsapp_groups TO authenticated USING ((zapp.is_admin_or_supervisor() OR (whatsapp_connection_id IN ( SELECT whatsapp_connections.id
-   FROM zapp.whatsapp_connections)))) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_138 ON zapp.webhook_events FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol883$;
@@ -63173,7 +63110,7 @@ $pol883$;
 
 DO $pol884$
 BEGIN
-  CREATE POLICY auth_secure_126 ON zapp.whatsapp_templates TO authenticated USING (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor())) WITH CHECK (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_139 ON zapp.dead_letter_queue FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol884$;
@@ -63183,7 +63120,7 @@ $pol884$;
 
 DO $pol885$
 BEGIN
-  CREATE POLICY auth_secure_127 ON zapp.whisper_files TO authenticated USING (zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid))) WITH CHECK (((sender_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_14 ON zapp.evolution_alerts FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol885$;
@@ -63193,7 +63130,7 @@ $pol885$;
 
 DO $pol886$
 BEGIN
-  CREATE POLICY auth_secure_128 ON zapp.workspace_members TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_140 ON zapp.message_queue FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol886$;
@@ -63203,11 +63140,7 @@ $pol886$;
 
 DO $pol887$
 BEGIN
-  CREATE POLICY auth_secure_129 ON zapp.workspace_settings TO authenticated USING (((workspace_id IN ( SELECT w.id
-   FROM zapp.workspaces w
-  WHERE (w.owner_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((workspace_id IN ( SELECT w.id
-   FROM zapp.workspaces w
-  WHERE (w.owner_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_141 ON zapp.forensic_snapshots FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol887$;
@@ -63217,7 +63150,7 @@ $pol887$;
 
 DO $pol888$
 BEGIN
-  CREATE POLICY auth_secure_130 ON zapp.workspaces TO authenticated USING (((owner_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((owner_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_142 ON zapp.queue_items FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol888$;
@@ -63227,7 +63160,7 @@ $pol888$;
 
 DO $pol889$
 BEGIN
-  CREATE POLICY auth_secure_131 ON zapp.zapp_audit_log FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_143 ON zapp.search_insights FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol889$;
@@ -63237,7 +63170,7 @@ $pol889$;
 
 DO $pol890$
 BEGIN
-  CREATE POLICY auth_secure_135 ON zapp.profiles FOR SELECT TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor() OR (user_id IN ( SELECT zapp.get_visible_agent_ids(( SELECT auth.uid() AS uid)) AS get_visible_agent_ids))));
+  CREATE POLICY auth_secure_144 ON zapp.colaboradores FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol890$;
@@ -63247,7 +63180,7 @@ $pol890$;
 
 DO $pol891$
 BEGIN
-  CREATE POLICY auth_secure_136 ON zapp.sessions FOR SELECT TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_145 ON zapp.empresas FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol891$;
@@ -63257,7 +63190,7 @@ $pol891$;
 
 DO $pol892$
 BEGIN
-  CREATE POLICY auth_secure_137 ON zapp.webhook_endpoints FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_149 ON zapp.deploy_connections FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol892$;
@@ -63267,7 +63200,7 @@ $pol892$;
 
 DO $pol893$
 BEGIN
-  CREATE POLICY auth_secure_138 ON zapp.webhook_events FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_150 ON zapp.n8n_variables FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol893$;
@@ -63277,7 +63210,7 @@ $pol893$;
 
 DO $pol894$
 BEGIN
-  CREATE POLICY auth_secure_139 ON zapp.dead_letter_queue FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_151 ON zapp.alert_channels FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol894$;
@@ -63287,7 +63220,7 @@ $pol894$;
 
 DO $pol895$
 BEGIN
-  CREATE POLICY auth_secure_14 ON zapp.evolution_alerts FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_152 ON zapp.notification_channels_config FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol895$;
@@ -63297,7 +63230,7 @@ $pol895$;
 
 DO $pol896$
 BEGIN
-  CREATE POLICY auth_secure_140 ON zapp.message_queue FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_153 ON zapp.integration_profiles FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol896$;
@@ -63307,7 +63240,7 @@ $pol896$;
 
 DO $pol897$
 BEGIN
-  CREATE POLICY auth_secure_141 ON zapp.forensic_snapshots FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_154 ON zapp.consent_records FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol897$;
@@ -63317,7 +63250,7 @@ $pol897$;
 
 DO $pol898$
 BEGIN
-  CREATE POLICY auth_secure_142 ON zapp.queue_items FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_155 ON zapp.solicitacoes_vale FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol898$;
@@ -63327,7 +63260,7 @@ $pol898$;
 
 DO $pol899$
 BEGIN
-  CREATE POLICY auth_secure_143 ON zapp.search_insights FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_156 ON zapp.budgets FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol899$;
@@ -63337,7 +63270,7 @@ $pol899$;
 
 DO $pol900$
 BEGIN
-  CREATE POLICY auth_secure_144 ON zapp.colaboradores FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_157 ON zapp.agents FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol900$;
@@ -63347,7 +63280,7 @@ $pol900$;
 
 DO $pol901$
 BEGIN
-  CREATE POLICY auth_secure_145 ON zapp.empresas FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_158 ON zapp.agent_memories FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol901$;
@@ -63357,7 +63290,7 @@ $pol901$;
 
 DO $pol902$
 BEGIN
-  CREATE POLICY auth_secure_149 ON zapp.deploy_connections FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_164 ON zapp.agent_installed_skills FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol902$;
@@ -63367,7 +63300,7 @@ $pol902$;
 
 DO $pol903$
 BEGIN
-  CREATE POLICY auth_secure_150 ON zapp.n8n_variables FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_165 ON zapp.documents FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol903$;
@@ -63377,7 +63310,7 @@ $pol903$;
 
 DO $pol904$
 BEGIN
-  CREATE POLICY auth_secure_151 ON zapp.alert_channels FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_166 ON zapp.companies FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol904$;
@@ -63387,7 +63320,7 @@ $pol904$;
 
 DO $pol905$
 BEGIN
-  CREATE POLICY auth_secure_152 ON zapp.notification_channels_config FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_167 ON zapp.conversation_summaries FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol905$;
@@ -63397,7 +63330,7 @@ $pol905$;
 
 DO $pol906$
 BEGIN
-  CREATE POLICY auth_secure_153 ON zapp.integration_profiles FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_169 ON zapp.outbox_events FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol906$;
@@ -63407,7 +63340,7 @@ $pol906$;
 
 DO $pol907$
 BEGIN
-  CREATE POLICY auth_secure_154 ON zapp.consent_records FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_17 ON zapp.evolution_media FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol907$;
@@ -63417,7 +63350,7 @@ $pol907$;
 
 DO $pol908$
 BEGIN
-  CREATE POLICY auth_secure_155 ON zapp.solicitacoes_vale FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_170 ON zapp.sticky_assignments FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol908$;
@@ -63427,7 +63360,7 @@ $pol908$;
 
 DO $pol909$
 BEGIN
-  CREATE POLICY auth_secure_156 ON zapp.budgets FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_171 ON zapp.roles FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol909$;
@@ -63437,7 +63370,7 @@ $pol909$;
 
 DO $pol910$
 BEGIN
-  CREATE POLICY auth_secure_157 ON zapp.agents FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_172 ON zapp.system_settings FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol910$;
@@ -63447,7 +63380,7 @@ $pol910$;
 
 DO $pol911$
 BEGIN
-  CREATE POLICY auth_secure_158 ON zapp.agent_memories FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_173 ON zapp.tenants FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol911$;
@@ -63457,7 +63390,7 @@ $pol911$;
 
 DO $pol912$
 BEGIN
-  CREATE POLICY auth_secure_164 ON zapp.agent_installed_skills FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_174 ON zapp.security_events FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol912$;
@@ -63467,7 +63400,7 @@ $pol912$;
 
 DO $pol913$
 BEGIN
-  CREATE POLICY auth_secure_165 ON zapp.documents FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_175 ON zapp.permissions FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol913$;
@@ -63477,7 +63410,7 @@ $pol913$;
 
 DO $pol914$
 BEGIN
-  CREATE POLICY auth_secure_166 ON zapp.companies FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_176 ON zapp.permissions TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol914$;
@@ -63487,7 +63420,7 @@ $pol914$;
 
 DO $pol915$
 BEGIN
-  CREATE POLICY auth_secure_167 ON zapp.conversation_summaries FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_177 ON zapp.outbound_message_queue FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol915$;
@@ -63497,7 +63430,7 @@ $pol915$;
 
 DO $pol916$
 BEGIN
-  CREATE POLICY auth_secure_169 ON zapp.outbox_events FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_178 ON zapp.queue_routing_rules FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol916$;
@@ -63507,7 +63440,7 @@ $pol916$;
 
 DO $pol917$
 BEGIN
-  CREATE POLICY auth_secure_17 ON zapp.evolution_media FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_180 ON zapp.webhook_audit_log FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol917$;
@@ -63517,7 +63450,7 @@ $pol917$;
 
 DO $pol918$
 BEGIN
-  CREATE POLICY auth_secure_170 ON zapp.sticky_assignments FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_181 ON zapp.webhook_event_dedup FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol918$;
@@ -63527,7 +63460,7 @@ $pol918$;
 
 DO $pol919$
 BEGIN
-  CREATE POLICY auth_secure_171 ON zapp.roles FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_182 ON zapp.webhook_events_processed FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol919$;
@@ -63537,7 +63470,7 @@ $pol919$;
 
 DO $pol920$
 BEGIN
-  CREATE POLICY auth_secure_172 ON zapp.system_settings FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_183 ON zapp.webhook_rate_limits FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol920$;
@@ -63547,7 +63480,7 @@ $pol920$;
 
 DO $pol921$
 BEGIN
-  CREATE POLICY auth_secure_173 ON zapp.tenants FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_184 ON zapp.scheduled_job_log FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol921$;
@@ -63557,7 +63490,7 @@ $pol921$;
 
 DO $pol922$
 BEGIN
-  CREATE POLICY auth_secure_174 ON zapp.security_events FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_185 ON zapp.reprocess_jobs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol922$;
@@ -63567,7 +63500,7 @@ $pol922$;
 
 DO $pol923$
 BEGIN
-  CREATE POLICY auth_secure_175 ON zapp.permissions FOR SELECT TO authenticated USING (true);
+  CREATE POLICY auth_secure_189 ON zapp.contact_export_log FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol923$;
@@ -63577,7 +63510,7 @@ $pol923$;
 
 DO $pol924$
 BEGIN
-  CREATE POLICY auth_secure_176 ON zapp.permissions TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_19 ON zapp.evolution_status_reactions FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol924$;
@@ -63587,7 +63520,7 @@ $pol924$;
 
 DO $pol925$
 BEGIN
-  CREATE POLICY auth_secure_177 ON zapp.outbound_message_queue FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_190 ON zapp.contact_segments FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol925$;
@@ -63597,7 +63530,7 @@ $pol925$;
 
 DO $pol926$
 BEGIN
-  CREATE POLICY auth_secure_178 ON zapp.queue_routing_rules FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_191 ON zapp.conversation_pins FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol926$;
@@ -63607,7 +63540,7 @@ $pol926$;
 
 DO $pol927$
 BEGIN
-  CREATE POLICY auth_secure_180 ON zapp.webhook_audit_log FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_192 ON zapp.batch_jobs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol927$;
@@ -63617,7 +63550,7 @@ $pol927$;
 
 DO $pol928$
 BEGIN
-  CREATE POLICY auth_secure_181 ON zapp.webhook_event_dedup FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_193 ON zapp.chunks FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol928$;
@@ -63627,7 +63560,7 @@ $pol928$;
 
 DO $pol929$
 BEGIN
-  CREATE POLICY auth_secure_182 ON zapp.webhook_events_processed FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_194 ON zapp.collections FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol929$;
@@ -63637,7 +63570,7 @@ $pol929$;
 
 DO $pol930$
 BEGIN
-  CREATE POLICY auth_secure_183 ON zapp.webhook_rate_limits FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_195 ON zapp.embedding_configs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol930$;
@@ -63647,7 +63580,7 @@ $pol930$;
 
 DO $pol931$
 BEGIN
-  CREATE POLICY auth_secure_184 ON zapp.scheduled_job_log FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_196 ON zapp.environments FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol931$;
@@ -63657,7 +63590,7 @@ $pol931$;
 
 DO $pol932$
 BEGIN
-  CREATE POLICY auth_secure_185 ON zapp.reprocess_jobs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_197 ON zapp.extensions FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol932$;
@@ -63667,7 +63600,7 @@ $pol932$;
 
 DO $pol933$
 BEGIN
-  CREATE POLICY auth_secure_189 ON zapp.contact_export_log FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_198 ON zapp.finetune_jobs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol933$;
@@ -63677,7 +63610,7 @@ $pol933$;
 
 DO $pol934$
 BEGIN
-  CREATE POLICY auth_secure_19 ON zapp.evolution_status_reactions FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_199 ON zapp.stress_test_runs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol934$;
@@ -63687,7 +63620,7 @@ $pol934$;
 
 DO $pol935$
 BEGIN
-  CREATE POLICY auth_secure_190 ON zapp.contact_segments FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_200 ON zapp.supabase_projects FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol935$;
@@ -63697,7 +63630,7 @@ $pol935$;
 
 DO $pol936$
 BEGIN
-  CREATE POLICY auth_secure_191 ON zapp.conversation_pins FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_201 ON zapp.task_queues FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol936$;
@@ -63707,7 +63640,7 @@ $pol936$;
 
 DO $pol937$
 BEGIN
-  CREATE POLICY auth_secure_192 ON zapp.batch_jobs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_202 ON zapp.test_cases FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol937$;
@@ -63717,7 +63650,7 @@ $pol937$;
 
 DO $pol938$
 BEGIN
-  CREATE POLICY auth_secure_193 ON zapp.chunks FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_203 ON zapp.constraint_changelog FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol938$;
@@ -63727,7 +63660,7 @@ $pol938$;
 
 DO $pol939$
 BEGIN
-  CREATE POLICY auth_secure_194 ON zapp.collections FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_204 ON zapp.engineering_principles FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol939$;
@@ -63737,7 +63670,7 @@ $pol939$;
 
 DO $pol940$
 BEGIN
-  CREATE POLICY auth_secure_195 ON zapp.embedding_configs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_205 ON zapp.evaluation_datasets FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol940$;
@@ -63747,7 +63680,7 @@ $pol940$;
 
 DO $pol941$
 BEGIN
-  CREATE POLICY auth_secure_196 ON zapp.environments FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_206 ON zapp.evaluation_runs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol941$;
@@ -63757,7 +63690,7 @@ $pol941$;
 
 DO $pol942$
 BEGIN
-  CREATE POLICY auth_secure_197 ON zapp.extensions FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_207 ON zapp.audit_log_tables FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol942$;
@@ -63767,7 +63700,7 @@ $pol942$;
 
 DO $pol943$
 BEGIN
-  CREATE POLICY auth_secure_198 ON zapp.finetune_jobs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_208 ON zapp.audit_results FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol943$;
@@ -63777,7 +63710,7 @@ $pol943$;
 
 DO $pol944$
 BEGIN
-  CREATE POLICY auth_secure_199 ON zapp.stress_test_runs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_209 ON zapp.cron_schedules FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol944$;
@@ -63787,7 +63720,7 @@ $pol944$;
 
 DO $pol945$
 BEGIN
-  CREATE POLICY auth_secure_200 ON zapp.supabase_projects FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_21 ON zapp.evolution_whatsapp_status FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol945$;
@@ -63797,7 +63730,7 @@ $pol945$;
 
 DO $pol946$
 BEGIN
-  CREATE POLICY auth_secure_201 ON zapp.task_queues FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_210 ON zapp.cron_schedule_executions FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol946$;
@@ -63807,7 +63740,7 @@ $pol946$;
 
 DO $pol947$
 BEGIN
-  CREATE POLICY auth_secure_202 ON zapp.test_cases FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_211 ON zapp.avatars TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol947$;
@@ -63817,7 +63750,7 @@ $pol947$;
 
 DO $pol948$
 BEGIN
-  CREATE POLICY auth_secure_203 ON zapp.constraint_changelog FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_212 ON zapp.inbox_custom_scopes FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol948$;
@@ -63827,7 +63760,7 @@ $pol948$;
 
 DO $pol949$
 BEGIN
-  CREATE POLICY auth_secure_204 ON zapp.engineering_principles FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_22 ON zapp.agent_achievements TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol949$;
@@ -63837,7 +63770,7 @@ $pol949$;
 
 DO $pol950$
 BEGIN
-  CREATE POLICY auth_secure_205 ON zapp.evaluation_datasets FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_23 ON zapp.agent_skills TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol950$;
@@ -63847,7 +63780,7 @@ $pol950$;
 
 DO $pol951$
 BEGIN
-  CREATE POLICY auth_secure_206 ON zapp.evaluation_runs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_24 ON zapp.agent_stats TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol951$;
@@ -63857,7 +63790,7 @@ $pol951$;
 
 DO $pol952$
 BEGIN
-  CREATE POLICY auth_secure_207 ON zapp.audit_log_tables FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_25 ON zapp.agent_visibility_grants TO authenticated USING ((zapp.is_admin_or_supervisor() OR (agent_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (agent_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid)))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol952$;
@@ -63867,7 +63800,7 @@ $pol952$;
 
 DO $pol953$
 BEGIN
-  CREATE POLICY auth_secure_208 ON zapp.audit_results FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_26 ON zapp.ai_conversation_tags TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol953$;
@@ -63877,7 +63810,7 @@ $pol953$;
 
 DO $pol954$
 BEGIN
-  CREATE POLICY auth_secure_209 ON zapp.cron_schedules FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_27 ON zapp.allowed_countries TO authenticated USING (true) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol954$;
@@ -63887,7 +63820,7 @@ $pol954$;
 
 DO $pol955$
 BEGIN
-  CREATE POLICY auth_secure_21 ON zapp.evolution_whatsapp_status FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_30 ON zapp.audio_memes FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol955$;
@@ -63897,7 +63830,7 @@ $pol955$;
 
 DO $pol956$
 BEGIN
-  CREATE POLICY auth_secure_210 ON zapp.cron_schedule_executions FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_30_delete ON zapp.audio_memes FOR DELETE TO authenticated USING (((uploaded_by = (( SELECT auth.uid() AS uid))::text) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol956$;
@@ -63907,7 +63840,7 @@ $pol956$;
 
 DO $pol957$
 BEGIN
-  CREATE POLICY auth_secure_211 ON zapp.avatars TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_30_insert ON zapp.audio_memes FOR INSERT TO authenticated WITH CHECK (((uploaded_by = (( SELECT auth.uid() AS uid))::text) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol957$;
@@ -63917,7 +63850,7 @@ $pol957$;
 
 DO $pol958$
 BEGIN
-  CREATE POLICY auth_secure_212 ON zapp.inbox_custom_scopes FOR SELECT TO authenticated USING (true);
+  CREATE POLICY auth_secure_30_update ON zapp.audio_memes FOR UPDATE TO authenticated USING (((uploaded_by = (( SELECT auth.uid() AS uid))::text) OR zapp.is_admin_or_supervisor())) WITH CHECK (((uploaded_by = (( SELECT auth.uid() AS uid))::text) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol958$;
@@ -63927,7 +63860,7 @@ $pol958$;
 
 DO $pol959$
 BEGIN
-  CREATE POLICY auth_secure_22 ON zapp.agent_achievements TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_31 ON zapp.auto_close_config TO authenticated USING (true) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol959$;
@@ -63937,7 +63870,7 @@ $pol959$;
 
 DO $pol960$
 BEGIN
-  CREATE POLICY auth_secure_23 ON zapp.agent_skills TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_32 ON zapp.automation_executions TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol960$;
@@ -63947,7 +63880,7 @@ $pol960$;
 
 DO $pol961$
 BEGIN
-  CREATE POLICY auth_secure_24 ON zapp.agent_stats TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_33 ON zapp.automation_rules TO authenticated USING (true) WITH CHECK (((created_by = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol961$;
@@ -63957,7 +63890,7 @@ $pol961$;
 
 DO $pol962$
 BEGIN
-  CREATE POLICY auth_secure_25 ON zapp.agent_visibility_grants TO authenticated USING ((zapp.is_admin_or_supervisor() OR (agent_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (agent_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid)))));
+  CREATE POLICY auth_secure_34 ON zapp.automations TO authenticated USING (true) WITH CHECK (((created_by = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol962$;
@@ -63967,7 +63900,7 @@ $pol962$;
 
 DO $pol963$
 BEGIN
-  CREATE POLICY auth_secure_26 ON zapp.ai_conversation_tags TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_35 ON zapp.away_messages TO authenticated USING (true) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol963$;
@@ -63977,7 +63910,7 @@ $pol963$;
 
 DO $pol964$
 BEGIN
-  CREATE POLICY auth_secure_27 ON zapp.allowed_countries TO authenticated USING (true) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_36 ON zapp.blocked_countries TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol964$;
@@ -63987,7 +63920,7 @@ $pol964$;
 
 DO $pol965$
 BEGIN
-  CREATE POLICY auth_secure_30 ON zapp.audio_memes FOR SELECT TO authenticated USING (true);
+  CREATE POLICY auth_secure_37 ON zapp.business_hours TO authenticated USING (true) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol965$;
@@ -63997,7 +63930,7 @@ $pol965$;
 
 DO $pol966$
 BEGIN
-  CREATE POLICY auth_secure_30_delete ON zapp.audio_memes FOR DELETE TO authenticated USING (((uploaded_by = (( SELECT auth.uid() AS uid))::text) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_38 ON zapp.calls TO authenticated USING (((agent_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((agent_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol966$;
@@ -64007,7 +63940,7 @@ $pol966$;
 
 DO $pol967$
 BEGIN
-  CREATE POLICY auth_secure_30_insert ON zapp.audio_memes FOR INSERT TO authenticated WITH CHECK (((uploaded_by = (( SELECT auth.uid() AS uid))::text) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_39 ON zapp.channel_connections FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol967$;
@@ -64017,7 +63950,7 @@ $pol967$;
 
 DO $pol968$
 BEGIN
-  CREATE POLICY auth_secure_30_update ON zapp.audio_memes FOR UPDATE TO authenticated USING (((uploaded_by = (( SELECT auth.uid() AS uid))::text) OR zapp.is_admin_or_supervisor())) WITH CHECK (((uploaded_by = (( SELECT auth.uid() AS uid))::text) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_40 ON zapp.channel_queues TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol968$;
@@ -64027,7 +63960,7 @@ $pol968$;
 
 DO $pol969$
 BEGIN
-  CREATE POLICY auth_secure_31 ON zapp.auto_close_config TO authenticated USING (true) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_41 ON zapp.channel_routing_rules TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol969$;
@@ -64037,7 +63970,7 @@ $pol969$;
 
 DO $pol970$
 BEGIN
-  CREATE POLICY auth_secure_32 ON zapp.automation_executions TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_42 ON zapp.chatbot_executions TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol970$;
@@ -64047,7 +63980,7 @@ $pol970$;
 
 DO $pol971$
 BEGIN
-  CREATE POLICY auth_secure_33 ON zapp.automation_rules TO authenticated USING (true) WITH CHECK (((created_by = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_43 ON zapp.chatbot_flows TO authenticated USING (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor())) WITH CHECK (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol971$;
@@ -64057,7 +63990,7 @@ $pol971$;
 
 DO $pol972$
 BEGIN
-  CREATE POLICY auth_secure_34 ON zapp.automations TO authenticated USING (true) WITH CHECK (((created_by = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_44 ON zapp.client_wallet_rules TO authenticated USING ((zapp.is_admin_or_supervisor() OR (agent_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (agent_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid)))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol972$;
@@ -64067,7 +64000,7 @@ $pol972$;
 
 DO $pol973$
 BEGIN
-  CREATE POLICY auth_secure_35 ON zapp.away_messages TO authenticated USING (true) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_45 ON zapp.connection_alert_preferences TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol973$;
@@ -64077,7 +64010,7 @@ $pol973$;
 
 DO $pol974$
 BEGIN
-  CREATE POLICY auth_secure_36 ON zapp.blocked_countries TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_46 ON zapp.connection_health_logs TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol974$;
@@ -64087,7 +64020,7 @@ $pol974$;
 
 DO $pol975$
 BEGIN
-  CREATE POLICY auth_secure_37 ON zapp.business_hours TO authenticated USING (true) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_47 ON zapp.contact_assignments TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) AND ((assigned_to_user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()))) WITH CHECK ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) AND ((assigned_to_user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol975$;
@@ -64097,7 +64030,7 @@ $pol975$;
 
 DO $pol976$
 BEGIN
-  CREATE POLICY auth_secure_38 ON zapp.calls TO authenticated USING (((agent_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((agent_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_48 ON zapp.contact_audit_log TO authenticated USING (zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol976$;
@@ -64107,7 +64040,7 @@ $pol976$;
 
 DO $pol977$
 BEGIN
-  CREATE POLICY auth_secure_39 ON zapp.channel_connections FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_49 ON zapp.contact_intelligence FOR SELECT TO authenticated USING (zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol977$;
@@ -64117,7 +64050,7 @@ $pol977$;
 
 DO $pol978$
 BEGIN
-  CREATE POLICY auth_secure_40 ON zapp.channel_queues TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_50 ON zapp.contact_phones FOR SELECT TO authenticated USING (zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol978$;
@@ -64127,7 +64060,7 @@ $pol978$;
 
 DO $pol979$
 BEGIN
-  CREATE POLICY auth_secure_41 ON zapp.channel_routing_rules TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_51 ON zapp.contatos FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol979$;
@@ -64137,7 +64070,7 @@ $pol979$;
 
 DO $pol980$
 BEGIN
-  CREATE POLICY auth_secure_42 ON zapp.chatbot_executions TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_52 ON zapp.credential_audit_logs TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol980$;
@@ -64147,7 +64080,7 @@ $pol980$;
 
 DO $pol981$
 BEGIN
-  CREATE POLICY auth_secure_43 ON zapp.chatbot_flows TO authenticated USING (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor())) WITH CHECK (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_56 ON zapp.crm_sync_config TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol981$;
@@ -64157,7 +64090,7 @@ $pol981$;
 
 DO $pol982$
 BEGIN
-  CREATE POLICY auth_secure_44 ON zapp.client_wallet_rules TO authenticated USING ((zapp.is_admin_or_supervisor() OR (agent_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (agent_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid)))));
+  CREATE POLICY auth_secure_56 ON zapp.custom_emojis TO authenticated USING (true) WITH CHECK (((uploaded_by = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol982$;
@@ -64167,7 +64100,7 @@ $pol982$;
 
 DO $pol983$
 BEGIN
-  CREATE POLICY auth_secure_45 ON zapp.connection_alert_preferences TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_57 ON zapp.data_deletion_requests TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol983$;
@@ -64177,7 +64110,7 @@ $pol983$;
 
 DO $pol984$
 BEGIN
-  CREATE POLICY auth_secure_46 ON zapp.connection_health_logs TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_58 ON zapp.deal_activities TO authenticated USING (((performed_by = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((performed_by = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol984$;
@@ -64187,7 +64120,7 @@ $pol984$;
 
 DO $pol985$
 BEGIN
-  CREATE POLICY auth_secure_47 ON zapp.contact_assignments TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) AND ((assigned_to_user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()))) WITH CHECK ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) AND ((assigned_to_user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())));
+  CREATE POLICY auth_secure_59 ON zapp.department_invitations FOR SELECT TO authenticated USING ((zapp.is_admin_or_supervisor() OR (invited_by = ( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol985$;
@@ -64197,7 +64130,7 @@ $pol985$;
 
 DO $pol986$
 BEGIN
-  CREATE POLICY auth_secure_48 ON zapp.contact_audit_log TO authenticated USING (zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_60 ON zapp.departments FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol986$;
@@ -64207,7 +64140,7 @@ $pol986$;
 
 DO $pol987$
 BEGIN
-  CREATE POLICY auth_secure_49 ON zapp.contact_intelligence FOR SELECT TO authenticated USING (zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)));
+  CREATE POLICY auth_secure_61 ON zapp.dept_mapping TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol987$;
@@ -64217,7 +64150,7 @@ $pol987$;
 
 DO $pol988$
 BEGIN
-  CREATE POLICY auth_secure_50 ON zapp.contact_phones FOR SELECT TO authenticated USING (zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)));
+  CREATE POLICY auth_secure_62 ON zapp.dispatch_error_logs TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol988$;
@@ -64227,7 +64160,7 @@ $pol988$;
 
 DO $pol989$
 BEGIN
-  CREATE POLICY auth_secure_51 ON zapp.contatos FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_63 ON zapp.failed_messages TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol989$;
@@ -64237,7 +64170,11 @@ $pol989$;
 
 DO $pol990$
 BEGIN
-  CREATE POLICY auth_secure_52 ON zapp.credential_audit_logs TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_64 ON zapp.followup_executions TO authenticated USING ((zapp.is_admin_or_supervisor() OR (EXISTS ( SELECT 1
+   FROM zapp.followup_sequences s
+  WHERE ((s.id = followup_executions.sequence_id) AND (s.created_by = zapp.get_profile_id_for_user(auth.uid()))))))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (EXISTS ( SELECT 1
+   FROM zapp.followup_sequences s
+  WHERE ((s.id = followup_executions.sequence_id) AND (s.created_by = zapp.get_profile_id_for_user(auth.uid())))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol990$;
@@ -64247,7 +64184,7 @@ $pol990$;
 
 DO $pol991$
 BEGIN
-  CREATE POLICY auth_secure_56 ON zapp.crm_sync_config TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_65 ON zapp.followup_sequences TO authenticated USING ((zapp.is_admin_or_supervisor() OR (created_by = zapp.get_profile_id_for_user(auth.uid())))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (created_by = zapp.get_profile_id_for_user(auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol991$;
@@ -64257,7 +64194,11 @@ $pol991$;
 
 DO $pol992$
 BEGIN
-  CREATE POLICY auth_secure_56 ON zapp.custom_emojis TO authenticated USING (true) WITH CHECK (((uploaded_by = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_66 ON zapp.followup_steps TO authenticated USING ((zapp.is_admin_or_supervisor() OR (EXISTS ( SELECT 1
+   FROM zapp.followup_sequences s
+  WHERE ((s.id = followup_steps.sequence_id) AND (s.created_by = zapp.get_profile_id_for_user(auth.uid()))))))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (EXISTS ( SELECT 1
+   FROM zapp.followup_sequences s
+  WHERE ((s.id = followup_steps.sequence_id) AND (s.created_by = zapp.get_profile_id_for_user(auth.uid())))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol992$;
@@ -64267,7 +64208,7 @@ $pol992$;
 
 DO $pol993$
 BEGIN
-  CREATE POLICY auth_secure_57 ON zapp.data_deletion_requests TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor())) WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_67 ON zapp.geo_blocking_settings TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol993$;
@@ -64277,7 +64218,7 @@ $pol993$;
 
 DO $pol994$
 BEGIN
-  CREATE POLICY auth_secure_58 ON zapp.deal_activities TO authenticated USING (((performed_by = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((performed_by = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_68 ON zapp.global_settings FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol994$;
@@ -64287,7 +64228,7 @@ $pol994$;
 
 DO $pol995$
 BEGIN
-  CREATE POLICY auth_secure_59 ON zapp.department_invitations FOR SELECT TO authenticated USING ((zapp.is_admin_or_supervisor() OR (invited_by = ( SELECT auth.uid() AS uid))));
+  CREATE POLICY auth_secure_69 ON zapp.goals_configurations TO authenticated USING (((zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid)) = profile_id) OR (profile_id IS NULL) OR zapp.is_admin_or_supervisor())) WITH CHECK ((zapp.is_admin_or_supervisor() OR (profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid)))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol995$;
@@ -64297,7 +64238,7 @@ $pol995$;
 
 DO $pol996$
 BEGIN
-  CREATE POLICY auth_secure_60 ON zapp.departments FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_70 ON zapp.hmac_selftest_audit FOR INSERT TO authenticated WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol996$;
@@ -64307,7 +64248,7 @@ $pol996$;
 
 DO $pol997$
 BEGIN
-  CREATE POLICY auth_secure_61 ON zapp.dept_mapping TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_70_select ON zapp.hmac_selftest_audit FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol997$;
@@ -64317,7 +64258,7 @@ $pol997$;
 
 DO $pol998$
 BEGIN
-  CREATE POLICY auth_secure_62 ON zapp.dispatch_error_logs TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (false);
+  CREATE POLICY auth_secure_71 ON zapp.installed_templates TO authenticated USING ((zapp.is_admin_or_supervisor() OR (installed_by = ( SELECT auth.uid() AS uid)))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (installed_by = ( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol998$;
@@ -64327,7 +64268,7 @@ $pol998$;
 
 DO $pol999$
 BEGIN
-  CREATE POLICY auth_secure_63 ON zapp.failed_messages TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_73 ON zapp.instance_processing_pauses FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol999$;
@@ -64337,11 +64278,7 @@ $pol999$;
 
 DO $pol1000$
 BEGIN
-  CREATE POLICY auth_secure_64 ON zapp.followup_executions TO authenticated USING ((zapp.is_admin_or_supervisor() OR (EXISTS ( SELECT 1
-   FROM zapp.followup_sequences s
-  WHERE ((s.id = followup_executions.sequence_id) AND (s.created_by = zapp.get_profile_id_for_user(auth.uid()))))))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (EXISTS ( SELECT 1
-   FROM zapp.followup_sequences s
-  WHERE ((s.id = followup_executions.sequence_id) AND (s.created_by = zapp.get_profile_id_for_user(auth.uid())))))));
+  CREATE POLICY auth_secure_74 ON zapp.instance_registry TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1000$;
@@ -64351,7 +64288,7 @@ $pol1000$;
 
 DO $pol1001$
 BEGIN
-  CREATE POLICY auth_secure_65 ON zapp.followup_sequences TO authenticated USING ((zapp.is_admin_or_supervisor() OR (created_by = zapp.get_profile_id_for_user(auth.uid())))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (created_by = zapp.get_profile_id_for_user(auth.uid()))));
+  CREATE POLICY auth_secure_75 ON zapp.integrations FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1001$;
@@ -64361,11 +64298,7 @@ $pol1001$;
 
 DO $pol1002$
 BEGIN
-  CREATE POLICY auth_secure_66 ON zapp.followup_steps TO authenticated USING ((zapp.is_admin_or_supervisor() OR (EXISTS ( SELECT 1
-   FROM zapp.followup_sequences s
-  WHERE ((s.id = followup_steps.sequence_id) AND (s.created_by = zapp.get_profile_id_for_user(auth.uid()))))))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (EXISTS ( SELECT 1
-   FROM zapp.followup_sequences s
-  WHERE ((s.id = followup_steps.sequence_id) AND (s.created_by = zapp.get_profile_id_for_user(auth.uid())))))));
+  CREATE POLICY auth_secure_76 ON zapp.interactions TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1002$;
@@ -64375,7 +64308,7 @@ $pol1002$;
 
 DO $pol1003$
 BEGIN
-  CREATE POLICY auth_secure_67 ON zapp.geo_blocking_settings TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_78 ON zapp.message_attempts FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1003$;
@@ -64385,7 +64318,7 @@ $pol1003$;
 
 DO $pol1004$
 BEGIN
-  CREATE POLICY auth_secure_68 ON zapp.global_settings FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_79 ON zapp.message_reactions TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR (user_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))))) WITH CHECK (((user_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1004$;
@@ -64395,7 +64328,7 @@ $pol1004$;
 
 DO $pol1005$
 BEGIN
-  CREATE POLICY auth_secure_69 ON zapp.goals_configurations TO authenticated USING (((zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid)) = profile_id) OR (profile_id IS NULL) OR zapp.is_admin_or_supervisor())) WITH CHECK ((zapp.is_admin_or_supervisor() OR (profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid)))));
+  CREATE POLICY auth_secure_80 ON zapp.message_templates TO authenticated USING ((zapp.is_admin_or_supervisor() OR (user_id = ( SELECT auth.uid() AS uid)) OR (is_global = true))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (user_id = ( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1005$;
@@ -64405,7 +64338,7 @@ $pol1005$;
 
 DO $pol1006$
 BEGIN
-  CREATE POLICY auth_secure_70 ON zapp.hmac_selftest_audit FOR INSERT TO authenticated WITH CHECK (true);
+  CREATE POLICY auth_secure_82 ON zapp.notification_templates TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1006$;
@@ -64415,7 +64348,7 @@ $pol1006$;
 
 DO $pol1007$
 BEGIN
-  CREATE POLICY auth_secure_70_select ON zapp.hmac_selftest_audit FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_83 ON zapp.number_reputation TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1007$;
@@ -64425,7 +64358,7 @@ $pol1007$;
 
 DO $pol1008$
 BEGIN
-  CREATE POLICY auth_secure_71 ON zapp.installed_templates TO authenticated USING ((zapp.is_admin_or_supervisor() OR (installed_by = ( SELECT auth.uid() AS uid)))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (installed_by = ( SELECT auth.uid() AS uid))));
+  CREATE POLICY auth_secure_84 ON zapp.performance_snapshots TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1008$;
@@ -64435,7 +64368,7 @@ $pol1008$;
 
 DO $pol1009$
 BEGIN
-  CREATE POLICY auth_secure_73 ON zapp.instance_processing_pauses FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_85 ON zapp.provider_configs TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1009$;
@@ -64445,7 +64378,7 @@ $pol1009$;
 
 DO $pol1010$
 BEGIN
-  CREATE POLICY auth_secure_74 ON zapp.instance_registry TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_86 ON zapp.provider_message_log TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1010$;
@@ -64455,7 +64388,7 @@ $pol1010$;
 
 DO $pol1011$
 BEGIN
-  CREATE POLICY auth_secure_75 ON zapp.integrations FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_87 ON zapp.provider_session_logs TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1011$;
@@ -64465,7 +64398,7 @@ $pol1011$;
 
 DO $pol1012$
 BEGIN
-  CREATE POLICY auth_secure_76 ON zapp.interactions TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_88 ON zapp.provider_sessions TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1012$;
@@ -64475,7 +64408,7 @@ $pol1012$;
 
 DO $pol1013$
 BEGIN
-  CREATE POLICY auth_secure_78 ON zapp.message_attempts FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_89 ON zapp.qr_attempts TO authenticated USING ((zapp.is_admin_or_supervisor() OR (requested_by = ( SELECT auth.uid() AS uid)))) WITH CHECK (((requested_by = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1013$;
@@ -64485,7 +64418,7 @@ $pol1013$;
 
 DO $pol1014$
 BEGIN
-  CREATE POLICY auth_secure_79 ON zapp.message_reactions TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR (user_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))))) WITH CHECK (((user_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_secure_90 ON zapp.queue_goals TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1014$;
@@ -64495,7 +64428,7 @@ $pol1014$;
 
 DO $pol1015$
 BEGIN
-  CREATE POLICY auth_secure_80 ON zapp.message_templates TO authenticated USING ((zapp.is_admin_or_supervisor() OR (user_id = ( SELECT auth.uid() AS uid)) OR (is_global = true))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (user_id = ( SELECT auth.uid() AS uid))));
+  CREATE POLICY auth_secure_91 ON zapp.queue_members TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1015$;
@@ -64505,7 +64438,7 @@ $pol1015$;
 
 DO $pol1016$
 BEGIN
-  CREATE POLICY auth_secure_82 ON zapp.notification_templates TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_92 ON zapp.queue_skill_requirements TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1016$;
@@ -64515,7 +64448,7 @@ $pol1016$;
 
 DO $pol1017$
 BEGIN
-  CREATE POLICY auth_secure_83 ON zapp.number_reputation TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_93 ON zapp.quick_replies TO authenticated USING ((zapp.is_admin_or_supervisor() OR (owner_id = ( SELECT auth.uid() AS uid)) OR (is_global = true))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (owner_id = ( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1017$;
@@ -64525,7 +64458,7 @@ $pol1017$;
 
 DO $pol1018$
 BEGIN
-  CREATE POLICY auth_secure_84 ON zapp.performance_snapshots TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_94 ON zapp.reminders TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1018$;
@@ -64535,7 +64468,7 @@ $pol1018$;
 
 DO $pol1019$
 BEGIN
-  CREATE POLICY auth_secure_85 ON zapp.provider_configs TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_97 ON zapp.sales_deals TO authenticated USING ((zapp.is_admin_or_supervisor() OR (assigned_to = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_contact_visible_to_user(contact_id, auth.uid()))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (assigned_to = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_contact_visible_to_user(contact_id, auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1019$;
@@ -64545,7 +64478,7 @@ $pol1019$;
 
 DO $pol1020$
 BEGIN
-  CREATE POLICY auth_secure_86 ON zapp.provider_message_log TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_98 ON zapp.sales_pipeline_stages TO authenticated USING (true) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1020$;
@@ -64555,7 +64488,7 @@ $pol1020$;
 
 DO $pol1021$
 BEGIN
-  CREATE POLICY auth_secure_87 ON zapp.provider_session_logs TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_99 ON zapp.scheduled_messages TO authenticated USING ((zapp.is_admin_or_supervisor() OR (created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_contact_visible_to_user(contact_id, auth.uid()))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_contact_visible_to_user(contact_id, auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1021$;
@@ -64565,7 +64498,7 @@ $pol1021$;
 
 DO $pol1022$
 BEGIN
-  CREATE POLICY auth_secure_88 ON zapp.provider_sessions TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_secure_n8n_config_select ON zapp.n8n_config FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1022$;
@@ -64575,7 +64508,7 @@ $pol1022$;
 
 DO $pol1023$
 BEGIN
-  CREATE POLICY auth_secure_89 ON zapp.qr_attempts TO authenticated USING ((zapp.is_admin_or_supervisor() OR (requested_by = ( SELECT auth.uid() AS uid)))) WITH CHECK (((requested_by = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_select_all ON zapp.alert_dispatch_state FOR SELECT TO authenticated USING (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1023$;
@@ -64585,7 +64518,7 @@ $pol1023$;
 
 DO $pol1024$
 BEGIN
-  CREATE POLICY auth_secure_90 ON zapp.queue_goals TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_select_all ON zapp.processed_webhook_events FOR SELECT TO authenticated USING (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1024$;
@@ -64595,7 +64528,7 @@ $pol1024$;
 
 DO $pol1025$
 BEGIN
-  CREATE POLICY auth_secure_91 ON zapp.queue_members TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_select_all ON zapp.restore_test_log FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1025$;
@@ -64605,7 +64538,7 @@ $pol1025$;
 
 DO $pol1026$
 BEGIN
-  CREATE POLICY auth_secure_92 ON zapp.queue_skill_requirements TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_select_all ON zapp.rpc_rate_limits FOR SELECT TO authenticated USING (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1026$;
@@ -64615,7 +64548,7 @@ $pol1026$;
 
 DO $pol1027$
 BEGIN
-  CREATE POLICY auth_secure_93 ON zapp.quick_replies TO authenticated USING ((zapp.is_admin_or_supervisor() OR (owner_id = ( SELECT auth.uid() AS uid)) OR (is_global = true))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (owner_id = ( SELECT auth.uid() AS uid))));
+  CREATE POLICY auth_select_all ON zapp.webhook_health_alerts FOR SELECT TO authenticated USING (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1027$;
@@ -64625,7 +64558,7 @@ $pol1027$;
 
 DO $pol1028$
 BEGIN
-  CREATE POLICY auth_secure_94 ON zapp.reminders TO authenticated USING (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor())) WITH CHECK (((profile_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
+  CREATE POLICY auth_select_forwarded_messages ON zapp.forwarded_messages FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1028$;
@@ -64635,7 +64568,7 @@ $pol1028$;
 
 DO $pol1029$
 BEGIN
-  CREATE POLICY auth_secure_97 ON zapp.sales_deals TO authenticated USING ((zapp.is_admin_or_supervisor() OR (assigned_to = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_contact_visible_to_user(contact_id, auth.uid()))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (assigned_to = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_contact_visible_to_user(contact_id, auth.uid())));
+  CREATE POLICY auth_select_own_or_shared ON zapp.saved_filters FOR SELECT TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR (is_shared = true)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1029$;
@@ -64645,7 +64578,9 @@ $pol1029$;
 
 DO $pol1030$
 BEGIN
-  CREATE POLICY auth_secure_98 ON zapp.sales_pipeline_stages TO authenticated USING (true) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_select_workspace_snoozes ON zapp.conversation_snoozes FOR SELECT TO authenticated USING (((snoozed_by = zapp.get_profile_id_for_user(auth.uid())) OR (EXISTS ( SELECT 1
+   FROM zapp.workspace_members wm
+  WHERE (wm.user_id = auth.uid())))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1030$;
@@ -64655,7 +64590,7 @@ $pol1030$;
 
 DO $pol1031$
 BEGIN
-  CREATE POLICY auth_secure_99 ON zapp.scheduled_messages TO authenticated USING ((zapp.is_admin_or_supervisor() OR (created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_contact_visible_to_user(contact_id, auth.uid()))) WITH CHECK ((zapp.is_admin_or_supervisor() OR (created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_contact_visible_to_user(contact_id, auth.uid())));
+  CREATE POLICY auth_update_admin ON zapp.alert_dispatch_state FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1031$;
@@ -64665,7 +64600,7 @@ $pol1031$;
 
 DO $pol1032$
 BEGIN
-  CREATE POLICY auth_secure_n8n_config_select ON zapp.n8n_config FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_update_admin ON zapp.processed_webhook_events FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1032$;
@@ -64675,7 +64610,7 @@ $pol1032$;
 
 DO $pol1033$
 BEGIN
-  CREATE POLICY auth_select_all ON zapp.alert_dispatch_state FOR SELECT TO authenticated USING (false);
+  CREATE POLICY auth_update_admin ON zapp.restore_test_log FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1033$;
@@ -64685,7 +64620,7 @@ $pol1033$;
 
 DO $pol1034$
 BEGIN
-  CREATE POLICY auth_select_all ON zapp.processed_webhook_events FOR SELECT TO authenticated USING (false);
+  CREATE POLICY auth_update_admin ON zapp.rpc_rate_limits FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1034$;
@@ -64695,7 +64630,7 @@ $pol1034$;
 
 DO $pol1035$
 BEGIN
-  CREATE POLICY auth_select_all ON zapp.restore_test_log FOR SELECT TO authenticated USING (true);
+  CREATE POLICY auth_update_admin ON zapp.webhook_health_alerts FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1035$;
@@ -64705,7 +64640,7 @@ $pol1035$;
 
 DO $pol1036$
 BEGIN
-  CREATE POLICY auth_select_all ON zapp.rpc_rate_limits FOR SELECT TO authenticated USING (false);
+  CREATE POLICY auth_update_own ON zapp.saved_filters FOR UPDATE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1036$;
@@ -64715,7 +64650,7 @@ $pol1036$;
 
 DO $pol1037$
 BEGIN
-  CREATE POLICY auth_select_all ON zapp.webhook_health_alerts FOR SELECT TO authenticated USING (false);
+  CREATE POLICY auth_update_own_snooze ON zapp.conversation_snoozes FOR UPDATE TO authenticated USING ((snoozed_by = zapp.get_profile_id_for_user(auth.uid()))) WITH CHECK ((snoozed_by = zapp.get_profile_id_for_user(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1037$;
@@ -64725,7 +64660,7 @@ $pol1037$;
 
 DO $pol1038$
 BEGIN
-  CREATE POLICY auth_select_forwarded_messages ON zapp.forwarded_messages FOR SELECT TO authenticated USING (true);
+  CREATE POLICY auth_user_manage_api_keys ON zapp.api_keys TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1038$;
@@ -64735,7 +64670,7 @@ $pol1038$;
 
 DO $pol1039$
 BEGIN
-  CREATE POLICY auth_select_own_or_shared ON zapp.saved_filters FOR SELECT TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR (is_shared = true)));
+  CREATE POLICY auth_user_select_dashboard_queries ON zapp.dashboard_queries FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1039$;
@@ -64745,9 +64680,7 @@ $pol1039$;
 
 DO $pol1040$
 BEGIN
-  CREATE POLICY auth_select_workspace_snoozes ON zapp.conversation_snoozes FOR SELECT TO authenticated USING (((snoozed_by = zapp.get_profile_id_for_user(auth.uid())) OR (EXISTS ( SELECT 1
-   FROM zapp.workspace_members wm
-  WHERE (wm.user_id = auth.uid())))));
+  CREATE POLICY auth_user_select_onboarding_steps ON zapp.onboarding_steps FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1040$;
@@ -64757,7 +64690,7 @@ $pol1040$;
 
 DO $pol1041$
 BEGIN
-  CREATE POLICY auth_update_admin ON zapp.alert_dispatch_state FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_user_select_personal_stickers ON zapp.personal_stickers FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1041$;
@@ -64767,7 +64700,7 @@ $pol1041$;
 
 DO $pol1042$
 BEGIN
-  CREATE POLICY auth_update_admin ON zapp.processed_webhook_events FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_user_select_webhook_preferences ON zapp.webhook_preferences FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1042$;
@@ -64777,7 +64710,7 @@ $pol1042$;
 
 DO $pol1043$
 BEGIN
-  CREATE POLICY auth_update_admin ON zapp.restore_test_log FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_user_write_dashboard_queries ON zapp.dashboard_queries TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1043$;
@@ -64787,7 +64720,7 @@ $pol1043$;
 
 DO $pol1044$
 BEGIN
-  CREATE POLICY auth_update_admin ON zapp.rpc_rate_limits FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_user_write_onboarding_steps ON zapp.onboarding_steps TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1044$;
@@ -64797,7 +64730,7 @@ $pol1044$;
 
 DO $pol1045$
 BEGIN
-  CREATE POLICY auth_update_admin ON zapp.webhook_health_alerts FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY auth_user_write_personal_stickers ON zapp.personal_stickers TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1045$;
@@ -64807,7 +64740,7 @@ $pol1045$;
 
 DO $pol1046$
 BEGIN
-  CREATE POLICY auth_update_own ON zapp.saved_filters FOR UPDATE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+  CREATE POLICY auth_user_write_webhook_preferences ON zapp.webhook_preferences TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1046$;
@@ -64817,7 +64750,11 @@ $pol1046$;
 
 DO $pol1047$
 BEGIN
-  CREATE POLICY auth_update_own_snooze ON zapp.conversation_snoozes FOR UPDATE TO authenticated USING ((snoozed_by = zapp.get_profile_id_for_user(auth.uid()))) WITH CHECK ((snoozed_by = zapp.get_profile_id_for_user(auth.uid())));
+  CREATE POLICY auth_workspace_all_evolution_business_hours ON zapp.evolution_business_hours TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1047$;
@@ -64827,7 +64764,11 @@ $pol1047$;
 
 DO $pol1048$
 BEGIN
-  CREATE POLICY auth_user_manage_api_keys ON zapp.api_keys TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+  CREATE POLICY auth_workspace_all_evolution_followup_rules ON zapp.evolution_followup_rules TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1048$;
@@ -64837,7 +64778,11 @@ $pol1048$;
 
 DO $pol1049$
 BEGIN
-  CREATE POLICY auth_user_select_dashboard_queries ON zapp.dashboard_queries FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
+  CREATE POLICY auth_workspace_all_evolution_group_rules ON zapp.evolution_group_rules TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1049$;
@@ -64847,7 +64792,11 @@ $pol1049$;
 
 DO $pol1050$
 BEGIN
-  CREATE POLICY auth_user_select_onboarding_steps ON zapp.onboarding_steps FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
+  CREATE POLICY auth_workspace_all_evolution_holidays ON zapp.evolution_holidays TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1050$;
@@ -64857,7 +64806,11 @@ $pol1050$;
 
 DO $pol1051$
 BEGIN
-  CREATE POLICY auth_user_select_personal_stickers ON zapp.personal_stickers FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
+  CREATE POLICY auth_workspace_all_evolution_keyword_automations ON zapp.evolution_keyword_automations TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1051$;
@@ -64867,7 +64820,11 @@ $pol1051$;
 
 DO $pol1052$
 BEGIN
-  CREATE POLICY auth_user_select_webhook_preferences ON zapp.webhook_preferences FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
+  CREATE POLICY auth_workspace_all_evolution_label_associations ON zapp.evolution_label_associations TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1052$;
@@ -64877,7 +64834,11 @@ $pol1052$;
 
 DO $pol1053$
 BEGIN
-  CREATE POLICY auth_user_write_dashboard_queries ON zapp.dashboard_queries TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+  CREATE POLICY auth_workspace_all_evolution_notifications ON zapp.evolution_notifications TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1053$;
@@ -64887,7 +64848,11 @@ $pol1053$;
 
 DO $pol1054$
 BEGIN
-  CREATE POLICY auth_user_write_onboarding_steps ON zapp.onboarding_steps TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+  CREATE POLICY auth_workspace_all_evolution_quick_replies ON zapp.evolution_quick_replies TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1054$;
@@ -64897,7 +64862,11 @@ $pol1054$;
 
 DO $pol1055$
 BEGIN
-  CREATE POLICY auth_user_write_personal_stickers ON zapp.personal_stickers TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+  CREATE POLICY auth_workspace_all_evolution_sales_pipeline ON zapp.evolution_sales_pipeline TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1055$;
@@ -64907,7 +64876,11 @@ $pol1055$;
 
 DO $pol1056$
 BEGIN
-  CREATE POLICY auth_user_write_webhook_preferences ON zapp.webhook_preferences TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+  CREATE POLICY auth_workspace_all_evolution_scheduled_messages ON zapp.evolution_scheduled_messages TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM zapp.workspace_members
+  WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1056$;
@@ -64917,7 +64890,7 @@ $pol1056$;
 
 DO $pol1057$
 BEGIN
-  CREATE POLICY auth_workspace_all_evolution_business_hours ON zapp.evolution_business_hours TO authenticated USING ((EXISTS ( SELECT 1
+  CREATE POLICY auth_workspace_all_evolution_spam_keywords ON zapp.evolution_spam_keywords TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
@@ -64931,7 +64904,7 @@ $pol1057$;
 
 DO $pol1058$
 BEGIN
-  CREATE POLICY auth_workspace_all_evolution_followup_rules ON zapp.evolution_followup_rules TO authenticated USING ((EXISTS ( SELECT 1
+  CREATE POLICY auth_workspace_all_evolution_stage_mapping ON zapp.evolution_stage_mapping TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
@@ -64945,7 +64918,7 @@ $pol1058$;
 
 DO $pol1059$
 BEGIN
-  CREATE POLICY auth_workspace_all_evolution_group_rules ON zapp.evolution_group_rules TO authenticated USING ((EXISTS ( SELECT 1
+  CREATE POLICY auth_workspace_all_evolution_tag_assignments ON zapp.evolution_tag_assignments TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
@@ -64959,7 +64932,7 @@ $pol1059$;
 
 DO $pol1060$
 BEGIN
-  CREATE POLICY auth_workspace_all_evolution_holidays ON zapp.evolution_holidays TO authenticated USING ((EXISTS ( SELECT 1
+  CREATE POLICY auth_workspace_all_evolution_tasks ON zapp.evolution_tasks TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
@@ -64973,11 +64946,7 @@ $pol1060$;
 
 DO $pol1061$
 BEGIN
-  CREATE POLICY auth_workspace_all_evolution_keyword_automations ON zapp.evolution_keyword_automations TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY auth_write_forwarded_messages ON zapp.forwarded_messages FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1061$;
@@ -64987,11 +64956,7 @@ $pol1061$;
 
 DO $pol1062$
 BEGIN
-  CREATE POLICY auth_workspace_all_evolution_label_associations ON zapp.evolution_label_associations TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY authenticated_insert_errors ON zapp.app_error_logs FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1062$;
@@ -65001,11 +64966,7 @@ $pol1062$;
 
 DO $pol1063$
 BEGIN
-  CREATE POLICY auth_workspace_all_evolution_notifications ON zapp.evolution_notifications TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY authenticated_read ON zapp._authoritative_time FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1063$;
@@ -65013,13 +64974,14 @@ $pol1063$;
 
 
 
+COMMENT ON POLICY authenticated_read ON zapp._authoritative_time IS 'Clock reference: authenticated pode ler, escrita apenas via service_role';
+
+
+
+
 DO $pol1064$
 BEGIN
-  CREATE POLICY auth_workspace_all_evolution_quick_replies ON zapp.evolution_quick_replies TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY authenticated_read_circuit_breaker ON zapp.api_circuit_breaker FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1064$;
@@ -65029,11 +64991,7 @@ $pol1064$;
 
 DO $pol1065$
 BEGIN
-  CREATE POLICY auth_workspace_all_evolution_sales_pipeline ON zapp.evolution_sales_pipeline TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY authenticated_read_health_history ON zapp.fn_health_score_history FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1065$;
@@ -65043,11 +65001,7 @@ $pol1065$;
 
 DO $pol1066$
 BEGIN
-  CREATE POLICY auth_workspace_all_evolution_scheduled_messages ON zapp.evolution_scheduled_messages TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY authenticated_read_labels ON zapp.evolution_labels FOR SELECT TO authenticated USING (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1066$;
@@ -65057,11 +65011,7 @@ $pol1066$;
 
 DO $pol1067$
 BEGIN
-  CREATE POLICY auth_workspace_all_evolution_spam_keywords ON zapp.evolution_spam_keywords TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
+  CREATE POLICY authenticated_read_lux_alerts ON zapp.lux_system_alerts FOR SELECT TO authenticated USING (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1067$;
@@ -65071,9 +65021,7 @@ $pol1067$;
 
 DO $pol1068$
 BEGIN
-  CREATE POLICY auth_workspace_all_evolution_stage_mapping ON zapp.evolution_stage_mapping TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
+  CREATE POLICY authenticated_read_queues ON zapp.queues FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -65085,127 +65033,12 @@ $pol1068$;
 
 DO $pol1069$
 BEGIN
-  CREATE POLICY auth_workspace_all_evolution_tag_assignments ON zapp.evolution_tag_assignments TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1069$;
-
-
-
-
-DO $pol1070$
-BEGIN
-  CREATE POLICY auth_workspace_all_evolution_tasks ON zapp.evolution_tasks TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid())))) WITH CHECK ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1070$;
-
-
-
-
-DO $pol1071$
-BEGIN
-  CREATE POLICY auth_write_forwarded_messages ON zapp.forwarded_messages FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) IS NOT NULL));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1071$;
-
-
-
-
-DO $pol1072$
-BEGIN
-  CREATE POLICY authenticated_insert_errors ON zapp.app_error_logs FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) IS NOT NULL));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1072$;
-
-
-
-
-DO $pol1073$
-BEGIN
-  CREATE POLICY authenticated_read ON zapp._authoritative_time FOR SELECT TO authenticated USING (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1073$;
-
-
-
-
-COMMENT ON POLICY authenticated_read ON zapp._authoritative_time IS 'Clock reference: authenticated pode ler, escrita apenas via service_role';
-
-
-
-
-DO $pol1074$
-BEGIN
-  CREATE POLICY authenticated_read_circuit_breaker ON zapp.api_circuit_breaker FOR SELECT TO authenticated USING (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1074$;
-
-
-
-
-DO $pol1075$
-BEGIN
-  CREATE POLICY authenticated_read_health_history ON zapp.fn_health_score_history FOR SELECT TO authenticated USING (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1075$;
-
-
-
-
-DO $pol1076$
-BEGIN
-  CREATE POLICY authenticated_read_labels ON zapp.evolution_labels FOR SELECT TO authenticated USING (false);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1076$;
-
-
-
-
-DO $pol1077$
-BEGIN
-  CREATE POLICY authenticated_read_lux_alerts ON zapp.lux_system_alerts FOR SELECT TO authenticated USING (false);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1077$;
-
-
-
-
-DO $pol1078$
-BEGIN
-  CREATE POLICY authenticated_read_queues ON zapp.queues FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.workspace_members
-  WHERE (workspace_members.user_id = auth.uid()))));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1078$;
-
-
-
-
-DO $pol1079$
-BEGIN
   CREATE POLICY authenticated_read_reconcile_snapshot ON zapp.evo_reconcile_contact_snapshot FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1079$;
+$pol1069$;
 
 
 
@@ -65218,42 +65051,42 @@ ALTER TABLE zapp.auto_export_jobs ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1080$
+DO $pol1070$
 BEGIN
   CREATE POLICY auto_export_jobs_delete ON zapp.auto_export_jobs FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(auth.uid()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1080$;
+$pol1070$;
 
 
 
 
-DO $pol1081$
+DO $pol1071$
 BEGIN
   CREATE POLICY auto_export_jobs_insert ON zapp.auto_export_jobs FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1081$;
+$pol1071$;
 
 
 
 
-DO $pol1082$
+DO $pol1072$
 BEGIN
   CREATE POLICY auto_export_jobs_select ON zapp.auto_export_jobs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor(auth.uid()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1082$;
+$pol1072$;
 
 
 
 
-DO $pol1083$
+DO $pol1073$
 BEGIN
   CREATE POLICY auto_export_jobs_update ON zapp.auto_export_jobs FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor(auth.uid())) WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1083$;
+$pol1073$;
 
 
 
@@ -65290,12 +65123,12 @@ ALTER TABLE zapp.blocked_ips ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1084$
+DO $pol1074$
 BEGIN
   CREATE POLICY blocked_ips_admin_select ON zapp.blocked_ips FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'dev'::zapp.app_role)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1084$;
+$pol1074$;
 
 
 
@@ -65312,7 +65145,7 @@ ALTER TABLE zapp.calls ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1085$
+DO $pol1075$
 BEGIN
   CREATE POLICY campaign_ab_select ON zapp.campaign_ab_variants FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.campaigns c
@@ -65321,7 +65154,7 @@ BEGIN
           WHERE (p.user_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1085$;
+$pol1075$;
 
 
 
@@ -65330,7 +65163,7 @@ ALTER TABLE zapp.campaign_ab_variants ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1086$
+DO $pol1076$
 BEGIN
   CREATE POLICY campaign_ab_variants_delete ON zapp.campaign_ab_variants FOR DELETE TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.campaigns c
@@ -65339,12 +65172,12 @@ BEGIN
           WHERE (p.user_id = auth.uid()))) OR zapp.is_admin_or_supervisor(auth.uid()))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1086$;
+$pol1076$;
 
 
 
 
-DO $pol1087$
+DO $pol1077$
 BEGIN
   CREATE POLICY campaign_ab_variants_insert ON zapp.campaign_ab_variants FOR INSERT TO authenticated WITH CHECK ((EXISTS ( SELECT 1
    FROM zapp.campaigns c
@@ -65353,12 +65186,12 @@ BEGIN
           WHERE (p.user_id = auth.uid()))) OR zapp.is_admin_or_supervisor(auth.uid()))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1087$;
+$pol1077$;
 
 
 
 
-DO $pol1088$
+DO $pol1078$
 BEGIN
   CREATE POLICY campaign_ab_variants_update ON zapp.campaign_ab_variants FOR UPDATE TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.campaigns c
@@ -65371,7 +65204,7 @@ BEGIN
           WHERE (p.user_id = auth.uid()))) OR zapp.is_admin_or_supervisor(auth.uid()))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1088$;
+$pol1078$;
 
 
 
@@ -65380,7 +65213,7 @@ ALTER TABLE zapp.campaign_contacts ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1089$
+DO $pol1079$
 BEGIN
   CREATE POLICY campaign_contacts_delete ON zapp.campaign_contacts FOR DELETE TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.campaigns c
@@ -65389,12 +65222,12 @@ BEGIN
           WHERE (p.user_id = auth.uid()))) OR zapp.is_admin_or_supervisor(auth.uid()))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1089$;
+$pol1079$;
 
 
 
 
-DO $pol1090$
+DO $pol1080$
 BEGIN
   CREATE POLICY campaign_contacts_insert ON zapp.campaign_contacts FOR INSERT TO authenticated WITH CHECK ((EXISTS ( SELECT 1
    FROM zapp.campaigns c
@@ -65403,12 +65236,12 @@ BEGIN
           WHERE (p.user_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1090$;
+$pol1080$;
 
 
 
 
-DO $pol1091$
+DO $pol1081$
 BEGIN
   CREATE POLICY campaign_contacts_select ON zapp.campaign_contacts FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1
    FROM zapp.campaigns c
@@ -65417,12 +65250,12 @@ BEGIN
           WHERE (p.user_id = ( SELECT auth.uid() AS uid)))))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1091$;
+$pol1081$;
 
 
 
 
-DO $pol1092$
+DO $pol1082$
 BEGIN
   CREATE POLICY campaign_contacts_update ON zapp.campaign_contacts FOR UPDATE TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.campaigns c
@@ -65435,7 +65268,7 @@ BEGIN
           WHERE (p.user_id = auth.uid()))) OR zapp.is_admin_or_supervisor(auth.uid()))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1092$;
+$pol1082$;
 
 
 
@@ -65444,41 +65277,41 @@ ALTER TABLE zapp.campaigns ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1093$
+DO $pol1083$
 BEGIN
   CREATE POLICY campaigns_admin_write ON zapp.campaigns FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1093$;
+$pol1083$;
 
 
 
 
-DO $pol1094$
+DO $pol1084$
 BEGIN
   CREATE POLICY campaigns_delete ON zapp.campaigns FOR DELETE TO authenticated USING (((created_by = ( SELECT p.id
    FROM zapp.profiles p
   WHERE (p.user_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1094$;
+$pol1084$;
 
 
 
 
-DO $pol1095$
+DO $pol1085$
 BEGIN
   CREATE POLICY campaigns_select ON zapp.campaigns FOR SELECT TO authenticated USING (((created_by = ( SELECT p.id
    FROM zapp.profiles p
   WHERE (p.user_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1095$;
+$pol1085$;
 
 
 
 
-DO $pol1096$
+DO $pol1086$
 BEGIN
   CREATE POLICY campaigns_update ON zapp.campaigns FOR UPDATE TO authenticated USING (((created_by = ( SELECT p.id
    FROM zapp.profiles p
@@ -65487,37 +65320,37 @@ BEGIN
   WHERE (p.user_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1096$;
+$pol1086$;
 
 
 
 
-DO $pol1097$
+DO $pol1087$
 BEGIN
   CREATE POLICY channel_conn_delete ON zapp.channel_connections FOR DELETE TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'manager'::zapp.app_role)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1097$;
+$pol1087$;
 
 
 
 
-DO $pol1098$
+DO $pol1088$
 BEGIN
   CREATE POLICY channel_conn_insert ON zapp.channel_connections FOR INSERT TO authenticated WITH CHECK ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'manager'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'supervisor'::zapp.app_role)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1098$;
+$pol1088$;
 
 
 
 
-DO $pol1099$
+DO $pol1089$
 BEGIN
   CREATE POLICY channel_conn_update ON zapp.channel_connections FOR UPDATE TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'manager'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'supervisor'::zapp.app_role))) WITH CHECK ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'manager'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'supervisor'::zapp.app_role)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1099$;
+$pol1089$;
 
 
 
@@ -65598,12 +65431,12 @@ ALTER TABLE zapp.contact_export_log ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1100$
+DO $pol1090$
 BEGIN
   CREATE POLICY contact_fields_select ON zapp.contact_custom_fields FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1100$;
+$pol1090$;
 
 
 
@@ -65624,32 +65457,32 @@ ALTER TABLE zapp.contact_notes ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1101$
+DO $pol1091$
 BEGIN
   CREATE POLICY contact_notes_delete ON zapp.contact_notes FOR DELETE TO authenticated USING (((author_id = zapp.get_profile_id_for_user(( SELECT auth.uid() AS uid))) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1101$;
+$pol1091$;
 
 
 
 
-DO $pol1102$
+DO $pol1092$
 BEGIN
   CREATE POLICY contact_notes_insert ON zapp.contact_notes FOR INSERT TO authenticated WITH CHECK ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1102$;
+$pol1092$;
 
 
 
 
-DO $pol1103$
+DO $pol1093$
 BEGIN
   CREATE POLICY contact_notes_select ON zapp.contact_notes FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1103$;
+$pol1093$;
 
 
 
@@ -65662,12 +65495,12 @@ ALTER TABLE zapp.contact_purchases ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1104$
+DO $pol1094$
 BEGIN
   CREATE POLICY contact_purchases_select ON zapp.contact_purchases FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1104$;
+$pol1094$;
 
 
 
@@ -65676,9 +65509,125 @@ ALTER TABLE zapp.contact_segments ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1105$
+DO $pol1095$
 BEGIN
   CREATE POLICY contact_segments_delete ON zapp.contact_segments FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1095$;
+
+
+
+
+DO $pol1096$
+BEGIN
+  CREATE POLICY contact_segments_insert ON zapp.contact_segments FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1096$;
+
+
+
+
+DO $pol1097$
+BEGIN
+  CREATE POLICY contact_segments_update ON zapp.contact_segments FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1097$;
+
+
+
+
+ALTER TABLE zapp.contact_tags ENABLE ROW LEVEL SECURITY;
+
+
+
+DO $pol1098$
+BEGIN
+  CREATE POLICY contact_tags_select ON zapp.contact_tags FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1098$;
+
+
+
+
+ALTER TABLE zapp.contatos ENABLE ROW LEVEL SECURITY;
+
+
+
+DO $pol1099$
+BEGIN
+  CREATE POLICY contatos_delete ON zapp.contatos FOR DELETE TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.profiles p
+  WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'supervisor'::text]))))));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1099$;
+
+
+
+
+DO $pol1100$
+BEGIN
+  CREATE POLICY contatos_update ON zapp.contatos FOR UPDATE TO authenticated USING ((EXISTS ( SELECT 1
+   FROM zapp.profiles p
+  WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'supervisor'::text])))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM zapp.profiles p
+  WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'supervisor'::text]))))));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1100$;
+
+
+
+
+DO $pol1101$
+BEGIN
+  CREATE POLICY contatos_write ON zapp.contatos FOR INSERT TO authenticated WITH CHECK ((EXISTS ( SELECT 1
+   FROM zapp.profiles p
+  WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'supervisor'::text]))))));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1101$;
+
+
+
+
+DO $pol1102$
+BEGIN
+  CREATE POLICY conv_analyses_select ON zapp.conversation_analyses FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1102$;
+
+
+
+
+DO $pol1103$
+BEGIN
+  CREATE POLICY conv_audit_insert ON zapp.conversation_audit_logs FOR INSERT WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1103$;
+
+
+
+
+DO $pol1104$
+BEGIN
+  CREATE POLICY conv_audit_select ON zapp.conversation_audit_logs FOR SELECT USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1104$;
+
+
+
+
+DO $pol1105$
+BEGIN
+  CREATE POLICY conv_closures_select ON zapp.conversation_closures FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1105$;
@@ -65688,7 +65637,7 @@ $pol1105$;
 
 DO $pol1106$
 BEGIN
-  CREATE POLICY contact_segments_insert ON zapp.contact_segments FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY conv_events_select ON zapp.conversation_events FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1106$;
@@ -65698,7 +65647,7 @@ $pol1106$;
 
 DO $pol1107$
 BEGIN
-  CREATE POLICY contact_segments_update ON zapp.contact_segments FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
+  CREATE POLICY conv_memory_select ON zapp.conversation_memory FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1107$;
@@ -65706,13 +65655,9 @@ $pol1107$;
 
 
 
-ALTER TABLE zapp.contact_tags ENABLE ROW LEVEL SECURITY;
-
-
-
 DO $pol1108$
 BEGIN
-  CREATE POLICY contact_tags_select ON zapp.contact_tags FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
+  CREATE POLICY conv_sla_select ON zapp.conversation_sla FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1108$;
@@ -65720,15 +65665,9 @@ $pol1108$;
 
 
 
-ALTER TABLE zapp.contatos ENABLE ROW LEVEL SECURITY;
-
-
-
 DO $pol1109$
 BEGIN
-  CREATE POLICY contatos_delete ON zapp.contatos FOR DELETE TO authenticated USING ((EXISTS ( SELECT 1
-   FROM zapp.profiles p
-  WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'supervisor'::text]))))));
+  CREATE POLICY conv_snoozes_select ON zapp.conversation_snoozes FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1109$;
@@ -65738,11 +65677,11 @@ $pol1109$;
 
 DO $pol1110$
 BEGIN
-  CREATE POLICY contatos_update ON zapp.contatos FOR UPDATE TO authenticated USING ((EXISTS ( SELECT 1
+  CREATE POLICY conv_tasks_delete ON zapp.conversation_tasks FOR DELETE TO authenticated USING (((created_by = ( SELECT p.id
    FROM zapp.profiles p
-  WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'supervisor'::text])))))) WITH CHECK ((EXISTS ( SELECT 1
+  WHERE (p.user_id = auth.uid()))) OR (assigned_to = ( SELECT p.id
    FROM zapp.profiles p
-  WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'supervisor'::text]))))));
+  WHERE (p.user_id = auth.uid()))) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1110$;
@@ -65752,9 +65691,9 @@ $pol1110$;
 
 DO $pol1111$
 BEGIN
-  CREATE POLICY contatos_write ON zapp.contatos FOR INSERT TO authenticated WITH CHECK ((EXISTS ( SELECT 1
+  CREATE POLICY conv_tasks_insert ON zapp.conversation_tasks FOR INSERT TO authenticated WITH CHECK (((created_by = ( SELECT p.id
    FROM zapp.profiles p
-  WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'supervisor'::text]))))));
+  WHERE (p.user_id = auth.uid()))) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1111$;
@@ -65764,7 +65703,9 @@ $pol1111$;
 
 DO $pol1112$
 BEGIN
-  CREATE POLICY conv_analyses_select ON zapp.conversation_analyses FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
+  CREATE POLICY conv_tasks_select ON zapp.conversation_tasks FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)) OR (assigned_to = ( SELECT p.id
+   FROM zapp.profiles p
+  WHERE (p.user_id = ( SELECT auth.uid() AS uid))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1112$;
@@ -65774,7 +65715,11 @@ $pol1112$;
 
 DO $pol1113$
 BEGIN
-  CREATE POLICY conv_audit_insert ON zapp.conversation_audit_logs FOR INSERT WITH CHECK (true);
+  CREATE POLICY conv_tasks_update ON zapp.conversation_tasks FOR UPDATE TO authenticated USING (((assigned_to = ( SELECT p.id
+   FROM zapp.profiles p
+  WHERE (p.user_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)))) WITH CHECK (((assigned_to = ( SELECT p.id
+   FROM zapp.profiles p
+  WHERE (p.user_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1113$;
@@ -65784,122 +65729,10 @@ $pol1113$;
 
 DO $pol1114$
 BEGIN
-  CREATE POLICY conv_audit_select ON zapp.conversation_audit_logs FOR SELECT USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1114$;
-
-
-
-
-DO $pol1115$
-BEGIN
-  CREATE POLICY conv_closures_select ON zapp.conversation_closures FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1115$;
-
-
-
-
-DO $pol1116$
-BEGIN
-  CREATE POLICY conv_events_select ON zapp.conversation_events FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1116$;
-
-
-
-
-DO $pol1117$
-BEGIN
-  CREATE POLICY conv_memory_select ON zapp.conversation_memory FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1117$;
-
-
-
-
-DO $pol1118$
-BEGIN
-  CREATE POLICY conv_sla_select ON zapp.conversation_sla FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1118$;
-
-
-
-
-DO $pol1119$
-BEGIN
-  CREATE POLICY conv_snoozes_select ON zapp.conversation_snoozes FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1119$;
-
-
-
-
-DO $pol1120$
-BEGIN
-  CREATE POLICY conv_tasks_delete ON zapp.conversation_tasks FOR DELETE TO authenticated USING (((created_by = ( SELECT p.id
-   FROM zapp.profiles p
-  WHERE (p.user_id = auth.uid()))) OR (assigned_to = ( SELECT p.id
-   FROM zapp.profiles p
-  WHERE (p.user_id = auth.uid()))) OR zapp.is_admin_or_supervisor(auth.uid())));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1120$;
-
-
-
-
-DO $pol1121$
-BEGIN
-  CREATE POLICY conv_tasks_insert ON zapp.conversation_tasks FOR INSERT TO authenticated WITH CHECK (((created_by = ( SELECT p.id
-   FROM zapp.profiles p
-  WHERE (p.user_id = auth.uid()))) OR zapp.is_admin_or_supervisor(auth.uid())));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1121$;
-
-
-
-
-DO $pol1122$
-BEGIN
-  CREATE POLICY conv_tasks_select ON zapp.conversation_tasks FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)) OR (assigned_to = ( SELECT p.id
-   FROM zapp.profiles p
-  WHERE (p.user_id = ( SELECT auth.uid() AS uid))))));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1122$;
-
-
-
-
-DO $pol1123$
-BEGIN
-  CREATE POLICY conv_tasks_update ON zapp.conversation_tasks FOR UPDATE TO authenticated USING (((assigned_to = ( SELECT p.id
-   FROM zapp.profiles p
-  WHERE (p.user_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)))) WITH CHECK (((assigned_to = ( SELECT p.id
-   FROM zapp.profiles p
-  WHERE (p.user_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1123$;
-
-
-
-
-DO $pol1124$
-BEGIN
   CREATE POLICY conv_transfers_select ON zapp.conversation_transfers FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1124$;
+$pol1114$;
 
 
 
@@ -65964,12 +65797,12 @@ ALTER TABLE zapp.cookie_probe_pending ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1125$
+DO $pol1115$
 BEGIN
   CREATE POLICY cookies_admin_select ON zapp.cookies_config FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1125$;
+$pol1115$;
 
 
 
@@ -65978,12 +65811,12 @@ ALTER TABLE zapp.cookies_config ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1126$
+DO $pol1116$
 BEGIN
   CREATE POLICY cphones_service ON zapp.contact_phones TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1126$;
+$pol1116$;
 
 
 
@@ -66004,12 +65837,12 @@ ALTER TABLE zapp.crm_sync_config ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1127$
+DO $pol1117$
 BEGIN
   CREATE POLICY crm_sync_config_service_all ON zapp.crm_sync_config TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1127$;
+$pol1117$;
 
 
 
@@ -66034,22 +65867,22 @@ ALTER TABLE zapp.csat_responses ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1128$
+DO $pol1118$
 BEGIN
   CREATE POLICY csat_service_all ON zapp.csat_auto_config TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1128$;
+$pol1118$;
 
 
 
 
-DO $pol1129$
+DO $pol1119$
 BEGIN
   CREATE POLICY csat_service_all ON zapp.csat_responses TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1129$;
+$pol1119$;
 
 
 
@@ -66058,44 +65891,44 @@ ALTER TABLE zapp.csat_surveys ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1130$
+DO $pol1120$
 BEGIN
   CREATE POLICY csat_surveys_delete ON zapp.csat_surveys FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(auth.uid()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1130$;
+$pol1120$;
 
 
 
 
-DO $pol1131$
+DO $pol1121$
 BEGIN
   CREATE POLICY csat_surveys_insert ON zapp.csat_surveys FOR INSERT TO authenticated WITH CHECK (((agent_id = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1131$;
+$pol1121$;
 
 
 
 
-DO $pol1132$
+DO $pol1122$
 BEGIN
   CREATE POLICY csat_surveys_select ON zapp.csat_surveys FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1132$;
+$pol1122$;
 
 
 
 
-DO $pol1133$
+DO $pol1123$
 BEGIN
   CREATE POLICY csat_surveys_update ON zapp.csat_surveys FOR UPDATE TO authenticated USING (((agent_id = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor(auth.uid()))) WITH CHECK (((agent_id = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1133$;
+$pol1123$;
 
 
 
@@ -66120,12 +65953,12 @@ ALTER TABLE zapp.deal_activities ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1134$
+DO $pol1124$
 BEGIN
   CREATE POLICY deny_all_by_design ON zapp.password_reset_tokens FOR SELECT TO service_role USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1134$;
+$pol1124$;
 
 
 
@@ -66135,92 +65968,62 @@ COMMENT ON POLICY deny_all_by_design ON zapp.password_reset_tokens IS 'Tokens de
 
 
 
-DO $pol1135$
-BEGIN
-  CREATE POLICY deny_all_lgpd_b64 ON zapp._lgpd_b64 AS RESTRICTIVE USING (false);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1135$;
-
-
-
-
-DO $pol1136$
-BEGIN
-  CREATE POLICY deny_all_lgpd_payload ON zapp._lgpd_payload AS RESTRICTIVE USING (false);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1136$;
-
-
-
-
-DO $pol1137$
+DO $pol1125$
 BEGIN
   CREATE POLICY deny_anon_email_watch_history ON zapp.email_watch_history TO anon USING (false) WITH CHECK (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1137$;
+$pol1125$;
 
 
 
 
-DO $pol1138$
+DO $pol1126$
 BEGIN
   CREATE POLICY deny_anon_migration_audit ON zapp.migration_audit TO anon USING (false) WITH CHECK (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1138$;
+$pol1126$;
 
 
 
 
-DO $pol1139$
-BEGIN
-  CREATE POLICY deny_anon_sicoob_reply_outbox ON zapp.sicoob_reply_outbox TO anon USING (false) WITH CHECK (false);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1139$;
-
-
-
-
-DO $pol1140$
+DO $pol1127$
 BEGIN
   CREATE POLICY deny_anon_storage_cleanup_logs ON zapp.storage_cleanup_logs TO anon USING (false) WITH CHECK (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1140$;
+$pol1127$;
 
 
 
 
-DO $pol1141$
+DO $pol1128$
 BEGIN
   CREATE POLICY deny_anon_sts_telemetry ON zapp.sts_telemetry TO anon USING (false) WITH CHECK (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1141$;
+$pol1128$;
 
 
 
 
-DO $pol1142$
+DO $pol1129$
 BEGIN
   CREATE POLICY deny_anon_webhook_idempotency ON zapp.webhook_idempotency TO anon USING (false) WITH CHECK (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1142$;
+$pol1129$;
 
 
 
 
-DO $pol1143$
+DO $pol1130$
 BEGIN
   CREATE POLICY deny_anon_webhook_reprocess_queue ON zapp.webhook_reprocess_queue TO anon USING (false) WITH CHECK (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1143$;
+$pol1130$;
 
 
 
@@ -66229,12 +66032,12 @@ ALTER TABLE zapp.department_invitations ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1144$
+DO $pol1131$
 BEGIN
   CREATE POLICY department_invitations_admin_write ON zapp.department_invitations TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1144$;
+$pol1131$;
 
 
 
@@ -66243,12 +66046,12 @@ ALTER TABLE zapp.departments ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1145$
+DO $pol1132$
 BEGIN
   CREATE POLICY departments_admin_write ON zapp.departments TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1145$;
+$pol1132$;
 
 
 
@@ -66265,12 +66068,12 @@ ALTER TABLE zapp.dev_diagnostic_logs ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1146$
+DO $pol1133$
 BEGIN
   CREATE POLICY dev_logs_admin ON zapp.dev_diagnostic_logs USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1146$;
+$pol1133$;
 
 
 
@@ -66291,12 +66094,12 @@ ALTER TABLE zapp.email_health_logs ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1147$
+DO $pol1134$
 BEGIN
   CREATE POLICY email_health_select ON zapp.email_health_summary FOR SELECT USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1147$;
+$pol1134$;
 
 
 
@@ -66305,17 +66108,17 @@ ALTER TABLE zapp.email_health_summary ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1148$
+DO $pol1135$
 BEGIN
   CREATE POLICY email_health_upsert ON zapp.email_health_summary USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1148$;
+$pol1135$;
 
 
 
 
-DO $pol1149$
+DO $pol1136$
 BEGIN
   CREATE POLICY email_reval_all ON zapp.email_revalidation_jobs USING (((EXISTS ( SELECT 1
    FROM email_app.email_accounts ea
@@ -66324,7 +66127,7 @@ BEGIN
   WHERE ((ea.id = email_revalidation_jobs.account_id) AND (ea.user_id = ( SELECT auth.uid() AS uid))))) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1149$;
+$pol1136$;
 
 
 
@@ -66341,42 +66144,42 @@ ALTER TABLE zapp.emails ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1150$
+DO $pol1137$
 BEGIN
   CREATE POLICY emails_delete ON zapp.emails FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(auth.uid()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1150$;
+$pol1137$;
 
 
 
 
-DO $pol1151$
+DO $pol1138$
 BEGIN
   CREATE POLICY emails_insert ON zapp.emails FOR INSERT TO authenticated WITH CHECK (((user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1151$;
+$pol1138$;
 
 
 
 
-DO $pol1152$
+DO $pol1139$
 BEGIN
   CREATE POLICY emails_select ON zapp.emails FOR SELECT TO authenticated USING (((user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1152$;
+$pol1139$;
 
 
 
 
-DO $pol1153$
+DO $pol1140$
 BEGIN
   CREATE POLICY emails_update ON zapp.emails FOR UPDATE TO authenticated USING (((user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()))) WITH CHECK (((user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1153$;
+$pol1140$;
 
 
 
@@ -66389,19 +66192,19 @@ ALTER TABLE zapp.empresas ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1154$
+DO $pol1141$
 BEGIN
   CREATE POLICY empresas_delete ON zapp.empresas FOR DELETE TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.profiles p
   WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'supervisor'::text]))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1154$;
+$pol1141$;
 
 
 
 
-DO $pol1155$
+DO $pol1142$
 BEGIN
   CREATE POLICY empresas_update ON zapp.empresas FOR UPDATE TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.profiles p
@@ -66410,29 +66213,29 @@ BEGIN
   WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'supervisor'::text]))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1155$;
+$pol1142$;
 
 
 
 
-DO $pol1156$
+DO $pol1143$
 BEGIN
   CREATE POLICY empresas_write ON zapp.empresas FOR INSERT TO authenticated WITH CHECK ((EXISTS ( SELECT 1
    FROM zapp.profiles p
   WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'supervisor'::text]))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1156$;
+$pol1143$;
 
 
 
 
-DO $pol1157$
+DO $pol1144$
 BEGIN
   CREATE POLICY encryption_keys_service_only ON zapp._encryption_keys USING ((( SELECT auth.role() AS role) = 'service_role'::text));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1157$;
+$pol1144$;
 
 
 
@@ -66445,24 +66248,24 @@ ALTER TABLE zapp.entity_versions ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1158$
+DO $pol1145$
 BEGIN
   CREATE POLICY entity_versions_insert_own ON zapp.entity_versions FOR INSERT TO authenticated WITH CHECK (((changed_by = ( SELECT auth.uid() AS uid)) OR (changed_by IS NULL)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1158$;
+$pol1145$;
 
 
 
 
-DO $pol1159$
+DO $pol1146$
 BEGIN
   CREATE POLICY entity_versions_select_own_org ON zapp.entity_versions FOR SELECT TO authenticated USING (((changed_by = ( SELECT auth.uid() AS uid)) OR (changed_by IS NULL) OR (EXISTS ( SELECT 1
    FROM zapp.profiles p
   WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'supervisor'::text])))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1159$;
+$pol1146$;
 
 
 
@@ -66479,42 +66282,42 @@ ALTER TABLE zapp.evaluation_runs ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1160$
+DO $pol1147$
 BEGIN
   CREATE POLICY evo_creds_service_role_only ON zapp.evolution_instance_credentials TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1160$;
+$pol1147$;
 
 
 
 
-DO $pol1161$
+DO $pol1148$
 BEGIN
   CREATE POLICY evo_health_insert ON zapp.evolution_health_logs FOR INSERT WITH CHECK ((auth.uid() IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1161$;
+$pol1148$;
 
 
 
 
-DO $pol1162$
+DO $pol1149$
 BEGIN
   CREATE POLICY evo_health_logs_all ON zapp.evolution_health_logs USING ((auth.uid() IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1162$;
+$pol1149$;
 
 
 
 
-DO $pol1163$
+DO $pol1150$
 BEGIN
   CREATE POLICY evo_health_select ON zapp.evolution_health_logs FOR SELECT USING ((auth.uid() IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1163$;
+$pol1150$;
 
 
 
@@ -66635,12 +66438,12 @@ ALTER TABLE zapp.evolution_license_health_log ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1164$
+DO $pol1151$
 BEGIN
   CREATE POLICY evolution_license_health_log_service_all ON zapp.evolution_license_health_log TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1164$;
+$pol1151$;
 
 
 
@@ -66789,12 +66592,12 @@ ALTER TABLE zapp.extensions ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1165$
+DO $pol1152$
 BEGIN
   CREATE POLICY extensions_service_all ON zapp.extensions TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1165$;
+$pol1152$;
 
 
 
@@ -66807,32 +66610,32 @@ ALTER TABLE zapp.favorite_contacts ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1166$
+DO $pol1153$
 BEGIN
   CREATE POLICY favorite_contacts_delete ON zapp.favorite_contacts FOR DELETE TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1166$;
+$pol1153$;
 
 
 
 
-DO $pol1167$
+DO $pol1154$
 BEGIN
   CREATE POLICY favorite_contacts_insert ON zapp.favorite_contacts FOR INSERT TO authenticated WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1167$;
+$pol1154$;
 
 
 
 
-DO $pol1168$
+DO $pol1155$
 BEGIN
   CREATE POLICY favorite_contacts_select ON zapp.favorite_contacts FOR SELECT TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1168$;
+$pol1155$;
 
 
 
@@ -66841,32 +66644,32 @@ ALTER TABLE zapp.favorite_messages ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1169$
+DO $pol1156$
 BEGIN
   CREATE POLICY favorite_messages_delete ON zapp.favorite_messages FOR DELETE USING (((user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1169$;
+$pol1156$;
 
 
 
 
-DO $pol1170$
+DO $pol1157$
 BEGIN
   CREATE POLICY favorite_messages_insert ON zapp.favorite_messages FOR INSERT WITH CHECK ((user_id = auth.uid()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1170$;
+$pol1157$;
 
 
 
 
-DO $pol1171$
+DO $pol1158$
 BEGIN
   CREATE POLICY favorite_messages_select ON zapp.favorite_messages FOR SELECT USING (((user_id = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1171$;
+$pol1158$;
 
 
 
@@ -66875,12 +66678,12 @@ ALTER TABLE zapp.feature_flags ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1172$
+DO $pol1159$
 BEGIN
   CREATE POLICY feature_flags_anon_public ON zapp.feature_flags FOR SELECT TO anon USING (is_public);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1172$;
+$pol1159$;
 
 
 
@@ -66929,12 +66732,12 @@ ALTER TABLE zapp.global_settings ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1173$
+DO $pol1160$
 BEGIN
   CREATE POLICY global_settings_admin_write ON zapp.global_settings TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1173$;
+$pol1160$;
 
 
 
@@ -66947,22 +66750,22 @@ ALTER TABLE zapp.google_calendar_config ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1174$
+DO $pol1161$
 BEGIN
   CREATE POLICY google_calendar_config_admin_select ON zapp.google_calendar_config FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor(auth.uid()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1174$;
+$pol1161$;
 
 
 
 
-DO $pol1175$
+DO $pol1162$
 BEGIN
   CREATE POLICY graveyard_no_direct_access ON zapp.contact_id_graveyard USING (false) WITH CHECK (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1175$;
+$pol1162$;
 
 
 
@@ -66971,12 +66774,12 @@ ALTER TABLE zapp.hmac_selftest_audit ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1176$
+DO $pol1163$
 BEGIN
   CREATE POLICY iae_admin_select ON zapp.instance_auth_events FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1176$;
+$pol1163$;
 
 
 
@@ -66985,32 +66788,32 @@ ALTER TABLE zapp.inbox_custom_scopes ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1177$
+DO $pol1164$
 BEGIN
   CREATE POLICY incidents_insert ON zapp.system_health_incidents FOR INSERT WITH CHECK ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1177$;
+$pol1164$;
 
 
 
 
-DO $pol1178$
+DO $pol1165$
 BEGIN
   CREATE POLICY incidents_select ON zapp.system_health_incidents FOR SELECT USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1178$;
+$pol1165$;
 
 
 
 
-DO $pol1179$
+DO $pol1166$
 BEGIN
   CREATE POLICY incidents_update ON zapp.system_health_incidents FOR UPDATE USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1179$;
+$pol1166$;
 
 
 
@@ -67055,52 +66858,52 @@ ALTER TABLE zapp.ip_whitelist ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1180$
+DO $pol1167$
 BEGIN
   CREATE POLICY ip_whitelist_admin_select ON zapp.ip_whitelist FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'dev'::zapp.app_role)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1180$;
+$pol1167$;
 
 
 
 
-DO $pol1181$
+DO $pol1168$
 BEGIN
   CREATE POLICY ipp_admin_delete ON zapp.instance_processing_pauses FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1181$;
+$pol1168$;
 
 
 
 
-DO $pol1182$
+DO $pol1169$
 BEGIN
   CREATE POLICY ipp_admin_insert ON zapp.instance_processing_pauses FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1182$;
+$pol1169$;
 
 
 
 
-DO $pol1183$
+DO $pol1170$
 BEGIN
   CREATE POLICY ipp_admin_select ON zapp.instance_processing_pauses FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1183$;
+$pol1170$;
 
 
 
 
-DO $pol1184$
+DO $pol1171$
 BEGIN
   CREATE POLICY ipp_admin_update ON zapp.instance_processing_pauses FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1184$;
+$pol1171$;
 
 
 
@@ -67121,12 +66924,12 @@ ALTER TABLE zapp.login_attempts ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1185$
+DO $pol1172$
 BEGIN
   CREATE POLICY login_attempts_admin_select ON zapp.login_attempts FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'dev'::zapp.app_role)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1185$;
+$pol1172$;
 
 
 
@@ -67135,24 +66938,24 @@ ALTER TABLE zapp.lux_system_alerts ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1186$
+DO $pol1173$
 BEGIN
   CREATE POLICY media_insert_auth ON zapp.evolution_media FOR INSERT TO authenticated WITH CHECK ((zapp.current_user_is_privileged() OR (EXISTS ( SELECT 1
    FROM evo.evolution_contacts c
   WHERE (((c.remote_jid)::text = evolution_media.remote_jid) AND (((c.assigned_to)::text = (auth.uid())::text) OR (c.assigned_to IS NULL)))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1186$;
+$pol1173$;
 
 
 
 
-DO $pol1187$
+DO $pol1174$
 BEGIN
   CREATE POLICY media_service ON zapp.evolution_media TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1187$;
+$pol1174$;
 
 
 
@@ -67177,42 +66980,42 @@ ALTER TABLE zapp.message_reports ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1188$
+DO $pol1175$
 BEGIN
   CREATE POLICY message_reports_delete ON zapp.message_reports FOR DELETE USING (zapp.is_admin_or_supervisor(auth.uid()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1188$;
+$pol1175$;
 
 
 
 
-DO $pol1189$
+DO $pol1176$
 BEGIN
   CREATE POLICY message_reports_insert ON zapp.message_reports FOR INSERT WITH CHECK ((reporter_id = zapp.get_profile_id_for_user(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1189$;
+$pol1176$;
 
 
 
 
-DO $pol1190$
+DO $pol1177$
 BEGIN
   CREATE POLICY message_reports_select ON zapp.message_reports FOR SELECT USING ((zapp.is_admin_or_supervisor(auth.uid()) OR (reporter_id = zapp.get_profile_id_for_user(auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1190$;
+$pol1177$;
 
 
 
 
-DO $pol1191$
+DO $pol1178$
 BEGIN
   CREATE POLICY message_reports_update ON zapp.message_reports FOR UPDATE USING (zapp.is_admin_or_supervisor(auth.uid()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1191$;
+$pol1178$;
 
 
 
@@ -67237,42 +67040,42 @@ ALTER TABLE zapp.n8n_variables ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1192$
+DO $pol1179$
 BEGIN
   CREATE POLICY norm_cache_service_only ON zapp._input_normalization_cache USING ((( SELECT auth.role() AS role) = 'service_role'::text));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1192$;
+$pol1179$;
 
 
 
 
-DO $pol1193$
+DO $pol1180$
 BEGIN
   CREATE POLICY notif_select ON zapp.app_notifications FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1193$;
+$pol1180$;
 
 
 
 
-DO $pol1194$
+DO $pol1181$
 BEGIN
   CREATE POLICY notif_service ON zapp.app_notifications TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1194$;
+$pol1181$;
 
 
 
 
-DO $pol1195$
+DO $pol1182$
 BEGIN
   CREATE POLICY notif_update ON zapp.app_notifications FOR UPDATE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1195$;
+$pol1182$;
 
 
 
@@ -67281,32 +67084,32 @@ ALTER TABLE zapp.notification_channels_config ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1196$
+DO $pol1183$
 BEGIN
   CREATE POLICY notification_channels_config_delete ON zapp.notification_channels_config FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1196$;
+$pol1183$;
 
 
 
 
-DO $pol1197$
+DO $pol1184$
 BEGIN
   CREATE POLICY notification_channels_config_insert ON zapp.notification_channels_config FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1197$;
+$pol1184$;
 
 
 
 
-DO $pol1198$
+DO $pol1185$
 BEGIN
   CREATE POLICY notification_channels_config_update ON zapp.notification_channels_config FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1198$;
+$pol1185$;
 
 
 
@@ -67323,12 +67126,12 @@ ALTER TABLE zapp.notifications ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1199$
+DO $pol1186$
 BEGIN
   CREATE POLICY notifications_select ON zapp.notifications FOR SELECT TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1199$;
+$pol1186$;
 
 
 
@@ -67341,32 +67144,32 @@ ALTER TABLE zapp.onboarding_steps ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1200$
+DO $pol1187$
 BEGIN
   CREATE POLICY outbound_audit_all ON zapp.outbound_delivery_audit USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1200$;
+$pol1187$;
 
 
 
 
-DO $pol1201$
+DO $pol1188$
 BEGIN
   CREATE POLICY outbound_audit_insert ON zapp.outbound_delivery_audit FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1201$;
+$pol1188$;
 
 
 
 
-DO $pol1202$
+DO $pol1189$
 BEGIN
   CREATE POLICY outbound_audit_select ON zapp.outbound_delivery_audit FOR SELECT USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1202$;
+$pol1189$;
 
 
 
@@ -67375,12 +67178,12 @@ ALTER TABLE zapp.outbound_delivery_audit ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1203$
+DO $pol1190$
 BEGIN
   CREATE POLICY outbound_insert ON zapp.outbound_message_queue FOR INSERT TO authenticated WITH CHECK (((created_by IS NULL) OR (created_by = ( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1203$;
+$pol1190$;
 
 
 
@@ -67389,22 +67192,22 @@ ALTER TABLE zapp.outbound_message_queue ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1204$
+DO $pol1191$
 BEGIN
   CREATE POLICY outbound_service ON zapp.outbound_message_queue TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1204$;
+$pol1191$;
 
 
 
 
-DO $pol1205$
+DO $pol1192$
 BEGIN
   CREATE POLICY outbox_admin_write ON zapp.outbox_events TO authenticated USING (zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role)) WITH CHECK (zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1205$;
+$pol1192$;
 
 
 
@@ -67413,64 +67216,64 @@ ALTER TABLE zapp.outbox_events ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1206$
+DO $pol1193$
 BEGIN
   CREATE POLICY outbox_select_admin ON zapp.outbox_events FOR SELECT TO authenticated USING (zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1206$;
+$pol1193$;
 
 
 
 
-DO $pol1207$
+DO $pol1194$
 BEGIN
   CREATE POLICY pagination_insert ON zapp._pagination_state FOR INSERT WITH CHECK ((created_by = zapp.get_profile_id_for_user(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1207$;
+$pol1194$;
 
 
 
 
-DO $pol1208$
+DO $pol1195$
 BEGIN
   CREATE POLICY pagination_own_cursors ON zapp._pagination_state FOR SELECT USING ((created_by = zapp.get_profile_id_for_user(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1208$;
+$pol1195$;
 
 
 
 
-DO $pol1209$
+DO $pol1196$
 BEGIN
   CREATE POLICY participants_admin_write ON zapp.conversation_participants TO authenticated USING (zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role)) WITH CHECK (zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1209$;
+$pol1196$;
 
 
 
 
-DO $pol1210$
+DO $pol1197$
 BEGIN
   CREATE POLICY participants_select_admin_supervisor ON zapp.conversation_participants FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1210$;
+$pol1197$;
 
 
 
 
-DO $pol1211$
+DO $pol1198$
 BEGIN
   CREATE POLICY participants_select_self ON zapp.conversation_participants FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.profiles p
   WHERE ((p.id = conversation_participants.profile_id) AND (p.user_id = ( SELECT auth.uid() AS uid))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1211$;
+$pol1198$;
 
 
 
@@ -67507,24 +67310,24 @@ ALTER TABLE zapp.pii_access_log ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1212$
+DO $pol1199$
 BEGIN
   CREATE POLICY pii_access_log_insert ON zapp.pii_access_log FOR INSERT TO authenticated WITH CHECK ((accessed_by = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1212$;
+$pol1199$;
 
 
 
 
-DO $pol1213$
+DO $pol1200$
 BEGIN
   CREATE POLICY pii_access_log_select_managers ON zapp.pii_access_log FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.profiles
   WHERE ((profiles.id = ( SELECT auth.uid() AS uid)) AND (profiles.role = ANY (ARRAY['admin'::text, 'supervisor'::text]))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1213$;
+$pol1200$;
 
 
 
@@ -67533,12 +67336,12 @@ ALTER TABLE zapp.pinned_conversations ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1214$
+DO $pol1201$
 BEGIN
   CREATE POLICY pinned_conversations_select ON zapp.pinned_conversations FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1214$;
+$pol1201$;
 
 
 
@@ -67547,72 +67350,72 @@ ALTER TABLE zapp.pinned_messages ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1215$
+DO $pol1202$
 BEGIN
   CREATE POLICY pinned_messages_delete ON zapp.pinned_messages FOR DELETE USING (((pinned_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1215$;
+$pol1202$;
 
 
 
 
-DO $pol1216$
+DO $pol1203$
 BEGIN
   CREATE POLICY pinned_messages_insert ON zapp.pinned_messages FOR INSERT WITH CHECK (((pinned_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1216$;
+$pol1203$;
 
 
 
 
-DO $pol1217$
+DO $pol1204$
 BEGIN
   CREATE POLICY pinned_messages_select ON zapp.pinned_messages FOR SELECT USING (((pinned_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_contact_visible_to_user(contact_id, auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1217$;
+$pol1204$;
 
 
 
 
-DO $pol1218$
+DO $pol1205$
 BEGIN
   CREATE POLICY pinned_messages_update ON zapp.pinned_messages FOR UPDATE USING (((pinned_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1218$;
+$pol1205$;
 
 
 
 
-DO $pol1219$
+DO $pol1206$
 BEGIN
   CREATE POLICY pres_select ON zapp.agent_presence FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1219$;
+$pol1206$;
 
 
 
 
-DO $pol1220$
+DO $pol1207$
 BEGIN
   CREATE POLICY pres_service ON zapp.agent_presence TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1220$;
+$pol1207$;
 
 
 
 
-DO $pol1221$
+DO $pol1208$
 BEGIN
   CREATE POLICY pres_upsert ON zapp.agent_presence TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1221$;
+$pol1208$;
 
 
 
@@ -67645,19 +67448,19 @@ ALTER TABLE zapp.provider_sessions ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1222$
+DO $pol1209$
 BEGIN
   CREATE POLICY prr_admin_delete ON zapp.password_reset_requests FOR DELETE TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.profiles p
   WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'dev'::text]))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1222$;
+$pol1209$;
 
 
 
 
-DO $pol1223$
+DO $pol1210$
 BEGIN
   CREATE POLICY prr_admin_write ON zapp.password_reset_requests FOR UPDATE TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.profiles p
@@ -67666,49 +67469,49 @@ BEGIN
   WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'dev'::text]))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1223$;
+$pol1210$;
 
 
 
 
-DO $pol1224$
+DO $pol1211$
 BEGIN
   CREATE POLICY prr_insert_own ON zapp.password_reset_requests FOR INSERT TO authenticated WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1224$;
+$pol1211$;
 
 
 
 
-DO $pol1225$
+DO $pol1212$
 BEGIN
   CREATE POLICY prr_select_own_or_admin ON zapp.password_reset_requests FOR SELECT TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1
    FROM zapp.profiles p
   WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'dev'::text])))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1225$;
+$pol1212$;
 
 
 
 
-DO $pol1226$
+DO $pol1213$
 BEGIN
   CREATE POLICY q_service ON zapp.queues TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1226$;
+$pol1213$;
 
 
 
 
-DO $pol1227$
+DO $pol1214$
 BEGIN
   CREATE POLICY qm_service ON zapp.queue_members TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1227$;
+$pol1214$;
 
 
 
@@ -67717,32 +67520,32 @@ ALTER TABLE zapp.qr_attempts ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1228$
+DO $pol1215$
 BEGIN
   CREATE POLICY qr_select ON zapp.quick_replies FOR SELECT USING (((is_global = true) OR (owner_id = ( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1228$;
+$pol1215$;
 
 
 
 
-DO $pol1229$
+DO $pol1216$
 BEGIN
   CREATE POLICY qr_service ON zapp.queue_routing_rules TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1229$;
+$pol1216$;
 
 
 
 
-DO $pol1230$
+DO $pol1217$
 BEGIN
   CREATE POLICY qr_service ON zapp.quick_replies TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1230$;
+$pol1217$;
 
 
 
@@ -67751,12 +67554,12 @@ ALTER TABLE zapp.query_telemetry ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1231$
+DO $pol1218$
 BEGIN
   CREATE POLICY query_telemetry_admin_select ON zapp.query_telemetry FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'dev'::zapp.app_role)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1231$;
+$pol1218$;
 
 
 
@@ -67765,14 +67568,14 @@ ALTER TABLE zapp.queue_analytics ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1232$
+DO $pol1219$
 BEGIN
   CREATE POLICY queue_analytics_select ON zapp.queue_analytics FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.queues q
   WHERE (q.id = queue_analytics.queue_id))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1232$;
+$pol1219$;
 
 
 
@@ -67781,12 +67584,12 @@ ALTER TABLE zapp.queue_goals ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1233$
+DO $pol1220$
 BEGIN
   CREATE POLICY queue_goals_admin_write ON zapp.queue_goals TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1233$;
+$pol1220$;
 
 
 
@@ -67799,12 +67602,12 @@ ALTER TABLE zapp.queue_members ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1234$
+DO $pol1221$
 BEGIN
   CREATE POLICY queue_members_admin_write ON zapp.queue_members TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1234$;
+$pol1221$;
 
 
 
@@ -67813,12 +67616,12 @@ ALTER TABLE zapp.queue_positions ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1235$
+DO $pol1222$
 BEGIN
   CREATE POLICY queue_positions_select ON zapp.queue_positions FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1235$;
+$pol1222$;
 
 
 
@@ -67827,32 +67630,32 @@ ALTER TABLE zapp.queue_routing_rules ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1236$
+DO $pol1223$
 BEGIN
   CREATE POLICY queue_routing_rules_delete ON zapp.queue_routing_rules FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1236$;
+$pol1223$;
 
 
 
 
-DO $pol1237$
+DO $pol1224$
 BEGIN
   CREATE POLICY queue_routing_rules_insert ON zapp.queue_routing_rules FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1237$;
+$pol1224$;
 
 
 
 
-DO $pol1238$
+DO $pol1225$
 BEGIN
   CREATE POLICY queue_routing_rules_update ON zapp.queue_routing_rules FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor()) WITH CHECK (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1238$;
+$pol1225$;
 
 
 
@@ -67865,12 +67668,12 @@ ALTER TABLE zapp.queues ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1239$
+DO $pol1226$
 BEGIN
   CREATE POLICY queues_admin_write ON zapp.queues TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1239$;
+$pol1226$;
 
 
 
@@ -67883,12 +67686,12 @@ ALTER TABLE zapp.rate_limit_configs ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1240$
+DO $pol1227$
 BEGIN
   CREATE POLICY rate_limit_configs_admin_select ON zapp.rate_limit_configs FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'dev'::zapp.app_role)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1240$;
+$pol1227$;
 
 
 
@@ -67897,32 +67700,32 @@ ALTER TABLE zapp.rate_limit_logs ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1241$
+DO $pol1228$
 BEGIN
   CREATE POLICY rate_limit_logs_admin_select ON zapp.rate_limit_logs FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'dev'::zapp.app_role)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1241$;
+$pol1228$;
 
 
 
 
-DO $pol1242$
+DO $pol1229$
 BEGIN
   CREATE POLICY rate_limit_logs_self_select ON zapp.rate_limit_logs FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1242$;
+$pol1229$;
 
 
 
 
-DO $pol1243$
+DO $pol1230$
 BEGIN
   CREATE POLICY reactions_service_role_all ON zapp.evolution_reactions TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1243$;
+$pol1230$;
 
 
 
@@ -67931,54 +67734,54 @@ ALTER TABLE zapp.realtime_message_fanout ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1244$
+DO $pol1231$
 BEGIN
   CREATE POLICY receipts_select ON zapp.team_message_receipts FOR SELECT USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1244$;
+$pol1231$;
 
 
 
 
-DO $pol1245$
+DO $pol1232$
 BEGIN
   CREATE POLICY receipts_update ON zapp.team_message_receipts FOR UPDATE TO authenticated USING ((profile_id = ( SELECT p.id
    FROM zapp.profiles p
   WHERE (p.user_id = ( SELECT auth.uid() AS uid)))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1245$;
+$pol1232$;
 
 
 
 
-DO $pol1246$
+DO $pol1233$
 BEGIN
   CREATE POLICY reconnect_insert ON zapp.reconnection_logs FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1246$;
+$pol1233$;
 
 
 
 
-DO $pol1247$
+DO $pol1234$
 BEGIN
   CREATE POLICY reconnect_logs_all ON zapp.reconnection_logs USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1247$;
+$pol1234$;
 
 
 
 
-DO $pol1248$
+DO $pol1235$
 BEGIN
   CREATE POLICY reconnect_select ON zapp.reconnection_logs FOR SELECT USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1248$;
+$pol1235$;
 
 
 
@@ -67999,7 +67802,7 @@ ALTER TABLE zapp.restore_test_log ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1249$
+DO $pol1236$
 BEGIN
   CREATE POLICY reval_admin ON zapp.email_revalidation_jobs USING (((EXISTS ( SELECT 1
    FROM email_app.email_accounts ea
@@ -68008,59 +67811,59 @@ BEGIN
   WHERE ((ea.id = email_revalidation_jobs.account_id) AND (ea.user_id = ( SELECT auth.uid() AS uid))))) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1249$;
+$pol1236$;
 
 
 
 
-DO $pol1250$
+DO $pol1237$
 BEGIN
   CREATE POLICY reval_select ON zapp.email_revalidation_jobs FOR SELECT USING ((EXISTS ( SELECT 1
    FROM email_app.email_accounts
   WHERE ((email_accounts.id = email_revalidation_jobs.account_id) AND (email_accounts.user_id = ( SELECT auth.uid() AS uid))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1250$;
+$pol1237$;
 
 
 
 
-DO $pol1251$
+DO $pol1238$
 BEGIN
   CREATE POLICY rj_admin_write ON zapp.reprocess_jobs TO authenticated USING (zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role)) WITH CHECK (zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1251$;
+$pol1238$;
 
 
 
 
-DO $pol1252$
+DO $pol1239$
 BEGIN
   CREATE POLICY rj_select_admin_supervisor ON zapp.reprocess_jobs FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1252$;
+$pol1239$;
 
 
 
 
-DO $pol1253$
+DO $pol1240$
 BEGIN
   CREATE POLICY rls_cookie_probe_log_service_only ON zapp.cookie_probe_log TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1253$;
+$pol1240$;
 
 
 
 
-DO $pol1254$
+DO $pol1241$
 BEGIN
   CREATE POLICY rls_cookie_probe_pending_service_only ON zapp.cookie_probe_pending TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1254$;
+$pol1241$;
 
 
 
@@ -68085,14 +67888,14 @@ ALTER TABLE zapp.rpc_rate_limits ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1255$
+DO $pol1242$
 BEGIN
   CREATE POLICY rt_fanout_select ON zapp.realtime_message_fanout FOR SELECT TO authenticated USING (((auth.uid() IS NOT NULL) AND (zapp.is_admin_or_supervisor(auth.uid()) OR (EXISTS ( SELECT 1
    FROM evo.evolution_contacts c
   WHERE (((c.instance_name)::text = realtime_message_fanout.instance_name) AND ((c.remote_jid)::text = realtime_message_fanout.remote_jid) AND zapp.is_contact_visible_to_user(c.id, auth.uid())))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1255$;
+$pol1242$;
 
 
 
@@ -68109,42 +67912,42 @@ ALTER TABLE zapp.saved_filters ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1256$
+DO $pol1243$
 BEGIN
   CREATE POLICY saved_filters_select ON zapp.saved_filters FOR SELECT TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1256$;
+$pol1243$;
 
 
 
 
-DO $pol1257$
+DO $pol1244$
 BEGIN
   CREATE POLICY saved_filters_write ON zapp.saved_filters TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1257$;
+$pol1244$;
 
 
 
 
-DO $pol1258$
+DO $pol1245$
 BEGIN
   CREATE POLICY sc_select ON zapp.sticker_categories FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1258$;
+$pol1245$;
 
 
 
 
-DO $pol1259$
+DO $pol1246$
 BEGIN
   CREATE POLICY sc_service ON zapp.sticker_categories TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1259$;
+$pol1246$;
 
 
 
@@ -68157,43 +67960,43 @@ ALTER TABLE zapp.scheduled_messages ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1260$
+DO $pol1247$
 BEGIN
   CREATE POLICY scheduled_messages_delete ON zapp.scheduled_messages FOR DELETE TO authenticated USING (((created_by = ( SELECT p.id
    FROM zapp.profiles p
   WHERE (p.user_id = auth.uid()))) OR zapp.is_admin_or_supervisor(auth.uid()) OR zapp.is_contact_visible_to_user(contact_id, auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1260$;
+$pol1247$;
 
 
 
 
-DO $pol1261$
+DO $pol1248$
 BEGIN
   CREATE POLICY scheduled_messages_insert ON zapp.scheduled_messages FOR INSERT TO authenticated WITH CHECK (((created_by = ( SELECT p.id
    FROM zapp.profiles p
   WHERE (p.user_id = auth.uid()))) OR zapp.is_admin_or_supervisor(auth.uid()) OR zapp.is_contact_visible_to_user(contact_id, auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1261$;
+$pol1248$;
 
 
 
 
-DO $pol1262$
+DO $pol1249$
 BEGIN
   CREATE POLICY scheduled_messages_select ON zapp.scheduled_messages FOR SELECT TO authenticated USING (((created_by = ( SELECT p.id
    FROM zapp.profiles p
   WHERE (p.user_id = auth.uid()))) OR zapp.is_admin_or_supervisor(auth.uid()) OR zapp.is_contact_visible_to_user(contact_id, auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1262$;
+$pol1249$;
 
 
 
 
-DO $pol1263$
+DO $pol1250$
 BEGIN
   CREATE POLICY scheduled_messages_update ON zapp.scheduled_messages FOR UPDATE TO authenticated USING (((created_by = ( SELECT p.id
    FROM zapp.profiles p
@@ -68202,7 +68005,7 @@ BEGIN
   WHERE (p.user_id = auth.uid()))) OR zapp.is_admin_or_supervisor(auth.uid()) OR zapp.is_contact_visible_to_user(contact_id, auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1263$;
+$pol1250$;
 
 
 
@@ -68211,17 +68014,17 @@ ALTER TABLE zapp.scheduled_report_runs ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1264$
+DO $pol1251$
 BEGIN
   CREATE POLICY scheduled_report_runs_admin_all ON zapp.scheduled_report_runs TO authenticated USING (zapp.is_admin_or_supervisor(auth.uid())) WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1264$;
+$pol1251$;
 
 
 
 
-DO $pol1265$
+DO $pol1252$
 BEGIN
   CREATE POLICY scheduled_report_runs_select ON zapp.scheduled_report_runs FOR SELECT TO authenticated USING ((zapp.is_admin_or_supervisor(auth.uid()) OR (EXISTS ( SELECT 1
    FROM zapp.scheduled_reports r
@@ -68230,7 +68033,7 @@ BEGIN
           WHERE (p.user_id = auth.uid()))))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1265$;
+$pol1252$;
 
 
 
@@ -68239,54 +68042,54 @@ ALTER TABLE zapp.scheduled_reports ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1266$
+DO $pol1253$
 BEGIN
   CREATE POLICY scheduled_reports_admin_all ON zapp.scheduled_reports TO authenticated USING (zapp.is_admin_or_supervisor(auth.uid())) WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1266$;
+$pol1253$;
 
 
 
 
-DO $pol1267$
+DO $pol1254$
 BEGIN
   CREATE POLICY scheduled_reports_delete_own ON zapp.scheduled_reports FOR DELETE TO authenticated USING ((created_by = zapp.get_profile_id_for_user(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1267$;
+$pol1254$;
 
 
 
 
-DO $pol1268$
+DO $pol1255$
 BEGIN
   CREATE POLICY scheduled_reports_insert ON zapp.scheduled_reports FOR INSERT TO authenticated WITH CHECK (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1268$;
+$pol1255$;
 
 
 
 
-DO $pol1269$
+DO $pol1256$
 BEGIN
   CREATE POLICY scheduled_reports_select ON zapp.scheduled_reports FOR SELECT TO authenticated USING (((created_by = ( SELECT p.id
    FROM zapp.profiles p
   WHERE (p.user_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1269$;
+$pol1256$;
 
 
 
 
-DO $pol1270$
+DO $pol1257$
 BEGIN
   CREATE POLICY scheduled_reports_update_own ON zapp.scheduled_reports FOR UPDATE TO authenticated USING ((created_by = zapp.get_profile_id_for_user(auth.uid()))) WITH CHECK ((created_by = zapp.get_profile_id_for_user(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1270$;
+$pol1257$;
 
 
 
@@ -68295,12 +68098,12 @@ ALTER TABLE zapp.schema_migrations ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1271$
+DO $pol1258$
 BEGIN
   CREATE POLICY schema_migrations_service_all ON zapp.schema_migrations TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1271$;
+$pol1258$;
 
 
 
@@ -68321,22 +68124,22 @@ ALTER TABLE zapp.security_alerts ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1272$
+DO $pol1259$
 BEGIN
   CREATE POLICY security_alerts_admin_select ON zapp.security_alerts FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'dev'::zapp.app_role)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1272$;
+$pol1259$;
 
 
 
 
-DO $pol1273$
+DO $pol1260$
 BEGIN
   CREATE POLICY security_alerts_self_select ON zapp.security_alerts FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1273$;
+$pol1260$;
 
 
 
@@ -68357,9 +68160,143 @@ ALTER TABLE zapp.sentry_config ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1274$
+DO $pol1261$
 BEGIN
   CREATE POLICY sentry_config_delete ON zapp.sentry_config FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1261$;
+
+
+
+
+DO $pol1262$
+BEGIN
+  CREATE POLICY sentry_config_select ON zapp.sentry_config FOR SELECT TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1262$;
+
+
+
+
+DO $pol1263$
+BEGIN
+  CREATE POLICY sentry_config_update ON zapp.sentry_config FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor(auth.uid())) WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1263$;
+
+
+
+
+DO $pol1264$
+BEGIN
+  CREATE POLICY "service role manages webhook_audit_log" ON zapp.webhook_audit_log TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1264$;
+
+
+
+
+DO $pol1265$
+BEGIN
+  CREATE POLICY "service role manages webhook_events_processed" ON zapp.webhook_events_processed TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1265$;
+
+
+
+
+ALTER TABLE zapp.service_channels ENABLE ROW LEVEL SECURITY;
+
+
+
+DO $pol1266$
+BEGIN
+  CREATE POLICY service_full_access ON zapp.agent_achievements TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1266$;
+
+
+
+
+DO $pol1267$
+BEGIN
+  CREATE POLICY service_full_access ON zapp.agent_installed_skills TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1267$;
+
+
+
+
+DO $pol1268$
+BEGIN
+  CREATE POLICY service_full_access ON zapp.agent_stats TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1268$;
+
+
+
+
+DO $pol1269$
+BEGIN
+  CREATE POLICY service_full_access ON zapp.agent_visibility_grants TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1269$;
+
+
+
+
+DO $pol1270$
+BEGIN
+  CREATE POLICY service_full_access ON zapp.ai_conversation_tags TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1270$;
+
+
+
+
+DO $pol1271$
+BEGIN
+  CREATE POLICY service_full_access ON zapp.alert_dispatch_state TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1271$;
+
+
+
+
+DO $pol1272$
+BEGIN
+  CREATE POLICY service_full_access ON zapp.allowed_countries TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1272$;
+
+
+
+
+DO $pol1273$
+BEGIN
+  CREATE POLICY service_full_access ON zapp.app_settings TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1273$;
+
+
+
+
+DO $pol1274$
+BEGIN
+  CREATE POLICY service_full_access ON zapp.audio_memes TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1274$;
@@ -68369,7 +68306,7 @@ $pol1274$;
 
 DO $pol1275$
 BEGIN
-  CREATE POLICY sentry_config_select ON zapp.sentry_config FOR SELECT TO authenticated USING (true);
+  CREATE POLICY service_full_access ON zapp.audit_log_tables TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1275$;
@@ -68379,7 +68316,7 @@ $pol1275$;
 
 DO $pol1276$
 BEGIN
-  CREATE POLICY sentry_config_update ON zapp.sentry_config FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor(auth.uid())) WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
+  CREATE POLICY service_full_access ON zapp.audit_logs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1276$;
@@ -68389,7 +68326,7 @@ $pol1276$;
 
 DO $pol1277$
 BEGIN
-  CREATE POLICY "service role manages webhook_audit_log" ON zapp.webhook_audit_log TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.audit_results TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1277$;
@@ -68399,7 +68336,7 @@ $pol1277$;
 
 DO $pol1278$
 BEGIN
-  CREATE POLICY "service role manages webhook_events_processed" ON zapp.webhook_events_processed TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.auto_close_config TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1278$;
@@ -68407,13 +68344,9 @@ $pol1278$;
 
 
 
-ALTER TABLE zapp.service_channels ENABLE ROW LEVEL SECURITY;
-
-
-
 DO $pol1279$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.agent_achievements TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.automations TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1279$;
@@ -68423,7 +68356,7 @@ $pol1279$;
 
 DO $pol1280$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.agent_installed_skills TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.avatars TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1280$;
@@ -68433,7 +68366,7 @@ $pol1280$;
 
 DO $pol1281$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.agent_stats TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.away_messages TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1281$;
@@ -68443,7 +68376,7 @@ $pol1281$;
 
 DO $pol1282$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.agent_visibility_grants TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.blocked_countries TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1282$;
@@ -68453,7 +68386,7 @@ $pol1282$;
 
 DO $pol1283$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.ai_conversation_tags TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.blocked_ips TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1283$;
@@ -68463,7 +68396,7 @@ $pol1283$;
 
 DO $pol1284$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.alert_dispatch_state TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.budgets TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1284$;
@@ -68473,7 +68406,7 @@ $pol1284$;
 
 DO $pol1285$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.allowed_countries TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.business_hours TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1285$;
@@ -68483,7 +68416,7 @@ $pol1285$;
 
 DO $pol1286$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.app_settings TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.calls TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1286$;
@@ -68493,7 +68426,7 @@ $pol1286$;
 
 DO $pol1287$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.audio_memes TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.campaign_ab_variants TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1287$;
@@ -68503,7 +68436,7 @@ $pol1287$;
 
 DO $pol1288$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.audit_log_tables TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.campaign_contacts TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1288$;
@@ -68513,7 +68446,7 @@ $pol1288$;
 
 DO $pol1289$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.audit_logs TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.campaigns TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1289$;
@@ -68523,7 +68456,7 @@ $pol1289$;
 
 DO $pol1290$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.audit_results TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.channel_connections TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1290$;
@@ -68533,7 +68466,7 @@ $pol1290$;
 
 DO $pol1291$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.auto_close_config TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.channel_routing_rules TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1291$;
@@ -68543,7 +68476,7 @@ $pol1291$;
 
 DO $pol1292$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.automations TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.chatbot_executions TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1292$;
@@ -68553,7 +68486,7 @@ $pol1292$;
 
 DO $pol1293$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.avatars TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.chatbot_flows TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1293$;
@@ -68563,7 +68496,7 @@ $pol1293$;
 
 DO $pol1294$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.away_messages TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.chunks TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1294$;
@@ -68573,7 +68506,7 @@ $pol1294$;
 
 DO $pol1295$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.blocked_countries TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.client_wallet_rules TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1295$;
@@ -68583,7 +68516,7 @@ $pol1295$;
 
 DO $pol1296$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.blocked_ips TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.colaboradores TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1296$;
@@ -68593,7 +68526,7 @@ $pol1296$;
 
 DO $pol1297$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.budgets TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.collections TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1297$;
@@ -68603,7 +68536,7 @@ $pol1297$;
 
 DO $pol1298$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.business_hours TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.companies TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1298$;
@@ -68613,7 +68546,7 @@ $pol1298$;
 
 DO $pol1299$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.calls TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.connection_health_logs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1299$;
@@ -68623,7 +68556,7 @@ $pol1299$;
 
 DO $pol1300$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.campaign_ab_variants TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.consent_records TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1300$;
@@ -68633,7 +68566,7 @@ $pol1300$;
 
 DO $pol1301$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.campaign_contacts TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.constraint_changelog TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1301$;
@@ -68643,7 +68576,7 @@ $pol1301$;
 
 DO $pol1302$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.campaigns TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.contact_audit_log TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1302$;
@@ -68653,7 +68586,7 @@ $pol1302$;
 
 DO $pol1303$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.channel_connections TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.contact_custom_fields TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1303$;
@@ -68663,7 +68596,7 @@ $pol1303$;
 
 DO $pol1304$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.channel_routing_rules TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.contact_notes TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1304$;
@@ -68673,7 +68606,7 @@ $pol1304$;
 
 DO $pol1305$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.chatbot_executions TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.contact_purchases TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1305$;
@@ -68683,7 +68616,7 @@ $pol1305$;
 
 DO $pol1306$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.chatbot_flows TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.contact_tags TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1306$;
@@ -68693,7 +68626,7 @@ $pol1306$;
 
 DO $pol1307$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.chunks TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.conversation_analyses TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1307$;
@@ -68703,7 +68636,7 @@ $pol1307$;
 
 DO $pol1308$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.client_wallet_rules TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.conversation_closures TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1308$;
@@ -68713,7 +68646,7 @@ $pol1308$;
 
 DO $pol1309$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.colaboradores TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.conversation_events TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1309$;
@@ -68723,7 +68656,7 @@ $pol1309$;
 
 DO $pol1310$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.collections TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.conversation_memory TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1310$;
@@ -68733,7 +68666,7 @@ $pol1310$;
 
 DO $pol1311$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.companies TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.conversation_pins TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1311$;
@@ -68743,7 +68676,7 @@ $pol1311$;
 
 DO $pol1312$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.connection_health_logs TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.conversation_sla TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1312$;
@@ -68753,7 +68686,7 @@ $pol1312$;
 
 DO $pol1313$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.consent_records TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.conversation_snoozes TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1313$;
@@ -68763,7 +68696,7 @@ $pol1313$;
 
 DO $pol1314$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.constraint_changelog TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.conversation_summaries TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1314$;
@@ -68773,7 +68706,7 @@ $pol1314$;
 
 DO $pol1315$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.contact_audit_log TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.conversation_tasks TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1315$;
@@ -68783,7 +68716,7 @@ $pol1315$;
 
 DO $pol1316$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.contact_custom_fields TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.credential_audit_logs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1316$;
@@ -68793,7 +68726,7 @@ $pol1316$;
 
 DO $pol1317$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.contact_notes TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.cron_schedule_executions TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1317$;
@@ -68803,7 +68736,7 @@ $pol1317$;
 
 DO $pol1318$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.contact_purchases TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.cron_schedules TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1318$;
@@ -68813,7 +68746,7 @@ $pol1318$;
 
 DO $pol1319$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.contact_tags TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.custom_emojis TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1319$;
@@ -68823,7 +68756,7 @@ $pol1319$;
 
 DO $pol1320$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.conversation_analyses TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.data_deletion_requests TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1320$;
@@ -68833,7 +68766,7 @@ $pol1320$;
 
 DO $pol1321$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.conversation_closures TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.dead_letter_queue TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1321$;
@@ -68843,7 +68776,7 @@ $pol1321$;
 
 DO $pol1322$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.conversation_events TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.deal_activities TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1322$;
@@ -68853,7 +68786,7 @@ $pol1322$;
 
 DO $pol1323$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.conversation_memory TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.department_invitations TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1323$;
@@ -68863,7 +68796,7 @@ $pol1323$;
 
 DO $pol1324$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.conversation_pins TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.departments TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1324$;
@@ -68873,7 +68806,7 @@ $pol1324$;
 
 DO $pol1325$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.conversation_sla TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.deploy_connections TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1325$;
@@ -68883,7 +68816,7 @@ $pol1325$;
 
 DO $pol1326$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.conversation_snoozes TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.embedding_configs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1326$;
@@ -68893,7 +68826,7 @@ $pol1326$;
 
 DO $pol1327$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.conversation_summaries TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.engineering_principles TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1327$;
@@ -68903,7 +68836,7 @@ $pol1327$;
 
 DO $pol1328$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.conversation_tasks TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.entity_versions TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1328$;
@@ -68913,7 +68846,7 @@ $pol1328$;
 
 DO $pol1329$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.credential_audit_logs TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.environments TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1329$;
@@ -68923,7 +68856,7 @@ $pol1329$;
 
 DO $pol1330$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.cron_schedule_executions TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evaluation_datasets TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1330$;
@@ -68933,7 +68866,7 @@ $pol1330$;
 
 DO $pol1331$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.cron_schedules TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evaluation_runs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1331$;
@@ -68943,7 +68876,7 @@ $pol1331$;
 
 DO $pol1332$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.custom_emojis TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_audit_log TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1332$;
@@ -68953,7 +68886,7 @@ $pol1332$;
 
 DO $pol1333$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.data_deletion_requests TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_automation_logs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1333$;
@@ -68963,7 +68896,7 @@ $pol1333$;
 
 DO $pol1334$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.dead_letter_queue TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_business_hours TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1334$;
@@ -68973,7 +68906,7 @@ $pol1334$;
 
 DO $pol1335$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.deal_activities TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_calls TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1335$;
@@ -68983,7 +68916,7 @@ $pol1335$;
 
 DO $pol1336$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.department_invitations TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_contact_rate_limits TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1336$;
@@ -68993,7 +68926,7 @@ $pol1336$;
 
 DO $pol1337$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.departments TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_daily_metrics TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1337$;
@@ -69003,7 +68936,7 @@ $pol1337$;
 
 DO $pol1338$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.deploy_connections TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_followup_rules TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1338$;
@@ -69013,7 +68946,7 @@ $pol1338$;
 
 DO $pol1339$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.embedding_configs TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_group_messages TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1339$;
@@ -69023,7 +68956,7 @@ $pol1339$;
 
 DO $pol1340$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.engineering_principles TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_group_participants TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1340$;
@@ -69033,7 +68966,7 @@ $pol1340$;
 
 DO $pol1341$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.entity_versions TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_group_rules TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1341$;
@@ -69043,7 +68976,7 @@ $pol1341$;
 
 DO $pol1342$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.environments TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_groups TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1342$;
@@ -69053,7 +68986,7 @@ $pol1342$;
 
 DO $pol1343$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evaluation_datasets TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_holidays TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1343$;
@@ -69063,7 +68996,7 @@ $pol1343$;
 
 DO $pol1344$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evaluation_runs TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_keyword_automations TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1344$;
@@ -69073,7 +69006,7 @@ $pol1344$;
 
 DO $pol1345$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_audit_log TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_mirror_batches TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1345$;
@@ -69083,7 +69016,7 @@ $pol1345$;
 
 DO $pol1346$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_automation_logs TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_mirror_checkpoints TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1346$;
@@ -69093,7 +69026,7 @@ $pol1346$;
 
 DO $pol1347$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_business_hours TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_mirror_media_queue TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1347$;
@@ -69103,7 +69036,7 @@ $pol1347$;
 
 DO $pol1348$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_calls TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_mirror_runs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1348$;
@@ -69113,7 +69046,7 @@ $pol1348$;
 
 DO $pol1349$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_contact_rate_limits TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_notification_config TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1349$;
@@ -69123,7 +69056,7 @@ $pol1349$;
 
 DO $pol1350$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_daily_metrics TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_notification_log TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1350$;
@@ -69133,7 +69066,7 @@ $pol1350$;
 
 DO $pol1351$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_followup_rules TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_notification_outbox TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1351$;
@@ -69143,7 +69076,7 @@ $pol1351$;
 
 DO $pol1352$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_group_messages TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_notifications TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1352$;
@@ -69153,7 +69086,7 @@ $pol1352$;
 
 DO $pol1353$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_group_participants TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_quick_replies TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1353$;
@@ -69163,7 +69096,7 @@ $pol1353$;
 
 DO $pol1354$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_group_rules TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_realtime_events TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1354$;
@@ -69173,7 +69106,7 @@ $pol1354$;
 
 DO $pol1355$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_groups TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_retry_metrics TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1355$;
@@ -69183,7 +69116,7 @@ $pol1355$;
 
 DO $pol1356$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_holidays TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_sales_pipeline TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1356$;
@@ -69193,7 +69126,7 @@ $pol1356$;
 
 DO $pol1357$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_keyword_automations TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_scheduled_messages TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1357$;
@@ -69203,7 +69136,7 @@ $pol1357$;
 
 DO $pol1358$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_mirror_batches TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_send_idempotency TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1358$;
@@ -69213,7 +69146,7 @@ $pol1358$;
 
 DO $pol1359$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_mirror_checkpoints TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_source_schema_map TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1359$;
@@ -69223,7 +69156,7 @@ $pol1359$;
 
 DO $pol1360$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_mirror_media_queue TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_spam_keywords TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1360$;
@@ -69233,7 +69166,7 @@ $pol1360$;
 
 DO $pol1361$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_mirror_runs TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_stage_mapping TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1361$;
@@ -69243,7 +69176,7 @@ $pol1361$;
 
 DO $pol1362$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_notification_config TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_tag_assignments TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1362$;
@@ -69253,7 +69186,7 @@ $pol1362$;
 
 DO $pol1363$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_notification_log TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_template_usage TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1363$;
@@ -69263,7 +69196,7 @@ $pol1363$;
 
 DO $pol1364$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_notification_outbox TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.evolution_webhook_dlq TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1364$;
@@ -69273,7 +69206,7 @@ $pol1364$;
 
 DO $pol1365$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_notifications TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.failed_messages TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1365$;
@@ -69283,7 +69216,7 @@ $pol1365$;
 
 DO $pol1366$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_quick_replies TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.favorite_contacts TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1366$;
@@ -69293,7 +69226,7 @@ $pol1366$;
 
 DO $pol1367$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_realtime_events TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.finetune_jobs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1367$;
@@ -69303,7 +69236,7 @@ $pol1367$;
 
 DO $pol1368$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_retry_metrics TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.followup_executions TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1368$;
@@ -69313,7 +69246,7 @@ $pol1368$;
 
 DO $pol1369$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_sales_pipeline TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.followup_sequences TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1369$;
@@ -69323,7 +69256,7 @@ $pol1369$;
 
 DO $pol1370$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_scheduled_messages TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.followup_steps TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1370$;
@@ -69333,7 +69266,7 @@ $pol1370$;
 
 DO $pol1371$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_send_idempotency TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.forensic_snapshots TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1371$;
@@ -69343,7 +69276,7 @@ $pol1371$;
 
 DO $pol1372$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_source_schema_map TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.geo_blocking_settings TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1372$;
@@ -69353,7 +69286,7 @@ $pol1372$;
 
 DO $pol1373$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_spam_keywords TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.global_settings TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1373$;
@@ -69363,7 +69296,7 @@ $pol1373$;
 
 DO $pol1374$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_stage_mapping TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.goals_configurations TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1374$;
@@ -69373,7 +69306,7 @@ $pol1374$;
 
 DO $pol1375$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_tag_assignments TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.hmac_selftest_audit TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1375$;
@@ -69383,7 +69316,7 @@ $pol1375$;
 
 DO $pol1376$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_template_usage TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.installed_templates TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1376$;
@@ -69393,7 +69326,7 @@ $pol1376$;
 
 DO $pol1377$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.evolution_webhook_dlq TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.instance_registry TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1377$;
@@ -69403,7 +69336,7 @@ $pol1377$;
 
 DO $pol1378$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.failed_messages TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.integration_registry TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1378$;
@@ -69413,7 +69346,7 @@ $pol1378$;
 
 DO $pol1379$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.favorite_contacts TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.interactions TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1379$;
@@ -69423,7 +69356,7 @@ $pol1379$;
 
 DO $pol1380$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.finetune_jobs TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.ip_whitelist TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1380$;
@@ -69433,7 +69366,7 @@ $pol1380$;
 
 DO $pol1381$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.followup_executions TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.message_reactions TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1381$;
@@ -69443,7 +69376,7 @@ $pol1381$;
 
 DO $pol1382$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.followup_sequences TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.message_templates TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1382$;
@@ -69453,7 +69386,7 @@ $pol1382$;
 
 DO $pol1383$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.followup_steps TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.notification_channels_config TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1383$;
@@ -69463,7 +69396,7 @@ $pol1383$;
 
 DO $pol1384$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.forensic_snapshots TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.notification_delivery_log TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1384$;
@@ -69473,7 +69406,7 @@ $pol1384$;
 
 DO $pol1385$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.geo_blocking_settings TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.notification_templates TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1385$;
@@ -69483,7 +69416,7 @@ $pol1385$;
 
 DO $pol1386$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.global_settings TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.number_reputation TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1386$;
@@ -69493,7 +69426,7 @@ $pol1386$;
 
 DO $pol1387$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.goals_configurations TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.passkey_credentials TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1387$;
@@ -69503,7 +69436,7 @@ $pol1387$;
 
 DO $pol1388$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.hmac_selftest_audit TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.password_reset_requests TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1388$;
@@ -69513,7 +69446,7 @@ $pol1388$;
 
 DO $pol1389$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.installed_templates TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.performance_snapshots TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1389$;
@@ -69523,7 +69456,7 @@ $pol1389$;
 
 DO $pol1390$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.instance_registry TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.permissions TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1390$;
@@ -69533,7 +69466,7 @@ $pol1390$;
 
 DO $pol1391$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.integration_registry TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.pinned_conversations TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1391$;
@@ -69543,7 +69476,7 @@ $pol1391$;
 
 DO $pol1392$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.interactions TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.processed_webhook_events TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1392$;
@@ -69553,7 +69486,7 @@ $pol1392$;
 
 DO $pol1393$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.ip_whitelist TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.provider_configs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1393$;
@@ -69563,7 +69496,7 @@ $pol1393$;
 
 DO $pol1394$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.message_reactions TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.qr_attempts TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1394$;
@@ -69573,7 +69506,7 @@ $pol1394$;
 
 DO $pol1395$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.message_templates TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.queue_goals TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1395$;
@@ -69583,7 +69516,7 @@ $pol1395$;
 
 DO $pol1396$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.notification_channels_config TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.queue_items TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1396$;
@@ -69593,7 +69526,7 @@ $pol1396$;
 
 DO $pol1397$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.notification_delivery_log TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.queue_positions TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1397$;
@@ -69603,7 +69536,7 @@ $pol1397$;
 
 DO $pol1398$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.notification_templates TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.queue_skill_requirements TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1398$;
@@ -69613,7 +69546,7 @@ $pol1398$;
 
 DO $pol1399$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.number_reputation TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.rate_limit_configs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1399$;
@@ -69623,7 +69556,7 @@ $pol1399$;
 
 DO $pol1400$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.passkey_credentials TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.rate_limit_logs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1400$;
@@ -69633,7 +69566,7 @@ $pol1400$;
 
 DO $pol1401$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.password_reset_requests TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.reminders TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1401$;
@@ -69643,7 +69576,7 @@ $pol1401$;
 
 DO $pol1402$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.performance_snapshots TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.restore_test_log TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1402$;
@@ -69653,7 +69586,7 @@ $pol1402$;
 
 DO $pol1403$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.permissions TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.role_permissions TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1403$;
@@ -69663,7 +69596,7 @@ $pol1403$;
 
 DO $pol1404$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.pinned_conversations TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.roles TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1404$;
@@ -69673,7 +69606,7 @@ $pol1404$;
 
 DO $pol1405$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.processed_webhook_events TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.route_permissions TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1405$;
@@ -69683,7 +69616,7 @@ $pol1405$;
 
 DO $pol1406$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.provider_configs TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.rpc_rate_limits TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1406$;
@@ -69693,7 +69626,7 @@ $pol1406$;
 
 DO $pol1407$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.qr_attempts TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.sales_deals TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1407$;
@@ -69703,7 +69636,7 @@ $pol1407$;
 
 DO $pol1408$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.queue_goals TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.sales_pipeline_stages TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1408$;
@@ -69713,7 +69646,7 @@ $pol1408$;
 
 DO $pol1409$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.queue_items TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.saved_filters TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1409$;
@@ -69723,7 +69656,7 @@ $pol1409$;
 
 DO $pol1410$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.queue_positions TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.scheduled_messages TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1410$;
@@ -69733,7 +69666,7 @@ $pol1410$;
 
 DO $pol1411$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.queue_skill_requirements TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.scheduled_reports TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1411$;
@@ -69743,7 +69676,7 @@ $pol1411$;
 
 DO $pol1412$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.rate_limit_configs TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.security_alerts TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1412$;
@@ -69753,7 +69686,7 @@ $pol1412$;
 
 DO $pol1413$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.rate_limit_logs TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.sla_alert_preferences TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1413$;
@@ -69763,7 +69696,7 @@ $pol1413$;
 
 DO $pol1414$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.reminders TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.sla_configurations TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1414$;
@@ -69773,7 +69706,7 @@ $pol1414$;
 
 DO $pol1415$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.restore_test_log TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.sla_delivery_rules TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1415$;
@@ -69783,7 +69716,7 @@ $pol1415$;
 
 DO $pol1416$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.role_permissions TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.sla_delivery_violations TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1416$;
@@ -69793,7 +69726,7 @@ $pol1416$;
 
 DO $pol1417$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.roles TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.sla_rules TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1417$;
@@ -69803,7 +69736,7 @@ $pol1417$;
 
 DO $pol1418$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.route_permissions TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.solicitacoes_vale TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1418$;
@@ -69813,7 +69746,7 @@ $pol1418$;
 
 DO $pol1419$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.rpc_rate_limits TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.stress_test_runs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1419$;
@@ -69823,7 +69756,7 @@ $pol1419$;
 
 DO $pol1420$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.sales_deals TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.supabase_projects TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1420$;
@@ -69833,7 +69766,7 @@ $pol1420$;
 
 DO $pol1421$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.sales_pipeline_stages TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.system_docs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1421$;
@@ -69843,7 +69776,7 @@ $pol1421$;
 
 DO $pol1422$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.saved_filters TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.system_settings TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1422$;
@@ -69853,7 +69786,7 @@ $pol1422$;
 
 DO $pol1423$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.scheduled_messages TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.tags TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1423$;
@@ -69863,7 +69796,7 @@ $pol1423$;
 
 DO $pol1424$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.scheduled_reports TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.talkx_blacklist TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1424$;
@@ -69873,7 +69806,7 @@ $pol1424$;
 
 DO $pol1425$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.security_alerts TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.talkx_campaigns TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1425$;
@@ -69883,7 +69816,7 @@ $pol1425$;
 
 DO $pol1426$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.sicoob_contact_mapping TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.talkx_recipients TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1426$;
@@ -69893,7 +69826,7 @@ $pol1426$;
 
 DO $pol1427$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.sla_alert_preferences TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.task_queues TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1427$;
@@ -69903,7 +69836,7 @@ $pol1427$;
 
 DO $pol1428$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.sla_configurations TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.team_conversation_members TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1428$;
@@ -69913,7 +69846,7 @@ $pol1428$;
 
 DO $pol1429$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.sla_delivery_rules TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.team_conversations TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1429$;
@@ -69923,7 +69856,7 @@ $pol1429$;
 
 DO $pol1430$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.sla_delivery_violations TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.team_message_reactions TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1430$;
@@ -69933,7 +69866,7 @@ $pol1430$;
 
 DO $pol1431$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.sla_rules TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.team_messages TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1431$;
@@ -69943,7 +69876,7 @@ $pol1431$;
 
 DO $pol1432$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.solicitacoes_vale TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.tenants TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1432$;
@@ -69953,7 +69886,7 @@ $pol1432$;
 
 DO $pol1433$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.stress_test_runs TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.test_cases TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1433$;
@@ -69963,7 +69896,7 @@ $pol1433$;
 
 DO $pol1434$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.supabase_projects TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.user_devices TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1434$;
@@ -69973,7 +69906,7 @@ $pol1434$;
 
 DO $pol1435$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.system_docs TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.user_roles TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1435$;
@@ -69983,7 +69916,7 @@ $pol1435$;
 
 DO $pol1436$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.system_settings TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.user_sessions TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1436$;
@@ -69993,7 +69926,7 @@ $pol1436$;
 
 DO $pol1437$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.tags TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.user_settings TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1437$;
@@ -70003,7 +69936,7 @@ $pol1437$;
 
 DO $pol1438$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.talkx_blacklist TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.warroom_alerts TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1438$;
@@ -70013,7 +69946,7 @@ $pol1438$;
 
 DO $pol1439$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.talkx_campaigns TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.webhook_events TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1439$;
@@ -70023,7 +69956,7 @@ $pol1439$;
 
 DO $pol1440$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.talkx_recipients TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.webhook_health_alerts TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1440$;
@@ -70033,7 +69966,7 @@ $pol1440$;
 
 DO $pol1441$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.task_queues TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.whatsapp_connection_queues TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1441$;
@@ -70043,7 +69976,7 @@ $pol1441$;
 
 DO $pol1442$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.team_conversation_members TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.whatsapp_flows TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1442$;
@@ -70053,7 +69986,7 @@ $pol1442$;
 
 DO $pol1443$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.team_conversations TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.whatsapp_groups TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1443$;
@@ -70063,7 +69996,7 @@ $pol1443$;
 
 DO $pol1444$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.team_message_reactions TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.whatsapp_official_credentials TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1444$;
@@ -70073,7 +70006,7 @@ $pol1444$;
 
 DO $pol1445$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.team_messages TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.whatsapp_templates TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1445$;
@@ -70083,7 +70016,7 @@ $pol1445$;
 
 DO $pol1446$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.tenants TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.whisper_files TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1446$;
@@ -70093,7 +70026,7 @@ $pol1446$;
 
 DO $pol1447$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.test_cases TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.whisper_messages TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1447$;
@@ -70103,7 +70036,7 @@ $pol1447$;
 
 DO $pol1448$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.user_devices TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_full_access ON zapp.workspace_members TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1448$;
@@ -70113,7 +70046,7 @@ $pol1448$;
 
 DO $pol1449$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.user_roles TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_insert_reconcile_snapshot ON zapp.evo_reconcile_contact_snapshot FOR INSERT WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1449$;
@@ -70123,7 +70056,7 @@ $pol1449$;
 
 DO $pol1450$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.user_sessions TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_only ON zapp.ai_function_metrics TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1450$;
@@ -70133,7 +70066,7 @@ $pol1450$;
 
 DO $pol1451$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.user_settings TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_only ON zapp.cron_inventory TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1451$;
@@ -70143,7 +70076,7 @@ $pol1451$;
 
 DO $pol1452$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.warroom_alerts TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_only ON zapp.processed_requests TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1452$;
@@ -70153,7 +70086,7 @@ $pol1452$;
 
 DO $pol1453$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.webhook_events TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_all ON zapp.agents TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1453$;
@@ -70163,7 +70096,7 @@ $pol1453$;
 
 DO $pol1454$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.webhook_health_alerts TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_all ON zapp.evolution_alerts TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1454$;
@@ -70173,7 +70106,7 @@ $pol1454$;
 
 DO $pol1455$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.whatsapp_connection_queues TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_all ON zapp.evolution_messages_wpp2_archive TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1455$;
@@ -70183,7 +70116,7 @@ $pol1455$;
 
 DO $pol1456$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.whatsapp_flows TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_all ON zapp.evolution_settings TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1456$;
@@ -70193,7 +70126,7 @@ $pol1456$;
 
 DO $pol1457$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.whatsapp_groups TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_all ON zapp.evolution_source_shadow_log TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1457$;
@@ -70203,7 +70136,7 @@ $pol1457$;
 
 DO $pol1458$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.whatsapp_official_credentials TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_all ON zapp.n8n_config TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1458$;
@@ -70213,7 +70146,7 @@ $pol1458$;
 
 DO $pol1459$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.whatsapp_templates TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_all_lux_alerts ON zapp.lux_system_alerts TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1459$;
@@ -70223,7 +70156,7 @@ $pol1459$;
 
 DO $pol1460$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.whisper_files TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_all_profiles ON zapp.profiles TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1460$;
@@ -70233,7 +70166,7 @@ $pol1460$;
 
 DO $pol1461$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.whisper_messages TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_access ON zapp._db_size_snapshots TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1461$;
@@ -70243,7 +70176,7 @@ $pol1461$;
 
 DO $pol1462$
 BEGIN
-  CREATE POLICY service_full_access ON zapp.workspace_members TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_access ON zapp.api_keys TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1462$;
@@ -70253,7 +70186,7 @@ $pol1462$;
 
 DO $pol1463$
 BEGIN
-  CREATE POLICY service_insert_reconcile_snapshot ON zapp.evo_reconcile_contact_snapshot FOR INSERT WITH CHECK (true);
+  CREATE POLICY service_role_full_access ON zapp.conversation_transfers TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1463$;
@@ -70263,7 +70196,7 @@ $pol1463$;
 
 DO $pol1464$
 BEGIN
-  CREATE POLICY service_only ON zapp.ai_function_metrics TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_access ON zapp.evolution_status_reactions TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1464$;
@@ -70273,7 +70206,7 @@ $pol1464$;
 
 DO $pol1465$
 BEGIN
-  CREATE POLICY service_only ON zapp.cron_inventory TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_access ON zapp.evolution_whatsapp_status TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1465$;
@@ -70283,7 +70216,7 @@ $pol1465$;
 
 DO $pol1466$
 BEGIN
-  CREATE POLICY service_only ON zapp.processed_requests TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_access ON zapp.supplier_pix_keys TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1466$;
@@ -70293,7 +70226,7 @@ $pol1466$;
 
 DO $pol1467$
 BEGIN
-  CREATE POLICY service_role_all ON zapp.agents TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_access ON zapp.transfer_comments TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1467$;
@@ -70303,7 +70236,7 @@ $pol1467$;
 
 DO $pol1468$
 BEGIN
-  CREATE POLICY service_role_all ON zapp.evolution_alerts TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_access ON zapp.vault_healthcheck_log TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1468$;
@@ -70313,7 +70246,7 @@ $pol1468$;
 
 DO $pol1469$
 BEGIN
-  CREATE POLICY service_role_all ON zapp.evolution_messages_wpp2_archive TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_contact_assignments ON zapp.contact_assignments TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1469$;
@@ -70323,7 +70256,7 @@ $pol1469$;
 
 DO $pol1470$
 BEGIN
-  CREATE POLICY service_role_all ON zapp.evolution_settings TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_contact_intelligence ON zapp.contact_intelligence TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1470$;
@@ -70333,7 +70266,7 @@ $pol1470$;
 
 DO $pol1471$
 BEGIN
-  CREATE POLICY service_role_all ON zapp.evolution_source_shadow_log TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_dashboard_queries ON zapp.dashboard_queries TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1471$;
@@ -70343,7 +70276,7 @@ $pol1471$;
 
 DO $pol1472$
 BEGIN
-  CREATE POLICY service_role_all ON zapp.n8n_config TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_email_watch_history ON zapp.email_watch_history TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1472$;
@@ -70353,7 +70286,7 @@ $pol1472$;
 
 DO $pol1473$
 BEGIN
-  CREATE POLICY service_role_all_lux_alerts ON zapp.lux_system_alerts TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_evolution_bitrix_queue ON zapp.evolution_bitrix_queue TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1473$;
@@ -70363,7 +70296,7 @@ $pol1473$;
 
 DO $pol1474$
 BEGIN
-  CREATE POLICY service_role_all_profiles ON zapp.profiles TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_evolution_chatbot_responses ON zapp.evolution_chatbot_responses TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1474$;
@@ -70373,7 +70306,7 @@ $pol1474$;
 
 DO $pol1475$
 BEGIN
-  CREATE POLICY service_role_full_access ON zapp._db_size_snapshots TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_evolution_deals ON zapp.evolution_deals TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1475$;
@@ -70383,7 +70316,7 @@ $pol1475$;
 
 DO $pol1476$
 BEGIN
-  CREATE POLICY service_role_full_access ON zapp.api_keys TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_evolution_followups ON zapp.evolution_followups TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1476$;
@@ -70393,7 +70326,7 @@ $pol1476$;
 
 DO $pol1477$
 BEGIN
-  CREATE POLICY service_role_full_access ON zapp.conversation_transfers TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_evolution_message_queue ON zapp.evolution_message_queue TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1477$;
@@ -70403,7 +70336,7 @@ $pol1477$;
 
 DO $pol1478$
 BEGIN
-  CREATE POLICY service_role_full_access ON zapp.evolution_status_reactions TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_evolution_message_templates ON zapp.evolution_message_templates TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1478$;
@@ -70413,7 +70346,7 @@ $pol1478$;
 
 DO $pol1479$
 BEGIN
-  CREATE POLICY service_role_full_access ON zapp.evolution_whatsapp_status TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_evolution_performance_metrics ON zapp.evolution_performance_metrics TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1479$;
@@ -70423,7 +70356,7 @@ $pol1479$;
 
 DO $pol1480$
 BEGIN
-  CREATE POLICY service_role_full_access ON zapp.supplier_pix_keys TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_evolution_sentiment_analysis ON zapp.evolution_sentiment_analysis TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1480$;
@@ -70433,7 +70366,7 @@ $pol1480$;
 
 DO $pol1481$
 BEGIN
-  CREATE POLICY service_role_full_access ON zapp.transfer_comments TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_evolution_tags ON zapp.evolution_tags TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1481$;
@@ -70443,7 +70376,7 @@ $pol1481$;
 
 DO $pol1482$
 BEGIN
-  CREATE POLICY service_role_full_access ON zapp.vault_healthcheck_log TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_forwarded_messages ON zapp.forwarded_messages TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1482$;
@@ -70453,7 +70386,7 @@ $pol1482$;
 
 DO $pol1483$
 BEGIN
-  CREATE POLICY service_role_full_contact_assignments ON zapp.contact_assignments TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_integrations ON zapp.integrations TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1483$;
@@ -70463,7 +70396,7 @@ $pol1483$;
 
 DO $pol1484$
 BEGIN
-  CREATE POLICY service_role_full_contact_intelligence ON zapp.contact_intelligence TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_message_attempts ON zapp.message_attempts TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1484$;
@@ -70473,7 +70406,7 @@ $pol1484$;
 
 DO $pol1485$
 BEGIN
-  CREATE POLICY service_role_full_dashboard_queries ON zapp.dashboard_queries TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_migration_audit ON zapp.migration_audit TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1485$;
@@ -70483,7 +70416,7 @@ $pol1485$;
 
 DO $pol1486$
 BEGIN
-  CREATE POLICY service_role_full_email_watch_history ON zapp.email_watch_history TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_onboarding_steps ON zapp.onboarding_steps TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1486$;
@@ -70493,7 +70426,7 @@ $pol1486$;
 
 DO $pol1487$
 BEGIN
-  CREATE POLICY service_role_full_evolution_bitrix_queue ON zapp.evolution_bitrix_queue TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_personal_stickers ON zapp.personal_stickers TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1487$;
@@ -70503,7 +70436,7 @@ $pol1487$;
 
 DO $pol1488$
 BEGIN
-  CREATE POLICY service_role_full_evolution_chatbot_responses ON zapp.evolution_chatbot_responses TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_search_history ON zapp.search_history TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1488$;
@@ -70513,7 +70446,7 @@ $pol1488$;
 
 DO $pol1489$
 BEGIN
-  CREATE POLICY service_role_full_evolution_deals ON zapp.evolution_deals TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_search_insights ON zapp.search_insights TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1489$;
@@ -70523,7 +70456,7 @@ $pol1489$;
 
 DO $pol1490$
 BEGIN
-  CREATE POLICY service_role_full_evolution_followups ON zapp.evolution_followups TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_sentiment_alerts ON zapp.sentiment_alerts TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1490$;
@@ -70533,7 +70466,7 @@ $pol1490$;
 
 DO $pol1491$
 BEGIN
-  CREATE POLICY service_role_full_evolution_message_queue ON zapp.evolution_message_queue TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_storage_cleanup_logs ON zapp.storage_cleanup_logs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1491$;
@@ -70543,7 +70476,7 @@ $pol1491$;
 
 DO $pol1492$
 BEGIN
-  CREATE POLICY service_role_full_evolution_message_templates ON zapp.evolution_message_templates TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_sts_telemetry ON zapp.sts_telemetry TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1492$;
@@ -70553,7 +70486,7 @@ $pol1492$;
 
 DO $pol1493$
 BEGIN
-  CREATE POLICY service_role_full_evolution_performance_metrics ON zapp.evolution_performance_metrics TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_webhook_health_checks ON zapp.webhook_health_checks TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1493$;
@@ -70563,7 +70496,7 @@ $pol1493$;
 
 DO $pol1494$
 BEGIN
-  CREATE POLICY service_role_full_evolution_sentiment_analysis ON zapp.evolution_sentiment_analysis TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_webhook_idempotency ON zapp.webhook_idempotency TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1494$;
@@ -70573,7 +70506,7 @@ $pol1494$;
 
 DO $pol1495$
 BEGIN
-  CREATE POLICY service_role_full_evolution_tags ON zapp.evolution_tags TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_webhook_preferences ON zapp.webhook_preferences TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1495$;
@@ -70583,7 +70516,7 @@ $pol1495$;
 
 DO $pol1496$
 BEGIN
-  CREATE POLICY service_role_full_forwarded_messages ON zapp.forwarded_messages TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_webhook_reprocess_queue ON zapp.webhook_reprocess_queue TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1496$;
@@ -70593,7 +70526,7 @@ $pol1496$;
 
 DO $pol1497$
 BEGIN
-  CREATE POLICY service_role_full_integrations ON zapp.integrations TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_full_workspace_settings ON zapp.workspace_settings TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1497$;
@@ -70603,7 +70536,7 @@ $pol1497$;
 
 DO $pol1498$
 BEGIN
-  CREATE POLICY service_role_full_message_attempts ON zapp.message_attempts TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_only ON zapp._audit_sim_results TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1498$;
@@ -70613,7 +70546,7 @@ $pol1498$;
 
 DO $pol1499$
 BEGIN
-  CREATE POLICY service_role_full_migration_audit ON zapp.migration_audit TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_only ON zapp._consumer_dlq TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1499$;
@@ -70623,7 +70556,7 @@ $pol1499$;
 
 DO $pol1500$
 BEGIN
-  CREATE POLICY service_role_full_onboarding_steps ON zapp.onboarding_steps TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_only ON zapp.email_health_logs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1500$;
@@ -70633,7 +70566,7 @@ $pol1500$;
 
 DO $pol1501$
 BEGIN
-  CREATE POLICY service_role_full_personal_stickers ON zapp.personal_stickers TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY service_role_only ON zapp.fn_health_score_cache TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1501$;
@@ -70643,160 +70576,10 @@ $pol1501$;
 
 DO $pol1502$
 BEGIN
-  CREATE POLICY service_role_full_search_history ON zapp.search_history TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1502$;
-
-
-
-
-DO $pol1503$
-BEGIN
-  CREATE POLICY service_role_full_search_insights ON zapp.search_insights TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1503$;
-
-
-
-
-DO $pol1504$
-BEGIN
-  CREATE POLICY service_role_full_sentiment_alerts ON zapp.sentiment_alerts TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1504$;
-
-
-
-
-DO $pol1505$
-BEGIN
-  CREATE POLICY service_role_full_sicoob_reply_outbox ON zapp.sicoob_reply_outbox TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1505$;
-
-
-
-
-DO $pol1506$
-BEGIN
-  CREATE POLICY service_role_full_storage_cleanup_logs ON zapp.storage_cleanup_logs TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1506$;
-
-
-
-
-DO $pol1507$
-BEGIN
-  CREATE POLICY service_role_full_sts_telemetry ON zapp.sts_telemetry TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1507$;
-
-
-
-
-DO $pol1508$
-BEGIN
-  CREATE POLICY service_role_full_webhook_health_checks ON zapp.webhook_health_checks TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1508$;
-
-
-
-
-DO $pol1509$
-BEGIN
-  CREATE POLICY service_role_full_webhook_idempotency ON zapp.webhook_idempotency TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1509$;
-
-
-
-
-DO $pol1510$
-BEGIN
-  CREATE POLICY service_role_full_webhook_preferences ON zapp.webhook_preferences TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1510$;
-
-
-
-
-DO $pol1511$
-BEGIN
-  CREATE POLICY service_role_full_webhook_reprocess_queue ON zapp.webhook_reprocess_queue TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1511$;
-
-
-
-
-DO $pol1512$
-BEGIN
-  CREATE POLICY service_role_full_workspace_settings ON zapp.workspace_settings TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1512$;
-
-
-
-
-DO $pol1513$
-BEGIN
-  CREATE POLICY service_role_only ON zapp._audit_sim_results TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1513$;
-
-
-
-
-DO $pol1514$
-BEGIN
-  CREATE POLICY service_role_only ON zapp._consumer_dlq TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1514$;
-
-
-
-
-DO $pol1515$
-BEGIN
-  CREATE POLICY service_role_only ON zapp.email_health_logs TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1515$;
-
-
-
-
-DO $pol1516$
-BEGIN
-  CREATE POLICY service_role_only ON zapp.fn_health_score_cache TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1516$;
-
-
-
-
-DO $pol1517$
-BEGIN
   CREATE POLICY service_role_read ON zapp.message_audit_log FOR SELECT TO service_role USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1517$;
+$pol1502$;
 
 
 
@@ -70810,51 +70593,33 @@ ALTER TABLE zapp.sessions ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1518$
+DO $pol1503$
 BEGIN
   CREATE POLICY sf_delete_own ON zapp.sticker_favorites FOR DELETE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1518$;
+$pol1503$;
 
 
 
 
-DO $pol1519$
+DO $pol1504$
 BEGIN
   CREATE POLICY sf_insert_auth ON zapp.sticker_favorites FOR INSERT TO authenticated WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1519$;
+$pol1504$;
 
 
 
 
-DO $pol1520$
+DO $pol1505$
 BEGIN
   CREATE POLICY sf_select_all ON zapp.sticker_favorites FOR SELECT TO authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1520$;
+$pol1505$;
 
-
-
-
-ALTER TABLE zapp.sicoob_contact_mapping ENABLE ROW LEVEL SECURITY;
-
-
-
-DO $pol1521$
-BEGIN
-  CREATE POLICY sicoob_mapping_select ON zapp.sicoob_contact_mapping FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1521$;
-
-
-
-
-ALTER TABLE zapp.sicoob_reply_outbox ENABLE ROW LEVEL SECURITY;
 
 
 
@@ -70878,32 +70643,32 @@ ALTER TABLE zapp.sla_history ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1522$
+DO $pol1506$
 BEGIN
   CREATE POLICY sla_history_insert ON zapp.sla_history FOR INSERT WITH CHECK ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1522$;
+$pol1506$;
 
 
 
 
-DO $pol1523$
+DO $pol1507$
 BEGIN
   CREATE POLICY sla_history_select ON zapp.sla_history FOR SELECT USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1523$;
+$pol1507$;
 
 
 
 
-DO $pol1524$
+DO $pol1508$
 BEGIN
   CREATE POLICY sla_history_update ON zapp.sla_history FOR UPDATE USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1524$;
+$pol1508$;
 
 
 
@@ -70912,12 +70677,12 @@ ALTER TABLE zapp.sla_rules ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1525$
+DO $pol1509$
 BEGIN
   CREATE POLICY sla_rules_admin_write ON zapp.sla_rules TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1525$;
+$pol1509$;
 
 
 
@@ -70926,42 +70691,42 @@ ALTER TABLE zapp.sla_violations ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1526$
+DO $pol1510$
 BEGIN
   CREATE POLICY slav_insert ON zapp.sla_violations FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1526$;
+$pol1510$;
 
 
 
 
-DO $pol1527$
+DO $pol1511$
 BEGIN
   CREATE POLICY slav_select ON zapp.sla_violations FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor());
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1527$;
+$pol1511$;
 
 
 
 
-DO $pol1528$
+DO $pol1512$
 BEGIN
   CREATE POLICY slav_service ON zapp.sla_violations TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1528$;
+$pol1512$;
 
 
 
 
-DO $pol1529$
+DO $pol1513$
 BEGIN
   CREATE POLICY snapshot_version_no_direct_access ON zapp._snapshot_version_state USING (false) WITH CHECK (false);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1529$;
+$pol1513$;
 
 
 
@@ -70970,52 +70735,52 @@ ALTER TABLE zapp.solicitacoes_vale ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1530$
+DO $pol1514$
 BEGIN
   CREATE POLICY srvc_only ON zapp.evolution_api_consumers TO service_role USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1530$;
+$pol1514$;
 
 
 
 
-DO $pol1531$
+DO $pol1515$
 BEGIN
   CREATE POLICY srvc_only ON zapp.evolution_burnin_tracker TO service_role USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1531$;
+$pol1515$;
 
 
 
 
-DO $pol1532$
+DO $pol1516$
 BEGIN
   CREATE POLICY srvc_only ON zapp.evolution_incident_runbook TO service_role USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1532$;
+$pol1516$;
 
 
 
 
-DO $pol1533$
+DO $pol1517$
 BEGIN
   CREATE POLICY srvc_only ON zapp.evolution_ip_blocklist TO service_role USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1533$;
+$pol1517$;
 
 
 
 
-DO $pol1534$
+DO $pol1518$
 BEGIN
   CREATE POLICY srvc_only ON zapp.evolution_monthly_audit_log TO service_role USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1534$;
+$pol1518$;
 
 
 
@@ -71032,42 +70797,42 @@ ALTER TABLE zapp.stickers ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1535$
+DO $pol1519$
 BEGIN
   CREATE POLICY stickers_delete_own ON zapp.stickers FOR DELETE USING (((owner_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1535$;
+$pol1519$;
 
 
 
 
-DO $pol1536$
+DO $pol1520$
 BEGIN
   CREATE POLICY stickers_insert_auth ON zapp.stickers FOR INSERT WITH CHECK ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1536$;
+$pol1520$;
 
 
 
 
-DO $pol1537$
+DO $pol1521$
 BEGIN
   CREATE POLICY stickers_service_all ON zapp.stickers TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1537$;
+$pol1521$;
 
 
 
 
-DO $pol1538$
+DO $pol1522$
 BEGIN
   CREATE POLICY stickers_update_own ON zapp.stickers FOR UPDATE USING (((owner_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1538$;
+$pol1522$;
 
 
 
@@ -71080,12 +70845,12 @@ ALTER TABLE zapp.storage_cleanup_logs ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1539$
+DO $pol1523$
 BEGIN
   CREATE POLICY stress_metrics_all ON zapp.stress_test_metrics USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1539$;
+$pol1523$;
 
 
 
@@ -71098,12 +70863,12 @@ ALTER TABLE zapp.stress_test_runs ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1540$
+DO $pol1524$
 BEGIN
   CREATE POLICY sts_perf_all ON zapp.sts_performance_metrics USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1540$;
+$pol1524$;
 
 
 
@@ -71112,12 +70877,12 @@ ALTER TABLE zapp.sts_performance_metrics ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1541$
+DO $pol1525$
 BEGIN
   CREATE POLICY sts_report_all ON zapp.sts_troubleshooting_report USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1541$;
+$pol1525$;
 
 
 
@@ -71134,12 +70899,12 @@ ALTER TABLE zapp.supabase_projects ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1542$
+DO $pol1526$
 BEGIN
   CREATE POLICY "supervisors can view integration profiles" ON zapp.integration_profiles FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'supervisor'::zapp.app_role)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1542$;
+$pol1526$;
 
 
 
@@ -71148,9 +70913,169 @@ ALTER TABLE zapp.supplier_pix_keys ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1543$
+DO $pol1527$
 BEGIN
   CREATE POLICY svc_access ON zapp.agent_memories TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1527$;
+
+
+
+
+DO $pol1528$
+BEGIN
+  CREATE POLICY svc_access ON zapp.agent_skills TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1528$;
+
+
+
+
+DO $pol1529$
+BEGIN
+  CREATE POLICY svc_access ON zapp.alert_channels TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1529$;
+
+
+
+
+DO $pol1530$
+BEGIN
+  CREATE POLICY svc_access ON zapp.alerts TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1530$;
+
+
+
+
+DO $pol1531$
+BEGIN
+  CREATE POLICY svc_access ON zapp.batch_jobs TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1531$;
+
+
+
+
+DO $pol1532$
+BEGIN
+  CREATE POLICY svc_access ON zapp.credential_vault TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1532$;
+
+
+
+
+DO $pol1533$
+BEGIN
+  CREATE POLICY svc_access ON zapp.documents TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1533$;
+
+
+
+
+DO $pol1534$
+BEGIN
+  CREATE POLICY svc_access ON zapp.security_events TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1534$;
+
+
+
+
+DO $pol1535$
+BEGIN
+  CREATE POLICY svc_access ON zapp.sessions TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1535$;
+
+
+
+
+DO $pol1536$
+BEGIN
+  CREATE POLICY svc_access ON zapp.webhook_endpoints TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1536$;
+
+
+
+
+DO $pol1537$
+BEGIN
+  CREATE POLICY svc_access ON zapp.workspace_secrets TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1537$;
+
+
+
+
+DO $pol1538$
+BEGIN
+  CREATE POLICY svc_full_access ON zapp.security_acl_alerts TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1538$;
+
+
+
+
+DO $pol1539$
+BEGIN
+  CREATE POLICY svc_rls ON zapp.automation_executions TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1539$;
+
+
+
+
+DO $pol1540$
+BEGIN
+  CREATE POLICY svc_rls ON zapp.automation_rules TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1540$;
+
+
+
+
+DO $pol1541$
+BEGIN
+  CREATE POLICY svc_rls ON zapp.channel_queues TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1541$;
+
+
+
+
+DO $pol1542$
+BEGIN
+  CREATE POLICY svc_rls ON zapp.connection_alert_preferences TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol1542$;
+
+
+
+
+DO $pol1543$
+BEGIN
+  CREATE POLICY svc_rls ON zapp.dispatch_error_logs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1543$;
@@ -71160,7 +71085,7 @@ $pol1543$;
 
 DO $pol1544$
 BEGIN
-  CREATE POLICY svc_access ON zapp.agent_skills TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rls ON zapp.login_attempts TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1544$;
@@ -71170,7 +71095,7 @@ $pol1544$;
 
 DO $pol1545$
 BEGIN
-  CREATE POLICY svc_access ON zapp.alert_channels TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rls ON zapp.provider_message_log TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1545$;
@@ -71180,7 +71105,7 @@ $pol1545$;
 
 DO $pol1546$
 BEGIN
-  CREATE POLICY svc_access ON zapp.alerts TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rls ON zapp.query_telemetry TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1546$;
@@ -71190,7 +71115,7 @@ $pol1546$;
 
 DO $pol1547$
 BEGIN
-  CREATE POLICY svc_access ON zapp.batch_jobs TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rls ON zapp.service_channels TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1547$;
@@ -71200,7 +71125,7 @@ $pol1547$;
 
 DO $pol1548$
 BEGIN
-  CREATE POLICY svc_access ON zapp.credential_vault TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rls ON zapp.whatsapp_cloud_webhook_pings TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1548$;
@@ -71210,7 +71135,7 @@ $pol1548$;
 
 DO $pol1549$
 BEGIN
-  CREATE POLICY svc_access ON zapp.documents TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rw ON zapp.contact_export_log TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1549$;
@@ -71220,7 +71145,7 @@ $pol1549$;
 
 DO $pol1550$
 BEGIN
-  CREATE POLICY svc_access ON zapp.security_events TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rw ON zapp.evolution_fallback_events TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1550$;
@@ -71230,7 +71155,7 @@ $pol1550$;
 
 DO $pol1551$
 BEGIN
-  CREATE POLICY svc_access ON zapp.sessions TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rw ON zapp.instance_auth_events TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1551$;
@@ -71240,7 +71165,7 @@ $pol1551$;
 
 DO $pol1552$
 BEGIN
-  CREATE POLICY svc_access ON zapp.webhook_endpoints TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rw ON zapp.instance_processing_pauses TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1552$;
@@ -71250,7 +71175,7 @@ $pol1552$;
 
 DO $pol1553$
 BEGIN
-  CREATE POLICY svc_access ON zapp.workspace_secrets TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rw ON zapp.integration_profiles TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1553$;
@@ -71260,7 +71185,7 @@ $pol1553$;
 
 DO $pol1554$
 BEGIN
-  CREATE POLICY svc_full_access ON zapp.security_acl_alerts TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rw ON zapp.message_queue TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1554$;
@@ -71270,7 +71195,7 @@ $pol1554$;
 
 DO $pol1555$
 BEGIN
-  CREATE POLICY svc_rls ON zapp.automation_executions TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rw ON zapp.outbox_events TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1555$;
@@ -71280,7 +71205,7 @@ $pol1555$;
 
 DO $pol1556$
 BEGIN
-  CREATE POLICY svc_rls ON zapp.automation_rules TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rw ON zapp.reprocess_jobs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1556$;
@@ -71290,7 +71215,7 @@ $pol1556$;
 
 DO $pol1557$
 BEGIN
-  CREATE POLICY svc_rls ON zapp.channel_queues TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rw ON zapp.scheduled_job_log TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1557$;
@@ -71300,7 +71225,7 @@ $pol1557$;
 
 DO $pol1558$
 BEGIN
-  CREATE POLICY svc_rls ON zapp.connection_alert_preferences TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rw ON zapp.sticky_assignments TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1558$;
@@ -71310,7 +71235,7 @@ $pol1558$;
 
 DO $pol1559$
 BEGIN
-  CREATE POLICY svc_rls ON zapp.dispatch_error_logs TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rw ON zapp.system_logs TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1559$;
@@ -71320,7 +71245,7 @@ $pol1559$;
 
 DO $pol1560$
 BEGIN
-  CREATE POLICY svc_rls ON zapp.login_attempts TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rw ON zapp.webauthn_challenges TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1560$;
@@ -71330,7 +71255,7 @@ $pol1560$;
 
 DO $pol1561$
 BEGIN
-  CREATE POLICY svc_rls ON zapp.provider_message_log TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rw ON zapp.webhook_audit_log TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1561$;
@@ -71340,7 +71265,7 @@ $pol1561$;
 
 DO $pol1562$
 BEGIN
-  CREATE POLICY svc_rls ON zapp.query_telemetry TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rw ON zapp.webhook_event_dedup TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1562$;
@@ -71350,7 +71275,7 @@ $pol1562$;
 
 DO $pol1563$
 BEGIN
-  CREATE POLICY svc_rls ON zapp.service_channels TO service_role USING (true) WITH CHECK (true);
+  CREATE POLICY svc_rw ON zapp.webhook_events_processed TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $pol1563$;
@@ -71360,170 +71285,10 @@ $pol1563$;
 
 DO $pol1564$
 BEGIN
-  CREATE POLICY svc_rls ON zapp.whatsapp_cloud_webhook_pings TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1564$;
-
-
-
-
-DO $pol1565$
-BEGIN
-  CREATE POLICY svc_rw ON zapp.contact_export_log TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1565$;
-
-
-
-
-DO $pol1566$
-BEGIN
-  CREATE POLICY svc_rw ON zapp.evolution_fallback_events TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1566$;
-
-
-
-
-DO $pol1567$
-BEGIN
-  CREATE POLICY svc_rw ON zapp.instance_auth_events TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1567$;
-
-
-
-
-DO $pol1568$
-BEGIN
-  CREATE POLICY svc_rw ON zapp.instance_processing_pauses TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1568$;
-
-
-
-
-DO $pol1569$
-BEGIN
-  CREATE POLICY svc_rw ON zapp.integration_profiles TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1569$;
-
-
-
-
-DO $pol1570$
-BEGIN
-  CREATE POLICY svc_rw ON zapp.message_queue TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1570$;
-
-
-
-
-DO $pol1571$
-BEGIN
-  CREATE POLICY svc_rw ON zapp.outbox_events TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1571$;
-
-
-
-
-DO $pol1572$
-BEGIN
-  CREATE POLICY svc_rw ON zapp.reprocess_jobs TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1572$;
-
-
-
-
-DO $pol1573$
-BEGIN
-  CREATE POLICY svc_rw ON zapp.scheduled_job_log TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1573$;
-
-
-
-
-DO $pol1574$
-BEGIN
-  CREATE POLICY svc_rw ON zapp.sticky_assignments TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1574$;
-
-
-
-
-DO $pol1575$
-BEGIN
-  CREATE POLICY svc_rw ON zapp.system_logs TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1575$;
-
-
-
-
-DO $pol1576$
-BEGIN
-  CREATE POLICY svc_rw ON zapp.webauthn_challenges TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1576$;
-
-
-
-
-DO $pol1577$
-BEGIN
-  CREATE POLICY svc_rw ON zapp.webhook_audit_log TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1577$;
-
-
-
-
-DO $pol1578$
-BEGIN
-  CREATE POLICY svc_rw ON zapp.webhook_event_dedup TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1578$;
-
-
-
-
-DO $pol1579$
-BEGIN
-  CREATE POLICY svc_rw ON zapp.webhook_events_processed TO service_role USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END
-$pol1579$;
-
-
-
-
-DO $pol1580$
-BEGIN
   CREATE POLICY svc_rw ON zapp.webhook_rate_limits TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1580$;
+$pol1564$;
 
 
 
@@ -71532,7 +71297,7 @@ ALTER TABLE zapp.system_connections ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1581$
+DO $pol1565$
 BEGIN
   CREATE POLICY system_connections_write_admin ON zapp.system_connections TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.user_roles
@@ -71541,7 +71306,7 @@ BEGIN
   WHERE ((user_roles.user_id = ( SELECT auth.uid() AS uid)) AND (user_roles.role = ANY (ARRAY['admin'::zapp.app_role, 'dev'::zapp.app_role]))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1581$;
+$pol1565$;
 
 
 
@@ -71574,12 +71339,12 @@ ALTER TABLE zapp.talkx_blacklist ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1582$
+DO $pol1566$
 BEGIN
   CREATE POLICY talkx_blacklist_select ON zapp.talkx_blacklist FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1582$;
+$pol1566$;
 
 
 
@@ -71588,44 +71353,44 @@ ALTER TABLE zapp.talkx_campaigns ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1583$
+DO $pol1567$
 BEGIN
   CREATE POLICY talkx_campaigns_delete ON zapp.talkx_campaigns FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1583$;
+$pol1567$;
 
 
 
 
-DO $pol1584$
+DO $pol1568$
 BEGIN
   CREATE POLICY talkx_campaigns_insert ON zapp.talkx_campaigns FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1584$;
+$pol1568$;
 
 
 
 
-DO $pol1585$
+DO $pol1569$
 BEGIN
   CREATE POLICY talkx_campaigns_select ON zapp.talkx_campaigns FOR SELECT TO authenticated USING (((created_by = ( SELECT p.id
    FROM zapp.profiles p
   WHERE (p.user_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1585$;
+$pol1569$;
 
 
 
 
-DO $pol1586$
+DO $pol1570$
 BEGIN
   CREATE POLICY talkx_campaigns_update ON zapp.talkx_campaigns FOR UPDATE TO authenticated USING (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor(auth.uid()))) WITH CHECK (((created_by = zapp.get_profile_id_for_user(auth.uid())) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1586$;
+$pol1570$;
 
 
 
@@ -71634,7 +71399,7 @@ ALTER TABLE zapp.talkx_recipients ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1587$
+DO $pol1571$
 BEGIN
   CREATE POLICY talkx_recipients_delete ON zapp.talkx_recipients FOR DELETE TO authenticated USING (((EXISTS ( SELECT 1
    FROM zapp.talkx_campaigns tc
@@ -71643,22 +71408,22 @@ BEGIN
           WHERE (p.user_id = ( SELECT auth.uid() AS uid)))))))) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1587$;
+$pol1571$;
 
 
 
 
-DO $pol1588$
+DO $pol1572$
 BEGIN
   CREATE POLICY talkx_recipients_insert ON zapp.talkx_recipients FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1588$;
+$pol1572$;
 
 
 
 
-DO $pol1589$
+DO $pol1573$
 BEGIN
   CREATE POLICY talkx_recipients_select ON zapp.talkx_recipients FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1
    FROM zapp.talkx_campaigns tc
@@ -71667,12 +71432,12 @@ BEGIN
           WHERE (p.user_id = ( SELECT auth.uid() AS uid)))))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1589$;
+$pol1573$;
 
 
 
 
-DO $pol1590$
+DO $pol1574$
 BEGIN
   CREATE POLICY talkx_recipients_update ON zapp.talkx_recipients FOR UPDATE TO authenticated USING (((EXISTS ( SELECT 1
    FROM zapp.talkx_campaigns tc
@@ -71685,7 +71450,7 @@ BEGIN
           WHERE (p.user_id = ( SELECT auth.uid() AS uid)))))))) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1590$;
+$pol1574$;
 
 
 
@@ -71702,17 +71467,17 @@ ALTER TABLE zapp.team_conversations ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1591$
+DO $pol1575$
 BEGIN
   CREATE POLICY team_conversations_delete ON zapp.team_conversations FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(auth.uid()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1591$;
+$pol1575$;
 
 
 
 
-DO $pol1592$
+DO $pol1576$
 BEGIN
   CREATE POLICY team_conversations_select ON zapp.team_conversations FOR SELECT TO authenticated USING ((zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1
    FROM (zapp.team_conversation_members tcm
@@ -71720,19 +71485,19 @@ BEGIN
   WHERE ((tcm.conversation_id = team_conversations.id) AND (p.user_id = ( SELECT auth.uid() AS uid)))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1592$;
+$pol1576$;
 
 
 
 
-DO $pol1593$
+DO $pol1577$
 BEGIN
   CREATE POLICY team_members_select ON zapp.team_conversation_members FOR SELECT TO authenticated USING (((profile_id = ( SELECT p.id
    FROM zapp.profiles p
   WHERE (p.user_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1593$;
+$pol1577$;
 
 
 
@@ -71749,19 +71514,19 @@ ALTER TABLE zapp.team_messages ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1594$
+DO $pol1578$
 BEGIN
   CREATE POLICY team_messages_delete ON zapp.team_messages FOR DELETE TO authenticated USING (((sender_id = ( SELECT p.id
    FROM zapp.profiles p
   WHERE (p.user_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1594$;
+$pol1578$;
 
 
 
 
-DO $pol1595$
+DO $pol1579$
 BEGIN
   CREATE POLICY team_messages_insert ON zapp.team_messages FOR INSERT TO authenticated WITH CHECK ((((sender_id = ( SELECT p.id
    FROM zapp.profiles p
@@ -71772,12 +71537,12 @@ BEGIN
           WHERE (p.user_id = auth.uid()))))))) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1595$;
+$pol1579$;
 
 
 
 
-DO $pol1596$
+DO $pol1580$
 BEGIN
   CREATE POLICY team_messages_select ON zapp.team_messages FOR SELECT TO authenticated USING ((zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1
    FROM (zapp.team_conversation_members tcm
@@ -71787,12 +71552,12 @@ BEGIN
   WHERE (p.user_id = ( SELECT auth.uid() AS uid))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1596$;
+$pol1580$;
 
 
 
 
-DO $pol1597$
+DO $pol1581$
 BEGIN
   CREATE POLICY team_messages_update ON zapp.team_messages FOR UPDATE TO authenticated USING (((EXISTS ( SELECT 1
    FROM (zapp.team_conversation_members tcm
@@ -71803,39 +71568,39 @@ BEGIN
   WHERE ((tcm.conversation_id = team_messages.conversation_id) AND (p2.user_id = auth.uid())))) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1597$;
+$pol1581$;
 
 
 
 
-DO $pol1598$
+DO $pol1582$
 BEGIN
   CREATE POLICY team_receipts_insert ON zapp.team_message_receipts FOR INSERT WITH CHECK ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1598$;
+$pol1582$;
 
 
 
 
-DO $pol1599$
+DO $pol1583$
 BEGIN
   CREATE POLICY team_receipts_select ON zapp.team_message_receipts FOR SELECT TO authenticated USING (((profile_id = ( SELECT p.id
    FROM zapp.profiles p
   WHERE (p.user_id = ( SELECT auth.uid() AS uid)))) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1599$;
+$pol1583$;
 
 
 
 
-DO $pol1600$
+DO $pol1584$
 BEGIN
   CREATE POLICY team_receipts_update ON zapp.team_message_receipts FOR UPDATE USING ((( SELECT auth.uid() AS uid) IS NOT NULL));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1600$;
+$pol1584$;
 
 
 
@@ -71848,27 +71613,27 @@ ALTER TABLE zapp.test_cases ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1601$
+DO $pol1585$
 BEGIN
   CREATE POLICY threads_admin_write ON zapp.conversation_threads TO authenticated USING (zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role)) WITH CHECK (zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1601$;
+$pol1585$;
 
 
 
 
-DO $pol1602$
+DO $pol1586$
 BEGIN
   CREATE POLICY threads_select_admin_supervisor ON zapp.conversation_threads FOR SELECT TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1602$;
+$pol1586$;
 
 
 
 
-DO $pol1603$
+DO $pol1587$
 BEGIN
   CREATE POLICY threads_select_participant ON zapp.conversation_threads FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM (zapp.conversation_participants cp
@@ -71876,7 +71641,7 @@ BEGIN
   WHERE ((cp.thread_id = conversation_threads.id) AND (p.user_id = ( SELECT auth.uid() AS uid))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1603$;
+$pol1587$;
 
 
 
@@ -71885,7 +71650,7 @@ ALTER TABLE zapp.transfer_comments ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1604$
+DO $pol1588$
 BEGIN
   CREATE POLICY transfer_comments_select ON zapp.transfer_comments FOR SELECT TO authenticated USING ((zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1
    FROM zapp.conversation_transfers ct
@@ -71894,7 +71659,7 @@ BEGIN
   WHERE (p.user_id = ( SELECT auth.uid() AS uid))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1604$;
+$pol1588$;
 
 
 
@@ -71903,52 +71668,52 @@ ALTER TABLE zapp.user_devices ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1605$
+DO $pol1589$
 BEGIN
   CREATE POLICY user_devices_admin_select ON zapp.user_devices FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'dev'::zapp.app_role)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1605$;
+$pol1589$;
 
 
 
 
-DO $pol1606$
+DO $pol1590$
 BEGIN
   CREATE POLICY user_devices_self ON zapp.user_devices FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1606$;
+$pol1590$;
 
 
 
 
-DO $pol1607$
+DO $pol1591$
 BEGIN
   CREATE POLICY user_devices_self_insert ON zapp.user_devices FOR INSERT TO authenticated WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1607$;
+$pol1591$;
 
 
 
 
-DO $pol1608$
+DO $pol1592$
 BEGIN
   CREATE POLICY user_devices_self_update ON zapp.user_devices FOR UPDATE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1608$;
+$pol1592$;
 
 
 
 
-DO $pol1609$
+DO $pol1593$
 BEGIN
   CREATE POLICY user_insert_own_profile ON zapp.profiles FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1609$;
+$pol1593$;
 
 
 
@@ -71957,17 +71722,17 @@ ALTER TABLE zapp.user_roles ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1610$
+DO $pol1594$
 BEGIN
   CREATE POLICY user_roles_admin_delete ON zapp.user_roles FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1610$;
+$pol1594$;
 
 
 
 
-DO $pol1611$
+DO $pol1595$
 BEGIN
   CREATE POLICY user_roles_admin_manage ON zapp.user_roles TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.profiles p
@@ -71976,27 +71741,27 @@ BEGIN
   WHERE ((p.user_id = ( SELECT auth.uid() AS uid)) AND (p.role = ANY (ARRAY['admin'::text, 'dev'::text]))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1611$;
+$pol1595$;
 
 
 
 
-DO $pol1612$
+DO $pol1596$
 BEGIN
   CREATE POLICY user_roles_admin_write ON zapp.user_roles FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1612$;
+$pol1596$;
 
 
 
 
-DO $pol1613$
+DO $pol1597$
 BEGIN
   CREATE POLICY user_roles_select ON zapp.user_roles FOR SELECT TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1613$;
+$pol1597$;
 
 
 
@@ -72009,42 +71774,42 @@ ALTER TABLE zapp.user_sessions ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1614$
+DO $pol1598$
 BEGIN
   CREATE POLICY user_sessions_admin_select ON zapp.user_sessions FOR SELECT TO authenticated USING ((zapp.has_role(( SELECT auth.uid() AS uid), 'admin'::zapp.app_role) OR zapp.has_role(( SELECT auth.uid() AS uid), 'dev'::zapp.app_role)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1614$;
+$pol1598$;
 
 
 
 
-DO $pol1615$
+DO $pol1599$
 BEGIN
   CREATE POLICY user_sessions_self ON zapp.user_sessions FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1615$;
+$pol1599$;
 
 
 
 
-DO $pol1616$
+DO $pol1600$
 BEGIN
   CREATE POLICY user_sessions_self_insert ON zapp.user_sessions FOR INSERT TO authenticated WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1616$;
+$pol1600$;
 
 
 
 
-DO $pol1617$
+DO $pol1601$
 BEGIN
   CREATE POLICY user_sessions_self_update ON zapp.user_sessions FOR UPDATE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1617$;
+$pol1601$;
 
 
 
@@ -72053,52 +71818,52 @@ ALTER TABLE zapp.user_settings ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1618$
+DO $pol1602$
 BEGIN
   CREATE POLICY user_settings_select ON zapp.user_settings FOR SELECT TO authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1618$;
+$pol1602$;
 
 
 
 
-DO $pol1619$
+DO $pol1603$
 BEGIN
   CREATE POLICY user_settings_write ON zapp.user_settings TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1619$;
+$pol1603$;
 
 
 
 
-DO $pol1620$
+DO $pol1604$
 BEGIN
   CREATE POLICY user_update_own_profile ON zapp.profiles FOR UPDATE TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id)) WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1620$;
+$pol1604$;
 
 
 
 
-DO $pol1621$
+DO $pol1605$
 BEGIN
   CREATE POLICY users_own_passkeys ON zapp.passkey_credentials TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1621$;
+$pol1605$;
 
 
 
 
-DO $pol1622$
+DO $pol1606$
 BEGIN
   CREATE POLICY users_own_preferences ON zapp.sla_alert_preferences TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1622$;
+$pol1606$;
 
 
 
@@ -72115,32 +71880,32 @@ ALTER TABLE zapp.voice_conversion_queue ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1623$
+DO $pol1607$
 BEGIN
   CREATE POLICY voice_conversion_queue_insert ON zapp.voice_conversion_queue FOR INSERT TO authenticated WITH CHECK (((requested_by = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1623$;
+$pol1607$;
 
 
 
 
-DO $pol1624$
+DO $pol1608$
 BEGIN
   CREATE POLICY voice_conversion_queue_select ON zapp.voice_conversion_queue FOR SELECT TO authenticated USING (((requested_by = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1624$;
+$pol1608$;
 
 
 
 
-DO $pol1625$
+DO $pol1609$
 BEGIN
   CREATE POLICY voice_conversion_queue_update ON zapp.voice_conversion_queue FOR UPDATE TO authenticated USING (((requested_by = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid()))) WITH CHECK (((requested_by = auth.uid()) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1625$;
+$pol1609$;
 
 
 
@@ -72149,39 +71914,39 @@ ALTER TABLE zapp.voip_profile_credentials ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1626$
+DO $pol1610$
 BEGIN
   CREATE POLICY voip_profile_credentials_delete ON zapp.voip_profile_credentials FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(auth.uid()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1626$;
+$pol1610$;
 
 
 
 
-DO $pol1627$
+DO $pol1611$
 BEGIN
   CREATE POLICY voip_profile_credentials_insert ON zapp.voip_profile_credentials FOR INSERT TO authenticated WITH CHECK (zapp.is_admin_or_supervisor(auth.uid()));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1627$;
+$pol1611$;
 
 
 
 
-DO $pol1628$
+DO $pol1612$
 BEGIN
   CREATE POLICY voip_profile_credentials_select ON zapp.voip_profile_credentials FOR SELECT TO authenticated USING (((profile_id = ( SELECT p.id
    FROM zapp.profiles p
   WHERE (p.user_id = auth.uid()))) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1628$;
+$pol1612$;
 
 
 
 
-DO $pol1629$
+DO $pol1613$
 BEGIN
   CREATE POLICY voip_profile_credentials_update ON zapp.voip_profile_credentials FOR UPDATE TO authenticated USING (((profile_id = ( SELECT p.id
    FROM zapp.profiles p
@@ -72190,7 +71955,7 @@ BEGIN
   WHERE (p.user_id = auth.uid()))) OR zapp.is_admin_or_supervisor(auth.uid())));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1629$;
+$pol1613$;
 
 
 
@@ -72199,66 +71964,66 @@ ALTER TABLE zapp.warroom_alerts ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1630$
+DO $pol1614$
 BEGIN
   CREATE POLICY warroom_alerts_admin_delete ON zapp.warroom_alerts FOR DELETE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1630$;
+$pol1614$;
 
 
 
 
-DO $pol1631$
+DO $pol1615$
 BEGIN
   CREATE POLICY warroom_alerts_admin_write ON zapp.warroom_alerts FOR UPDATE TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1631$;
+$pol1615$;
 
 
 
 
-DO $pol1632$
+DO $pol1616$
 BEGIN
   CREATE POLICY warroom_alerts_insert_policy ON zapp.warroom_alerts FOR INSERT TO authenticated WITH CHECK ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1632$;
+$pol1616$;
 
 
 
 
-DO $pol1633$
+DO $pol1617$
 BEGIN
   CREATE POLICY warroom_alerts_select_insert ON zapp.warroom_alerts FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.workspace_members
   WHERE (workspace_members.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1633$;
+$pol1617$;
 
 
 
 
-DO $pol1634$
+DO $pol1618$
 BEGIN
   CREATE POLICY wconn_insert_auth ON zapp.whatsapp_connections FOR INSERT TO authenticated WITH CHECK ((created_by = ( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1634$;
+$pol1618$;
 
 
 
 
-DO $pol1635$
+DO $pol1619$
 BEGIN
   CREATE POLICY wconn_service_all ON zapp.whatsapp_connections TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1635$;
+$pol1619$;
 
 
 
@@ -72319,14 +72084,14 @@ ALTER TABLE zapp.whatsapp_connection_queues ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1636$
+DO $pol1620$
 BEGIN
   CREATE POLICY whatsapp_connection_queues_select_org ON zapp.whatsapp_connection_queues FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM zapp.profiles
   WHERE (profiles.user_id = ( SELECT auth.uid() AS uid)))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1636$;
+$pol1620$;
 
 
 
@@ -72335,12 +72100,12 @@ ALTER TABLE zapp.whatsapp_connections ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1637$
+DO $pol1621$
 BEGIN
   CREATE POLICY whatsapp_connections_admin_write ON zapp.whatsapp_connections TO authenticated USING (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))) WITH CHECK (zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1637$;
+$pol1621$;
 
 
 
@@ -72365,14 +72130,14 @@ ALTER TABLE zapp.whisper_files ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1638$
+DO $pol1622$
 BEGIN
   CREATE POLICY whisper_insert ON zapp.whisper_messages FOR INSERT TO authenticated WITH CHECK ((sender_id = ( SELECT p.id
    FROM zapp.profiles p
   WHERE (p.user_id = auth.uid()))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1638$;
+$pol1622$;
 
 
 
@@ -72381,17 +72146,17 @@ ALTER TABLE zapp.whisper_messages ENABLE ROW LEVEL SECURITY;
 
 
 
-DO $pol1639$
+DO $pol1623$
 BEGIN
   CREATE POLICY whisper_messages_select ON zapp.whisper_messages FOR SELECT TO authenticated USING ((zapp.is_contact_visible_to_user(contact_id, ( SELECT auth.uid() AS uid)) OR zapp.is_admin_or_supervisor(( SELECT auth.uid() AS uid))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1639$;
+$pol1623$;
 
 
 
 
-DO $pol1640$
+DO $pol1624$
 BEGIN
   CREATE POLICY whisper_select ON zapp.whisper_messages FOR SELECT TO authenticated USING (((sender_id = ( SELECT p.id
    FROM zapp.profiles p
@@ -72402,12 +72167,12 @@ BEGIN
   WHERE ((p.user_id = auth.uid()) AND (p.role = ANY (ARRAY['admin'::text, 'supervisor'::text])))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1640$;
+$pol1624$;
 
 
 
 
-DO $pol1641$
+DO $pol1625$
 BEGIN
   CREATE POLICY whisper_update ON zapp.whisper_messages FOR UPDATE TO authenticated USING (((sender_id = ( SELECT p.id
    FROM zapp.profiles p
@@ -72424,7 +72189,7 @@ BEGIN
   WHERE ((p.user_id = auth.uid()) AND (p.role = ANY (ARRAY['admin'::text, 'supervisor'::text])))))));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END
-$pol1641$;
+$pol1625$;
 
 
 
