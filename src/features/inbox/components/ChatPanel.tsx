@@ -110,9 +110,8 @@ export function ChatPanel({
   messageQueue,
   instanceName: instanceNameProp,
 }: ChatPanelProps) {
-  // Ferramentas de desenvolvimento (Checklist 10/10) só para devs reais.
-  const { roles: userRoles } = useUserRole();
-  const isDevExact = (userRoles ?? []).includes('dev');
+  // Ferramentas de desenvolvimento (Checklist 10/10) só para devs reais em ambiente allowlisted (E51).
+  const { isDev: isDevExact } = useUserRole();
   const { dialogs, openDialog, closeDialog } = useChatDialogs();
   // Ações reais de arquivar/desarquivar (soft-delete do contato — PR PR 773).
   const { archive: archiveConversation } = useArchiveConversationActions();
