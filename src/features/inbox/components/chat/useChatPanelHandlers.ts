@@ -45,6 +45,7 @@ interface UseChatPanelHandlersOptions {
 /** use Chat Panel Handlers component for the chat section. */
 export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const {
+    conversationId,
     contactId,
     contactPhone,
     instanceName,
@@ -67,10 +68,11 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   // Guarda content + attachments juntos: um envio só-mídia falho tem
   // messageContent === '' (falsy), então checar `!payload` sozinho fazia
   // retryLastSend virar no-op silencioso para esse caso.
-  const lastFailedSendRef = useRef<{ content: string; attachments?: File[] } | null>(null);
+  const lastFailedSendRef = useRef<{ content: string; attachments?: File[]; conversationId: string } | null>(null);
   const lastFailedAudioRef = useRef<{
     blob: Blob;
     onSendAudio: (blob: Blob) => Promise<void>;
+    conversationId: string;
   } | null>(null);
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
   const [sendProgress, setSendProgress] = useState(0);
@@ -297,7 +299,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           if (wasReply) setReplyToMessage(wasReply);
           toast({ title: 'Erro ao enviar sussurro', description: msg, variant: 'destructive' });
         } else {
-          lastFailedSendRef.current = { content: messageContent, attachments };
+          lastFailedSendRef.current = { content: messageContent, attachments, conversationId };
           setLastSendError(msg);
           setLastSendErrorDetail(detail);
           // Envio falhou de forma síncrona: zera a barra de progresso.
@@ -325,6 +327,16 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     if (isSendingRef.current) return;
     const audioPending = lastFailedAudioRef.current;
     if (audioPending) {
+      // Etapa 44: trava por conversa — evita reenviar áudio de A para B
+      if (audioPending.conversationId !== conversationId) {
+        toast({
+          title: 'Reenvio cancelado',
+          description: 'O áudio pendente pertence a outra conversa.',
+          variant: 'destructive',
+        });
+        lastFailedAudioRef.current = null;
+        return;
+      }
       setIsSending(true);
       setLastSendError(null);
       setLastSendErrorDetail(null);
@@ -350,6 +362,16 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     }
     const failedSend = lastFailedSendRef.current;
     if (!failedSend) return;
+    // Etapa 44: trava por conversa — evita reenviar mensagem de A para B
+    if (failedSend.conversationId !== conversationId) {
+      toast({
+        title: 'Reenvio cancelado',
+        description: 'A mensagem pendente pertence a outra conversa.',
+        variant: 'destructive',
+      });
+      lastFailedSendRef.current = null;
+      return;
+    }
     setIsSending(true);
     setLastSendError(null);
     setLastSendErrorDetail(null);
@@ -371,7 +393,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     } finally {
       setIsSending(false);
     }
-  }, [onSendMessage]);
+  }, [conversationId, onSendMessage]);
 
   const dismissSendError = useCallback(() => {
     setLastSendError(null);
@@ -402,7 +424,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           typeof (err as { detail?: string }).detail === 'string'
             ? (err as { detail: string }).detail
             : null;
-        lastFailedAudioRef.current = { blob: audioBlob, onSendAudio };
+        lastFailedAudioRef.current = { blob: audioBlob, onSendAudio, conversationId };
         lastFailedSendRef.current = null;
         setLastSendError(msg);
         setLastSendErrorDetail(detail);
