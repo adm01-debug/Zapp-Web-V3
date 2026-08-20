@@ -72,7 +72,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 const verifiedTotp = [{ id: 't1', status: 'verified', type: 'totp' }];
-const noFactors = [];
+const noFactors: { id: string; status: string; type: string }[] = [];
 
 describe('useAuthForm — E52 MFA fail-closed', () => {
   beforeEach(() => {
