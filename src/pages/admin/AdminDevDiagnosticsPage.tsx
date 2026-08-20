@@ -16,6 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Terminal, ShieldAlert, Activity, RefreshCw, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUserRole } from '@/features/auth/hooks/useUserRole';
+import { isDevBypassAllowed } from '@/lib/auth/devBypass';
 
 type DiagnosticLog = {
   id: string;
@@ -42,6 +43,8 @@ async function logAccess(dev: boolean) {
 export default function AdminDevDiagnosticsPage() {
   const { toast } = useToast();
   const { roles } = useUserRole();
+  // E51: página de diagnóstico visível em produção SÓ se ambiente allowlisted
+  const isDevEnvAllowed = isDevBypassAllowed();
   const [logs, setLogs] = useState<DiagnosticLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDev, setIsDev] = useState(false);
@@ -54,8 +57,8 @@ export default function AdminDevDiagnosticsPage() {
   }, []);
 
   useEffect(() => {
-    setIsDev(roles?.includes('dev') || false);
-  }, [roles]);
+    setIsDev((roles?.includes('dev') || false) && isDevEnvAllowed);
+  }, [roles, isDevEnvAllowed]);
 
   const loadLogs = useCallback(async () => {
     setLoading(true);
