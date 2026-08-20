@@ -25,12 +25,6 @@ import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { requireUser } from "../_shared/auth.ts";
 
-/**
- * revoke-session@v1 — gestão de sessões ativas (Etapa 56 do plano 100 etapas).
- * Dono revoga as próprias sessões; admin/supervisor pode revogar de outros
- * (o RPC sessions_revoke revalida a autorização internamente — SECURITY DEFINER).
- * Sessão inexistente/já revogada → 404 idempotente (nunca 5xx).
- */
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
