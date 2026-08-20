@@ -1,6 +1,11 @@
 # FEATURE REGISTRY — ZAPP-WEB-V3
 **Auditoria Funcional Completa · 2026-08-06**
 
+> 📌 **CANÔNICO (2026-08-20, Hermes):** Este arquivo é a ÚNICA fonte de verdade do
+> feature registry. Os artefatos `feature_registry.csv` e `feature_registry.json`
+> foram removidos por serem gerações redundantes e divergentes. Não recrie-os sem
+> sincronizar aqui primeiro.
+
 > **Legenda:**
 > - ✅ **Full** — UI + hook/service + objeto DB + grant + fio íntegro
 > - 🟨 **Partial** — ≥1 camada real, mas falta algo (stub, fio quebrado, sem UI, flag OFF)
