@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: 'Branch alvo'
+        description: 'Branch base (types são gerados do schema self-hosted)'
         required: false
         default: 'main'
       schemas:
@@ -50,18 +50,44 @@ jobs:
             git diff --stat src/integrations/supabase/types.ts
           fi
 
-      - name: Commit types.ts
+      - name: Create branch and commit
         if: steps.diff.outputs.changed == 'true'
+        id: commit
         run: |
+          BRANCH="chore/regen-types-$(date +%Y%m%d-%H%M%S)"
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
           git add src/integrations/supabase/types.ts
           git commit -m "chore(types): regenerate zapp/evo types [gen-types-zapp workflow]
 
-          Schemas: ${{ github.event.inputs.schemas || 'public,zapp,evo' }}
-          Triggered by: ${{ github.actor }}
-          Workflow: ${{ github.run_id }}"
-          git push origin ${{ github.event.inputs.branch || 'main' }}
+Schemas: ${{ github.event.inputs.schemas || 'public,zapp,evo' }}
+Triggered by: ${{ github.actor }}
+Workflow run: ${{ github.run_id }}"
+          git push origin "$BRANCH"
+
+      - name: Create PR and auto-merge
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ steps.commit.outputs.branch }}"
+          PR_URL=$(gh pr create \
+            --base "${{ github.event.inputs.branch || 'main' }}" \
+            --head "$BRANCH" \
+            --title "chore(types): regenerate zapp/evo types [$(date +%Y-%m-%d)]" \
+            --body "Geração automática de \`types.ts\` via workflow \`gen-types-zapp\`.
+
+**Schemas:** \`${{ github.event.inputs.schemas || 'public,zapp,evo' }}\`
+**Triggered by:** \`${{ github.actor }}\`
+**Run:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+> Auto-merge via squash será executado imediatamente.")
+          echo "PR created: $PR_URL"
+          # Auto-merge squash (requer branch protection configurado para aceitar)
+          gh pr merge "$BRANCH" --squash --auto --delete-branch
+          echo "Auto-merge requested (squash)"
 
       - name: No changes
         if: steps.diff.outputs.changed == 'false'
