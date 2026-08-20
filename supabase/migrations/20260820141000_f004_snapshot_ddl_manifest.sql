@@ -1,0 +1,10 @@
+-- F-004 (PLANO-100 B3) — snapshot DDL canônico zapp + evo (2026-08-20)
+-- Arquivos: supabase/schema-snapshots/{zapp,evo}_ddl_20260820.sql
+--   zapp: 3.55 MB (391 tabelas, 1.157 funcoes, 272 comentarios novos)
+--   evo:  1.08 MB (67 tabelas, 101 funcoes)
+--
+-- NOTA: snapshots gerados via pg_dump --schema-only nos containers de producao.
+-- Nao inclui grants nem dados.
+--
+-- Migration F-003 (sentinel versioning): 20260820140000
+-- Migration F-008 (comments): 20260820130000

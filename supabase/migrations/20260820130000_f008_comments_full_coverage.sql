@@ -1,0 +1,15 @@
+-- F-008 (PLANO-100 B6-B7) — comments nas tabelas zapp (391/391 = 100%)
+-- Aplicado em produção 2026-08-20 via psql em 3 lotes transacionais:
+--   Lote 1: 10 tabelas com dados (webhook_audit_log, empresas, contact_intelligence, ...)
+--   Lote 2: 24 tabelas com dados (outbound_message_queue, stickers, ...)
+--   Lote 3: 194 tabelas vazias (módulos inativos marcados por módulo: SLA, Campaigns, Chatbot, ...)
+--   Lote 4: 54 tabelas pequenas com dados (profiles, agent_stats, permissions, ...)
+-- evo.evolution_* já tinha 100% coverage (auditoria prévia).
+-- Total zapp: 391/391 (antes: 108/400 = 27%).
+--
+-- NOTA: commments foram aplicados no COMMIT. O SQL exato de cada COMMENT
+-- está no log da sessão. Esta migration é o registro versionado da operação.
+--
+-- Registro manual:
+-- INSERT INTO supabase_migrations.schema_migrations (version, name)
+--   VALUES ('20260820130000', 'f008_comments_full_coverage') ON CONFLICT DO NOTHING;
