@@ -145,6 +145,48 @@ export type ConversationSendState = 'idle' | 'retrying' | 'failed';
 
 export function useRealtimeMessages() {
   const queryClient = useQueryClient();
+
+  // ── Invalidação COALESCIDA do cache do painel de conversa ────────────────
+  // RCA 2026-08-20 (saturação da fila): invalidar ['conversation-messages']
+  // inteiro POR EVENTO do fanout detonava um refetch de 1000 linhas a cada
+  // evento. O trigger trg_rt_fanout é FOR EACH ROW: um markAsRead que toca
+  // ~970 mensagens gera ~970 eventos em segundos → ~970 cancel+refetch →
+  // fila do semáforo no cap (80) → TODAS as requests do app dropadas
+  // (SupabaseQueueSaturatedError em cascata; log de prod 22:26:36Z).
+  // Agora: acumula contactIds afetados e invalida SÓ as queries desses
+  // contatos, uma vez por janela — rajada de N eventos vira 1 refetch.
+  const CONVERSATION_CACHE_INVALIDATE_MS = 2_000;
+  const pendingCacheInvalidateRef = useRef<Set<string>>(new Set());
+  const cacheInvalidateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleConversationCacheInvalidation = useCallback(
+    (contactId: string | null | undefined) => {
+      if (!contactId) return;
+      pendingCacheInvalidateRef.current.add(contactId);
+      if (cacheInvalidateTimerRef.current !== null) return; // janela já agendada
+      cacheInvalidateTimerRef.current = setTimeout(() => {
+        cacheInvalidateTimerRef.current = null;
+        const ids = Array.from(pendingCacheInvalidateRef.current);
+        pendingCacheInvalidateRef.current = new Set();
+        for (const id of ids) {
+          void queryClient.invalidateQueries({ queryKey: ['conversation-messages', id] });
+        }
+      }, CONVERSATION_CACHE_INVALIDATE_MS);
+    },
+    [queryClient]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (cacheInvalidateTimerRef.current !== null) {
+        clearTimeout(cacheInvalidateTimerRef.current);
+        cacheInvalidateTimerRef.current = null;
+      }
+      pendingCacheInvalidateRef.current = new Set();
+    };
+  }, []);
+  // ─────────────────────────────────────────────────────────────────────────
+
   const [conversations, setConversations] = useState<ConversationWithMessages[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -468,30 +510,12 @@ export function useRealtimeMessages() {
     [commitConversations, hydrateConversationForMessage, notifyAboutIncomingMessage]
   );
 
-  // Reage a um DELETE real na tabela messages (ex.: moderação via
-  // useMonitoringActions). Na fonte evo.evolution_messages a replica identity
-  // é default (payload.old só traz a PK) — a guarda abaixo já cobre old
-  // incompleto. Recalcula a conversa inteira via buildConversation para manter
-  // lastMessage/unreadCount consistentes, sem reordenar a lista.
-  const handleMessageDelete = useCallback(
-    (payload: RealtimePostgresChangesPayload<RealtimeMessage>) => {
-      const deletedMessage = payload.old as RealtimeMessage;
-      if (!deletedMessage?.id || !deletedMessage?.contact_id) return;
-
-      commitConversations((prev) => {
-        const idx = prev.findIndex((c) => c.contact.id === deletedMessage.contact_id);
-        if (idx < 0) return prev;
-        const conv = prev[idx];
-        if (!conv.messages.some((m) => m.id === deletedMessage.id)) return prev;
-
-        const remainingMessages = conv.messages.filter((m) => m.id !== deletedMessage.id);
-        const updated = [...prev];
-        updated[idx] = buildConversation(conv.contact, remainingMessages);
-        return updated;
-      });
-    },
-    [commitConversations]
-  );
+  // RCA 2026-08-20: o handler de DELETE do fanout foi REMOVIDO. O canal não
+  // assina mais DELETE em zapp.realtime_message_fanout — o único DELETE nessa
+  // tabela é a purga do cron rt-fanout-ttl (manutenção do espelho). Com
+  // REPLICA IDENTITY FULL e id igual ao da mensagem, cada purga chegava como
+  // "mensagem apagada" e o antigo handleMessageDelete removia mensagens REAIS
+  // da UI. Deleção real chega como UPDATE com deleted_at → is_deleted.
 
   // F4-01: fetch inicial com cursor — página 1 de contatos (updated_at+id) e
   // de mensagens recentes (created_at+id) em PARALELO (antes: 500 contatos +
@@ -646,8 +670,6 @@ export function useRealtimeMessages() {
   handleNewMessageRef.current = handleNewMessage;
   const handleMessageUpdateRef = useRef(handleMessageUpdate);
   handleMessageUpdateRef.current = handleMessageUpdate;
-  const handleMessageDeleteRef = useRef(handleMessageDelete);
-  handleMessageDeleteRef.current = handleMessageDelete;
   // ───────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -661,7 +683,6 @@ export function useRealtimeMessages() {
     const channelName = 'messages-realtime'; // F4-03: nome determinístico — 1 channel estável por sessão (sem Math.random() no nome)
     logMessagesSubscribe('useRealtimeMessages', { event: 'INSERT', table: dbTable('messages') });
     logMessagesSubscribe('useRealtimeMessages', { event: 'UPDATE', table: dbTable('messages') });
-    logMessagesSubscribe('useRealtimeMessages', { event: 'DELETE', table: dbTable('messages') });
 
     // Fanout (Realtime v2 não entrega partições): assina o ESPELHO zapp.realtime_message_fanout.
     // Fanout v2 (2026-08-17): o espelho ganhou from_me/deleted_at/contact_id/status —
@@ -696,11 +717,13 @@ export function useRealtimeMessages() {
               // Use ref to avoid stale closure and prevent re-subscription on handler changes
               (p: RealtimePostgresChangesPayload<RealtimeMessage>) => handleNewMessageRef.current(p)
             )(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
-          // QA12-GAP1: invalida o cache compartilhado do painel de conversa
-          // (['conversation-messages', contactId]) — History/NBA/Stats ficavam
-          // com a última mensagem STALE até o staleTime (30s) ou reopen.
+          // QA12-GAP1 + RCA 2026-08-20: invalidação DIRECIONADA (só o contato
+          // do evento) e COALESCIDA (1 janela p/ rajadas) — invalidar o prefixo
+          // inteiro por evento saturava a fila do semáforo (ver coalescer acima).
           if (active) {
-            queryClient.invalidateQueries({ queryKey: ['conversation-messages'] });
+            scheduleConversationCacheInvalidation(
+              (payload.new as { contact_id?: string | null } | null)?.contact_id
+            );
           }
         }
       )
@@ -718,33 +741,23 @@ export function useRealtimeMessages() {
               (p: RealtimePostgresChangesPayload<RealtimeMessage>) =>
                 handleMessageUpdateRef.current(p)
             )(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
-          // QA12-GAP1: mesmo motivo do INSERT — UPDATE de mensagem (status/
-          // conteúdo) deve refletir no cache do painel.
+          // QA12-GAP1 + RCA 2026-08-20: direcionada + coalescida (ver INSERT).
           if (active) {
-            queryClient.invalidateQueries({ queryKey: ['conversation-messages'] });
+            scheduleConversationCacheInvalidation(
+              (payload.new as { contact_id?: string | null } | null)?.contact_id
+            );
           }
         }
       )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'zapp',
-          table: 'realtime_message_fanout',
-        },
-        (payload) => {
-          if (active)
-            wrapMessagesHandler(
-              'useRealtimeMessages',
-              (p: RealtimePostgresChangesPayload<RealtimeMessage>) =>
-                handleMessageDeleteRef.current(p)
-            )(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
-          // QA12-GAP1: DELETE de mensagem também deve refletir no cache do painel.
-          if (active) {
-            queryClient.invalidateQueries({ queryKey: ['conversation-messages'] });
-          }
-        }
-      )
+      // RCA 2026-08-20: NÃO assinar DELETE do espelho realtime_message_fanout.
+      // O único DELETE nessa tabela é o cron de manutenção rt-fanout-ttl (purga
+      // do espelho), NUNCA uma deleção de mensagem — o trigger trg_rt_fanout só
+      // espelha INSERT/UPDATE da origem. Com REPLICA IDENTITY FULL + id igual
+      // ao da mensagem, cada purga chegava aqui como "mensagem apagada" e
+      // handleMessageDelete REMOVIA mensagens reais da UI a cada 5 minutos
+      // (22:30:00Z: DELETE 972 → 972 eventos fantasma p/ todos os clientes).
+      // Deleção real de mensagem chega como UPDATE com deleted_at (mapeado
+      // p/ is_deleted em adaptEvoPayload) e é tratada pelo handler de UPDATE.
       .subscribe((status) => {
         if (!active) return;
         if (status === 'SUBSCRIBED') {
