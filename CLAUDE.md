@@ -2,6 +2,8 @@
 ---
 
 ## OBRIGATORIO: leia antes de qualquer acao
+
+> **Regra de commits (multi-agente):** Commits de codigo, docs ou config vao pelo container VPS (stack 122, claude-code). Sessao de chat nunca faz git push direto no main - causa rebases competitivos com a sessao VPS. Use portainer_exec_container para delegar. Politica canonica: HERMES.md.
 > Para agentes Hermes: leia tambem [`HERMES.md`](./HERMES.md) para regras especificas de execucao paralela e estado do framework.
 
 **1. Leia ESTADO.md (raiz do repo) antes de qualquer mudanca.**
