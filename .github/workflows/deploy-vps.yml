@@ -288,6 +288,14 @@ jobs:
                   - traefik.http.routers.zappweb.entrypoints=websecure
                   - traefik.http.routers.zappweb.tls.certresolver=letsencryptresolver
                   - traefik.http.routers.zappweb.tls=true
+                  # Router www.zappweb.app.br (deploy-fix 2026-08-20) — inline p/ sobreviver a redeploys.
+                  - "traefik.http.routers.zappweb-www.rule=Host(`www.zappweb.app.br`)"
+                  - traefik.http.services.zappweb-www.loadbalancer.server.port=80
+                  - traefik.http.routers.zappweb-www.service=zappweb-www
+                  - traefik.http.routers.zappweb-www.entrypoints=websecure
+                  - traefik.http.routers.zappweb-www.tls.certresolver=letsencryptresolver
+                  - traefik.http.routers.zappweb-www.tls=true
+                  - traefik.http.routers.zappweb-www.middlewares=crowdsec-bouncer@docker
                   - com.centurylinklabs.watchtower.enable=false
                   - traefik.http.routers.zapp-prod.middlewares=crowdsec-bouncer@docker
                   - traefik.http.routers.zappweb.middlewares=crowdsec-bouncer@docker
@@ -349,7 +357,7 @@ jobs:
           # Nunca remove imagens tagadas (ativas ou rollback) — apenas <none>.
           # Contexto: cada deploy pode deixar manifests órfãos de 50-120 MB.
           docker image prune -f
-          echo "Imagens pos-prune:"
+          echo "Imagens pos-prund:"
           docker system df 2>&1 | grep Images
 
   # ============================================================
