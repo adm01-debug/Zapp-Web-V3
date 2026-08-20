@@ -10,7 +10,7 @@ import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
  * @param buffer - Binary data to encode
  * @returns Base64url-encoded string (no padding)
  */
-function base64URLEncode(buffer: ArrayBuffer): string {
+function base64URLEncode(buffer: ArrayBufferLike): string {
   const bytes = new Uint8Array(buffer);
   let str = '';
   for (let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);

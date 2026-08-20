@@ -75,7 +75,7 @@ Deno.serve(async (req: Request) => {
     if (issues.length > 0 && sentryReady) {
       await captureMessage(
         `[${status.toUpperCase()}] DB Health issues: ${issues.join('; ')}`,
-        status === 'critical' ? 'error' : 'warning',
+        'warning' as const,
         { functionName: 'db-health-monitor', tags: { status } }
       );
     }

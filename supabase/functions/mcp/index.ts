@@ -33,7 +33,7 @@ var whoami_default = defineTool({
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z } from "npm:zod@^4.4.3";
-function supabaseForUser(ctx) {
+function supabaseForUser(ctx: any) {
   return createClient(
     Deno.env.get("SELFHOSTED_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SELFHOSTED_SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -71,7 +71,7 @@ var list_connections_default = defineTool2({
 import { createClient as createClient2 } from "npm:@supabase/supabase-js@2.49.1";
 import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z2 } from "npm:zod@^4.4.3";
-function supabaseForUser2(ctx) {
+function supabaseForUser2(ctx: any) {
   return createClient2(
     Deno.env.get("SELFHOSTED_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SELFHOSTED_SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -130,7 +130,7 @@ import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 const _mcpHandler = createSupabaseHandler(mcp_default, { functionName: "mcp" });
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   // Contrato mcp@v1 (G4): gate apenas para chamadas sem body (GET/health check).
   // POSTs JSON-RPC do protocolo MCP (com body) são roteados intactos para o handler.
   if (req.body === null) {

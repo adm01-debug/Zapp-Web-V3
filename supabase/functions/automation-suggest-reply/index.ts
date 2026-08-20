@@ -315,7 +315,7 @@ Deno.serve(async (req) => {
       kbSources = sources;
 
       const validTags = tags
-        .filter((t): t is Record<string, unknown> => typeof t === 'object' && t !== null && !Array.isArray(t))
+        .filter((t): t is ExtTag => typeof t === 'object' && t !== null && !Array.isArray(t))
         .map(t => ({
           name: typeof t.name === 'string' ? t.name : '',
           description: typeof t.description === 'string' ? t.description : '',

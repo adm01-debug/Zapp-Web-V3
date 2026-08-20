@@ -77,11 +77,11 @@ Deno.serve(async (req) => {
     }
 
     if (action === "textToSpeech") {
-      const text: string = body?.text ?? "";
-      const voiceId: string = body?.voiceId ?? "";
+      const text = String(body?.text ?? "");
+      const voiceId = String(body?.voiceId ?? "");
       if (!text || !voiceId) return errorResponse("'text' e 'voiceId' são obrigatórios.", 400, req);
 
-      const s = body?.settings ?? {};
+      const s = (body?.settings ?? {}) as Record<string, unknown>;
       // Normalize settings: UI may send snake_case (similarity_boost, use_speaker_boost)
       // or camelCase (similarityBoost, useSpeakerBoost) depending on the caller version
       const similarityBoost = s.similarityBoost ?? s.similarity_boost;
