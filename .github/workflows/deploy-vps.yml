@@ -91,8 +91,9 @@ jobs:
           docker rm -f prev-zapp 2>/dev/null || true
           if docker pull ghcr.io/${{ env.IMAGE_NAME }}:production-latest 2>/dev/null; then
             docker create --name prev-zapp ghcr.io/${{ env.IMAGE_NAME }}:production-latest
-            # docker cp cria /tmp/prev-assets/assets/ — movemos o conteudo interno
-            docker cp prev-zapp:/usr/share/nginx/html/assets /tmp/prev-assets 2>/dev/null || true
+            mkdir -p /tmp/prev-assets
+            # Usar src/. garante copia de CONTEUDO (nunca cria assets/ aninhado)
+            docker cp prev-zapp:/usr/share/nginx/html/assets/. /tmp/prev-assets/ 2>/dev/null || true
             docker rm prev-zapp 2>/dev/null || true
             if [ -d /tmp/prev-assets ]; then
               cp -r /tmp/prev-assets/. ./previous-assets/
