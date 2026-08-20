@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,8 +15,7 @@ import {
 import { Download, Activity, Clock, Zap, Inbox, Database } from 'lucide-react';
 import { format } from 'date-fns';
 import { getLogger } from '@/lib/logger';
-import { supabase } from '@/integrations/supabase/client';
-import { queryKeys } from '@/services/api/queryKeys';
+import { useTeamPerformance } from '@/features/inbox/hooks/team-chat';
 
 const log = getLogger('TeamPerformancePanel');
 
@@ -45,26 +43,7 @@ interface SeriesPoint {
  * O painel não inventa esses números; quando a coleta existir, ela entra aqui.
  */
 export function TeamPerformancePanel({ conversationId }: Props) {
-  const {
-    data: messages,
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: queryKeys.teamChat.performance(conversationId),
-    queryFn: async () => {
-      const since = new Date(Date.now() - WINDOW_MINUTES * 60_000).toISOString();
-      const { data, error } = await supabase
-        .from('team_messages')
-        .select('id, created_at, status')
-        .eq('conversation_id', conversationId)
-        .gte('created_at', since)
-        .order('created_at', { ascending: true })
-        .limit(2000);
-      if (error) throw error;
-      return data ?? [];
-    },
-    staleTime: 30_000,
-  });
+  const { data: messages, isLoading, isError } = useTeamPerformance(conversationId);
 
   const metrics = useMemo(() => {
     const rows = messages ?? [];
