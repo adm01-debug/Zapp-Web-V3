@@ -149,7 +149,12 @@ const SUPABASE_FETCH_TIMEOUT_MS = 12_000;
 // Cleanup: beforeunload aborta todos os controllers pendentes para evitar
 // memory leak por fetches órfãos em SPAs com navegação rápida.
 // ---------------------------------------------------------------------------
-const MAX_CONCURRENT = 6; // requests simultâneos (não-auth)
+// RCA 2026-08-20: alinhado ao SUPABASE_MAX_CONCURRENT (8). Com 6 aqui e 8 no
+// semáforo do retryFetch, 2 slots do semáforo externo ficavam SEMPRE presos
+// esperando este gate interno — a concorrência real era 6, não 8, e a fila
+// externa drenava mais devagar exatamente durante saturação. Um único limite
+// (8) vale para os dois estágios; o dreno de 80ms continua suavizando rajadas.
+const MAX_CONCURRENT = 8; // requests simultâneos (não-auth) — manter == SUPABASE_MAX_CONCURRENT
 const CONCURRENT_DRAIN_DELAY_MS = 80; // ms entre cada dreno da fila
 
 // Cooldown global de rate-limit — após um 429, pausa novas aquisições de

@@ -93,7 +93,7 @@ ou de ligar algo intencionalmente desligado.
 
 1. **SEMPRE usar `schema: 'zapp'`** — o cliente Supabase já está configurado com isso em `src/integrations/supabase/client.ts`. Não trocar para `public`.
 
-2. **Para dados Evolution (mensagens/contatos/conversas)**: usar o cliente padrão (`supabase.from('evolution_messages')` etc.). **TOPOLOGIA ATUAL (migração evo→zapp; corrigido 2026-08-15 — fonte de verdade: `docs/decouple/ANALISE_FRONTEIRA_EVO_ZAPP_20260815.md`, ver issue #1098):** `zapp.evolution_messages` e `zapp.evolution_conversations` são as **tabelas físicas particionadas** e `zapp.evolution_contacts` é **tabela física** — NÃO são views. `evo.evolution_messages`, `evo.evolution_contacts` e `evo.evolution_conversations` **NÃO EXISTEM** (`evo.evolution_messages_v2` é uma view que lê `zapp`). NÃO usar `.schema('evo')` para dado de negócio: `evo` não está exposto no PostgREST (retorna `PGRST205`) e hoje contém apenas operação/monitoria/mídia/LID.
+2. **Para dados Evolution (mensagens/contatos/conversas)**: usar o cliente padrão (`supabase.from('evolution_messages')` etc.). **TOPOLOGIA ATUAL (migração evo→zapp; corrigido 2026-08-15 — fonte de verdade: `docs/decouple/ANALISE_FRONTEIRA_EVO_ZAPP_20260815.md`, ver issue #1098):** `zapp.evolution_messages` e `zapp.evolution_conversations` são as **tabelas físicas particionadas**. `zapp.evolution_contacts` é uma **VIEW auto-updatable** (security_invoker=on) que aponta para `evo.evolution_contacts` — a tabela **física** é `evo.evolution_contacts` (14 MB, 22.351 linhas; auditado 2026-08-20 via `pg_class`). `evo.evolution_messages` e `evo.evolution_conversations` **NÃO EXISTEM** (`evo.evolution_messages_v2` é uma view que lê `zapp`). NÃO usar `.schema('evo')` para dado de negócio: `evo` não está exposto no PostgREST (retorna `PGRST205`) e hoje contém apenas operação/monitoria/mídia/LID.
 
 3. **PostgREST**: sem o header `Accept-Profile: zapp`, queries falham com `PGRST205`.
 
@@ -132,7 +132,7 @@ ou de ligar algo intencionalmente desligado.
 | Tabela | Função |
 |--------|--------|
 | ~~`evolution_messages`~~ | **MOVIDA para `zapp`** (migração evo→zapp) — em `evo` só existe a view `evolution_messages_v2` → `zapp.evolution_messages` |
-| ~~`evolution_contacts`~~ | **MOVIDA para `zapp`** — `zapp.evolution_contacts` é a tabela física |
+| `evolution_contacts` | **TABELA FÍSICA** em `evo` (14 MB, 22.351 linhas; auditado 2026-08-20 via `pg_class`) — `zapp.evolution_contacts` é VIEW auto-updatable (security_invoker=on) que aponta para cá |
 | ~~`evolution_conversations`~~ | **MOVIDA para `zapp`** — raiz particionada física em `zapp` |
 | `evolution_webhook_events_v2_*` | Webhooks particionados por mês (2026-03 a 2027-06 + default) |
 | `evolution_media` | Mídias (23.366, 10 MB) |
