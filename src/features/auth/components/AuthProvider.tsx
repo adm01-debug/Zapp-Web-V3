@@ -11,6 +11,7 @@ import {
   withSupabaseHighPriority,
 } from '@/integrations/supabase/client';
 import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
+import { clearCrmConfigCache } from '@/hooks/useSyncToCRM';
 import { verifyHttpOnlyCookieAuth } from '@/integrations/supabase/cookieStorage';
 
 // ---------------------------------------------------------------------------
@@ -648,6 +649,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === 'SIGNED_OUT') {
         invalidateUserCache();
         clearAuthDataCaches();
+        clearCrmConfigCache(); // evita config stale em login de outro usuario
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         invalidateUserCache();
       }

@@ -72,6 +72,12 @@ let _crmConfigCache: { value: boolean | null; fetchedAt: number } | null = null;
 let _crmConfigInflight: Promise<boolean | null> | null = null;
 const CRM_CONFIG_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 
+/** Limpa o cache de config de CRM — chamar no SIGNED_OUT para evitar stale cross-user. */
+export function clearCrmConfigCache(): void {
+  _crmConfigCache = null;
+  _crmConfigInflight = null;
+}
+
 /** Le a config de CRM via RPC versionada — estado honesto ja no mount. */
 async function fetchCrmConfigured(): Promise<boolean | null> {
   // Cache hit: dados frescos (< 5min) — nao dispara RPC.
