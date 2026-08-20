@@ -61,21 +61,46 @@ export interface UseSyncToCRMReturn {
   syncConversationAsync: (input: SyncConversationInput) => Promise<SyncConversationResult>;
 }
 
-/** Lê a config de CRM via RPC versionada — estado honesto já no mount. */
+// Cache module-level de rpc_get_crm_sync_config.
+// Sem cache, cada componente montado chama a RPC no mount. Em uma tela com
+// 10+ conversas, cada uma monta useSyncToCRM, disparando 10+ RPCs identicas
+// no mesmo microtask (N+1 storm). O cache persiste por 5min (dados quasi-
+// estaticos: config de integracao raramente muda).
+// Inflight dedup: multiplas montagens simultaneas compartilham a MESMA
+// promise em voo — apenas 1 RPC dispara no intervalo do cache.
+let _crmConfigCache: { value: boolean | null; fetchedAt: number } | null = null;
+let _crmConfigInflight: Promise<boolean | null> | null = null;
+const CRM_CONFIG_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+
+/** Le a config de CRM via RPC versionada — estado honesto ja no mount. */
 async function fetchCrmConfigured(): Promise<boolean | null> {
-  // Usa `as any` na fronteira porque rpc_get_crm_sync_config pode ainda não
-  // estar tipada nos types gerados.
-  const { data, error } = await (
-    supabase.rpc as unknown as (fn: string) => Promise<{ data: unknown; error: unknown }>
-  )('rpc_get_crm_sync_config');
-  if (error) {
-    // RPC indisponível (migration não aplicada) ou erro de rede: desconhecido;
-    // a 1ª resposta da edge resolve o estado honestamente.
-    log.warn('rpc_get_crm_sync_config failed', error as { message?: string });
-    return null;
+  // Cache hit: dados frescos (< 5min) — nao dispara RPC.
+  if (_crmConfigCache && Date.now() - _crmConfigCache.fetchedAt < CRM_CONFIG_CACHE_TTL_MS) {
+    return _crmConfigCache.value;
   }
-  const rows = Array.isArray(data) ? (data as Array<{ enabled?: boolean }>) : [];
-  return rows.some((r) => r?.enabled === true);
+  // Inflight dedup: se ja ha uma RPC em voo, aguarda a mesma promise.
+  if (_crmConfigInflight) return _crmConfigInflight;
+
+  const run = (async (): Promise<boolean | null> => {
+    try {
+      const { data, error } = await (
+        supabase.rpc as unknown as (fn: string) => Promise<{ data: unknown; error: unknown }>
+      )('rpc_get_crm_sync_config');
+      if (error) {
+        log.warn('rpc_get_crm_sync_config failed', error as { message?: string });
+        return null;
+      }
+      const rows = Array.isArray(data) ? (data as Array<{ enabled?: boolean }>) : [];
+      const value = rows.some((r) => r?.enabled === true);
+      _crmConfigCache = { value, fetchedAt: Date.now() };
+      return value;
+    } finally {
+      _crmConfigInflight = null;
+    }
+  })();
+
+  _crmConfigInflight = run;
+  return run;
 }
 
 /** Extrai o reason do body de erro da edge (4xx/5xx ainda carregam o contrato). */
@@ -119,7 +144,9 @@ async function callSyncEdge(input: SyncConversationInput): Promise<SyncConversat
     return { synced: false, reason: 'error' };
   }
 
-  const result = (data && typeof data === 'object' ? data : { synced: false }) as SyncConversationResult;
+  const result = (
+    data && typeof data === 'object' ? data : { synced: false }
+  ) as SyncConversationResult;
   return { ...result, synced: !!result.synced };
 }
 

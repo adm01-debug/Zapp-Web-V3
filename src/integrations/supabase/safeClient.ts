@@ -31,7 +31,7 @@ interface DynamicSupabaseClient {
   from(t: string): {
     select(
       columns: string,
-      opts?: { count?: 'exact' | 'planned' | 'estimated'; head?: boolean },
+      opts?: { count?: 'exact' | 'planned' | 'estimated'; head?: boolean }
     ): { limit: (n: number) => Promise<{ data: unknown; error: PostgrestError | null }> };
     select(columns: string): Promise<{ data: unknown; error: PostgrestError | null }>;
   };
@@ -307,9 +307,16 @@ export const safeClient = {
     const maskedDetail = this.maskSensitiveData(detail);
     const meta: Record<string, unknown> = { requestId };
     if (maskedDetail != null) meta['detail'] = maskedDetail;
-    if (level === 'error') _log.error(`${message}`, meta);
-    else if (level === 'warn') _log.warn(`${message}`, meta);
-    else _log.info(`${message}`, meta);
+    // AbortError: Page unload e ruido esperado — dispara em TODA navegacao de
+    // pagina (SPA unmount + beforeunload aborta fetches em voo). Logado como
+    // warn em vez de error para nao poluir o Sentry/console com false positives.
+    const isPageUnloadAbort =
+      level === 'error' &&
+      (detail as { message?: string } | null)?.message?.toLowerCase().includes('page unload');
+    const effectiveLevel = isPageUnloadAbort ? 'warn' : level;
+    if (effectiveLevel === 'error') _log.error(message, meta);
+    else if (effectiveLevel === 'warn') _log.warn(message, meta);
+    else _log.info(message, meta);
   },
 
   maskSensitiveData(data: unknown): unknown {

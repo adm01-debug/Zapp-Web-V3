@@ -8,6 +8,7 @@ import {
   supabase,
   SUPABASE_RESOLVED_URL,
   getSupabaseSemaphoreState,
+  withSupabaseHighPriority,
 } from '@/integrations/supabase/client';
 import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
 import { verifyHttpOnlyCookieAuth } from '@/integrations/supabase/cookieStorage';
@@ -203,74 +204,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [bootstrapError, setBootstrapError] = useState<'timeout' | 'offline' | null>(null);
   const [bootstrapElapsedMs, setBootstrapElapsedMs] = useState<number | null>(null);
 
-  const fetchProfile = useCallback(
-    async (userId: string, signal?: AbortSignal, force = false) => {
-      // Cache TTL (5min): eventos de auth em rajada e remounts não repetem o
-      // GET profiles?select=*&user_id=... — dados quase-estáticos.
-      if (
-        !force &&
-        profileCache &&
-        profileCache.userId === userId &&
-        Date.now() - profileCache.fetchedAt < AUTH_DATA_CACHE_TTL_MS
-      ) {
-        setProfile(profileCache.data);
-        return;
-      }
-      // Single-flight: joiner aguarda a MESMA promise do iniciador. Se o
-      // iniciador foi abortado (refreshAll mais novo), o joiner re-tenta com
-      // o próprio signal — nunca fica sem o fetch. Em force=true (ex.: UPDATE
-      // via realtime) NÃO deduplicar: o fetch em voo pode ter começado ANTES
-      // da mudança e retornaria dado velho (R3 regression review da onda).
-      const existing = profileInflight.get(userId);
-      if (existing && !force) {
-        const outcome = await existing;
-        if (outcome !== 'aborted') return;
-      }
+  const fetchProfile = useCallback(async (userId: string, signal?: AbortSignal, force = false) => {
+    // Cache TTL (5min): eventos de auth em rajada e remounts não repetem o
+    // GET profiles?select=*&user_id=... — dados quase-estáticos.
+    if (
+      !force &&
+      profileCache &&
+      profileCache.userId === userId &&
+      Date.now() - profileCache.fetchedAt < AUTH_DATA_CACHE_TTL_MS
+    ) {
+      setProfile(profileCache.data);
+      return;
+    }
+    // Single-flight: joiner aguarda a MESMA promise do iniciador. Se o
+    // iniciador foi abortado (refreshAll mais novo), o joiner re-tenta com
+    // o próprio signal — nunca fica sem o fetch. Em force=true (ex.: UPDATE
+    // via realtime) NÃO deduplicar: o fetch em voo pode ter começado ANTES
+    // da mudança e retornaria dado velho (R3 regression review da onda).
+    const existing = profileInflight.get(userId);
+    if (existing && !force) {
+      const outcome = await existing;
+      if (outcome !== 'aborted') return;
+    }
 
-      const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
-      const timeoutMs = getProfileTimeoutMs();
-      const run = (async (): Promise<FetchOutcome> => {
-        try {
-          const { data, error } = await withTimeout(
-            authService.getProfile(userId, signal),
-            timeoutMs,
-            'getProfile'
+    const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const timeoutMs = getProfileTimeoutMs();
+    const run = (async (): Promise<FetchOutcome> => {
+      try {
+        const { data, error } = await withTimeout(
+          authService.getProfile(userId, signal),
+          timeoutMs,
+          'getProfile'
+        );
+        const elapsedMs = Math.round(
+          (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
+        );
+        // Perfil lento (>5s) é sintoma de semáforo saturado ou backend degradado —
+        // warn (não error) para debug futuro sem poluir o console de erro.
+        if (elapsedMs > PROFILE_SLOW_WARN_THRESHOLD_MS) {
+          log.warn(
+            `[Auth] getProfile lento (${elapsedMs}ms; timeout=${timeoutMs}ms; semáforo=${JSON.stringify(
+              getSupabaseSemaphoreState()
+            )})`
           );
-          const elapsedMs = Math.round(
-            (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
-          );
-          // Perfil lento (>5s) é sintoma de semáforo saturado ou backend degradado —
-          // warn (não error) para debug futuro sem poluir o console de erro.
-          if (elapsedMs > PROFILE_SLOW_WARN_THRESHOLD_MS) {
-            log.warn(
-              `[Auth] getProfile lento (${elapsedMs}ms; timeout=${timeoutMs}ms; semáforo=${JSON.stringify(
-                getSupabaseSemaphoreState()
-              )})`
-            );
-          }
-          if (error || !data) {
-            if ((error as { name?: string } | null)?.name === 'AbortError') return 'aborted';
-            log.error('[Auth] Failed to fetch profile for user:', userId, error);
-            return 'failed';
-          }
-          profileCache = { userId, data, fetchedAt: Date.now() };
-          setProfile(data);
-          return 'ok';
-        } catch (err: unknown) {
-          if ((err as Error)?.name === 'AbortError') return 'aborted';
-          log.error('[Auth] Failed to fetch profile for user:', userId, err);
+        }
+        if (error || !data) {
+          if ((error as { name?: string } | null)?.name === 'AbortError') return 'aborted';
+          log.error('[Auth] Failed to fetch profile for user:', userId, error);
           return 'failed';
         }
-      })();
-      profileInflight.set(userId, run);
-      try {
-        await run;
-      } finally {
-        if (profileInflight.get(userId) === run) profileInflight.delete(userId);
+        profileCache = { userId, data, fetchedAt: Date.now() };
+        setProfile(data);
+        return 'ok';
+      } catch (err: unknown) {
+        if ((err as Error)?.name === 'AbortError') return 'aborted';
+        log.error('[Auth] Failed to fetch profile for user:', userId, err);
+        return 'failed';
       }
-    },
-    []
-  );
+    })();
+    profileInflight.set(userId, run);
+    try {
+      await run;
+    } finally {
+      if (profileInflight.get(userId) === run) profileInflight.delete(userId);
+    }
+  }, []);
 
   const fetchRolesAndPermissions = useCallback(
     async (userId: string, signal?: AbortSignal, force = false) => {
@@ -385,7 +383,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { signal } = controller;
       if (showLoading) setLoading(true);
       try {
-        await Promise.all([fetchProfile(userId, signal), fetchRolesAndPermissions(userId, signal)]);
+        // withSupabaseHighPriority garante que roles e profile vao para o
+        // FRONT da fila do semaforo (prioridade high). Sem isso, com 60+
+        // requests normais disparando no boot, roles/profile ficavam presos
+        // na fila esperando slot — quando o 2o refreshAll chegava (duplo
+        // onAuthStateChange) e abortava o signal, eles rejeitavam imediatamente
+        // com AbortError: Supabase slot acquire aborted. Com high priority,
+        // o slot e obtido antes de o 2o refreshAll ter tempo de abortar.
+        await withSupabaseHighPriority(() =>
+          Promise.all([fetchProfile(userId, signal), fetchRolesAndPermissions(userId, signal)])
+        );
       } finally {
         // Só o refresh mais recente libera o loading: se um refresh antigo
         // foi abortado por um novo, quem gerencia o estado é o novo.
@@ -511,7 +518,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const cachedTokenExpired = isAccessTokenExpired(cached);
     const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
     try {
-      const result = await withTimeout(supabase.auth.getSession(), GET_SESSION_TIMEOUT_MS, 'getSession');
+      const result = await withTimeout(
+        supabase.auth.getSession(),
+        GET_SESSION_TIMEOUT_MS,
+        'getSession'
+      );
       if (runId !== bootstrapRunRef.current) return;
       const elapsedMs = Math.round(
         (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
@@ -716,7 +727,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (status === 'SUBSCRIBED') {
           lastConnectedAtMs = Date.now();
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          void logChannelError(log, '[AuthProvider] profile channel subscription status:', lastConnectedAtMs, status);
+          void logChannelError(
+            log,
+            '[AuthProvider] profile channel subscription status:',
+            lastConnectedAtMs,
+            status
+          );
         }
       });
 
@@ -739,7 +755,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (status === 'SUBSCRIBED') {
           lastConnectedAtMs = Date.now();
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          void logChannelError(log, '[AuthProvider] roles channel subscription status:', lastConnectedAtMs, status);
+          void logChannelError(
+            log,
+            '[AuthProvider] roles channel subscription status:',
+            lastConnectedAtMs,
+            status
+          );
         }
       });
 

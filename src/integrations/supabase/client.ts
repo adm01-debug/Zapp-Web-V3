@@ -92,7 +92,7 @@ export function warnSupabaseUnconfigured(context?: string): void {
 if (!isSupabaseConfigured) {
   log.error(
     '[Supabase] URL ou chave invalida — verifique VITE_SUPABASE_URL e ' +
-    'VITE_SUPABASE_ANON_KEY (ou VITE_SUPABASE_PUBLISHABLE_KEY) no ambiente de deploy.'
+      'VITE_SUPABASE_ANON_KEY (ou VITE_SUPABASE_PUBLISHABLE_KEY) no ambiente de deploy.'
   );
 } else {
   if (isLovableCloudUrl) {
@@ -113,7 +113,6 @@ if (!isSupabaseConfigured) {
     `[Supabase] Backend resolvido: ${SUPABASE_URL === SELF_HOSTED_URL ? 'self-hosted (AtomicaBR)' : SUPABASE_URL}`
   );
 }
-
 
 const supabaseUrl = isSupabaseConfigured ? SUPABASE_URL : 'https://supabase-unconfigured.invalid';
 const supabaseAnonKey = isSupabaseConfigured ? SUPABASE_ANON_KEY : 'missing-anon-key';
@@ -166,9 +165,11 @@ const MAX_CONCURRENT_DEGRADED = 4; // reduced concurrency during cooldown
 // DB ainda está processando as anteriores (spiral-of-death prevention).
 let _slowQueryCooldownUntil = 0;
 const SLOW_QUERY_THRESHOLD_MS = 5_000;
-const SLOW_QUERY_COOLDOWN_MS  = 3_000;  // 3s pause after a slow query
+const SLOW_QUERY_COOLDOWN_MS = 3_000; // 3s pause after a slow query
 /** Chama no início de cada RPC: registra timestamp de início. */
-export function markQueryStart(): number { return Date.now(); }
+export function markQueryStart(): number {
+  return Date.now();
+}
 /** Chama no fim de cada RPC: se demorou demais, ativa cooldown do pool. */
 export function markQueryEnd(startMs: number): void {
   if (Date.now() - startMs > SLOW_QUERY_THRESHOLD_MS) {
@@ -184,14 +185,22 @@ let _queue: Array<() => void> = [];
 const _activeControllers = new Set<AbortController>();
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('beforeunload', () => {
-    for (const ctrl of _activeControllers) {
-      try { ctrl.abort(new DOMException('Page unload', 'AbortError')); } catch { /* abort errors expected during page unload */ }
-    }
-    _activeControllers.clear();
-    _queue = [];
-    _inFlight = 0;
-  }, { once: true });
+  window.addEventListener(
+    'beforeunload',
+    () => {
+      for (const ctrl of _activeControllers) {
+        try {
+          ctrl.abort(new DOMException('Page unload', 'AbortError'));
+        } catch {
+          /* abort errors expected during page unload */
+        }
+      }
+      _activeControllers.clear();
+      _queue = [];
+      _inFlight = 0;
+    },
+    { once: true }
+  );
 }
 
 /** Concorrência máxima vigente: reduzida durante rate-limit ou slow-query cooldown. */
@@ -259,7 +268,7 @@ const boundedFetch: typeof fetch = async (input, init) => {
   _activeControllers.add(controller);
   const timeoutId = setTimeout(
     () => controller.abort(makeTimeoutReason()),
-    SUPABASE_FETCH_TIMEOUT_MS,
+    SUPABASE_FETCH_TIMEOUT_MS
   );
 
   // BUG FIX (2026-08-03): caller signal chaining causes AbortError retry
@@ -285,7 +294,10 @@ const boundedFetch: typeof fetch = async (input, init) => {
   };
 
   return fetch(input, { ...restInit, signal: controller.signal })
-    .then((res) => { release(); return res; })
+    .then((res) => {
+      release();
+      return res;
+    })
     .catch((err: unknown) => {
       // boundedFetch não reporta ao monitor de conectividade aqui — quem
       // reporta é retryFetch (após esgotar todas as tentativas) e o path de
@@ -340,8 +352,7 @@ const describeFetchError = (err: unknown): string =>
       ? err.message
       : String(err);
 
-const isAbortError = (err: unknown): boolean =>
-  err instanceof Error && err.name === 'AbortError';
+const isAbortError = (err: unknown): boolean => err instanceof Error && err.name === 'AbortError';
 
 const getRequestUrl = (input: RequestInfo | URL): string => {
   if (typeof input === 'string') return input;
@@ -455,18 +466,22 @@ const makeQueueTimeoutError = (): Error =>
 // Cleanup on page unload: evita memory leak por promises órfãs
 // e garante que a fila não cresça sem limite em SPAs com navegação rápida.
 if (typeof window !== 'undefined') {
-  window.addEventListener('beforeunload', () => {
-    const unloadError = makeAbortError('Page unload');
-    for (const entry of _supabaseQueue) {
-      if (entry.settled) continue;
-      if (entry.timer !== undefined) clearTimeout(entry.timer);
-      // entry.reject marca settled internamente — NÃO setar settled antes,
-      // senão o guard do reject engole o erro e a Promise fica pendurada.
-      entry.reject(unloadError);
-    }
-    _supabaseQueue.length = 0;
-    _supabaseInFlight = 0;
-  }, { once: true });
+  window.addEventListener(
+    'beforeunload',
+    () => {
+      const unloadError = makeAbortError('Page unload');
+      for (const entry of _supabaseQueue) {
+        if (entry.settled) continue;
+        if (entry.timer !== undefined) clearTimeout(entry.timer);
+        // entry.reject marca settled internamente — NÃO setar settled antes,
+        // senão o guard do reject engole o erro e a Promise fica pendurada.
+        entry.reject(unloadError);
+      }
+      _supabaseQueue.length = 0;
+      _supabaseInFlight = 0;
+    },
+    { once: true }
+  );
 }
 
 function _acquireSupabaseSlot(opts?: {
@@ -536,6 +551,23 @@ function _acquireSupabaseSlot(opts?: {
       // AbortError de fila NÃO é retentado (TanStack não retenta abort e
       // shouldRetryFetchError retorna false para AbortError).
       signal.addEventListener('abort', onAbort, { once: true });
+    }
+
+    // Cap de fila: rejeita requests normais quando a fila esta saturada.
+    // High-priority (roles/profile/auth) nunca sao rejeitados por cap.
+    // Sem cap, 200+ requests normais podem acumular indefinidamente durante
+    // um boot storm — o cap garante falha rapida em vez de timeout de 15s.
+    const QUEUE_CAP = 80;
+    if (priority !== 'high' && _supabaseQueue.length >= QUEUE_CAP) {
+      if (entry.timer !== undefined) clearTimeout(entry.timer);
+      entry.settled = true;
+      if (signal) signal.removeEventListener('abort', onAbort);
+      reject(
+        Object.assign(new Error('Supabase queue saturated — request dropped'), {
+          name: 'SupabaseQueueSaturatedError',
+        })
+      );
+      return;
     }
 
     if (priority === 'high') {
@@ -647,6 +679,23 @@ export function getSupabaseSemaphoreState(): SupabaseSemaphoreState {
   };
 }
 
+// Expoe metricas do semaforo para debug em producao.
+// Acesso: window.__zappPool no DevTools console.
+// Atualizado a cada 30s e no carregamento inicial do modulo.
+if (typeof window !== 'undefined') {
+  const _updateWindowPoolMetrics = (): void => {
+    (window as unknown as Record<string, unknown>).__zappPool = {
+      inFlight: _supabaseInFlight,
+      queued: _supabaseQueue.length,
+      maxConcurrent: SUPABASE_MAX_CONCURRENT,
+      saturated: _supabaseInFlight >= SUPABASE_MAX_CONCURRENT && _supabaseQueue.length > 0,
+      ts: Date.now(),
+    };
+  };
+  _updateWindowPoolMetrics();
+  setInterval(_updateWindowPoolMetrics, 30_000);
+}
+
 /** Fetch customizado injetado no supabase-js: timeout (boundedFetch) + retry (F9-04) + semáforo de concorrência. */
 export const retryFetch: typeof fetch = async (input, init) => {
   if (isAuthRequest(input) || hasStreamBody(init)) {
@@ -700,7 +749,7 @@ export const retryFetch: typeof fetch = async (input, init) => {
               `(${describeFetchError(err)}); retentando com backoff`
           );
         },
-      },
+      }
     ).catch((err: unknown) => {
       // Só acusa o monitor após esgotar as tentativas.
       reportRealFailure(err);
