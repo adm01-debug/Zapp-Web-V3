@@ -5,14 +5,42 @@
 > O inventário abaixo reflete o estado do app zapp-web-v3 (edge functions, frontend, banco).
 > Acesso à Evolution API: gateway unificado `_shared/providers/evolution/client.ts` (12 verbos, 0 bypasses).
 
-
 > Fonte unica de verdade sobre **estado operacional**, nao sobre arquitetura.
 > Uma pergunta por componente: **esta ligado? quem chama?**
 > Nao adicione secao de arquitetura, plano ou roadmap aqui. Isso morre em `docs/`.
 
-Ultima verificacao: **2026-08-08** | COMPLETO: P1/P2/P4/P6/P7 | 3 funcoes arquivadas | Storage 28->16 GB (-43%)
-Baseline desacoplamento T0: **2026-08-15** | Score 3/9 (33%) — Nota D | ver seção Desacoplamento abaixo
+Ultima verificacao: **2026-08-20 (pós-auditoria — PLANO-100-ETAPAS)**
 
+## Resumo da auditoria 2026-08-20
+
+Bateria completa de 12 findings executada no dia 20/08. Fechados 10/12 (ver docs/audits/EXECUCAO-PLANO-20260820.md):
+
+| Métrica | Antes | Depois |
+|---|---|---|
+| Comments tabelas zapp | 27% (108/400) | **100% (391/391)** |
+| Grants DML authenticated em evo.* | 33 linhas (11 tabelas) | **0** — REVOKE aplicado (GATE-A) |
+| Índices duplicados | 7 grupos | **1** (falso-positivo documentado — evolution_contacts) |
+| FKs duplicadas NOT VALID media_download_queue | 2 | Eliminadas (reconstrução da FK parent) |
+| Webhook_events_processed | 602k rows, 473MB | 366k rows (~290MB liberado), cron retenção 7d ativo |
+| Containers órfãos edge-runtime | 4 | 0 (auto-removidos) |
+| Cron job 524 media-queue-stalled-alert | Falhando toda execução | Corrigido por agente paralelo ([100PLAN A3 v2]) |
+
+## Desacoplamento ZAPP×Evolution — Pós-auditoria (2026-08-20)
+
+Após F-005 (REVOKE DML) + correções E70/E73-E77:
+
+| Invariante | Descricao | Status 20/08 |
+|---|---|---|
+| I1 | Zero funcoes zapp referenciam `evo.*` (fora boundary) | **PASS** (0 residuos) |
+| I2 | Zero funcoes evo referenciam `zapp.*` (fora boundary) | **PASS** — 0 residuo |
+| I3 | `supabase.yml` ausente do repo zapp | **PASS** |
+| I4 | Todo egresso HTTP via gateway unico | **PASS** (E85) |
+| I5 | CI gate bloqueia recriacão de infra evo | **PASS** (decouple-guard.yml) |
+| I9 | Zero FKs cross-schema nao documentadas | **PASS** — FKs evo->zapp documentadas como contrato (I9) |
+
+Score: **8/9 invariantes** — upgrade de 33%→89% vs baseline T0 15/08.
+
+---
 ## Como foi medido
 
 Chamador = invocacao real: `invoke('nome')` ou `functions/v1/nome`.
