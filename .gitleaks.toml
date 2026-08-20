@@ -70,15 +70,15 @@ keywords = ["ghp_"]
 [[rules]]
 id = "postgres-connstring"
 description = "PostgreSQL connection string with password"
-regex = '''postgres(?:ql)?://[^:]+:[^@]+@[^/\s]+'''
+regex = '''postgres(?:ql)?://([^:]+):([^@]+)@([^/\s]+)'''
 secretGroup = 2
 entropy = 3.5
 
 [[rules]]
 id = "jwt-generic"
 description = "Generic JWT (header.payload.signature)"
-regex = '''eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'''
-secretGroup = 2
+regex = '''(eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})'''
+secretGroup = 1
 
 [[rules]]
 id = "aws-access-key"
