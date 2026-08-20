@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, Bug, RefreshCw } from 'lucide-react';
 import { useUserRole } from '@/features/auth/hooks/useUserRole';
+import { isDevBypassAllowed } from '@/lib/auth/devBypass';
 import { safeGetJSON } from '@/lib/safeStorage';
 
 /** Theme Debugger component for the debug section. */
@@ -10,7 +11,8 @@ export function ThemeDebugger() {
   const { roles, loading: rolesLoading } = useUserRole();
   // Restrito ESTRITAMENTE a usuários com role 'dev' no banco — não usamos
   // isDev hierárquico aqui porque queremos esconder de admin/manager também.
-  const isDevExact = roles.includes('dev');
+  // E51: em produção (isDevBypassAllowed=false) nem o role 'dev' vê o debugger.
+  const isDevExact = roles.includes('dev') && isDevBypassAllowed();
 
   const [isOpen, setIsOpen] = useState(false);
   const [tokens, setTokens] = useState<

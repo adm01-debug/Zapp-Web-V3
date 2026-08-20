@@ -19,12 +19,15 @@ import { AuditLogDashboard } from './AuditLogDashboard';
 import { VirusTotalConfig } from './VirusTotalConfig';
 import { useUserRole } from '@/features/auth';
 import { useSecurityPushNotifications } from '@/hooks/useSecurityPushNotifications';
+import { isDevBypassAllowed } from '@/lib/auth/devBypass';
 
 /** Security View component for the security section. */
 export function SecurityView() {
   const { hasRole } = useUserRole();
   const isAdmin = hasRole('admin');
-  const isDev = hasRole('dev');
+  // E51: UI de debug do papel 'dev' só aparece em ambientes allowlisted
+  // (development/staging). Em produção, mesmo quem tem role 'dev' não vê.
+  const isDev = hasRole('dev') && isDevBypassAllowed();
   const [activeTab, setActiveTab] = useState('overview');
   
   // Initialize security push notifications

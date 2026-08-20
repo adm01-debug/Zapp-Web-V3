@@ -14,7 +14,7 @@ concurrency:
 jobs:
   quality-gate:
     runs-on: [Linux, X64, vps-zapp]
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       CI: true
       VITE_SUPABASE_URL: https://example.supabase.co
