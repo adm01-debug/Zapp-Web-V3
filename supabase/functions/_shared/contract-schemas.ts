@@ -878,13 +878,6 @@ export const TranscribeAudioInternalV1Schema = z.object({
 }).passthrough();
 
 /**
- * @deprecated zapp-auth-invite: registro fantasma removido em 2026-08-18 — a edge
- * invite-user (E57, #1179) só existe em branch órfã (index.ts nunca chegou na main);
- * o contract-kit exigia lifecycle em versions para contrato sem edge. Reintroduzir
- * junto com o merge real da E57.
- */
-
-/**
  * @deprecated Edge auth-email-hook REMOVIDA do repo (commit 78fa7d7be, "zumbi sem index.ts").
  * Registro morto removido em 2026-08-04 — o schema placeholder permissivo
  * (z.object vazio) derrubava o gate contract-registry-integrity (Invariante 9).
@@ -1212,6 +1205,7 @@ export const InviteUserV1Schema = z.object({
   "webauthn":                      { v1: WebauthnV1Schema },
   "evolution-api":                 { v1: EvolutionApiV1Schema },
   "zapp-auth-sessions":            { v1: ZappAuthSessionsV1Schema },
+  "zapp-auth-invite":             { v1: ZappAuthInviteV1Schema },
   "zapp-n8n-sync":                 { v1: ZappN8nSyncV1Schema },
 
   // ─── Onda 1 (2026-08-04): cobertura 100% — schemas reais dos workers ───
