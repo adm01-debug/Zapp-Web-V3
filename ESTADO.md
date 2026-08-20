@@ -526,3 +526,16 @@ Se for ligada no futuro, a logica de deteccao deve ser revisada para:
 | P6 — causa raiz (Date.now()) | fix deployado em prod (c03ff1973) |
 | P7 — 3.013 orfaos restantes (3 GB) | removidos, 0 referencias quebradas |
 | Bucket whatsapp-media | 28 GB -> **16 GB** (-43%) |
+
+
+---
+
+## Guard de bundle — LIGADO (2026-08-20)
+
+`bundle-secret-guard.yml` (GitHub Actions). Dispara pós-deploy (`workflow_run` do *Build & Deploy — ZAPP web v3*) + diário (cron `17 8 * * *`) + manual. Fail-closed.
+
+- Barra `service_role` em qualquer bundle público dos 3 hosts (`www`/`zappweb.app.br`/`zapp.atomicabr.com.br`).
+- **Reforçado 2026-08-20 (commit 3fcc3223):** também valida que a anon key embutida é **ACEITA pelo Kong** — falha em 401 (`ANON_KEY_REJECTED`).
+- **Motivo:** incidente 2026-08-20 — bundle embutia anon key de outro ambiente; `role` era `anon`, então o check antigo (só role) passou cego. Ver `CLAUDE.md › Incidentes fechados`.
+
+Estado dos 3 hosts após o fix: **200**, servidos pela VPS (Traefik stack 157), key `== Kong`. `www.zappweb.app.br` **fora da Vercel** (DNS `209.142.67.51`). Guard verificado verde no run 32422659816.

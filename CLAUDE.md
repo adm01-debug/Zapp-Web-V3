@@ -182,6 +182,16 @@ ou de ligar algo intencionalmente desligado.
 
 ---
 
+## Incidentes fechados — NÃO REABRIR
+
+| Data | Incidente | Causa raiz | Fix + trava |
+|------|-----------|-----------|-------------|
+| 2026-08-20 | Bundle público dos 3 hosts embutia **anon key inválida** → 401 em auth e dados (`PGRST301`, `Unauthorized` no Kong) | Secret GitHub `VITE_SUPABASE_PUBLISHABLE_KEY` continha anon key de **outro ambiente** (assinada com JWT_SECRET diferente; Kong e PostgREST recusavam). `client.ts` já era defensivo — a falha foi de **config de env**, que teste de código não pega | Secret corrigido via `gh secret set` + redeploy (run 32421024974). Guard reforçado (commit 3fcc3223): `bundle-secret-guard.yml` agora, além de barrar `service_role`, **valida que a anon key é ACEITA pelo Kong** e falha em 401 (`ANON_KEY_REJECTED`). Roda pós-deploy + diário |
+
+> **Domínio ZAPP:** `www.zappweb.app.br` migrado da Vercel → **VPS** (DNS A `209.142.67.51`; Traefik router `zappweb-www` inline no stack 157). Vercel **aposentada** para o ZAPP; projetos `zapp-web`/`zapp-web-v2` deletados. **Fonte única = VPS.** Não recriar deploy na Vercel para este app.
+
+---
+
 ## Stubs Ativos (RPCs sem implementação real)
 
 Estas funções existem como stubs em `supabase/migrations/20260717000002_create_missing_rpcs_stubs.sql`.
@@ -238,9 +248,10 @@ curl -s "http://supabase_meta:8080/generators/typescript?included_schemas=public
 
 O repositório possui um **grafo de conhecimento** em `graphify-out/` (Apache 2.0, on-device).
 
-- **21.827 nós, 46.463 arestas, 1.511 comunidades** (rebuild 2026-08-09, commit ab7a1dfa)
+- **29.150 nós, 54.653 arestas, 2.013 comunidades** (rebuild 2026-08-20, commit 3fcc3223)
 - Extração: 99% EXTRACTED · 1% INFERRED · inclui as 220 migrations SQL (graphifyy[sql])
 - **Top god nodes:** `cn()` (982°), `Button` (504°), `supabase` (410°), `Badge` (366°)
+- **Limitação conhecida do parser (NÃO é bug):** 31 arquivos `.tsx` saem como "partially extracted" — todos por **`&` literal em texto JSX** (ex.: `VoIP & Chamadas`, `Conexões & Integrações`, `Privacidade & LGPD`). O tree-sitter do graphify aborta no `&` cru; esbuild/tsc/React aceitam (build de prod passa). Consultas a esses componentes podem faltar nós/arestas a partir da 1ª linha com `&`. **Não** trocar por `&amp;` — é churn por falso positivo de ferramenta.
 - **MCP server:** 8 tools (`graphify_query`, `graphify_path`, `graphify_db_crossref`, etc.)
 
 **Sempre consultar o grafo antes de `search_files`/grep.**
@@ -251,7 +262,7 @@ Regenerar (via container claude-code, ~2,5 min, sem custo de API):
 ```
 Consultar: `graphify explain "<no>"` · `graphify path "A" "B"`
 
-`graph.json` (28 MB) e `graph.html` **não** são versionados — só `GRAPH_REPORT.md` e `manifest.json`.
+`graph.json` (35 MB) e `graph.html` **não** são versionados — só `GRAPH_REPORT.md` e `manifest.json`.
 
 ---
 
