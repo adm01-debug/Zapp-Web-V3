@@ -250,7 +250,7 @@ O repositório possui um **grafo de conhecimento** em `graphify-out/` (Apache 2.
 
 - **29.150 nós, 54.653 arestas, 2.013 comunidades** (rebuild 2026-08-20, commit 3fcc3223)
 - Extração: 99% EXTRACTED · 1% INFERRED · inclui as 220 migrations SQL (graphifyy[sql])
-- **Top god nodes:** `cn()` (982°), `Button` (504°), `supabase` (410°), `Badge` (366°)
+- **Top god nodes (rebuild 2026-08-20):** `cn()` (982°), `Button` (504°), `supabase` (412°), `Badge` (366°), `Card` (329°), `CardContent` (316°), `CardHeader` (257°), `getLogger()` (257°), `CardTitle` (255°), `err()` (213°)
 - **Limitação conhecida do parser (NÃO é bug):** 31 arquivos `.tsx` saem como "partially extracted" — todos por **`&` literal em texto JSX** (ex.: `VoIP & Chamadas`, `Conexões & Integrações`, `Privacidade & LGPD`). O tree-sitter do graphify aborta no `&` cru; esbuild/tsc/React aceitam (build de prod passa). Consultas a esses componentes podem faltar nós/arestas a partir da 1ª linha com `&`. **Não** trocar por `&amp;` — é churn por falso positivo de ferramenta.
 - **MCP server:** 8 tools (`graphify_query`, `graphify_path`, `graphify_db_crossref`, etc.)
 
