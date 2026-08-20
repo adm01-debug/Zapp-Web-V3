@@ -3,16 +3,16 @@
   "description": "Known gaps in the frontend-to-DB contract. Entries here are excluded from audit-contract failures so new unintended gaps are still caught. Each entry must document the reason and tracking status.",
   "allowlist": [
     {
-     "kind": "rpc",
-     "name": "check_download_permission",
-     "reason": "Intentionally absent — frontend fail-open via SQLSTATE 42883 (see CLAUDE.md). Not a bug.",
-     "status": "by-design"
+      "kind": "rpc",
+      "name": "check_download_permission",
+      "reason": "Intentionally absent — frontend fail-open via SQLSTATE 42883 (see CLAUDE.md). Not a bug.",
+      "status": "by-design"
     },
     {
-     "kind": "rpc",
-     "name": "sessions_list",
-     "reason": "RPC do schema zapp (auth.sessions) — fora do catálogo Evolution (rpcCatalog.ts é do domínio evolution_*); contrato validado pelo teste de snapshot.",
-     "status": "by-design"
+      "kind": "rpc",
+      "name": "sessions_list",
+      "reason": "RPC do schema zapp (auth.sessions) — fora do catálogo Evolution (rpcCatalog.ts é do domínio evolution_*); contrato validado pelo teste de snapshot.",
+      "status": "by-design"
     },
     {
       "kind": "from",
@@ -205,6 +205,18 @@
       "name": "rpc_dismiss_warroom_alert",
       "reason": "RPC SECURITY DEFINER de dismiss de warroom (member|admin) — criada 2026-08-18 (warroom_dismiss_rpc_fix)",
       "status": "catalog-pending"
+    },
+    {
+      "kind": "from",
+      "name": "sicoob_contact_mapping",
+      "reason": "Planned feature — SICOOB bridge table not yet created in DB (SicoobBridgeDashboard routed but DDL pending). Surfaced 2026-08-20 when the audit service key was fixed.",
+      "status": "missing-table"
+    },
+    {
+      "kind": "from",
+      "name": "sicoob_reply_outbox",
+      "reason": "Planned feature — SICOOB bridge table not yet created in DB (SicoobBridgeDashboard routed but DDL pending). Surfaced 2026-08-20 when the audit service key was fixed.",
+      "status": "missing-table"
     }
   ]
 }
