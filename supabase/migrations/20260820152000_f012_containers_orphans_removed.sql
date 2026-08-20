@@ -1,0 +1,7 @@
+-- F-012 (PLANO-100 GATE-C) — containers órfãos (auto-resolvido)
+-- 4 containers edge-runtime removidos entre 11:30 e 12:30 de 20/08:
+--   sharp_tu (edge-runtime v1.74.0), boring_herschel (edge-runtime),
+--   quirky_kare (edge-runtime), focused_shockley (vector 0.53.0)
+-- Nenhum tinha label com.docker.stack.namespace (órfãos).
+-- Remoção confirmada via Portainer (lista sem eles na 2ª varredura).
+-- Migration de registro apenas.
