@@ -123,7 +123,9 @@ export function ChatPanel({
   // ContactDetails: chamada direta + catch(() => undefined) p/ evitar
   // unhandled rejection (sem toast duplicado do wrapper do slash).
   const handleArchiveConversation = useCallback(() => {
-    void archiveConversation(conversation.contact.id ?? '').catch(() => undefined);
+    const id = conversation.contact.id;
+    if (!id || !isValidUUID(id)) return;
+    void archiveConversation(id).catch(() => undefined);
   }, [archiveConversation, conversation.contact.id]);
   const [historyOpen, setHistoryOpen] = useState(false);
 
