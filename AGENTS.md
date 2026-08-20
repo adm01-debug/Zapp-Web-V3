@@ -22,6 +22,8 @@
 
 ## Fluxo obrigatório para mudança de banco
 
+> 📖 **Guia canônico de migrations:** [`supabase/migrations/README.md`](./supabase/migrations/README.md) — leia ANTES de criar migration: DB-as-source, baseline `20260817000000`, aplicador `apply-migrations.sh`, gates de CI, buckets B0–B8 e template.
+
 1. Ler `CLAUDE.md` + `docs/db/SCHEMA-CONTRACT.md` e confirmar o **schema-dono** do objeto.
 2. Escrever **migration versionada** (nome `^\d{14}$` — 14 dígitos `YYYYMMDDHHMMSS`).
 3. Escrever o **teste** que falha sem a mudança.

@@ -263,7 +263,7 @@ Consultar: `graphify explain "<no>"` · `graphify path "A" "B"`
 | `docs/SCHEMA_SNAPSHOT.md` | Snapshot de contagens do DB (2026-08-04) |
 | `docs/RPC_STUBS_STATUS.md` | Status dos stubs de RPC ativos |
 | `docs/CHANGELOG_SESSIONS.md` | Histórico de sessões e bugs resolvidos |
-| `docs/AUDIT_MIGRATION_VS_DB_50_STEPS.md` | Plano de auditoria migration vs DB (50 etapas) |
+| `docs/AUDIT_MIGRATION_VS_DB_50_STEPS.md` | Plano de auditoria migration vs DB (50 etapas) — **CONSOLIDADO** em [`supabase/migrations/README.md`](./supabase/migrations/README.md) |
 | `docs/ER_DIAGRAM.md` | Diagrama de entidade-relacionamento |
 | `docs/ARCHITECTURE_AND_FLOW.md` | Arquitetura e fluxo de dados |
 | `docs/API_CONTRACT.md` | Contratos de API |

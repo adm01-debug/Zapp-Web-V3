@@ -316,6 +316,8 @@ The `public` schema is the API layer — views and RPCs only. The only base tabl
 
 ## 7. MIGRATION RULES
 
+> 📖 **Guía canônica de migrations:** [`supabase/migrations/README.md`](../supabase/migrations/README.md) — modelo DB-as-source, baseline `20260817000000`, aplicador, gates de CI, template y buckets de clasificación.
+
 ### Rule M1: Migration file naming
 
 ```

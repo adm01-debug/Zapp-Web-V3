@@ -2,6 +2,7 @@
 
 > **Status:** 🔴 DEFERRED — High risk (P=85% of regression). Do NOT execute without dedicated sprint.
 > **Created:** 2026-07-13
+> **Consolidated:** migrações agora seguem [`supabase/migrations/README.md`](../supabase/migrations/README.md) (guia canônico pós-limpeza 2026-08-19). Este plano é **histórico** — não executar como está.
 > **Related:** `docs/SIMULATION_REPORT.md` section G, PR #376
 
 ---

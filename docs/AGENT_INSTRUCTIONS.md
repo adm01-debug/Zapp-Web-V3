@@ -257,6 +257,8 @@ Deno.serve(async (req) => {
 
 ### Playbook 4: Criar migration
 
+> 📖 **Guia canónico de migrations:** [`supabase/migrations/README.md`](../supabase/migrations/README.md) — leia ANTES de criar: DB-as-source, naming `\d{14}_`, idempotência, gates de CI, template de cabeçalho.
+
 ```sql
 -- supabase/migrations/YYYYMMDDHHMMSS_description.sql
 

@@ -1,6 +1,8 @@
 # Auditoria: Migration Code vs Banco Canônico Supabase Self-Hosted
 ## Plano de 50 Etapas de Remediação
 
+> **Status:** ✅ **CONSOLIDADO** (2026-08-19) — esta auditoria de 50 etapas foi absorvida pelo plano de limpeza executado e documentado em [`supabase/migrations/README.md`](../supabase/migrations/README.md) + `docs/ops/MIGRATIONS_CLEANUP_DECISIONS.md` + `docs/ops/migrations-manifest.csv`. Mantido como histórico.
+>
 **Data**: 2026-08-04  
 **Auditado por**: Claude Code (multi-agent workflow `wf_8653a7dd-270`, 10 sub-agentes)  
 **Branch**: `claude/auditoria-migracao-supabase-oj6val`  

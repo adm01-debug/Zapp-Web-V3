@@ -17,6 +17,7 @@ TABLE" mientras el smoke-test reportaba PASS en 13s.
 """
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -24,8 +25,28 @@ try:
     from pglast import parse_sql
     from pglast.error import Error as PgError
 except ImportError:
-    print("❌ pglast no instalado. Instalar: pip install pglast")
-    sys.exit(2)
+    # Auto-install resiliente (runners self-hosted podem não ter pglast/pip
+    # global; falhou no vps-zapp5 2026-08-20 com exit 2 silencioso).
+    print("ℹ️  pglast não encontrado — tentando instalar...")
+    for cmd in (
+        [sys.executable, "-m", "pip", "install", "--quiet", "--user", "pglast"],
+        [sys.executable, "-m", "pip", "install", "--quiet", "pglast"],
+        ["pip3", "install", "--quiet", "--user", "pglast"],
+        ["pip", "install", "--quiet", "--user", "pglast"],
+    ):
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            if r.returncode == 0:
+                break
+        except Exception:
+            continue
+    try:
+        from pglast import parse_sql
+        from pglast.error import Error as PgError
+    except ImportError:
+        print("❌ pglast não instalado. Instalar manualmente: pip install pglast")
+        print("   (runner sem acesso a PyPI? pré-instalar na imagem do runner)")
+        sys.exit(2)
 
 DEFAULT_DIR = "supabase/migrations"
 EXCLUDE = {"__tests__", "archive"}
