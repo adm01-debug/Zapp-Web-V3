@@ -72,6 +72,36 @@ export type Database = {
         }
         Relationships: []
       }
+      audit100_baseline: {
+        Row: {
+          captured_at: string
+          id: number
+          metric: string
+          session: string | null
+          valor_int: number | null
+          valor_jsonb: Json | null
+          valor_text: string | null
+        }
+        Insert: {
+          captured_at?: string
+          id?: number
+          metric: string
+          session?: string | null
+          valor_int?: number | null
+          valor_jsonb?: Json | null
+          valor_text?: string | null
+        }
+        Update: {
+          captured_at?: string
+          id?: number
+          metric?: string
+          session?: string | null
+          valor_int?: number | null
+          valor_jsonb?: Json | null
+          valor_text?: string | null
+        }
+        Relationships: []
+      }
       contact_id_graveyard: {
         Row: {
           audit_user_id: string | null
@@ -1267,6 +1297,7 @@ export type Database = {
           transcription: string | null
           transcription_status: string | null
           updated_at: string | null
+          wa_timestamp: string | null
         }
         Insert: {
           audio_meme_id?: string | null
@@ -1323,6 +1354,7 @@ export type Database = {
           transcription?: string | null
           transcription_status?: string | null
           updated_at?: string | null
+          wa_timestamp?: string | null
         }
         Update: {
           audio_meme_id?: string | null
@@ -1379,6 +1411,7 @@ export type Database = {
           transcription?: string | null
           transcription_status?: string | null
           updated_at?: string | null
+          wa_timestamp?: string | null
         }
         Relationships: [
           {
@@ -1446,6 +1479,7 @@ export type Database = {
           transcription: string | null
           transcription_status: string | null
           updated_at: string | null
+          wa_timestamp: string | null
         }
         Insert: {
           audio_meme_id?: string | null
@@ -1502,6 +1536,7 @@ export type Database = {
           transcription?: string | null
           transcription_status?: string | null
           updated_at?: string | null
+          wa_timestamp?: string | null
         }
         Update: {
           audio_meme_id?: string | null
@@ -1558,6 +1593,7 @@ export type Database = {
           transcription?: string | null
           transcription_status?: string | null
           updated_at?: string | null
+          wa_timestamp?: string | null
         }
         Relationships: []
       }
@@ -1617,6 +1653,7 @@ export type Database = {
           transcription: string | null
           transcription_status: string | null
           updated_at: string | null
+          wa_timestamp: string | null
         }
         Insert: {
           audio_meme_id?: string | null
@@ -1673,6 +1710,7 @@ export type Database = {
           transcription?: string | null
           transcription_status?: string | null
           updated_at?: string | null
+          wa_timestamp?: string | null
         }
         Update: {
           audio_meme_id?: string | null
@@ -1729,8 +1767,24 @@ export type Database = {
           transcription?: string | null
           transcription_status?: string | null
           updated_at?: string | null
+          wa_timestamp?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_msgs_conversation_id"
+            columns: ["conversation_id", "instance_name"]
+            isOneToOne: false
+            referencedRelation: "evolution_conversations_wpp2"
+            referencedColumns: ["id", "instance_name"]
+          },
+          {
+            foreignKeyName: "fk_msgs_conversation_id"
+            columns: ["conversation_id", "instance_name"]
+            isOneToOne: false
+            referencedRelation: "v_conversations_wpp2_enriched"
+            referencedColumns: ["id", "instance_name"]
+          },
+        ]
       }
       evolution_pipeline_health_log: {
         Row: {
@@ -3287,7 +3341,36 @@ export type Database = {
           storage_path?: string | null
           worker_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_media_queue_message_uuid"
+            columns: ["message_uuid", "instance_name"]
+            isOneToOne: false
+            referencedRelation: "active_messages"
+            referencedColumns: ["id", "instance_name"]
+          },
+          {
+            foreignKeyName: "fk_media_queue_message_uuid"
+            columns: ["message_uuid", "instance_name"]
+            isOneToOne: false
+            referencedRelation: "evolution_messages"
+            referencedColumns: ["id", "instance_name"]
+          },
+          {
+            foreignKeyName: "fk_media_queue_message_uuid"
+            columns: ["message_uuid", "instance_name"]
+            isOneToOne: false
+            referencedRelation: "evolution_messages_v2"
+            referencedColumns: ["id", "instance_name"]
+          },
+          {
+            foreignKeyName: "fk_media_queue_message_uuid"
+            columns: ["message_uuid", "instance_name"]
+            isOneToOne: false
+            referencedRelation: "v_messages_unified"
+            referencedColumns: ["id", "instance_name"]
+          },
+        ]
       }
       media_loss_archive: {
         Row: {
@@ -5110,6 +5193,10 @@ export type Database = {
       }
       fn_auto_create_next_partitions: { Args: never; Returns: string[] }
       fn_backfill_contact_id: { Args: { p_batch?: number }; Returns: number }
+      fn_backfill_wa_timestamp: {
+        Args: { p_batch_limit?: number; p_window_hours?: number }
+        Returns: Json
+      }
       fn_blockers_auto_detect: { Args: never; Returns: Json }
       fn_bootstrap_wpp2_instance: {
         Args: { p_instance_id: string; p_trigger?: string }
@@ -12710,7 +12797,29 @@ export type Database = {
           storage_path?: string | null
           worker_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_media_queue_message_uuid"
+            columns: ["message_uuid", "instance_name"]
+            isOneToOne: false
+            referencedRelation: "evolution_messages"
+            referencedColumns: ["id", "instance_name"]
+          },
+          {
+            foreignKeyName: "fk_media_queue_message_uuid"
+            columns: ["message_uuid", "instance_name"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id", "instance_name"]
+          },
+          {
+            foreignKeyName: "fk_media_queue_message_uuid"
+            columns: ["message_uuid", "instance_name"]
+            isOneToOne: false
+            referencedRelation: "zapp_evolution_messages"
+            referencedColumns: ["id", "instance_name"]
+          },
+        ]
       }
       evo_pipeline_health_log: {
         Row: {
@@ -16058,7 +16167,15 @@ export type Database = {
           transcription_status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_msgs_conversation_id"
+            columns: ["conversation_id", "instance_name"]
+            isOneToOne: false
+            referencedRelation: "evolution_conversations_wpp2"
+            referencedColumns: ["id", "instance_name"]
+          },
+        ]
       }
       evolution_messages_wpp2_archive: {
         Row: {
@@ -19837,7 +19954,29 @@ export type Database = {
           storage_path?: string | null
           worker_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_media_queue_message_uuid"
+            columns: ["message_uuid", "instance_name"]
+            isOneToOne: false
+            referencedRelation: "evolution_messages"
+            referencedColumns: ["id", "instance_name"]
+          },
+          {
+            foreignKeyName: "fk_media_queue_message_uuid"
+            columns: ["message_uuid", "instance_name"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id", "instance_name"]
+          },
+          {
+            foreignKeyName: "fk_media_queue_message_uuid"
+            columns: ["message_uuid", "instance_name"]
+            isOneToOne: false
+            referencedRelation: "zapp_evolution_messages"
+            referencedColumns: ["id", "instance_name"]
+          },
+        ]
       }
       media_quarantine: {
         Row: {
@@ -26995,6 +27134,7 @@ export type Database = {
           transcription: string | null
           transcription_status: string | null
           updated_at: string | null
+          wa_timestamp: string | null
         }
         Insert: {
           audio_meme_id?: string | null
@@ -27051,6 +27191,7 @@ export type Database = {
           transcription?: string | null
           transcription_status?: string | null
           updated_at?: string | null
+          wa_timestamp?: string | null
         }
         Update: {
           audio_meme_id?: string | null
@@ -27107,6 +27248,7 @@ export type Database = {
           transcription?: string | null
           transcription_status?: string | null
           updated_at?: string | null
+          wa_timestamp?: string | null
         }
         Relationships: [
           {
@@ -27294,7 +27436,15 @@ export type Database = {
           transcription_status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_msgs_conversation_id"
+            columns: ["conversation_id", "instance_name"]
+            isOneToOne: false
+            referencedRelation: "evolution_conversations_wpp2"
+            referencedColumns: ["id", "instance_name"]
+          },
+        ]
       }
       zapp_instance_credentials: {
         Row: {
@@ -52195,6 +52345,7 @@ export type Database = {
           transcription: string | null
           transcription_status: string | null
           updated_at: string | null
+          wa_timestamp: string | null
         }
         Insert: {
           audio_meme_id?: string | null
@@ -52251,6 +52402,7 @@ export type Database = {
           transcription?: string | null
           transcription_status?: string | null
           updated_at?: string | null
+          wa_timestamp?: string | null
         }
         Update: {
           audio_meme_id?: string | null
@@ -52307,6 +52459,7 @@ export type Database = {
           transcription?: string | null
           transcription_status?: string | null
           updated_at?: string | null
+          wa_timestamp?: string | null
         }
         Relationships: [
           {
@@ -52693,7 +52846,15 @@ export type Database = {
           transcription_status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_msgs_conversation_id"
+            columns: ["conversation_id", "instance_name"]
+            isOneToOne: false
+            referencedRelation: "evolution_conversations_wpp2"
+            referencedColumns: ["id", "instance_name"]
+          },
+        ]
       }
       evolution_pipeline_health_log: {
         Row: {
@@ -61169,8 +61330,65 @@ export type Database = {
           p_remote_jid: string
           p_status_at?: string
           p_timestamp?: string
+          p_wa_timestamp?: string
         }
-        Returns: Database["evo"]["Tables"]["evolution_messages"]["Row"]
+        Returns: {
+          audio_meme_id: string | null
+          caption: string | null
+          category: string | null
+          contact_id: string | null
+          content: string | null
+          conversation_id: string | null
+          created_at: string | null
+          deleted_at: string | null
+          direction: string | null
+          edited_at: string | null
+          error_code: string | null
+          error_reason: string | null
+          follow_up_at: string | null
+          follow_up_done: boolean | null
+          from_me: boolean | null
+          id: string | null
+          ingest_meta: Json | null
+          instance_name: string | null
+          is_important: boolean | null
+          is_read: boolean | null
+          is_starred: boolean | null
+          link_preview: Json | null
+          media_bucket: string | null
+          media_filename: string | null
+          media_meta: Json | null
+          media_mimetype: string | null
+          media_path: string | null
+          media_sha256: string | null
+          media_size: number | null
+          media_status: string | null
+          media_type: string | null
+          media_url: string | null
+          message_id: string | null
+          message_type: string | null
+          notes: string | null
+          payload: Json | null
+          push_name: string | null
+          quoted_message_id: string | null
+          raw_data: Json | null
+          remote_jid: string | null
+          remote_jid_original: string | null
+          reply_to_id: string | null
+          retry_attempt: number | null
+          retry_total: number | null
+          sent_by_bot: boolean | null
+          sentiment: string | null
+          status: string | null
+          status_at: string | null
+          sticker_id: string | null
+          tags: string[] | null
+          template_name: string | null
+          transcription: string | null
+          transcription_status: string | null
+          updated_at: string | null
+          wa_timestamp: string | null
+        }
         SetofOptions: {
           from: "*"
           to: "evolution_messages"
