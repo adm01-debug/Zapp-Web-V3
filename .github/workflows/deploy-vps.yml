@@ -1,7 +1,433 @@
-name: test
-on: [push]
+name: 🚀 Build & Deploy — ZAPP web v3
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag override (default: production-<sha>)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  # 2026-08-06 20:40: group renomeado para deploy-vps-v3 — o group antigo (v2)
+  # ficou TRAVADO (runs em pending SEM jobs: bug conhecido do GitHub em que
+  # run cancelado segura o concurrency group; publishes sem concurrency
+  # processavam normalmente). Grupo novo preserva a serialização entre
+  # deploys sem herdar o lock corrompido.
+  group: deploy-vps-v3
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  # GHCR exige minúsculas (repo renomeado p/ Zapp-Web-V3 quebra github.repository)
+  IMAGE_NAME: ${{ github.repository_owner }}/zapp-web-v3/zapp-web
+
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  build-and-push:
+    name: Build & push image
+    # 2026-08-06: runners GitHub-hosted (ubuntu-latest) sem alocação na conta —
+    # fila inteira travada em pending. Build no runner self-hosted da VPS
+    # (online, Docker disponível) — mesmo padrão dos workflows E2E-VPS.
+    runs-on: [Linux, X64, vps-zapp]
+    timeout-minutes: 30
+    # 2026-08-06 20:30: environment removido — runs com `environment:`
+    # ficavam em pending SEM jobs (resolução travada na conta); todos os
+    # secrets usados (VITE_*, PORTAINER_*, SUPABASE_*, ALERT_*) existem no
+    # nível do repo. Workflow sem environment processa (mesmo padrão do
+    # publish-evolution-api-custom, que roda normalmente).
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
     steps:
-      - run: echo test
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: 🛡️ Preflight Secrets Validation
+        env:
+          CI: "true"
+          ENFORCE_DEPLOY_SECRETS: "1"
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          node scripts/check-deploy-secrets.mjs
+          echo "✅ Todos os secrets críticos (Auth, DB, Service Role) estão presentes."
+
+      - uses: docker/setup-buildx-action@v4
+        with:
+          # 2026-08-15: nome fixo — sem ele o setup-buildx cria um builder novo
+          # a cada run e abandona o anterior (4 orfaos acumulados em 2 dias).
+          name: atomica-zapp
+          # 2026-08-06: pin do buildkit — tag movel buildx-stable-1 = v0.31.2 quebra
+          # neste kernel (runc: can't mask dir /proc/acpi: invalid argument);
+          # v0.20.2 validado OK em build minimo e no contexto real.
+          driver-opts: image=moby/buildkit:v0.20.2
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: ⚡ Pull previous assets para retencao entre deploys
+        run: |
+          # Extrair /usr/share/nginx/html/assets/ do deploy N-1 antes de buildar N.
+          # production-latest = tag do deploy atual, que sera sobrescrita pelo push novo.
+          # Sessoes vivas com tab aberta do deploy anterior nao recebem 404 nos chunks JS/CSS.
+          mkdir -p ./previous-assets
+          docker rm -f prev-zapp 2>/dev/null || true
+          if docker pull ghcr.io/${{ env.IMAGE_NAME }}:production-latest 2>/dev/null; then
+            docker create --name prev-zapp ghcr.io/${{ env.IMAGE_NAME }}:production-latest
+            mkdir -p /tmp/prev-assets
+            # Usar src/. garante copia de CONTEUDO (nunca cria assets/ aninhado)
+            docker cp prev-zapp:/usr/share/nginx/html/assets/. /tmp/prev-assets/ 2>/dev/null || true
+            docker rm prev-zapp 2>/dev/null || true
+            if [ -d /tmp/prev-assets ]; then
+              cp -r /tmp/prev-assets/. ./previous-assets/
+              rm -rf /tmp/prev-assets
+            fi
+            COUNT=$(ls ./previous-assets | wc -l | tr -d ' ')
+            echo "Assets retidos: ${COUNT} arquivos do build anterior"
+          else
+            echo "Sem imagem anterior (1o deploy ou production-latest indisponivel) — ok"
+          fi
+
+      - name: Compute image tag
+        id: meta
+        run: |
+          TAG="${{ inputs.image_tag }}"
+          if [ -z "$TAG" ]; then TAG="production-${GITHUB_SHA::12}"; fi
+          echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:production-latest
+          build-args: |
+            VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+            VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+            VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+            VITE_SENTRY_DSN=${{ secrets.VITE_SENTRY_DSN }}
+            VITE_GIT_SHA=${{ github.sha }}
+            VITE_SENTRY_ENVIRONMENT=production
+            VITE_APP_ENV=production
+
+      - name: 📋 Ler tags de rollback protegidas (infra/ghcr-protected-tags.txt)
+        id: protect
+        run: |
+          if [ ! -f infra/ghcr-protected-tags.txt ]; then
+            echo "AVISO: infra/ghcr-protected-tags.txt nao encontrado — usando fallback hardcoded"
+            echo "regex=^production-(57b05d295af8|7af6ecd0d51b)$" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Normaliza: remove comentários e linhas vazias, trim, lowercase, remove CRLF
+          NORMALIZED="$(grep -v '^#' infra/ghcr-protected-tags.txt \
+            | grep -v '^[[:space:]]*$' \
+            | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
+            | tr 'A-F' 'a-f' \
+            | tr -d '\r')"
+          # Arquivo vazio → fallback (não é erro de digitação, só arquivo ainda não populado)
+          if [ -z "$NORMALIZED" ]; then
+            echo "AVISO: nenhuma SHA encontrada no arquivo — usando fallback hardcoded"
+            echo "regex=^production-(57b05d295af8|7af6ecd0d51b)$" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Falha se qualquer linha não for exatamente 12 hex lowercase (ex: fbd04bec303d)
+          INVALID="$(echo "$NORMALIZED" | grep -Ev '^[0-9a-f]{12}$' || true)"
+          if [ -n "$INVALID" ]; then
+            echo "ERRO: infra/ghcr-protected-tags.txt contém entradas inválidas:" >&2
+            echo "$INVALID" | sed 's/^/  /' >&2
+            echo "Cada linha deve ser exatamente 12 dígitos hex lowercase (ex: fbd04bec303d)." >&2
+            exit 1
+          fi
+          TAGS="$(echo "$NORMALIZED" | tr '\n' '|' | sed 's/|$//')"
+          echo "regex=^production-(${TAGS})$" >> "$GITHUB_OUTPUT"
+
+      # ============================================================
+      # ETAPA 34 — Faxina Portainer (2026-08-05): retenção GHCR
+      # Cada deploy cria ~3 versões (1 index tagado production-<sha> +
+      # manifest amd64 + attestation-manifest, ambos untagged, pois o
+      # buildx gera provenance por padrão). min-versions-to-keep=9
+      # = 3 deploys ÍNTEGROS (múltiplo de 3: o corte por recência cai
+      # ENTRE builds, nunca no meio — com 8, o 3º deploy ficava com
+      # index mantido + amd64 deletado → pull com 'manifest unknown').
+      # O rollback (penúltimo deploy) ocupa as posições 4–6 das 9.
+      # ⚠️ NÃO usar delete-only-untagged-versions aqui: apagaria os
+      # manifests-filho (imagem/attestation) e o pull da tag falharia
+      # com 'manifest unknown' (P0 confirmado via OCI index).
+      # package-name = caminho completo SEM o owner (zapp-web-v3/zapp-web).
+      # continue-on-error: retenção nunca pode BLOQUEAR o deploy; falha
+      # é sinalizada pelo step de alerta abaixo (sentinel greppável).
+      # ============================================================
+      - name: 🧹 GHCR retention (keep 9 versions — 3 deploys íntegros)
+        id: retention
+        continue-on-error: true
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: zapp-web-v3/zapp-web
+          package-type: container
+          # 3 versões/deploy (index + amd64 + attestation). 9 = 3 deploys completos:
+          # o corte de recência cai ENTRE builds, nunca no meio (evita index
+          # mantido com filho deletado → manifest unknown). 8 cortava o 3º deploy.
+          min-versions-to-keep: 30
+          # Proteger rollbacks históricos — lidos de infra/ghcr-protected-tags.txt.
+          # NÃO usar delete-only-untagged-versions (apagaria manifests-filho → pull falha).
+          ignore-versions: ${{ steps.protect.outputs.regex }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🚨 Alerta se a retenção GHCR falhar (não bloqueia deploy)
+        if: always() && steps.retention.outcome == 'failure'
+        env:
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+          GH_TOKEN_ACTIONS: ${{ secrets.GH_TOKEN_ACTIONS }}
+        run: |
+          MSG="GHCR retention FALHOU em ${{ github.sha }} — run ${{ github.run_id }} (${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          if [ -n "$ALERT_WEBHOOK_URL" ]; then
+            curl -fsS -X POST "$ALERT_WEBHOOK_URL" \
+              -H 'Content-Type: application/json' \
+              -d "{\"text\":\"⚠️ ${MSG}\"}" || true
+          elif [ -n "$GH_TOKEN_ACTIONS" ]; then
+            curl -fsS -X POST "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
+              -H "Authorization: Bearer $GH_TOKEN_ACTIONS" \
+              -H 'Accept: application/vnd.github+json' \
+              -d "{\"body\":\"⚠️ ${MSG}\"}" || true
+          fi
+          echo "::warning::GHCR_RETENTION_FAILED ${MSG}"
+
+  deploy:
+    name: Deploy to VPS
+    # Mesmo motivo do build: hosted runner sem alocação; deploy via Portainer
+    # a partir da própria VPS (2026-08-06).
+    runs-on: [Linux, X64, vps-zapp]
+    needs: build-and-push
+    timeout-minutes: 30
+    # environment removido (mesmo motivo do job build — ver acima)
+    steps:
+      - name: Verify required secrets
+        run: |
+          missing=""
+          [ -z "${PORTAINER_API_TOKEN}" ] && missing="$missing PORTAINER_API_TOKEN"
+          [ -z "${PORTAINER_URL}" ]        && missing="$missing PORTAINER_URL"
+          if [ -n "$missing" ]; then
+            echo "::error::Required secrets not configured:${missing}"
+            exit 1
+          fi
+        env:
+          PORTAINER_API_TOKEN: ${{ secrets.PORTAINER_API_TOKEN }}
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+
+      - name: Deploy via Portainer API
+        env:
+          PORTAINER_API_TOKEN: ${{ secrets.PORTAINER_API_TOKEN }}
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          ZAPP_IMAGE: ${{ needs.build-and-push.outputs.image }}
+        run: |
+          set -euo pipefail
+          echo "Deploying: ${ZAPP_IMAGE}"
+
+          # ============================================================
+          # ETAPA 12 — VPS Disk Defense Plan
+          # FIX: usa ZAPP_IMAGE (SHA-based, imutuavel) em vez de
+          # production-latest (moving tag que gera dangling images).
+          # production-latest ainda e pushado no build para referencia
+          # externa, mas o STACK SWARM referencia a tag SHA imutavel.
+          # Antes: cada deploy = 1 dangling x 51MB ~ 3.5GB/dia.
+          # Depois: stack aponta para SHA imutavel, zero dangling.
+          # ============================================================
+          cat > /tmp/compose.yml << 'COMPOSEYML'
+          version: "3.8"
+          services:
+            web:
+              image: ZAPP_IMAGE_PLACEHOLDER
+              networks:
+                - AtomicaBRNet
+                - zapp-net
+              healthcheck:
+                test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+                interval: 30s
+                timeout: 5s
+                retries: 3
+                start_period: 30s
+              deploy:
+                mode: replicated
+                replicas: 1
+                placement:
+                  constraints:
+                    - node.role == manager
+                labels:
+                  - traefik.enable=true
+                  - "traefik.http.routers.zapp-prod.rule=Host(`zapp.atomicabr.com.br`)"
+                  - traefik.http.services.zapp-prod.loadbalancer.server.port=80
+                  - traefik.http.routers.zapp-prod.service=zapp-prod
+                  - traefik.http.routers.zapp-prod.entrypoints=websecure
+                  - traefik.http.routers.zapp-prod.tls.certresolver=letsencryptresolver
+                  - traefik.http.routers.zapp-prod.tls=true
+                  # Router secundario zappweb.app.br (OC-07, 2026-08-07) —
+                  # no compose inline p/ sobreviver a redeploys (service update
+                  # de label-add e perdido quando o stack e recriado).
+                  - "traefik.http.routers.zappweb.rule=Host(`zappweb.app.br`)"
+                  - traefik.http.services.zappweb.loadbalancer.server.port=80
+                  - traefik.http.routers.zappweb.service=zappweb
+                  - traefik.http.routers.zappweb.entrypoints=websecure
+                  - traefik.http.routers.zappweb.tls.certresolver=letsencryptresolver
+                  - traefik.http.routers.zappweb.tls=true
+                  # Router www.zappweb.app.br (deploy-fix 2026-08-20) — inline p/ sobreviver a redeploys.
+                  - "traefik.http.routers.zappweb-www.rule=Host(`www.zappweb.app.br`)"
+                  - traefik.http.services.zappweb-www.loadbalancer.server.port=80
+                  - traefik.http.routers.zappweb-www.service=zappweb-www
+                  - traefik.http.routers.zappweb-www.entrypoints=websecure
+                  - traefik.http.routers.zappweb-www.tls.certresolver=letsencryptresolver
+                  - traefik.http.routers.zappweb-www.tls=true
+                  - traefik.http.routers.zappweb-www.middlewares=crowdsec-bouncer@docker
+                  - com.centurylinklabs.watchtower.enable=false
+                  - traefik.http.routers.zapp-prod.middlewares=crowdsec-bouncer@docker
+                  - traefik.http.routers.zappweb.middlewares=crowdsec-bouncer@docker
+                  - com.atomicabr.tier=critical
+                update_config:
+                  failure_action: rollback
+                  monitor: 60s
+                  order: start-first
+                rollback_config:
+                  order: start-first
+                  monitor: 60s
+                  failure_action: continue
+                resources:
+                  limits:
+                    memory: 256M
+                    cpus: "0.5"
+          networks:
+            AtomicaBRNet:
+              external: true
+              name: AtomicaBRNet
+            zapp-net:
+              external: true
+              name: zapp-net
+          COMPOSEYML
+
+          # Substitui o placeholder pelo SHA-based tag real
+          sed -i "s|ZAPP_IMAGE_PLACEHOLDER|${ZAPP_IMAGE}|g" /tmp/compose.yml
+          echo "Image no compose: $(grep 'image:' /tmp/compose.yml | head -1 | xargs)"
+
+          STACK_CONTENT=$(cat /tmp/compose.yml | jq -Rs .)
+          PAYLOAD="{\"pullImage\":true,\"prune\":false,\"stackFileContent\":${STACK_CONTENT}}"
+
+          HTTP=$(curl -s -o /tmp/pr.json -w "%{http_code}" \
+            -X PUT "${PORTAINER_URL}/api/stacks/157?endpointId=1" \
+            -H "X-API-Key: ${PORTAINER_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "${PAYLOAD}")
+
+          echo "Portainer HTTP: ${HTTP}"
+          cat /tmp/pr.json | head -c 400 || true
+          [ "${HTTP}" = "200" ] || { echo "::error::Deploy failed HTTP ${HTTP}"; exit 1; }
+
+          # Aguardar além do start_period (30s) para checar o container novo, não o antigo
+          echo "Aguardando 45s rollout (start_period=30s + margem)..."
+          sleep 45
+
+          # HC best-effort: start-first pode ter container antigo ainda em trânsito.
+          # Falha aqui é ::warning:: (não exit 1) — Docker Swarm monitora saúde internamente.
+          HC=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
+            https://zapp.atomicabr.com.br/auth || echo 000)
+          echo "Health /auth: ${HC}"
+          case "${HC}" in 200|301|302) echo "App OK" ;; *) echo "::warning::POST_DEPLOY_HC=${HC} — verificar serviço manualmente"; esac
+
+
+      - name: 🧹 Prune dangling images pós-deploy (manutenção disco VPS)
+        if: always()
+        run: |
+          # Remove imagens sem tag geradas pelo buildx/deploy (dangling).
+          # Nunca remove imagens tagadas (ativas ou rollback) — apenas <none>.
+          # Contexto: cada deploy pode deixar manifests órfãos de 50-120 MB.
+          docker image prune -f
+          echo "Imagens pos-prune:"
+          docker system df 2>&1 | grep Images
+
+  # ============================================================
+  # Health check pós-deploy DETERMINÍSTICO (DP-09, 2026-08-06):
+  # post-deploy-check.yml (workflow_run) não disparava de forma confiável;
+  # este job roda SEMPRE que o deploy concluir (if: always()), sem depender
+  # de webhooks. Checagens: TTM www.zappweb.app.br < 3.0s (000/timeout =
+  # falha), PostgREST vivo (4xx ok; 5xx/000 = falha), edge function
+  # get-media-base64 viva (4xx ok; 5xx/000 = falha).
+  # ============================================================
+  post-deploy-health:
+    name: 🩺 Health check pós-deploy (determinístico)
+    needs: deploy
+    if: always()
+    runs-on: [Linux, X64, vps-zapp]
+    timeout-minutes: 10
+    steps:
+      - name: "🔧 Preparação — garante bc no runner (fail-closed)"
+        run: |
+          if ! command -v bc >/dev/null 2>&1; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq bc
+          fi
+          command -v bc >/dev/null 2>&1 || { echo "::error::BC_UNAVAILABLE — não foi possível obter bc; abortando (fail-closed)"; exit 1; }
+          bc --version | head -1
+
+      - name: "1/3 — TTM www.zappweb.app.br (< 3.0s)"
+        run: |
+          RESP=$(curl -s -o /dev/null -w '%{http_code} %{time_total}' --max-time 15 https://www.zappweb.app.br/ || true)
+          CODE=$(echo "$RESP" | awk '{print $1}')
+          TTM=$(echo "$RESP" | awk '{print $2}')
+          CODE=${CODE:-000}
+          TTM=${TTM:-0}
+          echo "www.zappweb.app.br → HTTP ${CODE} em ${TTM}s"
+          if [ "$CODE" = "000" ]; then
+            echo "::error::SITE_DEAD — conexão falhou/timeout (HTTP 000)"
+            exit 1
+          fi
+          if [ "$(echo "$TTM > 3.0" | bc -l)" = "1" ]; then
+            echo "::error::TTM_TOO_SLOW — ${TTM}s > 3.0s (limite)"
+            exit 1
+          fi
+          echo "✅ Site OK — TTM ${TTM}s (< 3.0s)"
+
+      - name: "2/3 — Supabase PostgREST vivo (4xx ok; 5xx/timeout = falha)"
+        if: always()
+        run: |
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 https://supabase.atomicabr.com.br/rest/v1/ || true)
+          CODE=${CODE:-000}
+          echo "supabase.atomicabr.com.br/rest/v1/ → HTTP ${CODE}"
+          if [ "$CODE" = "000" ]; then
+            echo "::error::SUPABASE_DEAD — timeout/conexão (HTTP 000)"
+            exit 1
+          fi
+          case "$CODE" in
+            5*) echo "::error::SUPABASE_DEAD — HTTP ${CODE} (5xx = servidor fora)"; exit 1 ;;
+          esac
+          echo "✅ PostgREST vivo — HTTP ${CODE} (401/4xx sem apikey é esperado)"
+
+      - name: "3/3 — Edge Function get-media-base64 viva (4xx ok; 5xx/timeout = falha)"
+        if: always()
+        run: |
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 -X POST https://supabase.atomicabr.com.br/functions/v1/evolution-api/get-media-base64 || true)
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 -X POST https://supabase.atomicabr.com.br/functions/v1/evolution-api/get-media-base64 || true)
+          CODE=${CODE:-000}
+          echo "evolution-api/get-media-base64 (POST sem body) → HTTP ${CODE}"
+          if [ "$CODE" = "000" ]; then
+            echo "::error::EDGE_FUNCTION_DEAD — timeout/conexão (HTTP 000)"
+            exit 1
+          fi
+          case "$CODE" in
+            5*) echo "::error::EDGE_FUNCTION_DEAD — HTTP ${CODE} (5xx = função fora)"; exit 1 ;;
+          esac
+          echo "✅ Edge Function viva — HTTP ${CODE} (4xx sem body é esperado)"
