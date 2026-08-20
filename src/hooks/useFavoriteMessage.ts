@@ -43,47 +43,58 @@ export function useFavoriteMessage() {
     void loadFavorites();
   }, [loadFavorites]);
 
-  const toggleFavorite = useCallback(async (messageId: string) => {
-    if (!isValidUUID(messageId)) {
-      toast.error('Mensagem inválida');
-      return;
-    }
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      toast.error('Sessão expirada');
-      return;
-    }
+  const toggleFavorite = useCallback(
+    async (messageId: string) => {
+      if (!isValidUUID(messageId)) {
+        toast.error('Mensagem inválida');
+        return;
+      }
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Sessão expirada');
+        return;
+      }
 
-    const isFavorite = favoriteIds.has(messageId);
-    // Atualização otimista
-    setFavoriteIds((prev) => {
-      const next = new Set(prev);
-      if (isFavorite) next.delete(messageId);
-      else next.add(messageId);
-      return next;
-    });
-
-    const { error } = isFavorite
-      ? await supabase.from('favorite_messages').delete().eq('user_id', user.id).eq('message_id', messageId)
-      : await supabase.from('favorite_messages').insert({ message_id: messageId, user_id: user.id });
-
-    if (error) {
-      // rollback otimista
+      const isFavorite = favoriteIds.has(messageId);
+      // Atualização otimista
       setFavoriteIds((prev) => {
         const next = new Set(prev);
-        if (isFavorite) next.add(messageId);
-        else next.delete(messageId);
+        if (isFavorite) next.delete(messageId);
+        else next.add(messageId);
         return next;
       });
-      toast.error(isFavorite ? 'Erro ao remover favorita' : 'Erro ao favoritar mensagem');
-      log.error('[useFavoriteMessage] toggle failed', error);
-      return;
-    }
 
-    toast.success(isFavorite ? 'Favorita removida' : 'Mensagem favoritada ⭐');
-  }, [favoriteIds]);
+      const { error } = isFavorite
+        ? await supabase
+            .from('favorite_messages')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('message_id', messageId)
+        : await supabase
+            .from('favorite_messages')
+            .insert({ message_id: messageId, user_id: user.id });
 
-  return { favoriteIds, isFavorite: (id: string) => favoriteIds.has(id), toggleFavorite, loadFavorites };
+      if (error) {
+        // rollback otimista
+        setFavoriteIds((prev) => {
+          const next = new Set(prev);
+          if (isFavorite) next.add(messageId);
+          else next.delete(messageId);
+          return next;
+        });
+        toast.error(isFavorite ? 'Erro ao remover favorita' : 'Erro ao favoritar mensagem');
+        log.error('[useFavoriteMessage] toggle failed', error);
+        return;
+      }
+
+      toast.success(isFavorite ? 'Favorita removida' : 'Mensagem favoritada ⭐');
+    },
+    [favoriteIds]
+  );
+
+  const isFavorite = useCallback((id: string) => favoriteIds.has(id), [favoriteIds]);
+
+  return { favoriteIds, isFavorite, toggleFavorite, loadFavorites };
 }

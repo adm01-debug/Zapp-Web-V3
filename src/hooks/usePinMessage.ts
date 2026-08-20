@@ -63,47 +63,56 @@ export function usePinMessage() {
     if (profileId) void loadPins(profileId);
   }, [profileId, loadPins]);
 
-  const togglePin = useCallback(async (messageId: string, contactId?: string) => {
-    if (!isValidUUID(messageId)) {
-      toast.error('Mensagem inválida');
-      return;
-    }
-    if (!profileId) {
-      toast.error('Perfil não carregado');
-      return;
-    }
+  const togglePin = useCallback(
+    async (messageId: string, contactId?: string) => {
+      if (!isValidUUID(messageId)) {
+        toast.error('Mensagem inválida');
+        return;
+      }
+      if (!profileId) {
+        toast.error('Perfil não carregado');
+        return;
+      }
 
-    const isPinned = pinnedIds.has(messageId);
-    setPinnedIds((prev) => {
-      const next = new Set(prev);
-      if (isPinned) next.delete(messageId);
-      else next.add(messageId);
-      return next;
-    });
-
-    const { error } = isPinned
-      ? await supabase.from('pinned_messages').delete().eq('pinned_by', profileId).eq('message_id', messageId)
-      : await supabase.from('pinned_messages').insert({
-          message_id: messageId,
-          contact_id: contactId ?? null,
-          pinned_by: profileId,
-          position: pinnedIds.size + 1,
-        });
-
-    if (error) {
+      const isPinned = pinnedIds.has(messageId);
       setPinnedIds((prev) => {
         const next = new Set(prev);
-        if (isPinned) next.add(messageId);
-        else next.delete(messageId);
+        if (isPinned) next.delete(messageId);
+        else next.add(messageId);
         return next;
       });
-      toast.error(isPinned ? 'Erro ao desafixar' : 'Erro ao fixar mensagem');
-      log.error('[usePinMessage] toggle failed', error);
-      return;
-    }
 
-    toast.success(isPinned ? 'Mensagem desafixada' : 'Mensagem fixada 📌');
-  }, [profileId, pinnedIds]);
+      const { error } = isPinned
+        ? await supabase
+            .from('pinned_messages')
+            .delete()
+            .eq('pinned_by', profileId)
+            .eq('message_id', messageId)
+        : await supabase.from('pinned_messages').insert({
+            message_id: messageId,
+            contact_id: contactId ?? null,
+            pinned_by: profileId,
+            position: pinnedIds.size + 1,
+          });
 
-  return { pinnedIds, isPinned: (id: string) => pinnedIds.has(id), togglePin, loadPins, profileId };
+      if (error) {
+        setPinnedIds((prev) => {
+          const next = new Set(prev);
+          if (isPinned) next.add(messageId);
+          else next.delete(messageId);
+          return next;
+        });
+        toast.error(isPinned ? 'Erro ao desafixar' : 'Erro ao fixar mensagem');
+        log.error('[usePinMessage] toggle failed', error);
+        return;
+      }
+
+      toast.success(isPinned ? 'Mensagem desafixada' : 'Mensagem fixada 📌');
+    },
+    [profileId, pinnedIds]
+  );
+
+  const isPinned = useCallback((id: string) => pinnedIds.has(id), [pinnedIds]);
+
+  return { pinnedIds, isPinned, togglePin, loadPins, profileId };
 }

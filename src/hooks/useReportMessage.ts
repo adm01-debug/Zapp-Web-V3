@@ -104,5 +104,7 @@ export function useReportMessage() {
     [profileId]
   );
 
-  return { reportedIds, hasReported: (id: string) => reportedIds.has(id), report, loadReports };
+  const hasReported = useCallback((id: string) => reportedIds.has(id), [reportedIds]);
+
+  return { reportedIds, hasReported, report, loadReports };
 }

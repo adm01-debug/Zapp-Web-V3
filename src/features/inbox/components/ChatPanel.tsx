@@ -39,6 +39,7 @@ import { useChatFilters } from './chat/hooks/useChatFilters';
 import { useSLADelivery } from './chat/hooks/useSLADelivery';
 import { useChatSearchState } from './chat/hooks/useChatSearchState';
 import { useChatDialogs } from './chat/hooks/useChatDialogs';
+import { useAuth } from '@/features/auth';
 import { useInitialHighlight } from './chat/hooks/useInitialHighlight';
 import { useChatDragAndDrop } from './chat/hooks/useChatDragAndDrop';
 import { ChatTemplatesOverlay } from './chat/ChatTemplatesOverlay';
@@ -112,7 +113,8 @@ export function ChatPanel({
 }: ChatPanelProps) {
   // Ferramentas de desenvolvimento (Checklist 10/10) só para devs reais em ambiente allowlisted (E51).
   const { isDev: isDevExact } = useUserRole();
-  const { dialogs, openDialog, closeDialog } = useChatDialogs();
+  const { dialogs, openDialog, closeDialog, resetAllDialogs } = useChatDialogs();
+  const { profile } = useAuth();
   // Ações reais de arquivar/desarquivar (soft-delete do contato — PR PR 773).
   const { archive: archiveConversation } = useArchiveConversationActions();
   // Arquivar REAL da conversa ativa — mesma ação usada pelo slash /archive,
@@ -171,15 +173,28 @@ export function ChatPanel({
   const messagesAreaRef = useRef<ChatMessagesAreaRef>(null);
   const { isDraggingOver, dragHandlers } = useChatDragAndDrop(fileUploaderRef);
 
+  const contactJid = useMemo(() => {
+    // Prefer the canonical remote_jid (present for groups, @lid, and broadcast JIDs
+    // where phone is null). Fall back to deriving from phone for legacy contacts.
+    const rj = conversation.contact.remote_jid;
+    if (rj) return rj;
+    const ph = conversation.contact.phone;
+    if (!ph) return '';
+    // Strategy B/C may have stored a full JID (e.g. 120363@g.us) in the phone field —
+    // appending @s.whatsapp.net would produce a malformed double-suffix JID.
+    if (ph.includes('@')) return ph;
+    return `${ph}@s.whatsapp.net`;
+  }, [conversation.contact.remote_jid, conversation.contact.phone]);
+
   const { typingUsers, handleTypingStart, handleTypingStop } = useTypingPresence({
     conversationId: conversation.id,
-    currentUserId: conversation.assignedTo?.id || 'agent',
-    currentUserName: conversation.assignedTo?.name || 'Agente',
+    currentUserId: profile?.id || 'agent',
+    currentUserName: profile?.name || 'Agente',
   });
   // `isContactTyping` vem do canal compartilhado `typing:${jid}` (broadcast do webhook).
   // Mantido em hook dedicado para evitar colisão de canais Realtime no client.
-  const isContactTyping = useContactTyping(conversation.contact.id, {
-    allowGroups: conversation.contact.id?.endsWith('@g.us') === true,
+  const isContactTyping = useContactTyping(contactJid, {
+    allowGroups: contactJid.endsWith('@g.us'),
   });
   const { quickReplies: dbQuickReplies, incrementUseCount } = useQuickReplies();
   const { settings, updateSettings, saveSettings } = useUserSettings();
@@ -301,7 +316,9 @@ export function ChatPanel({
     setActiveTool(null);
     resetSearch();
     setFailuresOnly(false);
-  }, [conversation.id, resetSearch, setFailuresOnly]);
+    resetAllDialogs();
+    setHistoryOpen(false);
+  }, [conversation.id, resetSearch, setFailuresOnly, resetAllDialogs]);
 
   // Deep-link "Ver no chat": encontra a mensagem alvo, faz scroll e aplica destaque temporário.
   useInitialHighlight({
@@ -334,18 +351,6 @@ export function ChatPanel({
   });
 
   // Stable refs for ChatMessagesArea to prevent re-renders on input change
-  const contactJid = useMemo(() => {
-    // Prefer the canonical remote_jid (present for groups, @lid, and broadcast JIDs
-    // where phone is null). Fall back to deriving from phone for legacy contacts.
-    const rj = conversation.contact.remote_jid;
-    if (rj) return rj;
-    const ph = conversation.contact.phone;
-    if (!ph) return '';
-    // Strategy B/C may have stored a full JID (e.g. 120363@g.us) in the phone field —
-    // appending @s.whatsapp.net would produce a malformed double-suffix JID.
-    if (ph.includes('@')) return ph;
-    return `${ph}@s.whatsapp.net`;
-  }, [conversation.contact.remote_jid, conversation.contact.phone]);
   const contactAvatar = conversation.contact.avatar || undefined;
   const handleScrollToMessage = useCallback(
     (id: string) => messagesAreaRef.current?.scrollToMessage(id),
@@ -354,6 +359,7 @@ export function ChatPanel({
 
   // Etapa 41: "Responder depois" da toolbar de mensagem — converte a duração
   // em data e delega ao snooze real da conversa (useChatPanelHandlers.onSnooze).
+  const { onSnooze } = handlers;
   const handleSnoozeFromToolbar = useCallback(
     (duration: '1h' | '3h' | 'tomorrow' | 'nextweek') => {
       const now = new Date();
@@ -383,11 +389,11 @@ export function ChatPanel({
         default:
           until = new Date(now.getTime() + 60 * 60 * 1000);
       }
-      void handlers.onSnooze(until.toISOString()).catch(() => {
+      void onSnooze(until.toISOString()).catch(() => {
         log.warn('[ChatPanel] Falha ao adiar conversa pela toolbar');
       });
     },
-    [handlers]
+    [onSnooze]
   );
 
   // Etapa 44: ações de mensagem com backend real — instanciadas UMA vez por
@@ -395,14 +401,24 @@ export function ChatPanel({
   const favoriteMsg = useFavoriteMessage();
   const pinMsg = usePinMessage();
   const reportMsg = useReportMessage();
-  const messageActions = {
-    toggleFavorite: favoriteMsg.toggleFavorite,
-    isFavorite: favoriteMsg.isFavorite,
-    togglePin: pinMsg.togglePin,
-    isPinned: pinMsg.isPinned,
-    report: reportMsg.report,
-    hasReported: reportMsg.hasReported,
-  };
+  const messageActions = useMemo(
+    () => ({
+      toggleFavorite: favoriteMsg.toggleFavorite,
+      isFavorite: favoriteMsg.isFavorite,
+      togglePin: pinMsg.togglePin,
+      isPinned: pinMsg.isPinned,
+      report: reportMsg.report,
+      hasReported: reportMsg.hasReported,
+    }),
+    [
+      favoriteMsg.toggleFavorite,
+      favoriteMsg.isFavorite,
+      pinMsg.togglePin,
+      pinMsg.isPinned,
+      reportMsg.report,
+      reportMsg.hasReported,
+    ]
+  );
 
   const { transferConversation: handleTransfer } = useTransferConversation({
     contactId: conversation.contact.id ?? '',
@@ -691,7 +707,7 @@ export function ChatPanel({
       <ChatMonitoringDialog
         open={activeTool === 'monitoring'}
         onOpenChange={(open) => !open && handleSetActiveTool(null)}
-        metrics={messageQueue?.getMetrics()}
+        metrics={activeTool === 'monitoring' ? messageQueue?.getMetrics() : undefined}
       />
     </div>
   );
