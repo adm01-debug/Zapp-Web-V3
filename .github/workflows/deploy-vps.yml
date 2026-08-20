@@ -3,6 +3,9 @@ name: 🚀 Build & Deploy — ZAPP web v3
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
   workflow_dispatch:
     inputs:
       image_tag:
@@ -232,6 +235,45 @@ jobs:
         env:
           PORTAINER_API_TOKEN: ${{ secrets.PORTAINER_API_TOKEN }}
           PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+
+      - name: 🔒 Gate pre-deploy — anon do bundle aceita pelo Kong
+        # Extrai a anon do image recem-buildado e valida contra o Kong ANTES do PUT stack.
+        # Fecha o incidente 2026-08-20 (anon de outro ambiente servida em prod) na origem:
+        # se a anon nao for aceita (200) ou for service_role, o deploy falha e prod nao muda.
+        env:
+          ZAPP_IMAGE: ${{ needs.build-and-push.outputs.image }}
+          KONG_URL: https://supabase.atomicabr.com.br
+        run: |
+          set -euo pipefail
+          echo "Gate: extraindo bundle de ${ZAPP_IMAGE}"
+          docker pull "${ZAPP_IMAGE}" >/dev/null
+          docker rm -f gate-zapp 2>/dev/null || true
+          docker create --name gate-zapp "${ZAPP_IMAGE}" >/dev/null
+          rm -rf /tmp/gate-assets && mkdir -p /tmp/gate-assets
+          docker cp gate-zapp:/usr/share/nginx/html/assets/. /tmp/gate-assets/ 2>/dev/null || true
+          docker rm -f gate-zapp >/dev/null 2>&1 || true
+          ANON=""
+          for f in /tmp/gate-assets/index-*.js; do
+            [ -f "$f" ] || continue
+            for J in $(grep -oE 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' "$f" | sort -u); do
+              ROLE=$(node -e "try{const p=Buffer.from(process.argv[1].split('.')[1].replace(/-/g,'+').replace(/_/g,'/'),'base64').toString();process.stdout.write(String((JSON.parse(p)||{}).role||''))}catch(e){}" "$J" 2>/dev/null || true)
+              if [ "$ROLE" = "service_role" ] || [ "$ROLE" = "service" ]; then
+                echo "::error::SERVICE_ROLE_IN_BUILT_BUNDLE — $f embute role=$ROLE (abortando antes do deploy)"; exit 1
+              fi
+              [ "$ROLE" = "anon" ] && ANON="$J"
+            done
+          done
+          if [ -z "$ANON" ]; then echo "::error::ANON_NAO_ENCONTRADA no bundle buildado (fail-closed)"; exit 1; fi
+          CODE=000
+          for try in 1 2; do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "${KONG_URL}/auth/v1/settings" -H "apikey: $ANON" || echo 000)
+            [ "$CODE" = "200" ] && break
+            sleep 3
+          done
+          if [ "$CODE" != "200" ]; then
+            echo "::error::ANON_REJEITADA_PELO_KONG — auth/v1/settings=${CODE} (esperado 200). Bundle traz anon de outro ambiente/chave errada. Deploy abortado; prod inalterada."; exit 1
+          fi
+          echo "Gate OK — anon do bundle aceita pelo Kong (200). Prosseguindo ao deploy."
 
       - name: Deploy via Portainer API
         env:
