@@ -46,6 +46,33 @@ if (url.includes('.supabase.co')) {
   );
 }
 
+// Validação da anon contra o Kong (fail-fast pré-build) — só no pipeline de deploy.
+// Complementa o gate pré-PUT-stack: pega anon de OUTRO ambiente ANTES de gastar um build.
+// Incidente 2026-08-20: VITE_SUPABASE_PUBLISHABLE_KEY trazia anon de outro ambiente (401 em prod).
+const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || '';
+if (enforce && truthy(anonKey) && truthy(url) && !url.includes('.supabase.co') && errors.length === 0) {
+  try {
+    const payload = JSON.parse(Buffer.from(anonKey.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString());
+    if (payload && (payload.role === 'service_role' || payload.role === 'service')) {
+      errors.push('VITE_SUPABASE_PUBLISHABLE_KEY tem role=service_role — jamais no frontend.');
+    }
+  } catch { /* JWT ilegível: a aceitação pelo Kong abaixo pega */ }
+  if (errors.length === 0) {
+    let code = 0;
+    for (let i = 0; i < 3; i++) {
+      try {
+        const r = await fetch(`${url.replace(/\/$/, '')}/auth/v1/settings`, { headers: { apikey: anonKey }, signal: AbortSignal.timeout(15000) });
+        code = r.status;
+      } catch { code = 0; }
+      if (code === 200) break;
+      await new Promise((res) => setTimeout(res, 3000));
+    }
+    if (code !== 200) {
+      errors.push(`VITE_SUPABASE_PUBLISHABLE_KEY rejeitada pelo Kong (auth/v1/settings=${code}, esperado 200) — anon de outro ambiente/chave errada.`);
+    }
+  }
+}
+
 if (errors.length === 0) {
   console.log('✅ check-deploy-secrets: todos os secrets críticos estão presentes.');
   process.exit(0);
