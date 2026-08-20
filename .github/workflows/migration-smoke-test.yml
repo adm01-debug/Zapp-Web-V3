@@ -95,6 +95,14 @@ jobs:
           docker exec pg-smoke psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 -f /tmp/pg-bootstrap.sql
           echo "Bootstrap applied successfully."
 
+      - name: SQL syntax gate — parse real (PostgreSQL/pglast) [BLOQUEANTE]
+        # Cierra el buraco del smoke-test (continue-on-error + exit 0 tragan
+        # errores de sintaxis — caso PR #1330: CREATE TABLE sin cuerpo, CI PASS 13s).
+        # Valida el 100% sin ejecutar: sin falsos positivos por dependencias.
+        run: |
+          pip install -q pglast 2>/dev/null || echo "pglast ya instalado"
+          python3 scripts/validate-migration-syntax.py --dir supabase/migrations
+
       - name: Collect and apply migrations (delta - so as que mudaram)
         # OTIMIZACAO v2: copia/aplica SOMENTE as migrations do PR/push, nao todas as 400+.
         # O linter estatico (step anterior) e a gate real de erros de sintaxe.
