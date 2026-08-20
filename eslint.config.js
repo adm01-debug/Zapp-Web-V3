@@ -9,11 +9,51 @@ import tseslint from "typescript-eslint";
 
 import tailwind from "eslint-plugin-tailwindcss";
 
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export default tseslint.config(
   // `.eslintrc.tailwind.js` is an orphaned legacy config (never wired into this
   // flat config) that holds TypeScript syntax in a .js file, so it fails to
   // parse. Ignore it here instead of surfacing a spurious parse error.
-  { ignores: ["dist", "supabase/functions/**", ".eslintrc.tailwind.js", ".hermes/**"] },
+  { ignores: ["dist", "supabase/functions/**", ".eslintrc.tailwind.js", ".hermes/**", "wt-*/**", "**/wt-*/**"] },
+  {
+    languageOptions: {
+      parserOptions: {
+        tsconfigRootDir: __dirname,
+        projectService: false,
+      },
+    },
+    ignores: [
+      "wt-*/**",
+      "**/wt-*/**",
+      "tests/**",
+      "e2e/**",
+      "scripts/**",
+      "supabase/migrations/__tests__/**",
+      "supabase/functions/**",
+      "src/**/*simulacao*.test.ts",
+      "src/**/*simulation*.test.ts",
+      "src/**/*Simulation*.test.ts",
+      "src/**/*exhaustive*.test.ts",
+      "src/shared/__tests__/validation.test.ts",
+      "src/__tests__/resolve-jid-exhaustive.test.ts",
+      "src/__tests__/security-simulations.test.ts",
+      "src/hooks/__tests__/useAudioRecorder.cleanup.test.ts",
+      "src/lib/__tests__/retryScheduleSimulation.test.ts",
+      "src/hooks/__tests__/useUrlFilters.test.tsx",
+      "vitest.config.ts",
+      "vitest.shims.d.ts",
+      "eslint.config.js",
+      "tailwind.config.js",
+      "tailwind.config.ts",
+      "postcss.config.js",
+      "vite.config.ts",
+      "deno.json",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
