@@ -12521,6 +12521,40 @@ COMMENT ON FUNCTION zapp.fn_purge_api_key_from_logs(p_key text) IS 'E3-04: Redac
 
 
 
+CREATE OR REPLACE FUNCTION zapp.fn_purge_warroom_alerts(p_resolved_days integer DEFAULT 30, p_all_days integer DEFAULT 90) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'zapp', 'public'
+    AS $$
+DECLARE
+  v_resolved bigint := 0;
+  v_old      bigint := 0;
+BEGIN
+  -- 1: resolvidos com mais de p_resolved_days dias
+  DELETE FROM zapp.warroom_alerts
+  WHERE resolved_at IS NOT NULL
+    AND resolved_at < now() - (p_resolved_days || ' days')::interval;
+  GET DIAGNOSTICS v_resolved = ROW_COUNT;
+
+  -- 2: qualquer alerta com mais de p_all_days dias (independente de status)
+  DELETE FROM zapp.warroom_alerts
+  WHERE created_at < now() - (p_all_days || ' days')::interval;
+  GET DIAGNOSTICS v_old = ROW_COUNT;
+
+  INSERT INTO ops.maintenance_log (job, details, ran_at)
+  VALUES ('fn_purge_warroom_alerts',
+    jsonb_build_object('resolvidos_purged', v_resolved, 'antigos_purged', v_old,
+                       'total', v_resolved + v_old,
+                       'retencoes', jsonb_build_object('resolved_days', p_resolved_days, 'all_days', p_all_days)),
+    now())
+  ON CONFLICT DO NOTHING;
+
+  RETURN jsonb_build_object('resolvidos_purged', v_resolved, 'antigos_purged', v_old,
+                             'total_deleted', v_resolved + v_old);
+END $$;
+
+
+
+
 CREATE OR REPLACE FUNCTION zapp.fn_purge_webhook_logs(older_than interval DEFAULT '90 days'::interval) RETURNS bigint
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'zapp', 'pg_catalog'
@@ -31642,7 +31676,7 @@ CREATE TABLE IF NOT EXISTS zapp.webhook_audit_log (
     received_at timestamp with time zone DEFAULT now(),
     CONSTRAINT webhook_audit_log_status_check CHECK ((status = ANY (ARRAY['received'::text, 'processed'::text, 'duplicate'::text, 'failed'::text, 'rejected'::text])))
 )
-WITH (autovacuum_analyze_scale_factor='0.05', autovacuum_analyze_threshold='500', autovacuum_vacuum_scale_factor='0.0001', autovacuum_vacuum_threshold='0', autovacuum_vacuum_cost_delay='2');
+WITH (autovacuum_vacuum_scale_factor='0', autovacuum_vacuum_threshold='20000', autovacuum_analyze_scale_factor='0', autovacuum_analyze_threshold='15000', autovacuum_vacuum_cost_delay='2');
 
 
 
