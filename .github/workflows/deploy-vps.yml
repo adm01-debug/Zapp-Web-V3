@@ -82,6 +82,28 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: ⚡ Pull previous assets para retencao entre deploys
+        run: |
+          # Extrair /usr/share/nginx/html/assets/ do deploy N-1 antes de buildar N.
+          # production-latest = tag do deploy atual, que sera sobrescrita pelo push novo.
+          # Sessoes vivas com tab aberta do deploy anterior nao recebem 404 nos chunks JS/CSS.
+          mkdir -p ./previous-assets
+          docker rm -f prev-zapp 2>/dev/null || true
+          if docker pull ghcr.io/${{ env.IMAGE_NAME }}:production-latest 2>/dev/null; then
+            docker create --name prev-zapp ghcr.io/${{ env.IMAGE_NAME }}:production-latest
+            # docker cp cria /tmp/prev-assets/assets/ — movemos o conteudo interno
+            docker cp prev-zapp:/usr/share/nginx/html/assets /tmp/prev-assets 2>/dev/null || true
+            docker rm prev-zapp 2>/dev/null || true
+            if [ -d /tmp/prev-assets ]; then
+              cp -r /tmp/prev-assets/. ./previous-assets/
+              rm -rf /tmp/prev-assets
+            fi
+            COUNT=$(ls ./previous-assets | wc -l | tr -d ' ')
+            echo "Assets retidos: ${COUNT} arquivos do build anterior"
+          else
+            echo "Sem imagem anterior (1o deploy ou production-latest indisponivel) — ok"
+          fi
+
       - name: Compute image tag
         id: meta
         run: |

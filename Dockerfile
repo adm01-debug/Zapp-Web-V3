@@ -32,6 +32,12 @@ RUN bunx vite build
 
 FROM nginx:1.31-alpine AS runtime
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Retenção de assets do build anterior — assets com nomes content-hashed do
+# build N-1 coexistem com os do build N, sem colisão. Sessões vivas com tab
+# aberta do deploy anterior não recebem 404 nos seus chunks JS/CSS.
+# previous-assets/ é populado no CI antes do build (pull de production-latest).
+# Se o dir estiver vazio (primeiro deploy), COPY é no-op.
+COPY ./previous-assets/ /usr/share/nginx/html/assets/
 COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
