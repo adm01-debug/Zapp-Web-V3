@@ -141,6 +141,27 @@ describe('useInboxShortcuts', () => {
     expect(handlers.onArchive).not.toHaveBeenCalled();
   });
 
+  it('regressão PR #1350: enableArchive=false suprime SÓ o Mod+E (dedupe Sidebar×ChatPanel)', () => {
+    // Cenário do bug: Sidebar e ChatPanel registram Mod+E simultaneamente e
+    // arquivam o mesmo contato duas vezes. Com enableArchive=false o consumidor
+    // cede o Mod+E, mas os demais atalhos continuam ativos.
+    renderHook(() => useInboxShortcuts({ ...handlers, enableArchive: false }));
+    keydown({ key: 'e', ...ctrlKey });
+    expect(handlers.onArchive).not.toHaveBeenCalled();
+    keydown({ key: 'r', ...ctrlKey });
+    expect(handlers.onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('regressão PR #1350: dois consumidores montados, um com enableArchive=false → onArchive dispara 1x', () => {
+    const sidebar = makeHandlers();
+    const panel = makeHandlers();
+    renderHook(() => useInboxShortcuts({ ...sidebar, enableArchive: false }));
+    renderHook(() => useInboxShortcuts(panel));
+    keydown({ key: 'e', ...ctrlKey });
+    expect(sidebar.onArchive).not.toHaveBeenCalled();
+    expect(panel.onArchive).toHaveBeenCalledTimes(1);
+  });
+
   it('enabled=false → atalho NÃO dispara', () => {
     renderHook(() => useInboxShortcuts({ ...handlers, enabled: false }));
     keydown({ key: 'k', ...ctrlKey });
