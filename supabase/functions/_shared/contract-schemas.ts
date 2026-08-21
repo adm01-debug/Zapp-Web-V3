@@ -36,6 +36,7 @@ import {
   AiTranscribeAudioV1Schema,
   AiAutoTagSchema,
   isSafeHttpsUrl,
+  isSafeHost,
   phoneOrJidField,
   phoneOnlyField,
 } from "./schemas.ts";
@@ -349,10 +350,13 @@ const ImapSmtpConfigV1Schema = z.object({
   email: z.string().max(320).email("email inválido").optional(),
   password: z.string().min(1).max(2000).optional(),
   provider: z.enum(["outlook", "yahoo", "gmail", "custom"]).optional(),
-  imap_host: z.string().min(1).max(253).optional(),
+  // SEC-4 (Bloco 0, 2026-08-21): host de rede interna/privada bloqueado —
+  // conecta via socket TCP direto (Deno.connect), risco de SSRF idêntico ao
+  // de uma URL, só que sem scheme pra validar com isSafeHttpsUrl.
+  imap_host: z.string().min(1).max(253).refine(isSafeHost, "imap_host não pode apontar para rede interna/privada").optional(),
   imap_port: z.number().int().min(1).max(65535).optional(),
   imap_use_ssl: z.boolean().optional(),
-  smtp_host: z.string().min(1).max(253).optional(),
+  smtp_host: z.string().min(1).max(253).refine(isSafeHost, "smtp_host não pode apontar para rede interna/privada").optional(),
   smtp_port: z.number().int().min(1).max(65535).optional(),
   smtp_use_tls: z.boolean().optional(),
   username: z.string().max(320).optional(),
@@ -440,7 +444,10 @@ export const EvolutionCredentialsWriteV1Schema = z.discriminatedUnion("action", 
   z.object({
     action: z.literal("save"),
     instance_name: z.string().min(1).max(100),
-    api_url: z.string().min(1).max(500),
+    // SEC-4 (Bloco 0, 2026-08-21): api_url persistida e usada em chamadas
+    // futuras — exige https público, bloqueia SSRF pra rede interna/privada.
+    api_url: z.string().url("api_url deve ser uma URL válida").max(500)
+      .refine(isSafeHttpsUrl, "api_url não pode apontar para rede interna/privada"),
     api_key: z.string().min(1).max(500),
     display_name: z.string().max(200).optional().nullable(),
     department: z.string().max(200).optional().nullable(),
@@ -491,6 +498,10 @@ export const ConnectionHealthCheckV1Schema = z.object({
  */
 export const ZappN8nSyncV1Schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("status") }).strict(),
+  // SEC-4 (Bloco 0, 2026-08-21): baseUrl aceita host sem protocolo no
+  // contrato (o handler normaliza com https:// antes de persistir — ver
+  // normalizeBaseUrl/handleConfigure) — isSafeHttpsUrl roda no handler,
+  // DEPOIS da normalização, não aqui (senão rejeitaria "n8n.example.com").
   z.object({ action: z.literal("configure"), baseUrl: z.string().min(1).max(2048) }).strict(),
 ]);
 
