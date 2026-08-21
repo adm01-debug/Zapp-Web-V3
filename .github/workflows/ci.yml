@@ -32,8 +32,19 @@ env:
 jobs:
   lockfile:
     name: Verify Lockfile
-    # [2026-08-18] self-hosted: repo privado + cota billing esgotada; tools=bun git jq
-    runs-on: [Linux, X64, vps-zapp]
+    # Piloto de migração pra ubuntu-latest (auditoria 2026-08-21): o repo está
+    # PÚBLICO hoje (confirmado via `gh repo view --json visibility` — a
+    # premissa "repo privado + cota billing esgotada" de 2026-08-18 não se
+    # aplica mais; repos públicos têm minutos ubuntu-latest gratuitos e
+    # ilimitados). Este job foi escolhido como piloto por ser o mais seguro:
+    # só git/jq/cat/base64 (nada de bun de fato, apesar do comentário antigo),
+    # sem secrets, sem rede além de `git fetch origin` (remoto público).
+    # Motivação: os ~48 workflows deste repo competem TODOS pelo mesmo pool
+    # de 6 runners self-hosted (vps-zapp) — pushes próximos no tempo (comum
+    # neste repo) enfileiram por dezenas de minutos. Se este piloto se provar
+    # estável, migrar os demais candidatos sem dependência de rede interna da
+    # VPS libera o pool pros jobs que realmente precisam dela (DB live, deploy).
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
