@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useChatScheduleMessage } from './chat/hooks/useChatScheduleMessage';
-import { useChatQuickReplyControl } from './chat/hooks/useChatQuickReplyControl';
 import { Conversation, Message } from '@/types/chat';
 import { FileUploaderRef } from './FileUploader';
 import { useTypingPresence } from '@/hooks/useTypingPresence';
@@ -30,7 +29,6 @@ import { AutomationSuggestionsBar } from './chat/AutomationSuggestionsBar';
 import { useAutomations } from '@/hooks/useAutomations';
 import { SendErrorBanner } from './chat/SendErrorBanner';
 import { ChatDragOverlay } from './chat/ChatDragOverlay';
-import { ChatQuickRepliesPopover } from './chat/ChatQuickRepliesPopover';
 import { ChatSearchBar } from './chat/ChatSearchBar';
 import { useChatPanelHandlers } from './chat/useChatPanelHandlers';
 import type { ActiveTool } from './chat/ChatHeaderToolbar';
@@ -59,6 +57,10 @@ import { useUserRole } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('ChatPanel');
+
+// Etapa 86: default estável para onToggleDetails — `|| (() => {})` inline
+// criava uma arrow nova por render e quebrava memo de quem a recebia.
+const noop = () => {};
 
 if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
   (window as Window).requestIdleCallback(() => {
@@ -97,7 +99,7 @@ export function ChatPanel({
   onSendMessage,
   onSendAudio,
   showDetails = false,
-  onToggleDetails,
+  onToggleDetails = noop,
   onBack,
   hideHeader = false,
   onLoadOlder,
@@ -383,25 +385,54 @@ export function ChatPanel({
     onHighlightConsumed,
   });
 
-  const {
-    filtered: filteredQuickReplies,
-    selectedIndex: selectedQuickReplyIndex,
-    handleQuickReply,
-    handleKeyDown,
-    handleInputChange,
-  } = useChatQuickReplyControl({
-    inputValue: handlers.inputValue,
-    dbQuickReplies,
-    quickRepliesOpen: dialogs.quickReplies,
-    openQuickReplies: () => openDialog('quickReplies'),
-    closeQuickReplies: () => closeDialog('quickReplies'),
-    slashCommandsOpen: dialogs.slashCommands,
-    setInputValue: handlers.setInputValue,
-    focusInput: () => handlers.inputRef.current?.focus(),
-    incrementUseCount,
-    baseHandleInputChange: handlers.handleInputChange,
-    baseHandleKeyDown: handlers.handleKeyDown,
-  });
+  // Bloco 6 (etapas 57–61): callbacks estáveis para os filhos memoizados.
+  // O controle de respostas rápidas + popover DESCERAM para o ChatInputArea
+  // (etapa 59) — este componente não lê mais o valor do input por tecla.
+  const openQuickReplies = useCallback(() => openDialog('quickReplies'), [openDialog]);
+  const closeQuickReplies = useCallback(() => closeDialog('quickReplies'), [closeDialog]);
+  const closeSlashCommands = useCallback(() => closeDialog('slashCommands'), [closeDialog]);
+  const openInteractiveBuilder = useCallback(() => openDialog('interactiveBuilder'), [openDialog]);
+  const openScheduleDialog = useCallback(() => openDialog('scheduleDialog'), [openDialog]);
+  const openLocationPicker = useCallback(() => openDialog('locationPicker'), [openDialog]);
+  const openCatalogDirect = useCallback(() => openDialog('catalogDirect'), [openDialog]);
+  const openTransferDialog = useCallback(() => openDialog('transferDialog'), [openDialog]);
+  const openCloseDialog = useCallback(() => openDialog('closeDialog'), [openDialog]);
+  const openValidationDialog = useCallback(() => openDialog('visualValidation'), [openDialog]);
+  const openTeamFiles = useCallback(() => handleSetActiveTool('teamFiles'), [handleSetActiveTool]);
+  const openChatSearchTool = useCallback(
+    () => handleSetActiveTool('chatSearch'),
+    [handleSetActiveTool]
+  );
+  const openAIAssistantTool = useCallback(
+    () => handleSetActiveTool('aiAssistant'),
+    [handleSetActiveTool]
+  );
+  const { setIsWhisper, setReplyToMessage, setIsRecordingAudio, handleAudioSend } = handlers;
+  const toggleWhisper = useCallback(() => setIsWhisper((v) => !v), [setIsWhisper]);
+  const cancelReply = useCallback(() => setReplyToMessage(null), [setReplyToMessage]);
+  const toggleRecording = useCallback(() => setIsRecordingAudio((v) => !v), [setIsRecordingAudio]);
+  const cancelRecording = useCallback(() => setIsRecordingAudio(false), [setIsRecordingAudio]);
+  const handleAudioSendWithProp = useCallback(
+    (blob: Blob) => handleAudioSend(blob, onSendAudio),
+    [handleAudioSend, onSendAudio]
+  );
+  const startOutboundCall = useCallback(() => {
+    setCallDirection('outbound');
+    openDialog('callDialog');
+  }, [openDialog]);
+  const toggleFailuresOnly = useCallback(() => setFailuresOnly((v) => !v), [setFailuresOnly]);
+  const handleSelectSearchResult = useCallback(
+    (result: { type: string; id?: string; title: string }) => {
+      // BUG-24: resultado de mensagem navega direto na conversa;
+      // demais tipos (contato, acao, crm) mostram um toast informativo.
+      if (result.type === 'message' && result.id) {
+        messagesAreaRef.current?.scrollToMessage(result.id);
+      } else {
+        toast({ title: 'Resultado', description: result.title });
+      }
+    },
+    []
+  );
 
   // Stable refs for ChatMessagesArea to prevent re-renders on input change
   const contactAvatar = conversation.contact.avatar || undefined;
@@ -535,7 +566,8 @@ export function ChatPanel({
       {...dragHandlers}
     >
       <ChatDragOverlay isDraggingOver={isDraggingOver} />
-      <CRMAutoSync conversation={conversation} messageCount={messages.length} messages={messages} />
+      {/* Etapa 62: messageCount removido — era messages.length duplicado. */}
+      <CRMAutoSync conversation={conversation} messages={messages} />
 
       <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--background))]">
         {!hideHeader && (
@@ -546,26 +578,23 @@ export function ChatPanel({
             showDetails={showDetails}
             voiceId={voiceId}
             speed={speed}
-            onToggleAIAssistant={() => handleSetActiveTool('aiAssistant')}
-            onToggleDetails={onToggleDetails || (() => {})}
-            onStartCall={() => {
-              setCallDirection('outbound');
-              openDialog('callDialog');
-            }}
-            onOpenSearch={() => handleSetActiveTool('chatSearch')}
-            onOpenValidation={isDevExact ? () => openDialog('visualValidation') : undefined}
+            onToggleAIAssistant={openAIAssistantTool}
+            onToggleDetails={onToggleDetails}
+            onStartCall={startOutboundCall}
+            onOpenSearch={openChatSearchTool}
+            onOpenValidation={isDevExact ? openValidationDialog : undefined}
             onResolveConversation={handleResolveFromHeader}
             onArchiveConversation={handleArchiveConversation}
-            onOpenTransfer={() => openDialog('transferDialog')}
-            onOpenSchedule={() => openDialog('scheduleDialog')}
+            onOpenTransfer={openTransferDialog}
+            onOpenSchedule={openScheduleDialog}
             onVoiceChange={setVoiceId}
             onSpeedChange={setSpeed}
             onBack={onBack}
-            onGenerateSummary={() => handleSetActiveTool('aiAssistant')}
-            onCloseConversation={() => openDialog('closeDialog')}
+            onGenerateSummary={openAIAssistantTool}
+            onCloseConversation={openCloseDialog}
             failuresOnly={failuresOnly}
             failuresCount={failedMessages.length}
-            onToggleFailuresOnly={() => setFailuresOnly((v) => !v)}
+            onToggleFailuresOnly={toggleFailuresOnly}
             activeTool={activeTool}
             whisperCount={whisperCount}
             onSetActiveTool={handleSetActiveTool}
@@ -606,10 +635,7 @@ export function ChatPanel({
           open={historyOpen}
           onOpenChange={setHistoryOpen}
         />
-        <ChatAssignedBar
-          conversation={conversation}
-          onOpenTransfer={() => openDialog('transferDialog')}
-        />
+        <ChatAssignedBar conversation={conversation} onOpenTransfer={openTransferDialog} />
 
         <FailureFilterBar
           failuresOnly={failuresOnly}
@@ -665,14 +691,6 @@ export function ChatPanel({
           onAudioVoiceChange={handlers.handleAudioVoiceChange}
         />
 
-        <ChatQuickRepliesPopover
-          show={dialogs.quickReplies}
-          replies={filteredQuickReplies}
-          onSelect={handleQuickReply}
-          onClose={() => closeDialog('quickReplies')}
-          selectedIndex={selectedQuickReplyIndex}
-        />
-
         <SendErrorBanner
           error={handlers.lastSendError}
           detail={handlers.lastSendErrorDetail}
@@ -683,15 +701,19 @@ export function ChatPanel({
 
         <AutomationSuggestionsBar
           contactId={conversation.contact.id}
-          onUseSuggestion={(t) => handlers.setInputValue(t)}
+          onUseSuggestion={handlers.setInputValue}
         />
 
         <ChatInputArea
-          inputValue={handlers.inputValue}
+          inputStore={handlers.inputStore}
           replyToMessage={handlers.replyToMessage}
           editingMessage={handlers.editingMessage}
           isRecordingAudio={handlers.isRecordingAudio}
           showSlashCommands={dialogs.slashCommands}
+          quickRepliesOpen={dialogs.quickReplies}
+          onOpenQuickReplies={openQuickReplies}
+          onCloseQuickReplies={closeQuickReplies}
+          incrementQuickReplyUse={incrementUseCount}
           contactId={conversation.contact.id ?? ''}
           contactPhone={conversation.contact.phone ?? ''}
           contactName={conversation.contact.name ?? ''}
@@ -701,23 +723,22 @@ export function ChatPanel({
           isSending={handlers.isSending}
           sendProgress={handlers.sendProgress}
           isWhisper={handlers.isWhisper}
-          onToggleWhisper={() => handlers.setIsWhisper((v) => !v)}
-          onInputChange={handleInputChange}
-          onKeyDown={handleKeyDown}
+          onToggleWhisper={toggleWhisper}
+          onInputChange={handlers.handleInputChange}
+          onKeyDown={handlers.handleKeyDown}
           onBlur={handleTypingStop}
-          onSend={(att) => handlers.handleSend(att)}
-          onCancelReply={() => handlers.setReplyToMessage(null)}
+          onSend={handlers.handleSend}
+          onCancelReply={cancelReply}
           onCancelEdit={handlers.handleCancelEdit}
           onEditStart={handlers.handleEditStart}
           onSlashCommand={handlers.handleSlashCommand}
-          onCloseSlashCommands={() => closeDialog('slashCommands')}
-          onQuickReply={handleQuickReply}
-          onRecordToggle={() => handlers.setIsRecordingAudio((v) => !v)}
-          onAudioSend={(blob) => handlers.handleAudioSend(blob, onSendAudio)}
-          onAudioCancel={() => handlers.setIsRecordingAudio(false)}
-          onOpenInteractiveBuilder={() => openDialog('interactiveBuilder')}
-          onOpenSchedule={() => openDialog('scheduleDialog')}
-          onOpenLocationPicker={() => openDialog('locationPicker')}
+          onCloseSlashCommands={closeSlashCommands}
+          onRecordToggle={toggleRecording}
+          onAudioSend={handleAudioSendWithProp}
+          onAudioCancel={cancelRecording}
+          onOpenInteractiveBuilder={openInteractiveBuilder}
+          onOpenSchedule={openScheduleDialog}
+          onOpenLocationPicker={openLocationPicker}
           onSendProduct={handlers.handleSendProduct}
           onSendSticker={handleSendSticker}
           onSendAudioMeme={handleSendAudioMeme}
@@ -727,10 +748,10 @@ export function ChatPanel({
           onToggleSignature={toggleSignature}
           onPollSent={handlePollSent}
           onContactSent={handleContactSent}
-          onOpenCatalog={() => openDialog('catalogDirect')}
-          onSelectSuggestion={(text) => handlers.setInputValue(text)}
-          onSelectTemplate={(text) => handlers.setInputValue(text)}
-          onOpenTeamFiles={() => handleSetActiveTool('teamFiles')}
+          onOpenCatalog={openCatalogDirect}
+          onSelectSuggestion={handlers.setInputValue}
+          onSelectTemplate={handlers.setInputValue}
+          onOpenTeamFiles={openTeamFiles}
           fileUploaderRef={fileUploaderRef}
           inputRef={handlers.inputRef}
           queue={messageQueue?.queue}
@@ -753,15 +774,7 @@ export function ChatPanel({
           onSendLocation={handlers.handleSendLocation}
           onSendProduct={handlers.handleSendProduct}
           onSetInputValue={handlers.setInputValue}
-          onSelectSearchResult={(result) => {
-            // BUG-24: resultado de mensagem navega direto na conversa;
-            // demais tipos (contato, acao, crm) mostram um toast informativo.
-            if (result.type === 'message' && result.id) {
-              messagesAreaRef.current?.scrollToMessage(result.id);
-            } else {
-              toast({ title: 'Resultado', description: result.title });
-            }
-          }}
+          onSelectSearchResult={handleSelectSearchResult}
         />
       </div>
 
@@ -771,7 +784,7 @@ export function ChatPanel({
         messages={messages}
         contactId={conversation.contact.id ?? ''}
         contactName={conversation.contact.name ?? ''}
-        onSelectSuggestion={(text) => handlers.setInputValue(text)}
+        onSelectSuggestion={handlers.setInputValue}
       />
       <ChatMonitoringDialog
         open={activeTool === 'monitoring'}

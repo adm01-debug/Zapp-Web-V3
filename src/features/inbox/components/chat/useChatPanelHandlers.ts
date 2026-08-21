@@ -12,6 +12,8 @@ import { resolveContactRef, isUuidRef, isJidRef } from '../../utils/contactRef';
 import { type DialogKey } from './hooks/useChatDialogs';
 import { type ActiveTool } from './ChatHeaderToolbar';
 import { useInputHandlers } from './useInputHandlers';
+import { useCreateInputValueStore } from './hooks/useInputValueStore';
+import { readChatDraft } from './useChatInputLogic';
 import { useProductHandlers } from './useProductHandlers';
 import { useAudioVoiceChange } from './useAudioVoiceChange';
 import { useMessageReactionHandlers } from './useMessageReactionHandlers';
@@ -69,7 +71,17 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     onArchive: onArchiveAction,
   } = opts;
   const { profile } = useAuth();
-  const [inputValue, setInputValue] = useState('');
+  // Bloco 6 (etapa 57): o texto do input mora num STORE externo, não em
+  // useState — cada tecla re-renderizava o ChatPanel inteiro. Só quem assina
+  // o store (ChatInputArea) re-renderiza. O setter preserva o contrato
+  // SetStateAction (há um caller com updater na transcrição em tempo real).
+  const inputStore = useCreateInputValueStore();
+  const setInputValue = useCallback(
+    (next: string | ((prev: string) => string)) => {
+      inputStore.set(typeof next === 'function' ? next(inputStore.get()) : next);
+    },
+    [inputStore]
+  );
   const [isWhisper, setIsWhisper] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
@@ -96,8 +108,6 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const inputValueRef = useRef(inputValue);
-  inputValueRef.current = inputValue;
   const isSendingRef = useRef(isSending);
   isSendingRef.current = isSending;
   const editingMessageRef = useRef(editingMessage);
@@ -114,16 +124,15 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   // reset, resposta/edição/encaminhamento apontando para mensagens da conversa
   // anterior, sussurro armado, gravação aberta, progresso de envio e o banner
   // de erro (com payload falho de texto/áudio retendo Blob) vazariam para a
-  // conversa seguinte. O texto digitado é a exceção deliberada: vira rascunho
-  // por conversa (Map em ref) e é restaurado ao voltar.
-  const draftsRef = useRef(new Map<string, string>());
+  // conversa seguinte. O texto digitado é a exceção deliberada (etapas 40–41):
+  // restauramos o rascunho POR CONTATO do sistema já existente no
+  // useChatInputLogic (localStorage `chat_draft_*`, autosave com 500ms).
   const prevConversationIdRef = useRef(conversationId);
   useEffect(() => {
     const prevId = prevConversationIdRef.current;
     if (prevId === conversationId) return;
     prevConversationIdRef.current = conversationId;
-    if (prevId) draftsRef.current.set(prevId, inputValueRef.current);
-    setInputValue(conversationId ? (draftsRef.current.get(conversationId) ?? '') : '');
+    setInputValue(conversationId ? readChatDraft(contactId) : '');
     setReplyToMessage(null);
     setEditingMessage(null);
     setForwardMessage(null);
@@ -134,31 +143,34 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     setLastSendErrorDetail(null);
     lastFailedSendRef.current = null;
     lastFailedAudioRef.current = null;
-  }, [conversationId]);
+  }, [conversationId, contactId, setInputValue]);
 
-  const handleEditStart = useCallback((message: Message) => {
-    const minutesAgo = (Date.now() - new Date(message.timestamp).getTime()) / 60000;
-    if (minutesAgo > EDIT_WINDOW_MINUTES) {
-      toast({
-        title: 'Tempo expirado',
-        description: `Voce so pode editar mensagens nos primeiros ${EDIT_WINDOW_MINUTES} minutos.`,
-        variant: 'destructive',
-      });
-      return;
-    }
-    setEditingMessage(message);
-    setInputValue(message.content);
-    inputRef.current?.focus();
-  }, []);
+  const handleEditStart = useCallback(
+    (message: Message) => {
+      const minutesAgo = (Date.now() - new Date(message.timestamp).getTime()) / 60000;
+      if (minutesAgo > EDIT_WINDOW_MINUTES) {
+        toast({
+          title: 'Tempo expirado',
+          description: `Voce so pode editar mensagens nos primeiros ${EDIT_WINDOW_MINUTES} minutos.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+      setEditingMessage(message);
+      setInputValue(message.content);
+      inputRef.current?.focus();
+    },
+    [setInputValue]
+  );
 
   const handleCancelEdit = useCallback(() => {
     setEditingMessage(null);
     setInputValue('');
-  }, []);
+  }, [setInputValue]);
 
   const handleSend = useCallback(
     async (attachments?: File[]) => {
-      const currentInput = inputValueRef.current;
+      const currentInput = inputStore.get();
       const currentEditing = editingMessageRef.current;
       const hasAttachments = !!attachments && attachments.length > 0;
       // Legenda é opcional para mídia: applySignature('') retorna texto não-vazio
@@ -401,6 +413,8 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       onSendMessage,
       handleTypingStop,
       profile,
+      inputStore,
+      setInputValue,
     ]
   );
 
@@ -725,7 +739,10 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const { handleAudioVoiceChange } = useAudioVoiceChange();
 
   return {
-    inputValue,
+    // Bloco 6: o valor vivo do input NÃO é mais exposto aqui — assinar o
+    // store no ChatPanel desfaria o isolamento do keystroke. Quem precisa do
+    // valor por tecla assina `inputStore` (hoje: ChatInputArea).
+    inputStore,
     setInputValue,
     isSending,
     sendProgress,

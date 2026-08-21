@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Sparkles, Check, X, Send, Tag, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,7 +13,9 @@ interface AutomationSuggestionsBarProps {
 }
 
 /** Automation Suggestions Bar component for the chat section. */
-export function AutomationSuggestionsBar({
+// memo (etapa 64): contactId primitivo + setInputValue estável — a barra só
+// re-renderiza quando as próprias sugestões mudam.
+export const AutomationSuggestionsBar = memo(function AutomationSuggestionsBar({
   contactId,
   onUseSuggestion,
   onSendNow,
@@ -122,4 +125,4 @@ export function AutomationSuggestionsBar({
       ))}
     </div>
   );
-}
+});
