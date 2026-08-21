@@ -14,6 +14,10 @@
   "typescript.updateImportsOnFileMove.enabled": "always",
   "typescript.tsdk": "node_modules/typescript/lib",
 
+  "deno.enablePaths": ["supabase/functions"],
+  "deno.lint": true,
+  "deno.config": "supabase/functions/deno.json",
+
   "emmet.includeLanguages": {
     "typescriptreact": "html"
   },
