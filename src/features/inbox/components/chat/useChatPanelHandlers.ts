@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useChatPanelHandlers');
@@ -92,6 +92,23 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   replyToMessageRef.current = replyToMessage;
   const isWhisperRef = useRef(isWhisper);
   isWhisperRef.current = isWhisper;
+
+  // Etapas 39-43: limpar todo estado local ao trocar de conversa para evitar
+  // vazamento de rascunho, estado de edição, erro residual e referências antigas.
+  useEffect(() => {
+    setInputValue('');
+    setIsWhisper(false);
+    setIsSending(false);
+    setIsRecordingAudio(false);
+    setReplyToMessage(null);
+    setEditingMessage(null);
+    setForwardMessage(null);
+    setLastSendError(null);
+    setLastSendErrorDetail(null);
+    setSendProgress(0);
+    lastFailedSendRef.current = null;
+    lastFailedAudioRef.current = null;
+  }, [conversationId]);
 
   const handleEditStart = useCallback((message: Message) => {
     const minutesAgo = (Date.now() - new Date(message.timestamp).getTime()) / 60000;
@@ -439,7 +456,9 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         setIsRecordingAudio(false);
       }
     },
-    []
+    // Etapa 45: conversationId deve estar nas deps para que o conversationId
+    // capturado em lastFailedAudioRef seja sempre o da conversa ativa.
+    [conversationId]
   );
 
   const { handleReplyToMessage, handleCopyMessage, handleForwardMessage, handleForwardToTargets } =
