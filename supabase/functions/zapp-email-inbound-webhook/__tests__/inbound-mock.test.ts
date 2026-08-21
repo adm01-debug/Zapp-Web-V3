@@ -171,3 +171,66 @@ Deno.test("zapp-email-inbound-webhook: storage falha → email ainda grava (anex
   assertEquals(emailInserts.length, 1);
   assertEquals((emailInserts[0].attachments as unknown[]).length, 0);
 });
+
+// ─── etapa 23 (Bloco 2, 2026-08-21): 422 canônico substitui o 400 artesanal ──
+// validateMinimalPayload rodava ANTES do gate — o 422 canônico nunca era
+// atingido. Agora as mesmas regras (to/subject/text-ou-html obrigatórios)
+// vivem no schema (superRefine) e o ÚNICO caminho de rejeição é parseOrReject.
+Deno.test("zapp-email-inbound-webhook: sem 'to' → 422 canônico (contract_violation, path 'to')", async () => {
+  reset();
+  const { to: _to, ...semTo } = PAYLOAD;
+  const res = await call(semTo, { secret: WEBHOOK_SECRET });
+  assertEquals(res.status, 422);
+  const body = await res.json() as { error: boolean; code: string; contract: string; details: Array<{ path: string }> };
+  assertEquals(body.error, true);
+  assertEquals(body.code, "contract_violation");
+  assertEquals(body.contract, "zapp-email-inbound-webhook@v1");
+  assertEquals(body.details.some((d) => d.path === "to"), true);
+  assertEquals(emailInserts.length, 0);
+});
+Deno.test("zapp-email-inbound-webhook: 'to' vazio → 422 (path 'to')", async () => {
+  reset();
+  const res = await call({ ...PAYLOAD, to: [] }, { secret: WEBHOOK_SECRET });
+  assertEquals(res.status, 422);
+  const body = await res.json() as { details: Array<{ path: string }> };
+  assertEquals(body.details.some((d) => d.path === "to"), true);
+});
+Deno.test("zapp-email-inbound-webhook: sem 'subject' → 422 (path 'subject')", async () => {
+  reset();
+  const { subject: _subject, ...semSubject } = PAYLOAD;
+  const res = await call(semSubject, { secret: WEBHOOK_SECRET });
+  assertEquals(res.status, 422);
+  const body = await res.json() as { details: Array<{ path: string }> };
+  assertEquals(body.details.some((d) => d.path === "subject"), true);
+});
+Deno.test("zapp-email-inbound-webhook: subject só espaços → 422 (trim, path 'subject')", async () => {
+  reset();
+  const res = await call({ ...PAYLOAD, subject: "   " }, { secret: WEBHOOK_SECRET });
+  assertEquals(res.status, 422);
+  const body = await res.json() as { details: Array<{ path: string }> };
+  assertEquals(body.details.some((d) => d.path === "subject"), true);
+});
+Deno.test("zapp-email-inbound-webhook: sem text e sem html → 422 (path 'text')", async () => {
+  reset();
+  const { text: _text, html: _html, ...semCorpo } = PAYLOAD;
+  const res = await call(semCorpo, { secret: WEBHOOK_SECRET });
+  assertEquals(res.status, 422);
+  const body = await res.json() as { details: Array<{ path: string }> };
+  assertEquals(body.details.some((d) => d.path === "text"), true);
+  assertEquals(emailInserts.length, 0);
+});
+Deno.test("zapp-email-inbound-webhook: só html (sem text) → aceito (200)", async () => {
+  reset();
+  const { text: _text, ...soHtml } = PAYLOAD;
+  const res = await call(soHtml, { secret: WEBHOOK_SECRET });
+  assertEquals(res.status, 200);
+  assertEquals(emailInserts.length, 1);
+});
+Deno.test("zapp-email-inbound-webhook: body vazio (nenhum campo) → 422 acumula os 3 erros de negócio", async () => {
+  reset();
+  const res = await call({ id: "re-msg-2", from: "x@example.com" }, { secret: WEBHOOK_SECRET });
+  assertEquals(res.status, 422);
+  const body = await res.json() as { details: Array<{ path: string }> };
+  const paths = body.details.map((d) => d.path).sort();
+  assertEquals(paths, ["subject", "text", "to"]);
+});
