@@ -26,8 +26,10 @@ import {
  *  2. Pure-validation codes migrated from 400 → 422 (HTTP + internal
  *     `status`), keeping the exact pt-BR message:
  *     INVALID_NUMBER, INVALID_PRESENCE, MISSING_INSTANCE, MISSING_NUMBER,
- *     INVALID_MESSAGE_KEY, INSTANCE_NAME_IS_UUID, and the raw
- *     `{ error: 'Invalid instance name' }` site (~line 98).
+ *     INVALID_MESSAGE_KEY, INSTANCE_NAME_IS_UUID. The raw
+ *     `{ error: 'Invalid instance name' }` site (~line 97) was the one
+ *     surviving non-envelope shape in this file — migrated to the canonical
+ *     envelope (code INVALID_INSTANCE_NAME) in Bloco 2 / etapa 22, 2026-08-21.
  *  3. Non-validation codes are NOT migrated: MEDIA_EXPIRED stays 410,
  *     INSTANCE_PAUSED stays 503, INSTANCE_RATE_LIMIT stays 429, and the
  *     proxy re-emits upstream statuses (401/500/502/504…) unchanged.
@@ -67,6 +69,30 @@ Deno.test(
     assert(
       block.includes("details: [{ path: 'number', message: 'number é obrigatório (E.164, dígitos 10-15)' }]"),
       "details deve apontar path 'number' com a message pt-BR exata",
+    );
+  },
+);
+
+Deno.test(
+  "instance name inválido: envelope 422 canônico (Bloco 2, etapa 22 — era { error: 'Invalid instance name' } avulso)",
+  async () => {
+    const source = await readSource();
+    assert(
+      source.includes("code: 'INVALID_INSTANCE_NAME'"),
+      "code INVALID_INSTANCE_NAME presente",
+    );
+    assert(
+      source.includes("status: 422, code: 'INVALID_INSTANCE_NAME'"),
+      "status interno deve ser 422",
+    );
+    assert(
+      source.includes("contract: 'evolution-api@v1'") &&
+        /INVALID_INSTANCE_NAME[^}]*details: \[\{ path: 'instance'/.test(source),
+      "envelope deve carregar contract + details com path 'instance'",
+    );
+    assert(
+      !source.includes("JSON.stringify({ error: 'Invalid instance name' })"),
+      "shape avulso antigo não deve mais existir",
     );
   },
 );
