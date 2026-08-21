@@ -226,9 +226,12 @@ export function ChatPanel({
   }, [saveSettings]);
   useEffect(
     () => () => {
-      if (saveSettingsTimerRef.current !== null) clearTimeout(saveSettingsTimerRef.current);
+      if (saveSettingsTimerRef.current !== null) {
+        clearTimeout(saveSettingsTimerRef.current);
+        void saveSettings();
+      }
     },
-    []
+    [saveSettings]
   );
   useEffect(
     () => () => {
@@ -261,6 +264,10 @@ export function ChatPanel({
     onVoiceChange: handleVoiceChange,
     onSpeedChange: handleSpeedChange,
   });
+  useEffect(() => {
+    if (settings.tts_voice_id) setVoiceId(settings.tts_voice_id);
+    if (settings.tts_speed !== undefined) setSpeed(settings.tts_speed);
+  }, [settings.tts_voice_id, settings.tts_speed, setVoiceId, setSpeed]);
 
   const handlers = useChatPanelHandlers({
     conversationId: conversation.id ?? '',

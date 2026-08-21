@@ -69,6 +69,9 @@ export function useTypingPresence({
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           lastConnectedAtMs = Date.now();
+          void channel
+            .track({ userId: currentUserId, userName: currentUserName, isTyping: false })
+            .catch(() => {});
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           void logChannelError(log, '[TypingPresence] subscription status:', lastConnectedAtMs, status);
         }
