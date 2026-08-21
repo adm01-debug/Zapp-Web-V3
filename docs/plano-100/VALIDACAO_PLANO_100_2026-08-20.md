@@ -212,7 +212,8 @@ sem tratamento.**
 | **P0** | Offsite supabase-db parado desde 08-10 | Runbook `RESTORE_DRILL.md` §2 — verificar credencial R2 (suspeita: rotação do stack 261), religar, backfill, remover marcador |
 | **P1** | Lacunas no daily evolution-db (5 dias) | Ver logs do `postgres-backup-daily` nos dias falhos; avaliar retry/alerta de ausência |
 | **P1** | Restore com 19 erros ignorados | Limpar FK órfã de `evolution_whatsapp_status`; tratar `mv_system_status` no fluxo de dump/restore |
-| P2 | `migration-smoke-test` zero-success ativo em PR | Consertar causa raiz ou rebaixar p/ dispatch (padrão gen-types) |
+| P2 | `migration-smoke-test` zero-success ativo em PR | ✅ Causa raiz consertada neste PR (PEP 668 no runner: pip global/--user recusado e erro engolido por `2>/dev/null` — o job morria no gate de sintaxe antes de aplicar qualquer migration). Fix: venv + `--break-system-packages` + erro visível |
+| P2 | `zapp-schema-drift-gate` (job `drift-check`) **vermelho na `main` em todos os runs de 2026-08-20** (pré-existente a este PR) | O snapshot versionado nunca foi regenerado após o fechamento do drift das 684 migrations — 11.995 linhas divergem (ex.: funções de sentinela FDW aplicadas direto no banco). Remédio desenhado pelo próprio workflow: `workflow_dispatch` com regen do snapshot — **decisão do dono** (aceita o estado atual do banco como novo baseline versionado) |
 | P2 | Rate-limit nas 19 públicas sem limiter / unificação CORS / HMAC ad-hoc ×8 | Janela de edge functions (mapas prontos nas etapas 27–29) |
 | P2 | `evo.idx_recon_coverage_daily_snapshot_date` duplicado | DROP no repo **evolution-stack** (fronteira de DDL) |
 | P2 | Rebuild do graphify pós-merge | Comando no CLAUDE.md (container claude-code) |
