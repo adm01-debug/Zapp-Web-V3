@@ -48,3 +48,41 @@ Deno.test("readJsonBodyOrEmpty: corpo é só uma string JSON válida (\"oi\") �
   const result = await readJsonBodyOrEmpty(reqWithBody(JSON.stringify("oi")));
   assertEquals(result, "oi");
 });
+
+// ─── Auditoria pós-Bloco 6 (2026-08-21) — 3 lacunas de cobertura ────────────
+// encontradas por reprodução real; a do BOM era um bug funcional de verdade
+// (não só falta de teste) e foi corrigida em readJsonBodyOrEmpty.
+
+Deno.test("readJsonBodyOrEmpty: JSON válido com BOM (U+FEFF) líder → parseado corretamente (bug corrigido)", async () => {
+  // Antes da correção: JSON.parse rodava sobre o texto NÃO-trimado, e o BOM
+  // não é sintaxe JSON válida no início — um payload correto era rejeitado
+  // como malformado (null → 422 invalid_json). trim() remove BOM (é
+  // WhiteSpace pela spec de ECMAScript) antes do parse.
+  const bom = "﻿";
+  const result = await readJsonBodyOrEmpty(reqWithBody(bom + JSON.stringify({ a: 1 })));
+  assertEquals(result, { a: 1 });
+});
+
+Deno.test("readJsonBodyOrEmpty: corpo é a string JSON literal \"null\" → null (indistinguível do caminho de erro, por design)", async () => {
+  // JSON.parse("null") retorna null com sucesso (não lança) — o mesmo valor
+  // de retorno do caminho de JSON malformado. Documentado aqui como
+  // comportamento aceito, não um bug: o consumidor (parseOrReject) rejeita
+  // `null` de QUALQUER origem via isStructured = body !== null && ..., então
+  // os dois casos convergem pro mesmo 422 invalid_json — a ambiguidade não
+  // causa comportamento incorreto no caminho real de uso.
+  const resultFromLiteralNull = await readJsonBodyOrEmpty(reqWithBody("null"));
+  const resultFromMalformed = await readJsonBodyOrEmpty(reqWithBody("{invalid"));
+  assertEquals(resultFromLiteralNull, null);
+  assertEquals(resultFromMalformed, null);
+});
+
+Deno.test("readJsonBodyOrEmpty: número acima de Number.MAX_SAFE_INTEGER perde precisão silenciosamente (comportamento nativo do JSON.parse, documentado)", async () => {
+  // JSON.parse não tem reviver customizado aqui — números grandes (ex.: IDs
+  // int64/snowflake de sistemas externos) são arredondados para o double
+  // mais próximo, sem erro. Não é peculiaridade desta função (é o
+  // comportamento padrão de JSON.parse em qualquer engine JS conforme a
+  // especificação ECMAScript), mas documentado aqui pra não passar
+  // despercebido numa revisão futura.
+  const result = await readJsonBodyOrEmpty(reqWithBody('{"id": 99999999999999999999}')) as { id: number };
+  assertEquals(result.id, 100000000000000000000);
+});
