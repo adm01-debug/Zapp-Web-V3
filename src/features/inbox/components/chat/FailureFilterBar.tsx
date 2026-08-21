@@ -11,6 +11,14 @@ interface FailureFilterBarProps {
     failed_auth: number;
     failed_retries: number;
   };
+  /**
+   * Etapa 49: o filtro conta apenas a JANELA CARREGADA. Com mensagens antigas
+   * ainda não paginadas, as contagens viram "N+" para não apresentar parcial
+   * como total. (Etapa 50: paginação segue desligada no modo falhas por
+   * decisão — scroll saltando conteúdo filtrado confunde mais do que ajuda;
+   * o "N+" comunica a parcialidade.)
+   */
+  hasMoreOlder?: boolean;
   setFailureCategory: (category: FailureCategory | null) => void;
   setFailuresOnly: (value: boolean) => void;
 }
@@ -22,10 +30,13 @@ export function FailureFilterBar({
   categoryFilteredMessages,
   failedMessagesCount,
   categoryCounts,
+  hasMoreOlder = false,
   setFailureCategory,
   setFailuresOnly,
 }: FailureFilterBarProps) {
   if (!failuresOnly) return null;
+
+  const fmtCount = (n: number) => (hasMoreOlder ? `${n}+` : `${n}`);
 
   return (
     <div
@@ -34,10 +45,13 @@ export function FailureFilterBar({
       className="flex flex-wrap items-center justify-between gap-3 px-4 py-2 text-xs bg-destructive/10 text-destructive border-b border-destructive/20"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-medium">
+        <span
+          className="font-medium"
+          title={hasMoreOlder ? 'Contagem da janela carregada — há mensagens antigas não paginadas' : undefined}
+        >
           {categoryFilteredMessages.length === 0
             ? 'Nenhuma mensagem nesta categoria.'
-            : `${categoryFilteredMessages.length} ${categoryFilteredMessages.length === 1 ? 'mensagem' : 'mensagens'}`}
+            : `${fmtCount(categoryFilteredMessages.length)} ${categoryFilteredMessages.length === 1 && !hasMoreOlder ? 'mensagem' : 'mensagens'}${hasMoreOlder ? ' (janela carregada)' : ''}`}
         </span>
         <div className="flex items-center gap-1" role="tablist" aria-label="Categoria de falha">
           {([
@@ -62,7 +76,7 @@ export function FailureFilterBar({
                 }
               >
                 {label}
-                <span className="opacity-70">({count})</span>
+                <span className="opacity-70">({fmtCount(count)})</span>
               </button>
             );
           })}

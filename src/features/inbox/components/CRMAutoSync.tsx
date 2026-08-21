@@ -8,7 +8,7 @@
  *
  * Enhanced: auto-detect sentiment from messages, build richer summary.
  */
-import { useEffect, useRef, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSyncToCRM } from '@/hooks/useSyncToCRM';
@@ -128,9 +128,15 @@ export function CRMAutoSync({ conversation, messageCount, agentName, messages }:
   const convStatus = conversation.status;
   const convPhone = conversation.contact.phone;
   const convName = conversation.contact.name;
-  const msgLen = messages?.length ?? 0;
 
-  const sentiment = useMemo(() => detectSentiment(messages), [messages]);
+  // Etapa 62: os OBJETOS são lidos por ref apenas no momento do sync — mantê-los
+  // (e o sentiment derivado) nas deps re-executava o efeito e o scan de
+  // sentimento a cada mensagem nova, quando o gatilho real é só a transição
+  // de status para 'resolved'.
+  const conversationRef = useRef(conversation);
+  conversationRef.current = conversation;
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
 
   useEffect(() => {
     // F1 — estado honesto: se a config diz que NÃO há CRM, loga o skip em vez
@@ -150,7 +156,9 @@ export function CRMAutoSync({ conversation, messageCount, agentName, messages }:
       lastSyncedStatus.current = convStatus;
       lastSyncedId.current = convId;
 
-      const summary = buildSummary(conversation, messages);
+      const msgs = messagesRef.current;
+      const summary = buildSummary(conversationRef.current, msgs);
+      const sentiment = detectSentiment(msgs);
 
       syncConversation({
         phone: convPhone,
@@ -159,7 +167,7 @@ export function CRMAutoSync({ conversation, messageCount, agentName, messages }:
         assunto: `Conversa WhatsApp — ${convName}`,
         resumo: summary,
         sentiment,
-        messageCount: messageCount || msgLen,
+        messageCount: messageCount || (msgs?.length ?? 0),
         agentName: agentName || undefined,
         zappConversationId: convId,
       });
@@ -168,20 +176,7 @@ export function CRMAutoSync({ conversation, messageCount, agentName, messages }:
     }
     // Nota: lastSyncedStatus só deve ser atualizado DENTRO do shouldSync
     // (linha 157 do original fora do if quebrava o guard)
-  }, [
-    convId,
-    convStatus,
-    convPhone,
-    convName,
-    isConfigured,
-    syncConversation,
-    messageCount,
-    agentName,
-    msgLen,
-    sentiment,
-    conversation,
-    messages,
-  ]);
+  }, [convId, convStatus, convPhone, convName, isConfigured, syncConversation, messageCount, agentName]);
 
   return null; // Invisible component
 }

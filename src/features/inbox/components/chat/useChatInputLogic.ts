@@ -7,6 +7,21 @@ import { FileUploaderRef } from '../FileUploader';
 const DRAFT_KEY_PREFIX = 'chat_draft_';
 const CHAR_LIMIT = 4096;
 
+/**
+ * Lê o rascunho persistido do contato (mesma chave do autosave deste hook).
+ * Usado pelo useChatPanelHandlers para restaurar o rascunho na TROCA de
+ * conversa — o effect de restore abaixo só cobre o mount (ordem filho→pai
+ * dos effects impede que ele veja o campo já limpo na troca).
+ */
+export function readChatDraft(contactId: string): string {
+  if (!contactId) return '';
+  try {
+    return localStorage.getItem(`${DRAFT_KEY_PREFIX}${contactId}`) ?? '';
+  } catch {
+    return '';
+  }
+}
+
 /** Chat Input Attachment interface definition. */
 export interface ChatInputAttachment {
   id: string;

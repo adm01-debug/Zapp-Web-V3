@@ -94,6 +94,7 @@ vi.mock('../useChatInputLogic', () => ({
 }));
 
 import { ChatInputArea } from '../ChatInputArea';
+import { createInputValueStore } from '../hooks/useInputValueStore';
 
 /**
  * Tipo LOCAL mínimo no lugar de `import type { QueueItem } from
@@ -130,7 +131,13 @@ function makeMessage(overrides: Partial<Message>): Message {
 }
 
 const baseProps = {
-  inputValue: '',
+  // Bloco 6: o valor vem por store (etapa 57) — cada teste que precisa de
+  // texto inicial passa um store próprio via override.
+  inputStore: createInputValueStore(''),
+  quickRepliesOpen: false,
+  onOpenQuickReplies: vi.fn(),
+  onCloseQuickReplies: vi.fn(),
+  incrementQuickReplyUse: vi.fn(),
   replyToMessage: null,
   isRecordingAudio: false,
   showSlashCommands: false,
@@ -146,7 +153,6 @@ const baseProps = {
   onCancelReply: vi.fn(),
   onSlashCommand: vi.fn(),
   onCloseSlashCommands: vi.fn(),
-  onQuickReply: vi.fn(),
   onRecordToggle: vi.fn(),
   onAudioSend: vi.fn(),
   onAudioCancel: vi.fn(),
@@ -198,7 +204,7 @@ describe('ChatInputArea — ArrowUp → onEditStart (BUG-16)', () => {
       <ChatInputArea
         {...baseProps}
         messages={messages}
-        inputValue="texto digitado"
+        inputStore={createInputValueStore('texto digitado')}
         onEditStart={onEditStart}
       />
     );

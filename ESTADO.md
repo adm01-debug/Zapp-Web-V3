@@ -530,6 +530,47 @@ Se for ligada no futuro, a logica de deteccao deve ser revisada para:
 
 ---
 
+## Módulo ChatPanel — plano de 100 etapas EXECUTADO (2026-08-21)
+
+Execução do plano de correções da auditoria 2026-08-20 (16 arquivos, leitura
+linha a linha). Bloco 0 e etapas 11–13 já estavam na main (`dfeca77`,
+`66809e7`); o restante entrou pela branch `claude/chatpanel-corrections-fnihg6`
+(PR #1355). Estado: **código completo com testes de regressão; blocos de
+validação em produção pendentes (ver abaixo)**.
+
+Correções de comportamento em produção assim que o PR mergear:
+- Retry de envio preso à conversa (payload falho de A nunca reenvia para B).
+- Estado residual (reply/edição/sussurro/gravação/erro) zerado na troca de conversa.
+- Sussurro não perde mais o texto digitado nos caminhos anexo/JID/perfil.
+- Enter com menu slash aberto não envia mais o texto cru `/comando` junto
+  com a execução do comando (duplo efeito corrigido).
+- Mídia encaminhada chega como mídia (antes só o aviso textual).
+- Keystroke isolado: digitar re-renderiza apenas a área do input
+  (antes o painel inteiro, ~tecla a tecla).
+- Realtime do chat: UPDATE do fanout filtrado por `remote_jid` (antes
+  qualquer conversa do sistema invalidava o cache de todas).
+
+Achados ABERTOS (decisão fora do módulo — não corrigidos de propósito):
+- RLS `messages_update` de `evo.evolution_messages` restringe UPDATE a
+  admin/supervisor → edição de mensagem por agente comum atualiza o WhatsApp
+  mas NÃO o histórico local (0 linhas, silencioso). Abrir policy
+  `from_me = true` para authenticated resolve; decisão de segurança pendente.
+- Dead keys `templatesWithVars` e `realtimeTranscription` no reducer de
+  dialogs: componentes lazy prontos, nenhum abridor no código. Religar ou
+  remover é decisão de produto.
+- `ticketStore` (resolve de conversa) segue overlay localStorage por desenho,
+  até as RPCs de status existirem.
+
+Validação pendente (pós-merge, exige produção):
+- Smokes das etapas 7–10 (typing por JID, dialogs na troca, 2 agentes).
+- Profiling React antes/depois (etapas 55/65) — o gate estrutural existe como
+  teste de contagem de renders (`useInputValueStore.test.tsx`).
+- Playwright 95–96 (Mod+E único, typing broadcast) — follow-up e2e.
+- `graphify update` no container VPS (etapa 100) — aresta nova
+  `useInputValueStore` e mudanças do god-node ChatPanel.
+
+---
+
 ## Guard de bundle — LIGADO (2026-08-20)
 
 `bundle-secret-guard.yml` (GitHub Actions). Dispara pós-deploy (`workflow_run` do *Build & Deploy — ZAPP web v3*) + diário (cron `17 8 * * *`) + manual. Fail-closed.

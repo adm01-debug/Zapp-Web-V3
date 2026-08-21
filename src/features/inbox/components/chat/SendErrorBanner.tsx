@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { AlertTriangle, RefreshCw, X, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -20,7 +20,9 @@ interface SendErrorBannerProps {
  *  - "Ver detalhes" colapsável com a mensagem bruta do evolution-api e
  *    botão para copiar (útil em report de bug pelo agente).
  */
-export function SendErrorBanner({ error, detail, isRetrying, onRetry, onDismiss }: SendErrorBannerProps) {
+// memo (etapa 64): props primitivas + callbacks estáveis do hook — sem erro
+// ativo o banner é null e não deve re-renderizar com o painel.
+export const SendErrorBanner = memo(function SendErrorBanner({ error, detail, isRetrying, onRetry, onDismiss }: SendErrorBannerProps) {
   const [showDetail, setShowDetail] = useState(false);
   if (!error) return null;
   const hasDetail = Boolean(detail && detail.trim() && detail !== error);
@@ -98,4 +100,4 @@ export function SendErrorBanner({ error, detail, isRetrying, onRetry, onDismiss 
       )}
     </div>
   );
-}
+});
