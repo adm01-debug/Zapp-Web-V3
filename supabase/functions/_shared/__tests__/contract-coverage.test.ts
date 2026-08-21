@@ -3,14 +3,22 @@
  *
  * Para CADA edge function (supabase/functions/<fn>/index.ts):
  *   - Se o fonte LÊ BODY (`req.json()`, `req.text()`, `req.formData()` ou
- *     variantes com `request.`), então DEVE invocar o gate de contrato
- *     (`parseOrReject(` ou `parseRequestOrReject(`).
+ *     variantes com `request.`) OU lê QUERY STRING (`.searchParams`), então
+ *     DEVE invocar o gate de contrato (`parseOrReject(` ou `parseRequestOrReject(`).
  *   - Exceções documentadas (allowlist): funções que leem body mas NÃO devem
  *     usar o gate por design — cada uma precisa de comentário no fonte e
  *     entrada aqui.
  *
  * Objetivo: impedir que uma futura edge function volte a nascer sem validação
  * (gap de 52 funções corrigido na consolidação 2026-08-04).
+ *
+ * Etapa 17 (Bloco 1, 2026-08-21, PLANO-100-CONTRATOS-EDGE — fecha E2): o
+ * scanner só examinava leitura de BODY — 12 functions que só leem query
+ * string (`.searchParams`) ficavam invisíveis pro `total`/`withGate`, mesmo
+ * já tendo `parseOrReject`. Multipart já era coberto via `req.formData()`.
+ * Residual conhecido, não perseguido aqui: parsing manual de `req.url` como
+ * string (sem `.searchParams`) não é detectado — nenhuma function do repo
+ * usa esse padrão hoje (confirmado por grep em 2026-08-21).
  *
  * Rodar: deno test --allow-net --allow-env --allow-read supabase/functions/_shared/__tests__/contract-coverage.test.ts
  */
@@ -61,7 +69,7 @@ Deno.test("cobertura: toda função que lê body invoca o gate de contrato (ou e
     if (fnName.startsWith("_")) continue; // _shared etc.
 
     const src = Deno.readTextFileSync(filePath);
-    const readsBody = /req\.json\(\)|request\.json\(\)|req\.text\(\)|request\.text\(\)|req\.formData\(\)|request\.formData\(\)/.test(src);
+    const readsBody = /req\.json\(\)|request\.json\(\)|req\.text\(\)|request\.text\(\)|req\.formData\(\)|request\.formData\(\)|\.searchParams\b/.test(src);
     if (!readsBody) continue;
 
     total++;
