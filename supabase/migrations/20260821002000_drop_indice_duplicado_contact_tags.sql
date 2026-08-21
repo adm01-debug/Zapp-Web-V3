@@ -1,0 +1,29 @@
+-- =============================================================================
+-- Remove índice duplicado em zapp.contact_tags (plano-100 etapa 45, 2026-08-20).
+--
+-- Auditoria de índices duplicados (pg_index agrupado por indrelid/indclass/
+-- indkey/indexprs/indpred, 2026-08-20) encontrou exatamente 2 pares no par de
+-- schemas zapp/evo:
+--
+--   1. zapp.contact_tags:
+--        idx_contact_tags_contact_id  → btree (contact_id)   [MANTIDO]
+--        idx_contact_tags_contact     → btree (contact_id)   [REMOVIDO AQUI]
+--      Definições byte-idênticas — o segundo índice só custa escrita/espaço.
+--
+--   2. evo.recon_coverage_daily:
+--        recon_coverage_daily_pkey (UNIQUE snapshot_date) ×
+--        idx_recon_coverage_daily_snapshot_date (snapshot_date DESC)
+--      NÃO tratado aqui: o schema `evo` pertence à Evolution (fronteira do
+--      desacoplamento; evo-ddl-gate bloqueia DDL em evo neste repo).
+--      Recomendação registrada em docs/plano-100/VALIDACAO_PLANO_100_2026-08-20.md
+--      para o repo adm01-debug/evolution-stack.
+--
+-- Tabela pequena — DROP INDEX simples (sem CONCURRENTLY, que não roda em
+-- transação de migration) tem lock desprezível.
+--
+-- ROLLBACK:
+--   CREATE INDEX IF NOT EXISTS idx_contact_tags_contact
+--     ON zapp.contact_tags USING btree (contact_id);
+-- =============================================================================
+
+DROP INDEX IF EXISTS zapp.idx_contact_tags_contact;
