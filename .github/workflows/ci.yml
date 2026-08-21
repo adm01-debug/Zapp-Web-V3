@@ -498,12 +498,16 @@ jobs:
     runs-on: [Linux, X64, vps-zapp]
     needs: build
     # 15 nao bastou (run 32466586329, 2026-08-21): job ficou 20min (09:19:06
-    # -> 09:39:07) e foi cancelado pelo proprio timeout — mesma classe do fix
-    # de quality-gate.yml (timeout-minutes 45->90 no commit 45ffd64): pool de
-    # runners compartilhado sob contencao (~15 workflows extras disparados em
-    # main as 09:22:32-09:22:59 pela sessao VPS, ver HERMES.md) deixa fila +
-    # steps mais lentos que o baseline. 30min da folga sem mascarar hang real.
-    timeout-minutes: 30
+    # -> 09:39:07) e foi cancelado pelo proprio timeout. Subi p/ 30 — TAMBEM
+    # nao bastou: run 32471127022 (commit a7b6360, mesmo dia) rodou o step
+    # "Run E2E tests" por 29min sem terminar a suite e foi cancelado exatamente
+    # aos 30min de job (10:43:15 -> 11:13:26). Duas tentativas, dois valores
+    # insuficientes — o pool de runners compartilhado (contencao documentada
+    # na nota 11/12 do PR #1354) tem variancia alta demais pra cravar um
+    # numero justo. 60min da 2x de folga sobre o pior caso ja observado (29min)
+    # sem mascarar um hang real (a suite tem 13 specs, historico pre-contencao
+    # e bem mais rapido que isso).
+    timeout-minutes: 60
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
