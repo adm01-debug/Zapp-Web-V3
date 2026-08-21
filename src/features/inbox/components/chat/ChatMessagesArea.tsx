@@ -34,7 +34,14 @@ const log = getLogger('ChatMessagesArea');
 interface ChatMessagesAreaProps extends LoadOlderProps {
   messages: Message[];
   isContactTyping: boolean;
+  /** Nome exibido no indicador do CONTATO digitando (broadcast `typing:${jid}`). */
   typingUserName: string;
+  /**
+   * Etapa 31: nome do AGENTE digitando (presence da conversa) — indicador
+   * separado. Antes o nome do agente sobrescrevia o do contato no mesmo
+   * indicador e o fallback era o nome do contato num indicador de agente.
+   */
+  agentTypingName?: string | null;
   ttsLoading: boolean;
   ttsPlaying: boolean;
   ttsMessageId: string | null;
@@ -77,6 +84,7 @@ export const ChatMessagesArea = memo(
         messages,
         isContactTyping,
         typingUserName,
+        agentTypingName,
         ttsLoading,
         ttsPlaying,
         ttsMessageId,
@@ -460,6 +468,12 @@ export const ChatMessagesArea = memo(
           {isContactTyping && (
             <div className="mt-4">
               <TypingIndicator isVisible={true} userName={typingUserName} />
+            </div>
+          )}
+
+          {agentTypingName && (
+            <div className="mt-4">
+              <TypingIndicator isVisible={true} userName={agentTypingName} />
             </div>
           )}
 

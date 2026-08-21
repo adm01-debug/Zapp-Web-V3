@@ -124,7 +124,17 @@ export function ChatPanel({
   // unhandled rejection (sem toast duplicado do wrapper do slash).
   const handleArchiveConversation = useCallback(() => {
     const id = conversation.contact.id;
-    if (!id || !isValidUUID(id)) return;
+    if (!id || !isValidUUID(id)) {
+      // Etapa 14: o menu do header já desabilita o item p/ contato externo;
+      // este toast cobre o Mod+E, que antes falhava em silêncio (paridade de
+      // feedback com o slash /archive, que lança erro visível).
+      toast({
+        title: 'Não é possível arquivar',
+        description: 'Contato externo (JID WhatsApp) sem cadastro interno.',
+        variant: 'destructive',
+      });
+      return;
+    }
     void archiveConversation(id).catch(() => undefined);
   }, [archiveConversation, conversation.contact.id]);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -217,16 +227,25 @@ export function ChatPanel({
   );
 
   const saveSettingsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveSettingsRef = useRef(saveSettings);
+  saveSettingsRef.current = saveSettings;
   const debouncedSave = useCallback(() => {
     if (saveSettingsTimerRef.current !== null) clearTimeout(saveSettingsTimerRef.current);
     saveSettingsTimerRef.current = setTimeout(() => {
       saveSettingsTimerRef.current = null;
       void saveSettings();
-    }, 100);
+      // Etapa 35: 100ms gerava rajada de PATCH com o slider de velocidade.
+    }, 500);
   }, [saveSettings]);
   useEffect(
     () => () => {
-      if (saveSettingsTimerRef.current !== null) clearTimeout(saveSettingsTimerRef.current);
+      // Etapa 34: FLUSH no unmount — só cancelar descartava mudança feita
+      // <500ms antes de sair do painel (voz/velocidade nunca persistidas).
+      if (saveSettingsTimerRef.current !== null) {
+        clearTimeout(saveSettingsTimerRef.current);
+        saveSettingsTimerRef.current = null;
+        void saveSettingsRef.current();
+      }
     },
     []
   );
@@ -261,6 +280,7 @@ export function ChatPanel({
     contactId: conversation.contact.id ?? '',
     contactPhone: conversation.contact.phone ?? '',
     instanceName,
+    whatsappConnectionId,
     onSendMessage,
     editMessageApi: editMessage,
     applySignature,
@@ -274,9 +294,38 @@ export function ChatPanel({
     onArchive: handleArchiveConversation,
   });
 
+  // Etapa 17: resolver do header unificado com o contrato do slash /resolve —
+  // handlers.onResolveConversation LANÇA em contato/perfil inválido; chamado
+  // cru pelo menu virava unhandled rejection sem nenhum feedback. Paridade com
+  // o run() do useInputHandlers: sucesso só após a ação resolver de verdade.
+  const { onResolveConversation } = handlers;
+  const handleResolveFromHeader = useCallback(() => {
+    void (async () => {
+      try {
+        await onResolveConversation();
+        toast({
+          title: 'Conversa Resolvida',
+          description: 'A conversa foi marcada como resolvida.',
+        });
+      } catch (err) {
+        toast({
+          title: 'Erro',
+          description: err instanceof Error ? err.message : 'Nao foi possivel concluir a acao.',
+          variant: 'destructive',
+        });
+      }
+    })();
+  }, [onResolveConversation]);
+
   useEffect(() => {
     initResolve();
-  }, [conversation.contact.id, initResolve]);
+    // Etapa 36: `instanceNameProp` explícito nas deps — quando a prop chega
+    // tarde (inbox resolve a instância async), o useChatMediaSending reseta o
+    // resolvedRef e este effect precisa re-disparar sem depender da cascata de
+    // identidade de initResolve. Limitação conhecida: com hint fornecido,
+    // resolveInstance retorna cedo e whatsappConnectionId pode ficar null
+    // (rastreado pelo log do eco local — etapa 21).
+  }, [conversation.contact.id, instanceNameProp, initResolve]);
 
   // Avalia regras de automação para a conversa ativa
   useAutomations({
@@ -304,10 +353,9 @@ export function ChatPanel({
     },
     onNextConversation: () => {}, // Handled in Sidebar
     onPrevConversation: () => {}, // Handled in Sidebar
-    // Mod+E religado ao arquivar REAL da conversa ativa (antes era no-op
-    // "Handled in Sidebar" — a Sidebar também registra o atalho; se ambos
-    // estiverem montados, a Sidebar arquiva o contato selecionado e este
-    // handler arquiva a conversa aberta, sem silent-fail).
+    // Mod+E arquiva a conversa ABERTA. Dono único do atalho com painel
+    // montado: a Sidebar cede via enableArchive=!selectedContactId
+    // (ConversationListSidebar) — sem duplo disparo (etapas 12–13, PR #1350).
     onArchive: handleArchiveConversation,
     onTransfer: () => handlers.handleSlashCommand({ id: 'transfer' }),
     onRefresh: () => {}, // Handled in Sidebar
@@ -320,6 +368,9 @@ export function ChatPanel({
     setFailuresOnly(false);
     resetAllDialogs();
     setHistoryOpen(false);
+    // Etapa 39: direção de chamada residual da conversa anterior não deve
+    // pré-selecionar o dialog de chamada da próxima.
+    setCallDirection('outbound');
   }, [conversation.id, resetSearch, setFailuresOnly, resetAllDialogs]);
 
   // Deep-link "Ver no chat": encontra a mensagem alvo, faz scroll e aplica destaque temporário.
@@ -391,7 +442,8 @@ export function ChatPanel({
         default:
           until = new Date(now.getTime() + 60 * 60 * 1000);
       }
-      void onSnooze(until.toISOString()).catch(() => {
+      // Etapa 73: origem real ('toolbar') em vez do 'slash' herdado do default.
+      void onSnooze(until.toISOString(), 'toolbar').catch(() => {
         log.warn('[ChatPanel] Falha ao adiar conversa pela toolbar');
       });
     },
@@ -433,6 +485,49 @@ export function ChatPanel({
     onDone: () => closeDialog('scheduleDialog'),
   });
 
+  // Etapas 19–22: eco local de enquete/cartão de contato — helper ÚNICO (antes
+  // duplicado inline no JSX e recriado a cada render). O callback dispara
+  // APÓS o envio real resolver no AdvancedMessageMenu (`await sendPoll...`),
+  // por isso `status: 'sent'` é honesto aqui (etapa 20). Em modo externo
+  // (JID) não insere: o webhook da Evolution já persiste a mensagem.
+  const echoContactId = conversation.contact.id;
+  const insertLocalEcho = useCallback(
+    async (content: string) => {
+      if (!isValidUUID(echoContactId)) return;
+      try {
+        const ref = resolveContactRef(echoContactId);
+        if (!isUuidRef(ref)) return;
+        if (!whatsappConnectionId) {
+          // Etapa 21: conexão ainda não resolvida — o eco entra sem vínculo
+          // (histórico vale mais que o vínculo), mas fica rastreável no log.
+          log.warn('[ChatPanel] eco local sem whatsapp_connection_id', { contactId: ref.uuid });
+        }
+        await dbFrom('messages').insert({
+          contact_id: ref.uuid,
+          whatsapp_connection_id: whatsappConnectionId,
+          content,
+          message_type: 'text',
+          sender: 'agent',
+          status: 'sent',
+        });
+      } catch (err) {
+        log.error('[ChatPanel] falha ao inserir eco local', err);
+      }
+    },
+    [echoContactId, whatsappConnectionId]
+  );
+  const handlePollSent = useCallback(
+    (poll: { name: string; options: string[]; selectableCount: number }) =>
+      void insertLocalEcho(
+        `📊 *Enquete:* ${poll.name}\n${poll.options.map((o, i) => `${i + 1}. ${o}`).join('\n')}`
+      ),
+    [insertLocalEcho]
+  );
+  const handleContactSent = useCallback(
+    (contactName: string) => void insertLocalEcho(`📇 Cartão de contato: ${contactName}`),
+    [insertLocalEcho]
+  );
+
   return (
     <div
       data-testid="chat-window"
@@ -459,7 +554,7 @@ export function ChatPanel({
             }}
             onOpenSearch={() => handleSetActiveTool('chatSearch')}
             onOpenValidation={isDevExact ? () => openDialog('visualValidation') : undefined}
-            onResolveConversation={handlers.onResolveConversation}
+            onResolveConversation={handleResolveFromHeader}
             onArchiveConversation={handleArchiveConversation}
             onOpenTransfer={() => openDialog('transferDialog')}
             onOpenSchedule={() => openDialog('scheduleDialog')}
@@ -538,7 +633,11 @@ export function ChatPanel({
           ref={messagesAreaRef}
           messages={visibleMessages}
           isContactTyping={isContactTyping}
-          typingUserName={typingUsers[0]?.name || (conversation.contact.name ?? '')}
+          // Etapa 31: indicadores separados — o do contato usa o NOME DO
+          // CONTATO (antes um agente digitando ao mesmo tempo sobrescrevia o
+          // nome); o de agente tem fallback honesto 'Agente'.
+          typingUserName={conversation.contact.name ?? ''}
+          agentTypingName={typingUsers.length > 0 ? typingUsers[0].name || 'Agente' : null}
           ttsLoading={ttsLoading}
           ttsPlaying={ttsPlaying}
           ttsMessageId={ttsMessageId}
@@ -626,40 +725,8 @@ export function ChatPanel({
           signatureEnabled={signatureEnabled}
           signatureName={agentName}
           onToggleSignature={toggleSignature}
-          onPollSent={async (poll) => {
-            if (!isValidUUID(conversation.contact.id)) return;
-            try {
-              const ref = resolveContactRef(conversation.contact.id);
-              if (!isUuidRef(ref)) return; // external mode — handled by Evolution webhook
-              await dbFrom('messages').insert({
-                contact_id: ref.uuid,
-                whatsapp_connection_id: whatsappConnectionId,
-                content: `📊 *Enquete:* ${poll.name}\n${poll.options.map((o, i) => `${i + 1}. ${o}`).join('\n')}`,
-                message_type: 'text',
-                sender: 'agent',
-                status: 'sent',
-              });
-            } catch (err) {
-              log.error('Failed to insert poll message', err);
-            }
-          }}
-          onContactSent={async (contactName) => {
-            if (!isValidUUID(conversation.contact.id)) return;
-            try {
-              const ref = resolveContactRef(conversation.contact.id);
-              if (!isUuidRef(ref)) return; // external mode — handled by Evolution webhook
-              await dbFrom('messages').insert({
-                contact_id: ref.uuid,
-                whatsapp_connection_id: whatsappConnectionId,
-                content: `📇 Cartão de contato: ${contactName}`,
-                message_type: 'text',
-                sender: 'agent',
-                status: 'sent',
-              });
-            } catch (err) {
-              log.error('Failed to insert contact card message', err);
-            }
-          }}
+          onPollSent={handlePollSent}
+          onContactSent={handleContactSent}
           onOpenCatalog={() => openDialog('catalogDirect')}
           onSelectSuggestion={(text) => handlers.setInputValue(text)}
           onSelectTemplate={(text) => handlers.setInputValue(text)}
