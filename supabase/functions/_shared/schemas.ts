@@ -63,17 +63,14 @@ export const DetectNewDeviceSchema = z.object({
  * P1 security fix (extracted from PR #205): blocks IPv4-mapped IPv6 SSRF bypass.
  * Validated: 139 adversarial scenarios, 0 failures.
  */
-export function isSafeHttpsUrl(url: string): boolean {
-  let parsed: URL;
-  try { parsed = new URL(url); } catch { return false; }
-  if (parsed.protocol !== 'https:') return false;
-  // SEC-2 fix (2026-08-21): `URL.hostname` para literais IPv6 (`https://[::1]/x`)
-  // vem COM colchetes nesta versão do Deno ("[::1]") — o comentário original
-  // ("Deno retorna bracketless") não bate com o runtime atual e o guard
-  // `startsWith('::')` nunca casava contra `[::1]`, deixando o bypass aberto.
-  // Remover colchetes torna a checagem robusta independente da versão.
-  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
-  if (
+// SEC-2 fix (2026-08-21): `URL.hostname` para literais IPv6 (`https://[::1]/x`)
+// vem COM colchetes nesta versão do Deno ("[::1]") — o comentário original
+// ("Deno retorna bracketless") não bate com o runtime atual e o guard
+// `startsWith('::')` nunca casava contra `[::1]`, deixando o bypass aberto.
+// Remover colchetes torna a checagem robusta independente da versão.
+function isPrivateOrLoopbackHost(hostRaw: string): boolean {
+  const host = hostRaw.toLowerCase().replace(/^\[|\]$/g, '');
+  return (
     host === 'localhost' || host.endsWith('.localhost') || host === '0.0.0.0' ||
     /^127\./.test(host) || /^169\.254\./.test(host) ||
     /^10\./.test(host) || /^192\.168\./.test(host) ||
@@ -84,8 +81,26 @@ export function isSafeHttpsUrl(url: string): boolean {
     /^fe[89ab][0-9a-f]:/i.test(host) ||       // link-local fe80::/10 (fe80–febf)
     /^fec[0-9a-f]:/i.test(host) ||            // site-local fec0::/10
     /^f[cd][0-9a-f]{2}:/i.test(host)          // ULA fc00::/7 (fc00–fdff)
-  ) return false;
-  return true;
+  );
+}
+
+export function isSafeHttpsUrl(url: string): boolean {
+  let parsed: URL;
+  try { parsed = new URL(url); } catch { return false; }
+  if (parsed.protocol !== 'https:') return false;
+  return !isPrivateOrLoopbackHost(parsed.hostname);
+}
+
+/**
+ * SEC-4 (Bloco 0, 2026-08-21): mesma blocklist de rede privada/loopback de
+ * isSafeHttpsUrl, mas para campos que são um HOSTNAME cru (ex.: imap_host/
+ * smtp_host), não uma URL — o consumidor conecta via socket TCP direto
+ * (Deno.connect), não fetch(), então não há scheme pra parsear com `new URL`.
+ * O risco de SSRF é o mesmo (host controlado pelo caller apontando pra rede
+ * interna), só muda o transporte.
+ */
+export function isSafeHost(host: string): boolean {
+  return !isPrivateOrLoopbackHost(host);
 }
 
 const safeImageUrlSchema = z.string().url().refine(isSafeHttpsUrl, {

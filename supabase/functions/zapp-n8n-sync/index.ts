@@ -32,6 +32,7 @@ import { checkRateLimit } from '../_shared/validation.ts';
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
+import { isSafeHttpsUrl } from '../_shared/schemas.ts';
 
 /** Config row retornada pelas RPCs (webhook_secret NUNCA vem aqui). */
 export interface N8nConfigRow {
@@ -109,8 +110,12 @@ async function handleConfigure(
   body: { action: 'configure'; baseUrl: string },
 ): Promise<Response> {
   const baseUrl = normalizeBaseUrl(body.baseUrl);
-  if (!/^https?:\/\//i.test(baseUrl)) {
-    return json(cors, 400, { ok: false, error: 'baseUrl deve ser uma URL http(s) válida' });
+  // SEC-4 (Bloco 0, 2026-08-21): isSafeHttpsUrl cobre https-only (era só
+  // http(s) antes) + bloqueio de rede interna/privada (SSRF) — roda aqui,
+  // DEPOIS de normalizeBaseUrl, pra não rejeitar host sem protocolo
+  // legítimo (a normalização prefixa https:// antes desta checagem).
+  if (!isSafeHttpsUrl(baseUrl)) {
+    return json(cors, 400, { ok: false, error: 'baseUrl deve ser uma URL https pública válida' });
   }
 
   // Contrato real desligado: configuração persiste, mas enabled permanece

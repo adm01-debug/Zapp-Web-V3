@@ -80,7 +80,9 @@ Deno.test("A4 contrato fonte: acesso via RPCs SECURITY DEFINER (nunca .from() di
 
 Deno.test("A5 contrato fonte: 400 de validação do configure (baseUrl required / URL inválida)", () => {
   assertMatch(SOURCE, /baseUrl is required/);
-  assertMatch(SOURCE, /baseUrl deve ser uma URL http\(s\) válida/);
+  // SEC-4 (Bloco 0, 2026-08-21): mensagem trocada de "http(s) válida" pra
+  // refletir que agora também bloqueia rede interna/privada (isSafeHttpsUrl).
+  assertMatch(SOURCE, /baseUrl deve ser uma URL https pública válida/);
 });
 
 Deno.test("A6 contrato fonte: estado honesto not_configured + erro tratado (try/catch)", () => {
