@@ -281,3 +281,10 @@ describe('App.tsx — verificação estática (sem renderizar)', () => {
     expect(APP_SOURCE).toContain('</ErrorBoundary>');
   });
 });
+
+// describe('vercel.json — verificação estática') REMOVIDO no PR #1355: a Vercel
+// foi aposentada para o ZAPP (2026-08-20 — domínio www.zappweb.app.br migrado
+// para o VPS; Traefik router `zappweb-www` inline no stack 157) e o vercel.json
+// saiu do repo — o readFileSync na raiz derrubava a suíte inteira (ENOENT).
+// O rewrite SPA e o Cache-Control de /assets agora são responsabilidade do
+// Traefik/host no VPS, fora deste repositório.

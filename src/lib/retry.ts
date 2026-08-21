@@ -24,6 +24,31 @@ export function isIntentionalAbort(err: unknown): boolean {
 }
 
 /**
+ * Amplitude ampliada do check de abort: cobre DOMException crua, Error com
+ * name='AbortError', o padrão do postgrest-js que embrulha o abort em `message`
+ * (ex: `{message: 'AbortError: ...'}`), e strings específicas do semáforo interno
+ * ('signal is aborted', 'slot acquire aborted', 'page unload').
+ * Usar este em todo código que consome APIs Supabase/PostgREST.
+ */
+export function isAbortLikeError(err: unknown): boolean {
+  if (isIntentionalAbort(err)) return true;
+  if (err && typeof err === 'object') {
+    const name = (err as { name?: string }).name;
+    if (name === 'AbortError') return true;
+    const msg = (err as { message?: string }).message ?? '';
+    if (/^AbortError/i.test(msg) || /\bAbortError\b/i.test(msg)) return true;
+    // Strings específicas do semáforo e unload de página
+    const msgLower = msg.toLowerCase();
+    if (
+      msgLower.includes('signal is aborted') ||
+      msgLower.includes('slot acquire aborted') ||
+      msgLower.includes('page unload')
+    ) return true;
+  }
+  return false;
+}
+
+/**
  * Resilient retry wrapper with exponential backoff and jitter.
  * Works with any async operation (Supabase, fetch, etc).
  *

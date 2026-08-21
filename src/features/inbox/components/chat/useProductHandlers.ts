@@ -11,6 +11,8 @@ interface UseProductHandlersOptions {
   contactId?: string;
   contactPhone?: string;
   instanceName?: string;
+  /** Conexão WA resolvida — vincula o insert local da localização (etapa 23). */
+  whatsappConnectionId?: string | null;
   onSendMessage: (content: string, attachments?: File[], onProgress?: (p: number) => void) => void | Promise<void>;
 }
 
@@ -20,6 +22,7 @@ export function useProductHandlers({
   contactId,
   contactPhone,
   instanceName,
+  whatsappConnectionId,
 }: UseProductHandlersOptions) {
   const handleSendProduct = useCallback(
     async (product: ExternalProduct) => {
@@ -133,8 +136,10 @@ export function useProductHandlers({
             }),
             message_type: 'location',
             sender: 'agent',
+            // Insert roda APÓS o sendLocation resolver — 'sent' é honesto (etapa 23).
             status: 'sent',
-            whatsapp_connection_id: null,
+            // Etapa 23: era `null` hardcoded — perdia o vínculo com a conexão.
+            whatsapp_connection_id: whatsappConnectionId ?? null,
           });
           if (persistError) {
             log.error('Failed to persist location message:', persistError);
@@ -154,7 +159,7 @@ export function useProductHandlers({
         });
       }
     },
-    [contactId, contactPhone, instanceName]
+    [contactId, contactPhone, instanceName, whatsappConnectionId]
   );
 
   return {

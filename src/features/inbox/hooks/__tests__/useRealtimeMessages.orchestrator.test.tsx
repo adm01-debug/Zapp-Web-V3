@@ -246,7 +246,10 @@ beforeEach(() => {
 });
 
 describe('useRealtimeMessages — assinatura postgres_changes (fanout v2)', () => {
-  it('assina INSERT/UPDATE no espelho realtime_message_fanout com canal determinístico (sem DELETE — RCA 2026-08-20)', async () => {
+  // Contrato pós-#1351 (RCA 2026-08-20): APENAS INSERT/UPDATE. O DELETE do
+  // espelho é manutenção do cron rt-fanout-ttl (~972 linhas/ciclo) — assiná-lo
+  // era a causa do refetch storm que saturava a fila do semáforo (P0).
+  it('assina INSERT/UPDATE no espelho realtime_message_fanout com canal determinístico (sem DELETE — #1351)', async () => {
     h.setSeed([makeContact('c1', 'Alice')], [makeMessage('m1', 'c1')]);
     const { result, unmount } = renderHook(() => useRealtimeMessages(), {
       wrapper: createWrapper(),
@@ -391,11 +394,19 @@ describe('useRealtimeMessages — dedup de mensagens duplicadas', () => {
   });
 });
 
-describe('useRealtimeMessages — DELETE (não assinado desde o RCA 2026-08-20)', () => {
-  it('NÃO registra callback DELETE — purga do fanout não remove mensagens da conversa', async () => {
+describe('useRealtimeMessages — DELETE do fanout NÃO é assinado (#1351)', () => {
+  // Guard-rail anti-reintrodução: o teste antigo simulava DELETE removendo a
+  // mensagem da conversa, mas essa subscription foi REMOVIDA no RCA do P0
+  // 2026-08-20 (cron rt-fanout-ttl deletava ~972 linhas/ciclo → ~972 eventos →
+  // refetch storm → SupabaseQueueSaturatedError em cascata). Remoção de
+  // mensagem para a UI chega como UPDATE (deleted_at → is_deleted, coberto
+  // no describe de transformação). Reassinar DELETE derruba o app de novo.
+  it('não registra callback DELETE — deleções do cron TTL são manutenção, não evento de UI', async () => {
     h.setSeed([makeContact('c1', 'Alice')], [makeMessage('m1', 'c1')]);
     const { result } = renderHook(() => useRealtimeMessages(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.conversations[0].messages).toHaveLength(1));
+
+    expect(h.channels[0].onCalls.find((c) => c.event === 'DELETE')).toBeUndefined();
 
     // Regressão do RCA (7a63f35): se alguém reintroduzir o handler DELETE, o
     // dispatch abaixo passa a encontrar callback e este teste falha.

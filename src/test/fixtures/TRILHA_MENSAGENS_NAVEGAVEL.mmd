@@ -109,6 +109,8 @@ flowchart LR
   %% FAN-OUT REALTIME — quem escuta postgres_changes no canal de mensagens
   %% (messages/evolution_messages direto ou o ESPELHO zapp.realtime_message_fanout)
   %% =====================================================================
+  %% DELETE removido do URM em #1351 (RCA 2026-08-20: saturação de fila por
+  %% DELETEs do cron rt-fanout-ttl) — diagrama sincronizado no PR #1355.
   DB -.->|INSERT/UPDATE| URM
   DB -.->|INSERT/UPDATE/DELETE| UM
   DB -.->|UPDATE status| UMS

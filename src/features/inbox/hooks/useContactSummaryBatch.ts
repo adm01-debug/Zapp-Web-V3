@@ -16,6 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/services/api/queryKeys';
 import { getLogger } from '@/lib/logger';
+import { isAbortLikeError } from '@/lib/retry';
 
 const log = getLogger('useContactSummaryBatch');
 
@@ -69,7 +70,7 @@ export function useContactSummaryBatch(contactIds: string[]) {
 
       if (error) {
         // AbortError = cancelamento intencional (unmount/refetch) — silencioso.
-        if (error instanceof Error && error.name === 'AbortError') return [];
+        if (isAbortLikeError(error)) return [];
         log.warn('rpc_get_contact_summary_batch failed', { error: error.message });
         return [];
       }

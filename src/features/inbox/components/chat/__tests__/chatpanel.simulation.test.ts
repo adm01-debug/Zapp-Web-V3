@@ -194,7 +194,10 @@ describe('SIMULAÇÃO 01-03 — useChatPanelHandlers', () => {
     expect(result.current.isSending).toBe(false);
   });
 
-  it('CENARIO 3 — whisper sem profile.id → erro "Usuario nao autenticado" e lastFailedSendRef NAO populado', async () => {
+  it('CENARIO 3 — whisper sem profile.id → toast de erro, texto PRESERVADO no campo e lastFailedSendRef NAO populado', async () => {
+    // Contrato pós-etapas 24/25: os guards do sussurro rodam ANTES de limpar o
+    // input — sem perfil, o envio nem inicia (toast + return), o texto digitado
+    // permanece no campo e nenhum estado de erro/banner é armado.
     authMock.mockReturnValue({ profile: null });
     const onSendMessage = vi.fn<OnSendMessage>().mockResolvedValue(undefined);
     const { result } = makePanelHandlers(onSendMessage);
@@ -210,10 +213,14 @@ describe('SIMULAÇÃO 01-03 — useChatPanelHandlers', () => {
       await result.current.handleSend();
     });
 
-    expect(result.current.lastSendError).toBe('Usuario nao autenticado');
     expect(mockToast).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Erro ao enviar sussurro', variant: 'destructive' })
     );
+    // Texto NÃO é perdido (etapa 24): o guard roda antes do setInputValue('').
+    expect(result.current.inputStore.get()).toBe('nota sem usuario');
+    // Sem banner: o envio nem chegou a iniciar.
+    expect(result.current.lastSendError).toBeNull();
+    expect(vi.mocked(insertWhisperMessage)).not.toHaveBeenCalled();
 
     // Prova de que lastFailedSendRef NÃO foi populado: retry é no-op e nunca
     // vaza a nota interna para o cliente via onSendMessage.
