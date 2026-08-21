@@ -154,12 +154,15 @@ const MATRICES: Matrix[] = [
     schema: V1("fetch-whatsapp-avatar"),
     valid: [
       { phone: "5511999999999" },
-      { phone: "1" },
+      { phone: "11999999999" },
     ],
     invalid: [
       { label: "phone ausente", payload: {}, expectPath: "phone" },
       { label: "phone vazio", payload: { phone: "" }, expectPath: "phone" },
       { label: "phone com tipo errado", payload: { phone: 5511999999999 }, expectPath: "phone" },
+      // Bloco 4 (2026-08-21): phone agora valida formato (10+ dígitos) —
+      // string curta/não-numérica é rejeitada, não só ausência/tipo.
+      { label: "phone com menos de 10 dígitos", payload: { phone: "1" }, expectPath: "phone" },
     ],
   },
   {
@@ -235,7 +238,7 @@ const MATRICES: Matrix[] = [
     schema: V1("sla-alert-forward"),
     valid: [
       {
-        contact_id: "ct-1",
+        contact_id: UUID,
         contact_name: "João",
         kind: "first_response",
         severity: "warning",
@@ -244,12 +247,14 @@ const MATRICES: Matrix[] = [
         duration_ms: 5000,
         occurred_at: "2026-08-04T12:00:00Z",
       },
-      { contact_id: "ct-2", contact_name: "Maria", kind: "delivery_delay", severity: "breached", scope: "none" },
+      { contact_id: UUID, contact_name: "Maria", kind: "delivery_delay", severity: "breached", scope: "none" },
     ],
     invalid: [
       { label: "contact_id ausente", payload: { contact_name: "João", kind: "first_response", severity: "warning", scope: "current" }, expectPath: "contact_id" },
-      { label: "kind fora do enum", payload: { contact_id: "ct-1", contact_name: "João", kind: "escalation", severity: "warning", scope: "current" }, expectPath: "kind" },
-      { label: "duration_ms com tipo errado", payload: { contact_id: "ct-1", contact_name: "João", kind: "first_response", severity: "warning", scope: "current", duration_ms: "5000" }, expectPath: "duration_ms" },
+      { label: "kind fora do enum", payload: { contact_id: UUID, contact_name: "João", kind: "escalation", severity: "warning", scope: "current" }, expectPath: "kind" },
+      { label: "duration_ms com tipo errado", payload: { contact_id: UUID, contact_name: "João", kind: "first_response", severity: "warning", scope: "current", duration_ms: "5000" }, expectPath: "duration_ms" },
+      // Bloco 4 (2026-08-21): contact_id agora exige formato UUID.
+      { label: "contact_id não é UUID", payload: { contact_id: "ct-1", contact_name: "João", kind: "first_response", severity: "warning", scope: "current" }, expectPath: "contact_id" },
     ],
   },
   {
@@ -275,15 +280,19 @@ const MATRICES: Matrix[] = [
     ],
   },
   {
-    name: "talkx-add-recipients@v1 (estrito — campaignId/contactIds obrigatórios)",
+    name: "talkx-add-recipients@v1 (estrito — campaignId/contactIds obrigatórios, ambos UUID)",
     schema: V1("talkx-add-recipients"),
     valid: [
-      { campaignId: "camp-1", contactIds: ["5511999999999", "5511888888888"] },
+      { campaignId: UUID, contactIds: [UUID, "3f0c8a4e-1b2d-4c5e-9f6a-7b8c9d0e1f2b"] },
     ],
     invalid: [
-      { label: "campaignId ausente", payload: { contactIds: ["5511"] }, expectPath: "campaignId" },
-      { label: "contactIds vazio", payload: { campaignId: "camp-1", contactIds: [] }, expectPath: "contactIds" },
-      { label: "contactIds com tipo errado", payload: { campaignId: "camp-1", contactIds: "5511" }, expectPath: "contactIds" },
+      { label: "campaignId ausente", payload: { contactIds: [UUID] }, expectPath: "campaignId" },
+      { label: "contactIds vazio", payload: { campaignId: UUID, contactIds: [] }, expectPath: "contactIds" },
+      { label: "contactIds com tipo errado", payload: { campaignId: UUID, contactIds: "5511" }, expectPath: "contactIds" },
+      // Bloco 4 (2026-08-21): campaignId/contactIds agora exigem UUID —
+      // FKs confirmadas (.eq("id", campaignId) / .in("id", contactIds) no handler).
+      { label: "campaignId não é UUID", payload: { campaignId: "camp-1", contactIds: [UUID] }, expectPath: "campaignId" },
+      { label: "contactIds com item não-UUID", payload: { campaignId: UUID, contactIds: ["5511999999999"] }, expectPath: "contactIds.0" },
     ],
   },
   {
@@ -301,17 +310,21 @@ const MATRICES: Matrix[] = [
     ],
   },
   {
-    name: "ticket-router@v1 (estrito — contact_id obrigatório)",
+    name: "ticket-router@v1 (estrito — contact_id obrigatório, 3 campos UUID)",
     schema: V1("ticket-router"),
     valid: [
-      { contact_id: "ct-1" },
-      { contact_id: "ct-1", channel_connection_id: "ch1", queue_id: "q1", apply: true },
-      { contact_id: "ct-1", channel_connection_id: null, queue_id: null },
+      { contact_id: UUID },
+      { contact_id: UUID, channel_connection_id: UUID, queue_id: UUID, apply: true },
+      { contact_id: UUID, channel_connection_id: null, queue_id: null },
     ],
     invalid: [
-      { label: "contact_id ausente", payload: { queue_id: "q1" }, expectPath: "contact_id" },
+      { label: "contact_id ausente", payload: { queue_id: UUID }, expectPath: "contact_id" },
       { label: "contact_id com tipo errado", payload: { contact_id: 123 }, expectPath: "contact_id" },
-      { label: "apply com tipo errado", payload: { contact_id: "ct-1", apply: "yes" }, expectPath: "apply" },
+      { label: "apply com tipo errado", payload: { contact_id: UUID, apply: "yes" }, expectPath: "apply" },
+      // Bloco 4 (2026-08-21): as 3 são FKs — agora exigem formato UUID.
+      { label: "contact_id não é UUID", payload: { contact_id: "ct-1" }, expectPath: "contact_id" },
+      { label: "channel_connection_id não é UUID", payload: { contact_id: UUID, channel_connection_id: "ch1" }, expectPath: "channel_connection_id" },
+      { label: "queue_id não é UUID", payload: { contact_id: UUID, queue_id: "q1" }, expectPath: "queue_id" },
     ],
   },
   {

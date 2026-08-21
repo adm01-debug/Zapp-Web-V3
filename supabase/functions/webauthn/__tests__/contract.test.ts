@@ -63,9 +63,13 @@ Deno.test("Contract: webauthn v1 — userId número → rejeitado", () => {
   assertEquals(r.success, false);
 });
 
-Deno.test("Contract: webauthn v1 — userEmail inválido (sem @) → aceito (schema não valida formato)", () => {
-  // Documenta o comportamento REAL: max(320) sem regex de email.
+Deno.test("Contract: webauthn v1 — userEmail sem @ → rejeitado (Bloco 4, 2026-08-21: .email() ligado)", () => {
   const r = WebauthnV1Schema.safeParse({ action: "registration-options", userEmail: "sem-arroba" });
+  assertEquals(r.success, false);
+});
+
+Deno.test("Contract: webauthn v1 — userEmail válido → aceito", () => {
+  const r = WebauthnV1Schema.safeParse({ action: "registration-options", userEmail: "user@example.com" });
   assertEquals(r.success, true);
 });
 

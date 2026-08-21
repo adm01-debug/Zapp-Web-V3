@@ -15,7 +15,7 @@
  *  - GET/cron sem body (17 funções): `EmptyStrictV1Schema` (body opcional).
  */
 import { z } from "https://esm.sh/zod@3.23.8";
-import { RateLimitAlertSchema } from "./schemas.ts";
+import { RateLimitAlertSchema, phoneOnlyField } from "./schemas.ts";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -142,7 +142,10 @@ export const ContactMediaV1Schema = z.object({
  * `const phoneRaw = body?.phone;` — phone string obrigatória (dígitos).
  */
 export const FetchWhatsappAvatarV1Schema = z.object({
-  phone: z.string().min(1).max(32),
+  // Bloco 4 (2026-08-21): min(1) aceitava qualquer string; campo é
+  // documentado como "dígitos" no comentário acima — phoneOnlyField valida
+  // formato sem transformar (index.ts lê phoneRaw como veio).
+  phone: phoneOnlyField({ min: 1, max: 32 }),
 }).strict();
 
 // ─── Segurança / upload ──────────────────────────────────────────────────────
@@ -219,7 +222,8 @@ export const SendRateLimitAlertV1Schema = RateLimitAlertSchema;
  * (endpoint interno).
  */
 export const SlaAlertForwardV1Schema = z.object({
-  contact_id: z.string().min(1),
+  // Bloco 4 (2026-08-21): contact_id é FK para contacts.id (UUID).
+  contact_id: z.string().uuid("contact_id deve ser um UUID válido"),
   contact_name: z.string().min(1),
   kind: z.enum(["first_response", "resolution", "delivery_delay"]),
   severity: z.enum(["warning", "breached"]),
@@ -297,8 +301,11 @@ export const McpQueryV1Schema = z.object({
  * (array não-vazio ≤1000).
  */
 export const TalkxAddRecipientsV1Schema = z.object({
-  campaignId: z.string().min(1).max(100),
-  contactIds: z.array(z.string()).min(1).max(1000),
+  // Bloco 4 (2026-08-21): campaignId/contactIds são FKs (talkx_campaigns.id,
+  // contacts.id) — confirmado via .eq("id", campaignId)/.in("id", contactIds)
+  // no handler. Até 1000 IDs sem formato antes; agora cada um validado.
+  campaignId: z.string().uuid("campaignId deve ser um UUID válido"),
+  contactIds: z.array(z.string().uuid("contactIds deve conter apenas UUIDs")).min(1).max(1000),
 }).strict();
 
 /**
@@ -317,9 +324,11 @@ export const TalkxControlV1Schema = z.object({
  * (string|null), queue_id? (string|null) e apply? (boolean).
  */
 export const TicketRouterV1Schema = z.object({
-  contact_id: z.string().min(1).max(100),
-  channel_connection_id: z.string().max(100).optional().nullable(),
-  queue_id: z.string().max(100).optional().nullable(),
+  // Bloco 4 (2026-08-21): as 3 são FKs (contacts.id, channel_connections.id,
+  // queues.id) — min/max sem formato aceitava qualquer string.
+  contact_id: z.string().uuid("contact_id deve ser um UUID válido"),
+  channel_connection_id: z.string().uuid("channel_connection_id deve ser um UUID válido").optional().nullable(),
+  queue_id: z.string().uuid("queue_id deve ser um UUID válido").optional().nullable(),
   apply: z.boolean().optional(),
 }).strict();
 
