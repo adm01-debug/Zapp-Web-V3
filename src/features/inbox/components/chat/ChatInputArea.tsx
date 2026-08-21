@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef, memo } from 'react';
 import { isFeatureEnabled } from '@/lib/featureFlags';
 import { cn } from '@/lib/utils';
 import { Message } from '@/types/chat';
@@ -108,7 +108,7 @@ interface ChatInputAreaProps {
 }
 
 /** Chat Input Area component for the chat section. */
-export function ChatInputArea(props: ChatInputAreaProps) {
+function ChatInputAreaInner(props: ChatInputAreaProps) {
   const {
     inputValue,
     replyToMessage,
@@ -857,3 +857,5 @@ export function ChatInputArea(props: ChatInputAreaProps) {
     </>
   );
 }
+
+export const ChatInputArea = memo(ChatInputAreaInner);

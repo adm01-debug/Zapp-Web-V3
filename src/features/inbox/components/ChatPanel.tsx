@@ -492,6 +492,25 @@ export function ChatPanel({
     }
   }, [conversation.contact.id, whatsappConnectionId]);
 
+  // ── Bloco 6: stable callbacks para ChatInputArea (React.memo) ────────────
+  const { setIsWhisper, handleSend, setReplyToMessage, setIsRecordingAudio,
+          handleAudioSend, setInputValue } = handlers;
+  const cbToggleWhisper = useCallback(() => setIsWhisper((v) => !v), [setIsWhisper]);
+  const cbSend = useCallback((att?: File[]) => handleSend(att), [handleSend]);
+  const cbCancelReply = useCallback(() => setReplyToMessage(null), [setReplyToMessage]);
+  const cbCloseSlashCommands = useCallback(() => closeDialog('slashCommands'), [closeDialog]);
+  const cbRecordToggle = useCallback(() => setIsRecordingAudio((v) => !v), [setIsRecordingAudio]);
+  const cbAudioSend = useCallback((blob: Blob) => handleAudioSend(blob, onSendAudio), [handleAudioSend, onSendAudio]);
+  const cbAudioCancel = useCallback(() => setIsRecordingAudio(false), [setIsRecordingAudio]);
+  const cbOpenInteractiveBuilder = useCallback(() => openDialog('interactiveBuilder'), [openDialog]);
+  const cbOpenScheduleDialog = useCallback(() => openDialog('scheduleDialog'), [openDialog]);
+  const cbOpenLocationPicker = useCallback(() => openDialog('locationPicker'), [openDialog]);
+  const cbOpenCatalog = useCallback(() => openDialog('catalogDirect'), [openDialog]);
+  const cbSelectSuggestion = useCallback((text: string) => setInputValue(text), [setInputValue]);
+  const cbSelectTemplate = useCallback((text: string) => setInputValue(text), [setInputValue]);
+  const cbOpenTeamFiles = useCallback(() => handleSetActiveTool('teamFiles'), [handleSetActiveTool]);
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
     <div
       data-testid="chat-window"
@@ -668,23 +687,23 @@ export function ChatPanel({
           isSending={handlers.isSending}
           sendProgress={handlers.sendProgress}
           isWhisper={handlers.isWhisper}
-          onToggleWhisper={() => handlers.setIsWhisper((v) => !v)}
+          onToggleWhisper={cbToggleWhisper}
           onInputChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onBlur={handleTypingStop}
-          onSend={(att) => handlers.handleSend(att)}
-          onCancelReply={() => handlers.setReplyToMessage(null)}
+          onSend={cbSend}
+          onCancelReply={cbCancelReply}
           onCancelEdit={handlers.handleCancelEdit}
           onEditStart={handlers.handleEditStart}
           onSlashCommand={handlers.handleSlashCommand}
-          onCloseSlashCommands={() => closeDialog('slashCommands')}
+          onCloseSlashCommands={cbCloseSlashCommands}
           onQuickReply={handleQuickReply}
-          onRecordToggle={() => handlers.setIsRecordingAudio((v) => !v)}
-          onAudioSend={(blob) => handlers.handleAudioSend(blob, onSendAudio)}
-          onAudioCancel={() => handlers.setIsRecordingAudio(false)}
-          onOpenInteractiveBuilder={() => openDialog('interactiveBuilder')}
-          onOpenSchedule={() => openDialog('scheduleDialog')}
-          onOpenLocationPicker={() => openDialog('locationPicker')}
+          onRecordToggle={cbRecordToggle}
+          onAudioSend={cbAudioSend}
+          onAudioCancel={cbAudioCancel}
+          onOpenInteractiveBuilder={cbOpenInteractiveBuilder}
+          onOpenSchedule={cbOpenScheduleDialog}
+          onOpenLocationPicker={cbOpenLocationPicker}
           onSendProduct={handlers.handleSendProduct}
           onSendSticker={handleSendSticker}
           onSendAudioMeme={handleSendAudioMeme}
@@ -694,10 +713,10 @@ export function ChatPanel({
           onToggleSignature={toggleSignature}
           onPollSent={handlePollSent}
           onContactSent={handleContactSent}
-          onOpenCatalog={() => openDialog('catalogDirect')}
-          onSelectSuggestion={(text) => handlers.setInputValue(text)}
-          onSelectTemplate={(text) => handlers.setInputValue(text)}
-          onOpenTeamFiles={() => handleSetActiveTool('teamFiles')}
+          onOpenCatalog={cbOpenCatalog}
+          onSelectSuggestion={cbSelectSuggestion}
+          onSelectTemplate={cbSelectTemplate}
+          onOpenTeamFiles={cbOpenTeamFiles}
           fileUploaderRef={fileUploaderRef}
           inputRef={handlers.inputRef}
           queue={messageQueue?.queue}
