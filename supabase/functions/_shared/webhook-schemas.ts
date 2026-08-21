@@ -59,10 +59,23 @@ export const MetaWebhookEntrySchema = z.object({
   changes: z.array(MetaWebhookChangeSchema).min(1),
 });
 
-/** Meta Webhook Payload Schema constant. */
+/**
+ * Meta Webhook Payload Schema constant.
+ *
+ * Bloco 2 (etapa 24, 2026-08-21 — fecha D3): `entry` aceita `null` ou `[]`
+ * além do array não-vazio de entradas reais. A Meta envia notificações
+ * estruturalmente vazias (entry null/[]) que são benignas, não violação de
+ * contrato — index.ts tratava isso com uma leitura MANUAL de body.entry
+ * ANTES do gate parseOrReject pra responder 200 sem passar pelo 422 (que a
+ * Meta interpretaria como falha e faria retry-storm por até 24h). Relaxando
+ * o schema, o gate vira o único caminho: entry null/[] agora É válido pro
+ * contrato (200 direto), sem precisar de bypass manual antes da validação.
+ * `entry` AUSENTE (chave nem presente) continua rejeitado — `.nullable()`
+ * sem `.optional()` exige a chave, só aceita `null` como valor explícito.
+ */
 export const MetaWebhookPayloadSchema = z.object({
   object: z.literal('whatsapp_business_account'),
-  entry: z.array(MetaWebhookEntrySchema).min(1),
+  entry: z.array(MetaWebhookEntrySchema).nullable(),
 });
 
 /**

@@ -231,13 +231,27 @@ Deno.test("Contract: Meta Webhook invalid - wrong object type", () => {
   assertEquals(result.success, false);
 });
 
-Deno.test("Contract: Meta Webhook invalid - entry vazio", () => {
+Deno.test("Contract: Meta Webhook entry vazio [] — válido (notificação benigna, etapa 24)", () => {
+  // Bloco 2 (etapa 24, 2026-08-21): entry:[] com object correto NÃO é mais
+  // rejeitado — é uma notificação estruturalmente vazia da Meta, tratada
+  // como válida pelo próprio contrato (200 no handler), não mais um bypass
+  // manual antes do gate. entry AUSENTE (chave nem presente) continua
+  // rejeitado — ver "entry ausente" nos testes do handler.
   const payload = {
     object: "whatsapp_business_account",
     entry: [],
   };
   const result = MetaWebhookPayloadSchema.safeParse(payload);
-  assertEquals(result.success, false);
+  assertEquals(result.success, true);
+});
+
+Deno.test("Contract: Meta Webhook entry null — válido (notificação benigna, etapa 24)", () => {
+  const payload = {
+    object: "whatsapp_business_account",
+    entry: null,
+  };
+  const result = MetaWebhookPayloadSchema.safeParse(payload);
+  assertEquals(result.success, true);
 });
 
 Deno.test("Contract: Meta Webhook invalid - changes vazio dentro do entry", () => {
