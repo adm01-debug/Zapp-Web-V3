@@ -7,7 +7,7 @@
 -- curto por modulo ("Modulo X — nunca ativado ate 2026-08; ver F-009").
 -- (evo ja estava 100% desde 2026-08-09, serie C01-C20.)
 -- Conteudo abaixo = os 386 COMMENT ON TABLE reais capturados do banco em 2026-08-20
--- (mesma fonte do snapshot supabase/schema-snapshots/zapp_ddl_20260820.sql).
+-- (mesma fonte do snapshot canonico scripts/decouple/snapshots/zapp_schema_snapshot.sql, regenerado neste PR).
 -- Idempotente: COMMENT ON sobrescreve com o mesmo valor.
 
 COMMENT ON TABLE zapp.voice_conversion_queue IS 'Módulo inativo/vazio até 2026-08 (sprawl F-009); ver DICIONARIO';

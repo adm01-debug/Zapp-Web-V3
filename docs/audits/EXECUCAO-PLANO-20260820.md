@@ -12,7 +12,7 @@
 | **F-001** watchdog midia (job 524) | ✅ JA FEITO — `zapp.fn_media_queue_stalled_alert()` criada, job reagendado, `succeeded` em todos os ticks, 6 alertas reais em 48h | Versionado retroativamente (arquivo + linha `20260820113000`) | **FECHADO** |
 | **F-002** outage 14/08 | 🔶 RECUPERADO mas nao quantificado — dia 14/08 com 6.588 msgs (auditoria via 449) | Delta FDW janela 13–17/08 medido: **PG14=23.696 vs evo=23.703 (deficit −7)**; unicos deltas horarios (3 e 1) = canarias. **Perda real = 0.** Sentinela preventiva criada: `zapp.fn_fdw_delta_sentinel()` + cron 556 `7,37 * * * *` (testada, `succeeded`) | **FECHADO** |
 | **F-003** colisao de migrations | 🔶 PARCIAL — names corrigidos no banco, mas repo ainda tinha `20260818140000_etapa57_invite_user.sql` e faltavam os sentinels | Arquivo colidido **removido** (banco bate byte a byte com `20260818190003_invite_user_rpc.sql` — conferido via `pg_get_functiondef`); criados `20260818140000_sentinel_teste_mensal.sql` e `20260818160000_sentinel_curto_521.sql` retroativos com DDL real; arquivo `20260820140000_f003_version_sentinels.sql` | **FECHADO** |
-| **F-004** snapshot canonico | ❌ NAO FEITO | `supabase/schema-snapshots/zapp_ddl_20260820.sql` gerado (pg_dump 15.8 schema-only, **3,76 MB**, transferido via gzip+base64, **sha256 verificado identico** nos dois lados: `48ad51e0…`) | **FECHADO** |
+| **F-004** snapshot canonico | ❌ NAO FEITO | snapshot canonico `scripts/decouple/snapshots/zapp_schema_snapshot.sql` REGENERADO do banco vivo (pg_dump 15.8 schema-only --no-owner --no-privileges + transform E41 idempotente, pipeline oficial do drift-gate; 2,85 MB brutos, 77.732 linhas, integridade conferida por tamanho/gzip apos transferencia) | **FECHADO** |
 | **F-005** DML `authenticated` em evo | ✅ JA FEITO (migration `20260819160000_ml004_revoke_auth_write`, GATE-A) | Validado: **0 grants** INSERT/UPDATE/DELETE p/ authenticated em `evo.*`; policies de escrita remanescentes sao inertes (sem grant nao ha acesso) | **FECHADO** |
 | **F-006** 3 FKs duplicadas | ✅ JA FEITO **com correcao tecnica**: as 3 FKs sao o parent + 2 clones internos do PG15 p/ FK→tabela particionada (`conparentid` aponta p/ `fk_media_queue_message_uuid`) — **falso positivo da auditoria**; reconstrucao limpa + `idx_mdq_message_uuid_instance` criados (`20260820120500`) | Validado (conparentid conferido); FKs sem indice na tabela = 0 | **FECHADO** |
 | **F-007** 7 grupos de indices duplicados | ✅ JA FEITO (6 dropados + trio de `evolution_contacts` = falso positivo mantido, `20260820120500`) | **2 grupos NOVOS** achados e dropados: `evo.idx_recon_coverage_daily_snapshot_date` (redundante c/ PK) e `zapp.idx_contact_tags_contact`+`idx_contact_tags_contact_id` (ambos idx_scan=0, cobertos pela UNIQUE `(contact_id,tag_id)`); **+4 FKs sem indice** cobertas (crm_sync_config, csat_surveys, n8n_config, notification_delivery_log) — `20260820192000` | **FECHADO** (grupos=0, FKs sem indice=0) |
@@ -82,7 +82,7 @@ Aplicadas no banco via MCP (`supabase_apply_migration` bugado no self-hosted) + 
 | 20260820193000 | `f002_fdw_delta_sentinel.sql` | **novo** (aplicado; fn em zapp por I2) |
 | 20260820194000 | `f008_comments_evo_staging_e_meta.sql` | **novo** (aplicado) |
 | — | `20260818140000_etapa57_invite_user.sql` | **REMOVIDO** (colisao F-003) |
-| — | `supabase/schema-snapshots/zapp_ddl_20260820.sql` | snapshot F-004 (nao-migration) |
+| — | `scripts/decouple/snapshots/zapp_schema_snapshot.sql` | snapshot F-004 (nao-migration) |
 
 Rollbacks: documentados no cabecalho de cada arquivo.
 

@@ -21,7 +21,7 @@ Relatorio completo de execucao: `docs/audits/EXECUCAO-PLANO-20260820.md`.
 
 - **F-001** watchdog de midia (job 524): ressuscitado como `zapp.fn_media_queue_stalled_alert()` — succeeded em todos os ticks, alertas reais emitidos.
 - **F-002** outage 14/08: recuperado pelo reconcile (delta FDW janela 13-17/08: PG14 23.696 vs evo 23.703 — perda real 0). Sentinela preventiva horaria criada (cron 556 `fdw-delta-sentinel-30min`).
-- **F-003/F-004** migrations: colisao 20260818140000 resolvida (repo + banco), sentinels versionados retroativamente, snapshot canonico em `supabase/schema-snapshots/zapp_ddl_20260820.sql` (3,76 MB, sha256 verificado).
+- **F-003/F-004** migrations: colisao 20260818140000 resolvida (repo + banco), sentinels versionados retroativamente, snapshot canonico `scripts/decouple/snapshots/zapp_schema_snapshot.sql` regenerado (pipeline E41 do drift-gate).
 - **F-005** grants: DML de `authenticated` em `evo.*` = 0 (revoke `ml004` 2026-08-19; validado).
 - **F-006/F-007** FKs/indices: FKs de `media_download_queue` = clones internos PG15 (falso positivo, reconstruidos); 0 grupos de indices duplicados; 0 FKs sem indice (zapp+evo).
 - **F-008** docs IA: comments tabelas zapp 100% (386/386), evo 100% (74/74), colunas zapp 22,7% -> **47,7%**, rpc_* evo 100%; `docs/DICIONARIO-BANCO.md` gerado.
