@@ -10,6 +10,12 @@ on:
       - "E2E Nightly Full (VPS)"
       - "Quality Gate"
       - "🚀 Build & Deploy — ZAPP web v3"
+      # Bloco 1 (2026-08-21, PLANO-100-CONTRATOS-EDGE): o gate de contratos
+      # ficou vermelho/travado por dias (label de runner errado + concurrency
+      # cancelando runs de main) sem que ninguém percebesse — o cron diário
+      # falhou 18/19-08 em silêncio. Alerta em toda falha real (não só
+      # a cada 2 consecutivas) via o mesmo canal dos outros gates críticos.
+      - "🦕 Deno Contract Tests — Edge Functions"
     types: [completed]
     branches: [main, production]
 

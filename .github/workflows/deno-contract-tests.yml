@@ -16,20 +16,37 @@ on:
   # órfaos lendo index.ts deletados e ninguém viu até o próximo push).
   schedule:
     - cron: '0 6 * * *'
+  # Bloco 1 (2026-08-21): dispatch manual — permite validar o fix do
+  # runner/concurrency num branch antes de mergear, e rodar sob demanda.
+  workflow_dispatch: {}
 
 permissions:
   contents: read
   checks: write
   actions: write  # necessário p/ actions/cache@v6 SAVAR (sem isso: "Caching is skipped")
 
+# Bloco 1 (2026-08-21, PLANO-100-CONTRATOS-EDGE): o group antigo usava só
+# `github.ref`, que é `refs/heads/main` para TODO push nesse branch — em dias
+# de merges frequentes (comum neste repo), cada push cancelava a run do push
+# anterior antes de concluir, e o gate nunca fechava em `main` (runs
+# `cancelled` em série; última conclusão REAL foi `failure` em 2026-08-20).
+# Chave por PR (cancela run obsoleta da MESMA PR, comportamento desejado) OU
+# por commit sha (push/schedule — cada push tem seu próprio grupo, nunca
+# cancela o de outro). cancel-in-progress só se aplica a pull_request.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   deno-contract-tests:
     name: Contract Tests (Deno)
-    runs-on: [Linux, X64,/vps-zapp]
+    # Bloco 1 (2026-08-21): label tinha "/vps-zapp" (barra colada) — os
+    # runners self-hosted reais têm o label "vps-zapp" (sem barra, confirmado
+    # via `gh api .../actions/runners`). O label errado nunca casava com
+    # nenhum runner: as 3 runs mais recentes ficaram presas em `queued` sem
+    # nunca despachar, o que também explica os `cancelled` em série (cada
+    # push cancelava a anterior, que nunca tinha sequer começado a rodar).
+    runs-on: [Linux, X64, vps-zapp]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
