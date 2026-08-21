@@ -108,6 +108,23 @@ jobs:
           # PyPI está acessível (o cython baixou). Solução determinística:
           # validar num container python:3.12-slim — o job já depende de Docker
           # (sobe o pg-smoke no step anterior).
+          # Fix 2026-08-21 v3 (achado no review do PR #1354, run 32480220669
+          # — job "Apply migrations from scratch" falhou de verdade, nao e
+          # flake): a v2 usava `docker run -v "$PWD:/repo"` — bind mount que
+          # FALHA neste runner fleet porque o proprio runner do GitHub Actions
+          # roda dentro de um container (vps-zapp*, Docker-outside-of-Docker
+          # via socket): "$PWD" dentro do runner nao corresponde a um path
+          # valido no host do daemon Docker, entao o mount resolve em silencio
+          # para um diretorio vazio/errado — erro observado foi "No such file
+          # or directory" para scripts/validate-migration-syntax.py, um
+          # arquivo que comprovadamente existe no checkout (o fallback do
+          # host le o mesmo arquivo sem erro no mesmo run). Evidencia de que
+          # docker cp/exec funciona neste fleet: o step "Apply Supabase
+          # compatibility bootstrap" (2 steps acima, mesmo job) usa
+          # exatamente esse padrao com sucesso. Troquei o bind mount por
+          # create+cp+exec (mesmo padrao), que nao depende de equivalencia de
+          # path host<->runner.
+          #
           # Semântica: erro de SINTAXE bloqueia (exit 1). Indisponibilidade de
           # UM validador (container OU host) tenta o outro antes de desistir —
           # mas se NENHUM dos dois conseguir rodar, o step falha (nao passa em
@@ -116,8 +133,12 @@ jobs:
           # existe para fechar (PR #1330, achado no review do PR #1354).
           set -uo pipefail
           rc=0
-          docker run --rm -v "$PWD:/repo" -w /repo python:3.12-slim \
-            sh -c 'pip install --quiet pglast || exit 3; python scripts/validate-migration-syntax.py --dir supabase/migrations' || rc=$?
+          docker rm -f syntax-gate 2>/dev/null || true
+          docker run -d --name syntax-gate python:3.12-slim sleep 300 >/dev/null
+          docker cp scripts/validate-migration-syntax.py syntax-gate:/tmp/validate-migration-syntax.py
+          docker cp supabase/migrations syntax-gate:/tmp/migrations
+          docker exec syntax-gate sh -c 'pip install --quiet pglast || exit 3; python /tmp/validate-migration-syntax.py --dir /tmp/migrations' || rc=$?
+          docker rm -f syntax-gate >/dev/null 2>&1 || true
           if [ "$rc" = "0" ]; then
             echo "Gate de sintaxe OK (container python:3.12)"
             exit 0
