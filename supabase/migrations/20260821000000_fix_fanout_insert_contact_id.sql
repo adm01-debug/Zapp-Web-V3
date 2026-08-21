@@ -61,17 +61,22 @@ BEGIN
 END;
 $$;
 
--- Garantir trigger no pai particionado físico (zapp.evolution_messages é a raiz
--- desde a migração evo→zapp; publish_via_partition_root=true garante que eventos
--- Realtime saem da raiz, não das partições filhas).
-DROP TRIGGER IF EXISTS trg_rt_fanout ON zapp.evolution_messages;
+-- Topologia verificada via pg_class em 2026-08-21:
+--   evo.evolution_messages  = tabela particionada FÍSICA (relkind='p') — aceita triggers
+--   zapp.evolution_messages = VIEW auto-updatable (security_invoker=on) — NÃO aceita triggers
+--   public.evolution_messages = VIEW — NÃO aceita triggers
+--
+-- O trigger DEVE ficar em evo.evolution_messages (raiz física da partição).
+-- publish_via_partition_root=true garante que eventos Realtime saem da raiz,
+-- não das partições filhas, independentemente de onde o trigger está.
+DROP TRIGGER IF EXISTS trg_rt_fanout ON evo.evolution_messages;
 CREATE TRIGGER trg_rt_fanout
   AFTER INSERT OR UPDATE OF
     status, status_at, error_code, error_reason,
     media_url, from_me, deleted_at, is_read,
     contact_id, content, message_type
-  ON zapp.evolution_messages
+  ON evo.evolution_messages
   FOR EACH ROW EXECUTE FUNCTION zapp.fn_rt_fanout_insert();
 
--- Remover trigger orfão se ainda existir na localização antiga (DROP IF EXISTS é seguro)
-DROP TRIGGER IF EXISTS trg_rt_fanout ON evo.evolution_messages;
+-- Remover trigger orfão na VIEW caso tenha sido criado por erro (DROP IF EXISTS é seguro)
+DROP TRIGGER IF EXISTS trg_rt_fanout ON zapp.evolution_messages;
