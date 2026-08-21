@@ -43,7 +43,10 @@ Deno.test("SEC-5: sem WHATSAPP_CLOUD_APP_SECRET → 503 fail-closed (não proces
   }));
   assertEquals(res.status, 503);
   const body = await res.json();
-  assertEquals(body.error, "webhook_misconfigured");
+  // Etapa 26 (Bloco 2, 2026-08-21): migrado pra errorEnvelope — error agora
+  // é boolean, o código do erro vive em `code`.
+  assertEquals(body.error, true);
+  assertEquals(body.code, "webhook_misconfigured");
   assertEquals(body.reason, "no_secret_configured");
 });
 

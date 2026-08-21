@@ -1,4 +1,4 @@
-import { Logger, checkRateLimit, getClientIP, getCorsHeaders, handleCors, authorizeRoles, errorResponse } from "../_shared/validation.ts";
+import { Logger, checkRateLimit, getClientIP, getCorsHeaders, handleCors, authorizeRoles, errorEnvelope } from "../_shared/validation.ts";
 import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
 import { initSentry, captureException } from "../_shared/sentry.ts";
 import { EVOLUTION_ENVELOPE_VERSION, proxyToEvolution, resolvePrivateBucketUrl, type ProxyToEvolutionOptions } from "../_shared/evolution-api-proxy.ts";
@@ -30,19 +30,19 @@ Deno.serve(async (req) => {
   const rl = isPollAction
     ? checkRateLimit(`evolution-poll:${ip}`, 600, 60_000)
     : checkRateLimit(`evolution:${ip}`, 120, 60_000);
-  if (!rl.allowed) return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
+  if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', 'Rate limit exceeded', 429, req, undefined, { 'Retry-After': '60' });
   let evolutionApiUrl: string;
-  try { evolutionApiUrl = getBaseUrl(); } catch { return new Response(JSON.stringify({ error: 'Evolution API not configured' }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }); }
+  try { evolutionApiUrl = getBaseUrl(); } catch { return errorEnvelope('evolution_api_not_configured', 'Evolution API not configured', 503, req); }
   const evolutionApiKey = (Deno.env.get('EVOLUTION_API_KEY') || '').trim();
   const isPlaceholder = (v: string) => !v || /PLACEHOLDER|REPLACE_ME|YOUR_|CHANGE_ME/i.test(v);
-  if (isPlaceholder(evolutionApiKey)) return new Response(JSON.stringify({ error: 'Evolution API not configured' }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (isPlaceholder(evolutionApiKey)) return errorEnvelope('evolution_api_not_configured', 'Evolution API not configured', 503, req);
   const supabase = createZappAdminClient();
   const supabaseUrl = ((Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '').replace(/\/+$/, '');
   const supabaseServiceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '';
   const { data: authData, error: authError } = await createZappClient(req).auth.getUser();
   let authedUser: { id: string; email: string | undefined } | null = null;
   if (!authError && authData?.user) authedUser = { id: authData.user.id, email: authData.user.email };
-  if (!authedUser) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (!authedUser) return errorEnvelope('unauthorized', 'Unauthorized', 401, req);
   const SEND_PER_INSTANCE_PER_MIN = Number(Deno.env.get('EVOLUTION_SEND_RATE_PER_INSTANCE') ?? '60');
   let _bodyCache: Record<string, unknown> | null = null;
   let _formDataCache: Record<string, unknown> | null = null;
@@ -476,10 +476,10 @@ Deno.serve(async (req) => {
       }
       return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, data }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-    return new Response(JSON.stringify({ error: 'Unknown action', action }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return errorEnvelope('unknown_action', 'Unknown action', 404, req, { action });
   } catch (error: unknown) {
     const log = new Logger('evolution-api', req);
     log.error('Unhandled error', { error: error instanceof Error ? error.message : String(error) });
-    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });

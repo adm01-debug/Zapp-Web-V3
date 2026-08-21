@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { mergeCsvHeaderValues, errorResponse, jsonResponse } from "../validation.ts";
+import { mergeCsvHeaderValues, errorResponse, errorEnvelope, jsonResponse } from "../validation.ts";
 
 Deno.test("mergeCsvHeaderValues: normaliza casing e remove duplicados", () => {
   const merged = mergeCsvHeaderValues(
@@ -74,4 +74,32 @@ Deno.test("errorResponse: sem extraHeaders continua funcionando (aditivo, não q
   assertEquals(res.status, 400);
   assertEquals(res.headers.get("x-contract-version"), null);
   assertEquals(await res.json(), { error: "erro simples" });
+});
+
+// ─── errorEnvelope (etapa 26, Bloco 2, 2026-08-21) ──────────────────────────
+// Shape único {error:true, code, message} pra erros não-validação, reduzindo
+// gradualmente os `{error: "string"}` ad-hoc espalhados pelo repo.
+
+Deno.test("errorEnvelope: shape básico {error:true, code, message}", async () => {
+  const res = errorEnvelope("unauthorized", "Token inválido", 401);
+  assertEquals(res.status, 401);
+  assertEquals(await res.json(), { error: true, code: "unauthorized", message: "Token inválido" });
+});
+
+Deno.test("errorEnvelope: extra mescla campos adicionais no body (requestId, reason, etc.)", async () => {
+  const res = errorEnvelope("webhook_misconfigured", "Secret ausente", 503, undefined, { reason: "no_secret_configured", requestId: "abc123" });
+  assertEquals(await res.json(), {
+    error: true, code: "webhook_misconfigured", message: "Secret ausente",
+    reason: "no_secret_configured", requestId: "abc123",
+  });
+});
+
+Deno.test("errorEnvelope: extraHeaders são mesclados na resposta (mesmo mecanismo de errorResponse)", async () => {
+  const res = errorEnvelope("internal_error", "Erro interno", 500, undefined, undefined, { "x-contract-version": "v1" });
+  assertEquals(res.headers.get("x-contract-version"), "v1");
+});
+
+Deno.test("errorEnvelope: default status 400 quando omitido", () => {
+  const res = errorEnvelope("bad_request", "Requisição inválida");
+  assertEquals(res.status, 400);
 });

@@ -33,6 +33,7 @@ import {
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { timingSafeStringEqual } from '../_shared/auth.ts';
+import { errorEnvelope } from '../_shared/validation.ts';
 interface MetaWAMessage {
   from: string;
   id: string;
@@ -238,19 +239,20 @@ Deno.serve(async (req) => {
         `[whatsapp-cloud-webhook][${rid}] invalid signature (hasSig=${!!signature})`,
       );
       void recordPing("invalid_signature", { rid, hasSig: !!signature });
-      return new Response(
-        JSON.stringify({ error: "invalid_signature", requestId: rid }),
-        { status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
-      );
+      return errorEnvelope("invalid_signature", "Assinatura HMAC inválida.", 401, req, { requestId: rid });
     }
   } else {
     console.error(
       `[whatsapp-cloud-webhook][${rid}] WHATSAPP_CLOUD_APP_SECRET not configured — refusing (fail-closed)`,
     );
     void recordPing("webhook_misconfigured", { rid });
-    return new Response(
-      JSON.stringify({ error: "webhook_misconfigured", reason: "no_secret_configured", requestId: rid }),
-      { status: 503, headers: { ...getCorsHeaders(req), "Content-Type": "application/json", "Retry-After": "120" } },
+    return errorEnvelope(
+      "webhook_misconfigured",
+      "WHATSAPP_CLOUD_APP_SECRET não configurado.",
+      503,
+      req,
+      { reason: "no_secret_configured", requestId: rid },
+      { "Retry-After": "120" },
     );
   }
 

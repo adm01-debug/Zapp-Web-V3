@@ -336,6 +336,36 @@ export function errorResponse(
 }
 
 /**
+ * Envelope canônico pra erros NÃO-validação (auth/rate-limit/config/500) —
+ * etapa 26 do Bloco 2 (2026-08-21). Diferente do envelope 422 de contrato
+ * (contract-kit.ts, que tem `contract`+`details[]`, específico de payload
+ * inválido) e de `errorResponse()` acima (que produz `{error: "string"}`,
+ * o próprio shape inconsistente que esta etapa reduz — 313 ocorrências em
+ * 62 arquivos no baseline). Shape único: `{error: true, code, message}`,
+ * com `extra` opcional pra campos adicionais (requestId, reason, etc.).
+ *
+ * Migração é gradual e explícita, não um rename em massa: PoC nesta etapa
+ * cobre as 3 functions de maior tráfego (evolution-api, whatsapp-cloud-
+ * webhook, main); o restante do repo segue com `errorResponse()`/ad-hoc
+ * até ser migrado function por function.
+ */
+export function errorEnvelope(
+  code: string,
+  message: string,
+  status = 400,
+  req?: Request,
+  extra?: Record<string, unknown>,
+  extraHeaders?: Record<string, string>,
+) {
+  const headers = req ? getCorsHeaders(req) : corsHeaders;
+  const body = { error: true, code, message, ...extra };
+  return new Response(
+    JSON.stringify(body),
+    { status, headers: { ...headers, ...extraHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+/**
  * Security verdict envelope — ADITIVO ao formato canônico (exceção documentada).
  *
  * Este NÃO é o envelope 422 unificado do parseOrReject (contract-kit): é o
