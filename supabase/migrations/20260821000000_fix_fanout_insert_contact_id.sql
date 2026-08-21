@@ -14,6 +14,12 @@
 --   Restaura id (de NEW.id) e contact_id no INSERT, mantém mirrored_at de
 --   20260820230000, e mantém ON CONFLICT (id) DO UPDATE de 20260817125500 para
 --   cobrir UPDATE de status/read/delete. Idempotente.
+--
+-- NOTA SOBRE O TRIGGER:
+--   O trigger trg_rt_fanout em evo.evolution_messages foi criado na migration
+--   20260820230000 e permanece inalterado. CREATE OR REPLACE FUNCTION preserva
+--   o OID da função — o trigger existente automaticamente usa a nova implementação
+--   sem necessidade de DROP/CREATE (que violariam o guard E42 de DDL em schema evo).
 
 CREATE OR REPLACE FUNCTION zapp.fn_rt_fanout_insert()
   RETURNS trigger
@@ -60,23 +66,3 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
--- Topologia verificada via pg_class em 2026-08-21:
---   evo.evolution_messages  = tabela particionada FÍSICA (relkind='p') — aceita triggers
---   zapp.evolution_messages = VIEW auto-updatable (security_invoker=on) — NÃO aceita triggers
---   public.evolution_messages = VIEW — NÃO aceita triggers
---
--- O trigger DEVE ficar em evo.evolution_messages (raiz física da partição).
--- publish_via_partition_root=true garante que eventos Realtime saem da raiz,
--- não das partições filhas, independentemente de onde o trigger está.
-DROP TRIGGER IF EXISTS trg_rt_fanout ON evo.evolution_messages;
-CREATE TRIGGER trg_rt_fanout
-  AFTER INSERT OR UPDATE OF
-    status, status_at, error_code, error_reason,
-    media_url, from_me, deleted_at, is_read,
-    contact_id, content, message_type
-  ON evo.evolution_messages
-  FOR EACH ROW EXECUTE FUNCTION zapp.fn_rt_fanout_insert();
-
--- Remover trigger orfão na VIEW caso tenha sido criado por erro (DROP IF EXISTS é seguro)
-DROP TRIGGER IF EXISTS trg_rt_fanout ON zapp.evolution_messages;
