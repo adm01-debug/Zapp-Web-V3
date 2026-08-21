@@ -45,4 +45,14 @@ BEGIN
 END $function$;
 
 REVOKE ALL ON FUNCTION zapp.fn_get_vault_secret(text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION zapp.fn_get_vault_secret(text) TO service_role;
+
+DO $$
+BEGIN
+  -- Guard de ambiente limpo (migration-smoke): o role service_role só existe
+  -- em instâncias Supabase; num Postgres vanilla o GRANT falharia.
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+    GRANT EXECUTE ON FUNCTION zapp.fn_get_vault_secret(text) TO service_role;
+  ELSE
+    RAISE NOTICE 'role service_role ausente (ambiente sem Supabase) — GRANT pulado';
+  END IF;
+END $$;

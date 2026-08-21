@@ -26,7 +26,15 @@
 
 DO $$
 BEGIN
-  IF NOT EXISTS (
+  -- Guard de ambiente limpo (migration-smoke aplica num Postgres efêmero):
+  -- sem a publication ou sem as tabelas, é no-op com NOTICE — em produção
+  -- ambas existem (verificado 2026-08-20).
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    RAISE NOTICE 'publication supabase_realtime ausente (ambiente sem Realtime) — nada a fazer';
+    RETURN;
+  END IF;
+
+  IF to_regclass('zapp.failed_messages') IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM pg_publication_tables
     WHERE pubname = 'supabase_realtime'
       AND schemaname = 'zapp' AND tablename = 'failed_messages'
@@ -35,7 +43,7 @@ BEGIN
     RAISE NOTICE 'supabase_realtime: zapp.failed_messages adicionada';
   END IF;
 
-  IF NOT EXISTS (
+  IF to_regclass('zapp.dispatch_error_logs') IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM pg_publication_tables
     WHERE pubname = 'supabase_realtime'
       AND schemaname = 'zapp' AND tablename = 'dispatch_error_logs'
