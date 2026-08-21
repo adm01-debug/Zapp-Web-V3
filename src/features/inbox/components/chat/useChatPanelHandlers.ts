@@ -188,6 +188,18 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           });
 
           // 2. Espelhar no banco, verificando rowcount de verdade.
+          if (!isValidUUID(currentEditing.id)) {
+            log.warn('[editMessage] id de mensagem não é UUID válido', { id: currentEditing.id });
+            toast({
+              title: 'Erro ao editar',
+              description: 'ID de mensagem inválido — edição cancelada.',
+              variant: 'destructive',
+            });
+            setEditingMessage(null);
+            setInputValue('');
+            setIsSending(false);
+            return;
+          }
           const { data: updated, error: dbError } = await dbFrom('evolution_messages')
             .update({ content: newText, updated_at: new Date().toISOString() })
             .eq('id', currentEditing.id)
@@ -333,6 +345,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     },
     [
       contactId,
+      conversationId,
       instanceName,
       editMessageApi,
       applySignature,
@@ -423,6 +436,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
 
   const handleAudioSend = useCallback(
     async (audioBlob: Blob, onSendAudio?: (blob: Blob) => Promise<void>) => {
+      if (isSendingRef.current) return;
       if (!onSendAudio) {
         toast({
           title: 'Erro',
