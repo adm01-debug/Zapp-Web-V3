@@ -10,6 +10,11 @@ Deno.serve(async (req) => {
 
   const log = new Logger("sicoob-bridge");
 
+  // Hotfix (auditoria 2026-08-21, Bloco 5.1): mutável içada pra fora — precisa
+  // estar acessível também no catch-all (parsed é const, escopo do try), pra
+  // errorResponse() pós-gate não descartar x-contract-version/deprecated/sunset.
+  let contractResponseHeaders: Record<string, string> = {};
+
   try {
     const bridgeSecret = requireEnv('SICOOB_BRIDGE_SECRET');
     const authHeader = req.headers.get('Authorization') ?? '';
@@ -22,6 +27,7 @@ Deno.serve(async (req) => {
     const rawBody = await req.json().catch(() => null);
     const parsed = parseOrReject('sicoob-bridge', CONTRACT_SCHEMAS['sicoob-bridge'], req, rawBody, { extraHeaders: getCorsHeaders(req) });
     if (parsed.ok === false) return parsed.response;
+    contractResponseHeaders = parsed.headers;
     const body = parsed.data as Record<string, any>;
     const action = typeof body.action === 'string' ? body.action : '';
 
@@ -94,10 +100,10 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, updated: external_ids.length }, 200, req, parsed.headers);
 
     } else {
-      return errorResponse(`Unknown action: ${action}. Supported: new_message, mark_read`, 400, req);
+      return errorResponse(`Unknown action: ${action}. Supported: new_message, mark_read`, 400, req, undefined, contractResponseHeaders);
     }
   } catch (error) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse('Internal server error', 500, req);
+    return errorResponse('Internal server error', 500, req, undefined, contractResponseHeaders);
   }
 });

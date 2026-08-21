@@ -268,18 +268,29 @@ export function getCorsHeaders(req?: Request): Record<string, string> {
 /** @deprecated Use getCorsHeaders(req) for origin-validated CORS. Kept for backward compat — do NOT use in new code. */
 export const corsHeaders = getCorsHeaders();
 
-/** Standard JSON error response (with origin-validated CORS) */
+/**
+ * Standard JSON error response (with origin-validated CORS).
+ *
+ * Hotfix (auditoria 2026-08-21, Bloco 5.1): 5º parâmetro opcional
+ * `extraHeaders` — mesmo mecanismo do jsonResponse(), pro caso de erro de
+ * aplicação (400/403/404/500/502/504) pós-gate parseOrReject também poder
+ * propagar x-contract-version/x-contract-deprecated/sunset. Sem isso, TODA
+ * chamada errorResponse() pós-gate nos webhooks v1/v2 descartava esses
+ * headers mesmo quando a resposta 200 de sucesso do mesmo endpoint os
+ * carregava — achado da auditoria multi-agente pós-Bloco 5.
+ */
 export function errorResponse(
   message: string,
   status = 400,
   req?: Request,
   details?: Record<string, unknown>,
+  extraHeaders?: Record<string, string>,
 ) {
   const headers = req ? getCorsHeaders(req) : corsHeaders;
   const body = details ? { error: message, ...details } : { error: message };
   return new Response(
     JSON.stringify(body),
-    { status, headers: { ...headers, 'Content-Type': 'application/json' } }
+    { status, headers: { ...headers, ...extraHeaders, 'Content-Type': 'application/json' } }
   );
 }
 

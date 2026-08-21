@@ -12,6 +12,11 @@ Deno.serve(async (req) => {
 
   const log = new Logger("sicoob-bridge-reply");
 
+  // Hotfix (auditoria 2026-08-21, Bloco 5.1): mutável içada pra fora — precisa
+  // estar acessível também no catch-all (parsed é const, escopo do try), pra
+  // errorResponse() pós-gate não descartar x-contract-version/deprecated/sunset.
+  let contractResponseHeaders: Record<string, string> = {};
+
   try {
     const serviceRoleKey = Deno.env.get("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createZappAdminClient();
@@ -44,6 +49,7 @@ Deno.serve(async (req) => {
       extraHeaders: getCorsHeaders(req),
     });
     if (parsed.ok === false) return parsed.response;
+    contractResponseHeaders = parsed.headers;
     // Bloco 2/3 (2026-08-21): schema agora exige contact_id/content de
     // verdade — o 422 canônico já reprova payload inválido; o bloco 400
     // manual que existia foi removido.
@@ -67,7 +73,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (!contact || contact.contact_type !== 'sicoob_gifts') {
-      return errorResponse('Contact is not a Sicoob Gifts contact', 400, req);
+      return errorResponse('Contact is not a Sicoob Gifts contact', 400, req, undefined, contractResponseHeaders);
     }
 
     // Get the mapping to find Sicoob IDs
@@ -78,7 +84,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (!mapping) {
-      return errorResponse('No Sicoob mapping found for this contact', 404, req);
+      return errorResponse('No Sicoob mapping found for this contact', 404, req, undefined, contractResponseHeaders);
     }
 
     // Get agent name when agent_id is known
@@ -120,7 +126,7 @@ Deno.serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text().catch(() => "");
       log.error("Sicoob Gifts bridge error", { status: response.status, error: errorText.substring(0, 300) });
-      return errorResponse("Failed to forward reply to Sicoob Gifts", 502, req);
+      return errorResponse("Failed to forward reply to Sicoob Gifts", 502, req, undefined, contractResponseHeaders);
     }
 
     const result = await response.json();
@@ -132,9 +138,9 @@ Deno.serve(async (req) => {
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       log.error("Sicoob Gifts bridge timed out");
-      return errorResponse('Gateway timeout forwarding to Sicoob Gifts', 504, req);
+      return errorResponse('Gateway timeout forwarding to Sicoob Gifts', 504, req, undefined, contractResponseHeaders);
     }
     log.error("Error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse('Internal server error', 500, req);
+    return errorResponse('Internal server error', 500, req, undefined, contractResponseHeaders);
   }
 });

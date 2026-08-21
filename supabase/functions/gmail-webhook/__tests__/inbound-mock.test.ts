@@ -102,6 +102,13 @@ Deno.test("gmail-webhook inbound: registerWatch sem JWT → 401 (requireUser)", 
   const res = await push({ action: "registerWatch", accountId: "acc-1" });
   assertEquals(res.status, 401);
   assertEquals(msgUpserts.length, 0);
+  // Hotfix (auditoria multi-agente 2026-08-21, Bloco 5.1): este 401 saía direto
+  // de requireUser() via `return authed;`, sem passar pelo closure json() que
+  // espalha contractResponseHeaders — cliente v1 (sunset ativo) nunca via o
+  // aviso de deprecação justo no erro de auth, onde mais precisaria dele.
+  assertEquals(res.headers.get("x-contract-version"), "v1");
+  assertEquals(res.headers.get("x-contract-deprecated"), "true");
+  assertEquals(res.headers.get("sunset"), "2027-06-01");
 });
 
 // ─── inbound grava (push válido → persiste mensagem no banco) ─────────────────

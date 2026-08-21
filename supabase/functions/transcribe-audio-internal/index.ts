@@ -44,7 +44,15 @@ Deno.serve(async (req) => {
     // --- Fetch audio ---
     let audioRes;
     try {
-      audioRes = await fetch(audioUrl, { signal: AbortSignal.timeout(25000) });
+      // Hotfix (auditoria 2026-08-21, Bloco 5.1 / SEC-2): isSafeHttpsUrl só valida
+      // a URL declarada no payload — sem redirect:'error', um 302 do host de
+      // destino pra 169.254.169.254/127.0.0.1/RFC-1918 era seguido automaticamente
+      // (comportamento default 'follow' do fetch), contornando o guard SSRF por
+      // completo. Os outros 6 fetches SSRF-guardados do repo (ai-router,
+      // batch-fetch-avatars, fetch-whatsapp-avatar, voice-changer,
+      // _shared/evolution-media.ts, _shared/evolution-webhook-messages.ts) já
+      // usam redirect:'error' — este era o único que faltava.
+      audioRes = await fetch(audioUrl, { signal: AbortSignal.timeout(25000), redirect: 'error' });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'timeout';
       await updateTranscription(SUPABASE_URL, SERVICE_ROLE_KEY, messageId, null, 'failed', 'audio_fetch_error', msg);

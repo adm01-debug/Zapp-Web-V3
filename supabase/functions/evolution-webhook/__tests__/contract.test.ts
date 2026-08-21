@@ -351,3 +351,23 @@ Deno.test("[P28] Ledger: falha do INSERT (400/404/PGRST106) NUNCA quebra o reque
   assertMatch(procBlock, /\[ingest_ledger\] reaction err:/);
   assert(!/await\s+createIngestLedgerClient\(\)/.test(SOURCE), "INSERT do ledger não pode ser aguardado (fire-and-forget)");
 });
+
+// [P29] Hotfix (auditoria multi-agente 2026-08-21, Bloco 5.1): as respostas
+// 503 'instance_paused' e 429 'rate_limit_exceeded' são pós-gate (depois de
+// contractResponseHeaders = parsed.headers) mas montavam os headers na mão
+// sem espalhar ...contractResponseHeaders — único par de branches do arquivo
+// que escapava do padrão seguido pelas outras 5 respostas pós-gate. Cliente
+// v1 em sunset pausado/rate-limitado nunca via x-contract-deprecated/sunset.
+Deno.test("[P29] instance_paused (503) e rate_limit_exceeded (429) propagam contractResponseHeaders", () => {
+  const pausedBlock = SOURCE.slice(
+    SOURCE.indexOf("is paused — skipping event"),
+    SOURCE.indexOf("is paused — skipping event") + 400,
+  );
+  assertMatch(pausedBlock, /status: 503, headers: \{ \.\.\.corsHeaders, \.\.\.contractResponseHeaders, 'Retry-After': '60' \}/);
+
+  const rateLimitBlock = SOURCE.slice(
+    SOURCE.indexOf("error: 'rate_limit_exceeded', instance, requestId"),
+    SOURCE.indexOf("error: 'rate_limit_exceeded', instance, requestId") + 200,
+  );
+  assertMatch(rateLimitBlock, /status: 429, headers: \{ \.\.\.corsHeaders, \.\.\.contractResponseHeaders, 'Retry-After': String\(retryAfterSeconds\) \}/);
+});

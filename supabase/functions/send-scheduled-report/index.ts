@@ -49,6 +49,11 @@ Deno.serve(async (req: Request) => {
 
   const log = new Logger("send-scheduled-report");
 
+  // Hotfix (auditoria 2026-08-21, Bloco 5.1): mutável içada pra fora — precisa
+  // estar acessível também no catch-all (parsed é const, escopo do try), pra
+  // errorResponse() pós-gate não descartar x-contract-version/deprecated/sunset.
+  let contractResponseHeaders: Record<string, string> = {};
+
   try {
     const supabase = createZappAdminClient();
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
@@ -59,6 +64,7 @@ Deno.serve(async (req: Request) => {
       extraHeaders: getCorsHeaders(req),
     });
     if (parsed.ok === false) return parsed.response;
+    contractResponseHeaders = parsed.headers;
 
     const { version, data } = parsed;
     const payload = data as { reportId?: string; limit?: number; dryRun?: boolean };
@@ -75,7 +81,7 @@ Deno.serve(async (req: Request) => {
 
     if (claimError) {
       log.error("claim failed", { error: claimError.message });
-      return errorResponse("claim_failed", 500, req);
+      return errorResponse("claim_failed", 500, req, undefined, contractResponseHeaders);
     }
 
     const runs = (Array.isArray(claimed) ? claimed : []) as ClaimedRun[];
@@ -175,7 +181,7 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     log.error("Error processing scheduled reports", { error: errorMessage });
-    return errorResponse("Internal server error", 500, req);
+    return errorResponse("Internal server error", 500, req, undefined, contractResponseHeaders);
   }
 });
 
