@@ -1,0 +1,13 @@
+-- 20260820100000 — rls_class2_fix_authuid_to_profile — REGISTRO RETROATIVO (STUB), NAO REAPLICAR
+-- =============================================================================
+-- Onda Hermes de RLS (classe 2) aplicada direto no banco em 2026-08-20 via MCP:
+-- correcao de policies que comparavam auth.uid() com colunas que guardam profile_id
+-- (e vice-versa), alinhando o predicado ao dado real da coluna.
+--
+-- O DDL exato desta onda nao foi capturado antes da aplicacao (sessao paralela);
+-- este stub existe para eliminar a divergencia repo<->banco da versao 20260820100000.
+-- A validacao viva sao as policies atuais no banco (pg_policy) e o snapshot canonico
+-- supabase/schema-snapshots/zapp_ddl_20260820.sql (que inclui as policies pos-correcao).
+-- Complemento com DDL integral no repo: 20260820150000_fix_rls_subset_b_auth_uid_vs_profile_id.sql.
+--
+-- Sem statements executaveis.

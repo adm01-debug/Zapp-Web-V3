@@ -1,0 +1,18 @@
+-- 20260820152000 — f012_containers_orphans_removed — MARCADOR (sem DDL), NAO REAPLICAR (F-012, GATE-C APROVADO)
+-- =============================================================================
+-- FINDING F-012: 4 containers orfaos fora do Swarm consumindo RAM na VPS:
+--   * sharp_tu, boring_herschel, quirky_kare — supabase/edge-runtime (42-43h up)
+--   * focused_shockley — timberio/vector
+-- Todos sem label com.docker.stack.namespace (nao pertencem a stack nenhuma).
+--
+-- ACAO (infra, via Portainer, GATE-C aprovado 2026-08-20): stop + remocao dos 4.
+-- VALIDACAO 2026-08-20 23h: nenhum dos 4 presente em portainer_list_containers.
+--
+-- CAUSA RAIZ IDENTIFICADA (recorrencia em 2026-08-20 22:28): containers edge-runtime
+-- sao spawnados por jobs de CI (gate6 do evolution-stack) no runner self-hosted com
+-- rede bridge, labels vazios e AutoRemove=true; quando o job morre antes do stop, o
+-- container vaza (ex.: gallant_lederberg, volume evo-gate6-32424289592 = run do GHA).
+-- Pendencia GATE-C2: remover o recorrente + adicionar cleanup step no workflow gate6
+-- (repo evolution-stack) — registrado em docs/audits/EXECUCAO-PLANO-20260820.md.
+--
+-- Sem statements executaveis (acao de infraestrutura, nao de banco).

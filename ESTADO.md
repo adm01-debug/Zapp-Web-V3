@@ -10,8 +10,27 @@
 > Uma pergunta por componente: **esta ligado? quem chama?**
 > Nao adicione secao de arquitetura, plano ou roadmap aqui. Isso morre em `docs/`.
 
-Ultima verificacao: **2026-08-08** | COMPLETO: P1/P2/P4/P6/P7 | 3 funcoes arquivadas | Storage 28->16 GB (-43%)
-Baseline desacoplamento T0: **2026-08-15** | Score 3/9 (33%) — Nota D | ver seção Desacoplamento abaixo
+Ultima verificacao: **2026-08-20** (pos-auditoria RELATORIO-AUDITORIA-ZAPP-20260820 + plano de correcao 100 etapas) | F-001..F-012 fechados | ver secao "Plano de correcao 100 etapas" abaixo
+Verificacao anterior: 2026-08-08 | COMPLETO: P1/P2/P4/P6/P7 | 3 funcoes arquivadas | Storage 28->16 GB (-43%)
+Baseline desacoplamento T0: **2026-08-15** | Score 3/9 (33%) — Nota D | Medicao 2026-08-20: **I2 = 0** (ultima funcao fora do padrao, evo.fn_filter_canary_messages, movida para zapp) | ver seção Desacoplamento abaixo
+
+## Plano de correcao 100 etapas — EXECUTADO (2026-08-20/21)
+
+Fechamento dos 12 findings da auditoria de 2026-08-20 (relatorio em `/workspace/notes/audit-zapp/RELATORIO-20260820.md`).
+Relatorio completo de execucao: `docs/audits/EXECUCAO-PLANO-20260820.md`.
+
+- **F-001** watchdog de midia (job 524): ressuscitado como `zapp.fn_media_queue_stalled_alert()` — succeeded em todos os ticks, alertas reais emitidos.
+- **F-002** outage 14/08: recuperado pelo reconcile (delta FDW janela 13-17/08: PG14 23.696 vs evo 23.703 — perda real 0). Sentinela preventiva horaria criada (cron 556 `fdw-delta-sentinel-30min`).
+- **F-003/F-004** migrations: colisao 20260818140000 resolvida (repo + banco), sentinels versionados retroativamente, snapshot canonico em `supabase/schema-snapshots/zapp_ddl_20260820.sql` (3,76 MB, sha256 verificado).
+- **F-005** grants: DML de `authenticated` em `evo.*` = 0 (revoke `ml004` 2026-08-19; validado).
+- **F-006/F-007** FKs/indices: FKs de `media_download_queue` = clones internos PG15 (falso positivo, reconstruidos); 0 grupos de indices duplicados; 0 FKs sem indice (zapp+evo).
+- **F-008** docs IA: comments tabelas zapp 100% (386/386), evo 100% (74/74), colunas zapp 22,7% -> **47,7%**, rpc_* evo 100%; `docs/DICIONARIO-BANCO.md` gerado.
+- **F-009** sprawl: 24 tabelas tmp removidas/movidas p/ `_backups` (GATE-B); 242 tabelas vazias mapeadas em `docs/MODULOS-INATIVOS.md` (nada dropado).
+- **F-010** retencao: webhook_events_processed 7d (cron 546) + traefik_401_stats 7d (cron 551) — 600k -> 194k rows.
+- **F-011** este arquivo + dicionario atualizados; boundary surface: 26 `evo.rpc_boundary_*` + 10 `zapp.rpc_boundary_*`; edge functions no repo: **123**.
+- **F-012** containers orfaos: 4 removidos (GATE-C). RECORRENCIA detectada: edge-runtime vazado por CI gate6 (`gallant_lederberg`) — pendente GATE-C2 + fix no workflow do evolution-stack.
+- **Achados novos corrigidos**: cron 213 `fn_run_media_health_alert` quebrado (coluna `body` -> `message` + cast enum); 2 grupos novos de indices duplicados; 4 FKs sem indice.
+- **Achado novo em aberto (P1 operacional)**: consumidor de downloads de midia parado desde 10/08 (0 done em 24h; 2.096 pending de backfill enfileirado em 20/08) — watchdogs alertando corretamente; decisao de religar o worker e do dono do pipeline.
 
 ## Como foi medido
 
