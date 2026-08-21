@@ -497,7 +497,13 @@ jobs:
     # vps-zapp ja tem chromium do Playwright cacheado (label playwright).
     runs-on: [Linux, X64, vps-zapp]
     needs: build
-    timeout-minutes: 15
+    # 15 nao bastou (run 32466586329, 2026-08-21): job ficou 20min (09:19:06
+    # -> 09:39:07) e foi cancelado pelo proprio timeout — mesma classe do fix
+    # de quality-gate.yml (timeout-minutes 45->90 no commit 45ffd64): pool de
+    # runners compartilhado sob contencao (~15 workflows extras disparados em
+    # main as 09:22:32-09:22:59 pela sessao VPS, ver HERMES.md) deixa fila +
+    # steps mais lentos que o baseline. 30min da folga sem mascarar hang real.
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -544,7 +550,9 @@ jobs:
     # [2026-08-18] Self-hosted pelo mesmo motivo do e2e (cota de minutes).
     runs-on: [Linux, X64, vps-zapp]
     needs: build
-    timeout-minutes: 15
+    # 15 nao bastou (run 32466586329, 2026-08-21) — mesmo timeout/mesma causa
+    # do job `e2e` acima (pool de runners sob contencao); ver comentario la.
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
