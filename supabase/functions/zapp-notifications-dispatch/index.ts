@@ -56,6 +56,7 @@ import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 import { getSecret } from '../_shared/vault.ts';
 import { sha256Hex, markEventProcessed } from '../_shared/evolution-helpers.ts';
 import { fetchWithRetry } from '../_shared/retry-with-backoff.ts';
+import { readJsonBodyOrEmpty } from '../_shared/validation.ts';
 
 const FETCH_TIMEOUT_MS = 15_000;
 
@@ -353,7 +354,7 @@ Deno.serve(async (req) => {
     'zapp-notifications-dispatch',
     CONTRACT_SCHEMAS['zapp-notifications-dispatch'],
     req,
-    await req.json().catch(() => ({})),
+    await readJsonBodyOrEmpty(req),
     { extraHeaders: getCorsHeaders(req) },
   );
   if (parsed.ok === false) return parsed.response;

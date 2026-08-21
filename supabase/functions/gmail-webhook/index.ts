@@ -7,6 +7,7 @@ import { parseOrReject } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { readJsonBodyOrEmpty } from '../_shared/validation.ts';
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 const PUBSUB_TOPIC = (() => {
   const v = Deno.env.get('GMAIL_PUBSUB_TOPIC');
@@ -39,7 +40,7 @@ Deno.serve(async (req) => {
       // Contrato gmail-webhook@v1: action/accountId (rotas internas) OU
       // message (push Pub/Sub). Tudo nullish + passthrough — envelope novo do
       // Google nunca derruba a ingestão; falha real → 422 único.
-      const rawBody: Record<string, unknown> = await req.json().catch(() => ({}));
+      const rawBody: Record<string, unknown> = await readJsonBodyOrEmpty(req) as Record<string, unknown>;
       const parsed = parseOrReject('gmail-webhook', CONTRACT_SCHEMAS['gmail-webhook'], req, rawBody, {
         extraHeaders: getCorsHeaders(req),
       });

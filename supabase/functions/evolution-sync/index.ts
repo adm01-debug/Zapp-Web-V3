@@ -1,4 +1,4 @@
-import { getCorsHeaders, handleCors, checkRateLimit } from "../_shared/validation.ts";
+import { getCorsHeaders, handleCors, checkRateLimit, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import { parseOrReject, buildContractErrorBody } from "../_shared/contract-kit.ts";
@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
   const supabase = createZappAdminClient();
 
   try {
-    const raw = await req.json().catch(() => ({}));
+    const raw = await readJsonBodyOrEmpty(req);
     const parsed = parseOrReject("evolution-sync", CONTRACT_SCHEMAS["evolution-sync"], req, raw, {
       extraHeaders: corsHeaders,
     });

@@ -8,6 +8,7 @@ import { requireAdminOrSupervisor, requireServiceRoleOrCron } from '../_shared/a
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
+import { readJsonBodyOrEmpty } from '../_shared/validation.ts';
 import { evolutionFetch } from '../_shared/providers/evolution/index.ts';
 const MAX_BATCH = 25;
 
@@ -27,7 +28,7 @@ Deno.serve(async (req) => {
       'reprocess-failed-messages',
       CONTRACT_SCHEMAS['reprocess-failed-messages'],
       req,
-      await req.json().catch(() => ({})),
+      await readJsonBodyOrEmpty(req),
       {
         extraHeaders: getCorsHeaders(req),
       }

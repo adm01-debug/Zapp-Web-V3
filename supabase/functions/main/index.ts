@@ -8,6 +8,7 @@
 import * as jose from 'https://deno.land/x/jose@v4.14.4/index.ts'
 import { initSentry, captureException } from '../_shared/sentry.ts'
 import { parseOrReject } from '../_shared/contract-kit.ts'
+import { readJsonBodyOrEmpty } from '../_shared/validation.ts'
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
 
@@ -183,7 +184,7 @@ Deno.serve(async (req: Request) => {
   // função alvo, que valida o próprio contrato — ler o body aqui quebraria o
   // encaminhamento (stream consumido antes do worker.fetch).
   if (req.body === null) {
-    const parsed = parseOrReject('main', CONTRACT_SCHEMAS['main'], req, await req.json().catch(() => ({})), {
+    const parsed = parseOrReject('main', CONTRACT_SCHEMAS['main'], req, await readJsonBodyOrEmpty(req), {
       extraHeaders: getCorsHeaders(req),
     })
     if (parsed.ok === false) return parsed.response

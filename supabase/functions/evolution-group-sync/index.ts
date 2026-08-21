@@ -1,4 +1,4 @@
-import { getCorsHeaders, handleCors } from "../_shared/validation.ts";
+import { getCorsHeaders, handleCors, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getBaseUrl } from "../_shared/providers/evolution/index.ts";
@@ -377,7 +377,7 @@ Deno.serve(async (req) => {
 
   // 3) Contrato: action='groups' (default). Corpo vazio ({}) é válido — o
   //    endpoint é disparado por cron sem payload.
-  const raw = await req.json().catch(() => ({}));
+  const raw = await readJsonBodyOrEmpty(req);
   const parsed = parseOrReject("evolution-group-sync", CONTRACT_SCHEMAS["evolution-group-sync"], req, raw, {
     extraHeaders: corsHeaders,
   });

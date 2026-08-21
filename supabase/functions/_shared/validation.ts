@@ -7,12 +7,42 @@ import { createZappAdminClient } from "./db-client.ts";
  */
 
 // Re-export HMAC validation utilities
-export { 
-  verifyHmacSignature, 
-  extractSignatureFromHeaders, 
-  WebhookSecurityService, 
-  createWebhookValidator 
+export {
+  verifyHmacSignature,
+  extractSignatureFromHeaders,
+  WebhookSecurityService,
+  createWebhookValidator
 } from './hmac-validation.ts';
+
+// ─── Leitura de body JSON (distingue corpo vazio de malformado) ────────────
+
+/**
+ * Lê o body da requisição como JSON, distinguindo dois casos que
+ * `req.json().catch(() => ({}))` (antipadrão D1/etapa 27 do
+ * PLANO-100-CONTRATOS-EDGE) tratava como se fossem o mesmo:
+ *
+ *  - Corpo GENUINAMENTE vazio (cron/GET/health-check sem payload) → `{}`.
+ *    Legítimo pros ~35 endpoints internos cujo contrato documenta
+ *    "sem body → {} aceito".
+ *  - Corpo NÃO-VAZIO mas malformado (JSON quebrado) → `null`, que faz
+ *    `parseOrReject` disparar 422 `invalid_json` de verdade — o
+ *    comportamento que `.catch(() => ({}))` mascarava silenciosamente.
+ *
+ * `req.json()` sozinho NÃO distingue os dois: ambos lançam SyntaxError.
+ * Por isso um simples `.catch(() => null)` (a troca ingênua que a etapa 27
+ * propunha) quebraria os cron/health-check legítimos — `parseOrReject`
+ * rejeita `null` incondicionalmente (`isStructured = body !== null && ...`),
+ * mesmo quando o schema aceitaria `{}`.
+ */
+export async function readJsonBodyOrEmpty(req: Request): Promise<unknown> {
+  const text = await req.text().catch(() => "");
+  if (text.trim() === "") return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
 
 // ─── Secret Sanitization (Bug 1 fix — never log secrets) ────────────────────
 

@@ -8,7 +8,7 @@
 // Resposta intencionalmente leve (sem dependências externas, sem auth)
 // para que o handler suba em milissegundos e nunca falhe.
 
-import { corsHeaders } from '../_shared/validation.ts';
+import { corsHeaders, readJsonBodyOrEmpty } from '../_shared/validation.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { StatusV1Schema } from '../_shared/contract-schemas.ts';
 
@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   }
 
   // Contrato status@v1 (estrito): probe GET sem body → {} aceito.
-  const parsed = parseOrReject('status', { v1: StatusV1Schema }, req, await req.json().catch(() => ({})), {
+  const parsed = parseOrReject('status', { v1: StatusV1Schema }, req, await readJsonBodyOrEmpty(req), {
     extraHeaders: corsHeaders,
   });
   if (parsed.ok === false) return parsed.response;

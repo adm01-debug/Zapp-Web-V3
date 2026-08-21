@@ -3,7 +3,7 @@
 //  - credenciais do provedor (Evolution ou Meta Cloud)
 //  - permissões/escopos (instância autenticada / phone number alcançável)
 //  - entrega de webhook (POST sintético assinado contra a URL pública correta)
-import { getCorsHeaders } from "../_shared/validation.ts";
+import { getCorsHeaders, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
@@ -380,7 +380,7 @@ Deno.serve(async (req) => {
   if (authed instanceof Response) return authed;
 
   let mode: Mode = "unofficial";
-  const raw = await req.json().catch(() => ({}));
+  const raw = await readJsonBodyOrEmpty(req);
   const parsed = parseOrReject("connection-test", CONTRACT_SCHEMAS["connection-test"], req, raw, {
     extraHeaders: getCorsHeaders(req),
   });

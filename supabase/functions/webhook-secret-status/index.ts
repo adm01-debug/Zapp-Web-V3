@@ -5,6 +5,7 @@ import { requireAdminOrSupervisor } from '../_shared/auth.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
+import { readJsonBodyOrEmpty } from '../_shared/validation.ts';
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req);
 
@@ -15,7 +16,7 @@ Deno.serve(async (req) => {
     // Contrato webhook-secret-status@v1: corpo não é consumido pelo handler
     // (GET sem body; POST tolerado). Schema permissivo — nunca bloqueia status.
     let body: unknown = {};
-    if (req.method === 'POST') body = await req.json().catch(() => ({}));
+    if (req.method === 'POST') body = await readJsonBodyOrEmpty(req);
     const parsed = parseOrReject('webhook-secret-status', CONTRACT_SCHEMAS['webhook-secret-status'], req, body, {
       extraHeaders: getCorsHeaders(req),
     });

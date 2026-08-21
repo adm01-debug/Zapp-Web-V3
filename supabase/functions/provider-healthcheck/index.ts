@@ -4,7 +4,7 @@
 
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron, requireUser } from "../_shared/auth.ts";
-import { checkRateLimit } from "../_shared/validation.ts";
+import { checkRateLimit, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
   }
 
   // Contrato provider-healthcheck@v1 (G4): GET/cron sem body → {} aceito.
-  const parsed = parseOrReject('provider-healthcheck', CONTRACT_SCHEMAS['provider-healthcheck'], req, await req.json().catch(() => ({})), {
+  const parsed = parseOrReject('provider-healthcheck', CONTRACT_SCHEMAS['provider-healthcheck'], req, await readJsonBodyOrEmpty(req), {
     extraHeaders: getCorsHeaders(req),
   });
   if (parsed.ok === false) return parsed.response;

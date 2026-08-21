@@ -1,4 +1,4 @@
-import { getCorsHeaders, handleCors } from "../_shared/validation.ts";
+import { getCorsHeaders, handleCors, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { createZappClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const raw = await req.json().catch(() => ({}));
+    const raw = await readJsonBodyOrEmpty(req);
     const parsed = parseOrReject("mcp-server", CONTRACT_SCHEMAS["mcp-server"], req, raw, {
       extraHeaders: corsHeaders,
     });
