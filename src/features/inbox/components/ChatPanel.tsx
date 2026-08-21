@@ -31,6 +31,7 @@ import { SendErrorBanner } from './chat/SendErrorBanner';
 import { ChatDragOverlay } from './chat/ChatDragOverlay';
 import { ChatSearchBar } from './chat/ChatSearchBar';
 import { useChatPanelHandlers } from './chat/useChatPanelHandlers';
+import type { SearchResult } from './useGlobalSearchData';
 import type { ActiveTool } from './chat/ChatHeaderToolbar';
 import { FailureFilterBar } from './chat/FailureFilterBar';
 import { useChatFilters } from './chat/hooks/useChatFilters';
@@ -64,9 +65,11 @@ const noop = () => {};
 
 if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
   (window as Window).requestIdleCallback(() => {
-    import('./TransferDialog');
-    import('./AIConversationAssistant');
-    import('./CloseConversationDialog');
+    // Etapa 77: prefetch é otimização — sem o catch, chunk rotacionado
+    // pós-deploy (hash antigo 404) virava unhandled rejection global.
+    import('./TransferDialog').catch(() => {});
+    import('./AIConversationAssistant').catch(() => {});
+    import('./CloseConversationDialog').catch(() => {});
   });
 }
 
@@ -147,8 +150,10 @@ export function ChatPanel({
   }, []);
 
   useEffect(() => {
-    const isSearch = (activeTool as string) === 'chatSearch';
-    const isAssistant = (activeTool as string) === 'aiAssistant';
+    // Etapa 85: comparações diretas — 'chatSearch'/'aiAssistant' pertencem ao
+    // union ActiveTool; os casts `as string` eram ruído herdado.
+    const isSearch = activeTool === 'chatSearch';
+    const isAssistant = activeTool === 'aiAssistant';
 
     if (isSearch) openDialog('chatSearch');
     else closeDialog('chatSearch');
@@ -343,7 +348,10 @@ export function ChatPanel({
   useEffect(() => {
     const el = messagesAreaRef.current?.getScrollContainer();
     return el ? bindScrollListener(el) : undefined;
-  }, [bindScrollListener, conversation.id]);
+    // Etapa 82: re-bind também na transição de loading — se o container do
+    // scroll remontar no swap spinner→lista, o listener antigo morre com o
+    // nó e o auto-scroll ficava sem rastreio até a próxima troca de conversa.
+  }, [bindScrollListener, conversation.id, isLoading]);
 
   useInboxShortcuts({
     onSearchFocus: () => {
@@ -421,24 +429,95 @@ export function ChatPanel({
     openDialog('callDialog');
   }, [openDialog]);
   const toggleFailuresOnly = useCallback(() => setFailuresOnly((v) => !v), [setFailuresOnly]);
-  const handleSelectSearchResult = useCallback(
-    (result: { type: string; id?: string; title: string }) => {
-      // BUG-24: resultado de mensagem navega direto na conversa;
-      // demais tipos (contato, acao, crm) mostram um toast informativo.
-      if (result.type === 'message' && result.id) {
-        messagesAreaRef.current?.scrollToMessage(result.id);
-      } else {
-        toast({ title: 'Resultado', description: result.title });
-      }
+
+  // Stable refs for ChatMessagesArea to prevent re-renders on input change
+  const contactAvatar = conversation.contact.avatar || undefined;
+
+  // Etapa 81: setTimeouts de focus com cleanup centralizado — ids soltos
+  // vazavam depois do unmount (focus em ref de painel desmontado).
+  const focusTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const { inputRef } = handlers;
+  const focusInputSoon = useCallback(
+    (delayMs: number) => {
+      const id = setTimeout(() => {
+        focusTimersRef.current.delete(id);
+        inputRef.current?.focus();
+      }, delayMs);
+      focusTimersRef.current.add(id);
+    },
+    [inputRef]
+  );
+  useEffect(
+    () => () => {
+      const timers = focusTimersRef.current;
+      timers.forEach(clearTimeout);
+      timers.clear();
     },
     []
   );
 
-  // Stable refs for ChatMessagesArea to prevent re-renders on input change
-  const contactAvatar = conversation.contact.avatar || undefined;
+  // Etapa 48: navegação para mensagem respeitando o filtro de falhas — o
+  // scrollToMessage retornava false (hit fora de visibleMessages) e virava
+  // no-op SILENCIOSO. Agora: com filtro ativo, desliga o filtro, avisa e
+  // re-tenta; fora da janela carregada, avisa em vez de silenciar.
+  const failuresOnlyRef = useRef(failuresOnly);
+  failuresOnlyRef.current = failuresOnly;
   const handleScrollToMessage = useCallback(
-    (id: string) => messagesAreaRef.current?.scrollToMessage(id),
-    []
+    (id: string) => {
+      const found = messagesAreaRef.current?.scrollToMessage(id) ?? false;
+      if (found) return;
+      if (failuresOnlyRef.current) {
+        setFailuresOnly(false);
+        toast({
+          title: 'Filtro de falhas desativado',
+          description: 'A mensagem estava oculta pelo filtro.',
+        });
+        const retryId = setTimeout(() => {
+          focusTimersRef.current.delete(retryId);
+          messagesAreaRef.current?.scrollToMessage(id);
+        }, 50);
+        focusTimersRef.current.add(retryId);
+        return;
+      }
+      toast({
+        title: 'Mensagem fora da janela carregada',
+        description: 'Carregue mensagens mais antigas para visualizá-la.',
+      });
+    },
+    [setFailuresOnly]
+  );
+
+  // Etapa 47: fechar a busca é EXPLÍCITO — o toggle antigo
+  // (handleSetActiveTool('chatSearch')) REABRIRIA a barra caso o estado já
+  // tivesse divergido (ex.: resetado pela troca de conversa).
+  const closeChatSearch = useCallback(() => {
+    setActiveTool((prev) => (prev === 'chatSearch' ? null : prev));
+    focusInputSoon(150);
+  }, [focusInputSoon]);
+
+  const handleSelectSearchResult = useCallback(
+    (result: SearchResult) => {
+      // Etapa 51 (BUG-24 residual): mensagem navega direto; resultado com
+      // `action` própria executa-a; contato/CRM não têm API de navegação de
+      // conversa DENTRO do painel (a seleção vive no RealtimeInboxView) —
+      // feedback honesto com instrução em vez de toast morto.
+      if (result.type === 'message' && result.id) {
+        handleScrollToMessage(result.id);
+        return;
+      }
+      if (result.action) {
+        result.action();
+        return;
+      }
+      toast({
+        title: result.type === 'contact' ? 'Contato encontrado' : 'Resultado',
+        description:
+          result.type === 'contact'
+            ? `Abra "${result.title}" pela lista de conversas.`
+            : result.title,
+      });
+    },
+    [handleScrollToMessage]
   );
 
   // Etapa 41: "Responder depois" da toolbar de mensagem — converte a duração
@@ -521,6 +600,9 @@ export function ChatPanel({
   // APÓS o envio real resolver no AdvancedMessageMenu (`await sendPoll...`),
   // por isso `status: 'sent'` é honesto aqui (etapa 20). Em modo externo
   // (JID) não insere: o webhook da Evolution já persiste a mensagem.
+  // Etapa 84 (verificado no DB 2026-08-21): zapp.messages é VIEW com triggers
+  // INSTEAD OF (fn_messages_view_insert_handler) roteando para a MESMA base
+  // física do editMessage (evo.evolution_messages) — caminhos consistentes.
   const echoContactId = conversation.contact.id;
   const insertLocalEcho = useCallback(
     async (content: string) => {
@@ -609,32 +691,35 @@ export function ChatPanel({
             onUseTemplate={(content) => {
               handlers.setInputValue(content);
               setActiveTool(null);
-              setTimeout(() => handlers.inputRef.current?.focus(), 10);
+              focusInputSoon(10);
             }}
           />
         )}
 
         <ChatSearchBar
           messages={messages}
-          isOpen={(activeTool as string) === 'chatSearch'}
-          onClose={() => {
-            handleSetActiveTool('chatSearch');
-            setTimeout(() => handlers.inputRef.current?.focus(), 150);
-          }}
-          onNavigateToMessage={(id) => messagesAreaRef.current?.scrollToMessage(id)}
+          isOpen={activeTool === 'chatSearch'}
+          onClose={closeChatSearch}
+          onNavigateToMessage={handleScrollToMessage}
           onHighlightChange={handleHighlightChange}
           onSearchQueryChange={setSearchQuery}
         />
 
-        <TicketActionsBar
-          contactId={conversation.contact.id ?? ''}
-          onOpenHistory={() => setHistoryOpen(true)}
-        />
-        <TicketHistorySheet
-          contactId={conversation.contact.id}
-          open={historyOpen}
-          onOpenChange={setHistoryOpen}
-        />
+        {/* Etapa 83: ticket overlay indexa por contact_id — em modo externo
+            (JID/'' ) montaria com chave inválida e sujaria o storage local. */}
+        {isValidUUID(conversation.contact.id) && (
+          <>
+            <TicketActionsBar
+              contactId={conversation.contact.id}
+              onOpenHistory={() => setHistoryOpen(true)}
+            />
+            <TicketHistorySheet
+              contactId={conversation.contact.id}
+              open={historyOpen}
+              onOpenChange={setHistoryOpen}
+            />
+          </>
+        )}
         <ChatAssignedBar conversation={conversation} onOpenTransfer={openTransferDialog} />
 
         <FailureFilterBar
@@ -643,6 +728,7 @@ export function ChatPanel({
           categoryFilteredMessages={categoryFilteredMessages}
           failedMessagesCount={failedMessages.length}
           categoryCounts={categoryCounts}
+          hasMoreOlder={hasMoreOlder}
           setFailureCategory={setFailureCategory}
           setFailuresOnly={setFailuresOnly}
         />

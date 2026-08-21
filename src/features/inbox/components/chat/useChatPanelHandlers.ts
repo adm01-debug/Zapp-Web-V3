@@ -782,3 +782,10 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     setIsWhisper,
   };
 }
+
+/**
+ * Etapa 88: contrato NOMEADO do retorno do hook (35+ campos antes só
+ * inferidos) — dá um alvo estável para consumidores e testes sem duplicar a
+ * estrutura à mão (duplicação dessincronizaria no primeiro refactor).
+ */
+export type UseChatPanelHandlersReturn = ReturnType<typeof useChatPanelHandlers>;

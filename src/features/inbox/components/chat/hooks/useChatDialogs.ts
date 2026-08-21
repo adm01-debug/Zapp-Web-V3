@@ -1,6 +1,17 @@
 import { useReducer, useCallback } from 'react';
 
-/** Hook: Dialog Key. */
+/**
+ * Hook: Dialog Key.
+ *
+ * Auditoria (etapas 53–54 do plano ChatPanel, 2026-08-21):
+ * - `globalSearch` está VIVO — aberto por Ctrl+K (useInputHandlers) e
+ *   renderizado pelo ChatDialogs (não confundir com o globalSearchOpen do
+ *   useRealtimeInbox, que é outro estado fora do painel).
+ * - `templatesWithVars` e `realtimeTranscription` NÃO têm nenhum
+ *   openDialog(...) no código — dead keys de abertura; o ChatDialogs mantém
+ *   os componentes lazy prontos. Religar ou remover é decisão de produto
+ *   (registrada no PR do plano); não remover as chaves sem remover os blocos.
+ */
 export type DialogKey =
   | 'quickReplies'
   | 'slashCommands'

@@ -16,6 +16,11 @@ interface Params {
  * Handles the deep-link "View in chat" flow:
  * finds the target message, scrolls to it, applies a temporary highlight (~3.5s),
  * and notifies caller when done. Retries up to ~5s if the message isn't in the DOM yet.
+ *
+ * Etapa 52 (auditoria 2026-08-21): o retry espera a mensagem APARECER na
+ * janela carregada (realtime/paginação em curso), mas NÃO dispara onLoadOlder
+ * para buscá-la — paginar até achar seria potencialmente ilimitado. Alvo fora
+ * da janela termina no toast honesto abaixo ("ainda não foi carregada").
  */
 export function useInitialHighlight({
   initialHighlightMessageId,

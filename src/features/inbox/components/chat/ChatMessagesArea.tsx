@@ -193,10 +193,22 @@ export const ChatMessagesArea = memo(
         // Última conexão bem-sucedida do canal — classifica CHANNEL_ERROR transiente vs real.
         let lastConnectedAtMs: number | null = null;
         const channel = supabase
+          // Etapa 78: o sufixo random é ANTI-COLISÃO deliberado — em remount
+          // rápido (StrictMode/troca de conversa) o unsubscribe do canal antigo
+          // é assíncrono; reusar o MESMO topic faria o join novo colidir com o
+          // leave pendente e o canal nascer morto.
           .channel(`chat-updates:${contactJid}:${Math.random().toString(36).slice(2, 10)}`)
           .on(
             'postgres_changes',
-            { event: 'UPDATE', schema: 'zapp', table: 'realtime_message_fanout' },
+            {
+              event: 'UPDATE',
+              schema: 'zapp',
+              table: 'realtime_message_fanout',
+              // Etapa 79: sem este filtro, UPDATE de QUALQUER conversa do
+              // sistema invalidava o cache de mensagens de todas — o DELETE
+              // abaixo já filtrava por remote_jid; paridade aplicada.
+              filter: `remote_jid=eq.${contactJid}`,
+            },
             () => {
               void queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
             }
