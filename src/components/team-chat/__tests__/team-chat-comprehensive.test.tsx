@@ -1310,15 +1310,22 @@ describe('Team Chat — RLS & Database Contract (migrations)', () => {
   });
 
   it('team_messages INSERT requires an authenticated sender identity', () => {
-    expect(migrationsSql).toContain('team_messages_insert_v2');
-    expect(migrationsSql).toMatch(/sender_id = auth\.uid\(\)/);
+    expect(migrationsSql).toContain('CREATE POLICY team_messages_insert ON zapp.team_messages FOR INSERT');
+    expect(migrationsSql).toMatch(/sender_id = \(SELECT p\.id FROM zapp\.profiles p WHERE p\.user_id = auth\.uid\(\)\)/);
   });
 
-  it('GAP real: team_messages INSERT policy does NOT verify conversation membership server-side', () => {
-    // O WITH CHECK valida apenas a identidade do sender — sem join com memberships
-    const insertBlock = migrationsSql.match(/CREATE POLICY team_messages_insert_v2[\s\S]*?;\n/)?.[0] ?? '';
+  it('team_messages INSERT verifica associação à conversa (gap fechado — regressão)', () => {
+    // Histórico: o WITH CHECK de 2026-08-04 (arquivado em
+    // docs/history/migrations-archive/20260804140100_fix_rls_critical_follow_up.sql,
+    // fix F-01) validava só a identidade do sender, sem checar se o usuário
+    // pertence à conversa-alvo — GAP documentado nesta suíte até 2026-08-21.
+    // Endurecido em produção via MCP (nunca capturado em arquivo até a
+    // materialização em 20260821003000_materializa_policies_team_messages_dml.sql,
+    // restaurada nesta sessão) — o WITH CHECK vivo agora exige membership em
+    // zapp.team_conversation_members. Este teste trava a regressão do gap.
+    const insertBlock = migrationsSql.match(/CREATE POLICY team_messages_insert ON[\s\S]*?;\n/)?.[0] ?? '';
     expect(insertBlock).toContain('sender_id');
-    expect(insertBlock).not.toContain('team_conversation_members');
+    expect(insertBlock).toContain('team_conversation_members');
   });
 
   it('team_messages UPDATE policy exists (own messages or admin)', () => {
