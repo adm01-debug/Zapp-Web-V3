@@ -42,10 +42,15 @@ Deno.serve(async (req) => {
       const body = parsed.data as Record<string, unknown>;
       const { action } = body;
 
-      // F2 security fix: fail-closed auth for Pub/Sub push notifications.
-      // The 'registerWatch' action uses its own token auth via getValidToken().
-      // All other POST requests (Pub/Sub pushes) MUST present a valid token.
-      if (!action) {
+      // F2 security fix (hardened 2026-08-21 — SEC-1): fail-closed auth for
+      // Pub/Sub push notifications. ONLY 'registerWatch' has its own auth
+      // (requireUser, below). The previous guard was `if (!action)`, which
+      // let ANY truthy action other than 'registerWatch' (e.g. action:'x')
+      // skip BOTH the push token check and requireUser, falling through to
+      // process an attacker-supplied `message.data` as a trusted Pub/Sub
+      // push — ingesting arbitrary emailAddress/historyId with zero auth.
+      // Whitelisting the one authenticated action closes that bypass.
+      if (action !== 'registerWatch') {
         // F2+vault: read token from vault first (gmail_pubsub_token), env fallback for legacy
         const expectedToken = await getSecret('gmail_pubsub_token') ?? Deno.env.get('GMAIL_PUBSUB_TOKEN');
         if (!expectedToken) {

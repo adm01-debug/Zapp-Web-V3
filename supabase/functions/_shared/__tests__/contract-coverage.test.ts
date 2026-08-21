@@ -29,14 +29,9 @@ const ALLOWLIST: Record<string, string> = {
   // cobertura (validação Claude C3 2026-08-04).
   "main": "proxy — não pode consumir stream; gate só para req sem body (no-op)",
   "mcp": "proxy JSON-RPC — não pode consumir stream; gate só para req sem body (no-op)",
-  // 2026-08-18 (rodada 9): functions novas de outros workstreams leem body
-  // sem parseOrReject ainda. Gate pendente no workstream dono; allowlist
-  // temporária com justificativa (mecanismo previsto pelo teste).
-  "download-wa-status-media": "workstream alheio (18/08) — gate pendente; body opaco de status de mídia, validação mínima no handler",
-  "transcribe-audio-internal": "workstream alheio (18/08) — gate pendente; função interna com body de áudio, validação no handler",
-  // (allowlist de método + allowlist de paths + parse JSON) — o body do envelope
-  // é opaco e re-encaminhado à Evolution; adicionar parseOrReject consumiria o
-  // stream sem ganho real de segurança (paths já restritos a 6 verbos).
+  // download-wa-status-media e transcribe-audio-internal: gate ligado em
+  // 2026-08-21 (SEC-2/SEC-3, Bloco 0 do PLANO-100-CONTRATOS-EDGE) — removidas
+  // da allowlist.
 };
 
 function walkDir(dir: URL): string[] {
@@ -93,7 +88,8 @@ Deno.test("cobertura: toda função que lê body invoca o gate de contrato (ou e
 
 Deno.test("cobertura: allowlist vazia é consistente (toda exceção tem entrada)", () => {
   // A allowlist deve estar vazia ou com entradas justificadas — nunca crescer sem revisão.
-  // Teto 4 (2026-08-18, rodada 9): +2 entradas temporárias de workstreams alheios
-  // (download-wa-status-media, transcribe-audio-internal) aguardando gate dos donos.
-  assert(Object.keys(ALLOWLIST).length <= 4, "allowlist cresceu demais — revisar antes de aceitar");
+  // Teto reduzido de 4 → 2 em 2026-08-21 (Bloco 0 do PLANO-100-CONTRATOS-EDGE):
+  // as 2 entradas temporárias (download-wa-status-media, transcribe-audio-internal)
+  // ganharam gate real e saíram da allowlist; só main/mcp restam (no-op documentado).
+  assert(Object.keys(ALLOWLIST).length <= 2, "allowlist cresceu demais — revisar antes de aceitar");
 });

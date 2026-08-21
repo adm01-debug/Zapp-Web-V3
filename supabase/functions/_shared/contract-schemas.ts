@@ -35,6 +35,7 @@ import {
   AiProxyV1Schema,
   AiTranscribeAudioV1Schema,
   AiAutoTagSchema,
+  isSafeHttpsUrl,
 } from "./schemas.ts";
 /** ai-auto-tag@v1 — schema REAL (era placeholder). Proxy que injeta action:'auto_tag'
  * e repassa ao ai-router; validação do payload do cliente = AiAutoTagSchema estrito. */
@@ -852,29 +853,34 @@ export const RevokeSessionV1Schema = z.object({
 }).strict();
 
 /**
- * zapp-auth-invite@v1 — convite de usuário por email (Etapa 57). Endpoint
- * interno admin-only. action default 'invite'; resend regenera link sem
- * recriar usuário. role whitelist explícita (dev fora do convite).
+ * download-wa-status-media@v1 — chamado por pg_cron (30min) p/ baixar mídia
+ * de status antes da URL expirar. Body fiel ao index.ts.
+ * SEC-3 (2026-08-21): status_id compõe o path do storage
+ * (`status/<data>/${status_id}.${ext}`) sem sanitização — path traversal /
+ * poluição de bucket se `status_id` contiver `/` ou `..`. Regex restringe a
+ * caracteres seguros de nome de arquivo (o formato real é um WhatsApp msg id,
+ * alfanumérico).
  */
-export const ZappAuthInviteV1Schema = z.object({
-  action: z.enum(["invite", "resend"]).optional().default("invite"),
-  email: z.string().email("Email inválido").max(255),
-  name: z.string().min(1, "Nome é obrigatório").max(255).optional(),
-  role: z.enum(["admin", "supervisor", "manager", "agent"]).optional(),
-}).passthrough();
-
-/** download-wa-status-media@v1 — chamado por pg_cron (30min) p/ baixar mídia de status antes da URL expirar. Body fiel ao index.ts. */
 export const DownloadWaStatusMediaV1Schema = z.object({
-  status_id: z.string().min(1, "status_id é obrigatório"),
-  participant_jid: z.string().min(1, "participant_jid é obrigatório"),
-  message_id: z.string().min(1, "message_id é obrigatório"),
+  status_id: z.string().min(1).max(200).regex(/^[A-Za-z0-9_-]+$/, "status_id contém caracteres inválidos"),
+  participant_jid: z.string().min(1, "participant_jid é obrigatório").max(200),
+  message_id: z.string().min(1, "message_id é obrigatório").max(200),
   message_type: z.string().optional(),
 }).passthrough();
 
-/** transcribe-audio-internal@v1 — transcrição interna (invocada por outras edges). Body fiel ao index.ts. */
+/**
+ * transcribe-audio-internal@v1 — transcrição interna (invocada por outras edges).
+ * Body fiel ao index.ts. SEC-2 (2026-08-21): audioUrl ia direto a `fetch()`
+ * sem validação de host — SSRF para a rede interna (ex.: metadata endpoint,
+ * RFC-1918) a partir de qualquer caller com HEALTH_SECRET. isSafeHttpsUrl
+ * bloqueia localhost/RFC-1918/link-local/IPv6 interno (mesmo guard usado nos
+ * schemas de IA para image_url).
+ */
 export const TranscribeAudioInternalV1Schema = z.object({
   messageId: z.string().min(1, "messageId é obrigatório"),
-  audioUrl: z.string().url("audioUrl inválida"),
+  audioUrl: z.string().url("audioUrl inválida").refine(isSafeHttpsUrl, {
+    message: "audioUrl deve ser uma URL HTTPS pública (SSRF bloqueado)",
+  }),
 }).passthrough();
 
 /**
@@ -1205,7 +1211,10 @@ export const InviteUserV1Schema = z.object({
   "webauthn":                      { v1: WebauthnV1Schema },
   "evolution-api":                 { v1: EvolutionApiV1Schema },
   "zapp-auth-sessions":            { v1: ZappAuthSessionsV1Schema },
-  "zapp-auth-invite":             { v1: ZappAuthInviteV1Schema },
+  // zapp-auth-invite: registro fantasma removido em 2026-08-21 (a edge virou
+  // invite-user, já registrado acima com InviteUserV1Schema; era o único
+  // motivo do teste contract-kit.test.ts:206 estar vermelho — ver
+  // contract-versions.ts, comentário equivalente já existente lá).
   "zapp-n8n-sync":                 { v1: ZappN8nSyncV1Schema },
 
   // ─── Onda 1 (2026-08-04): cobertura 100% — schemas reais dos workers ───

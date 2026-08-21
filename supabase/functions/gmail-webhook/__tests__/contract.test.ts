@@ -90,6 +90,22 @@ Deno.test("Contract: gmail-webhook v1 — action com tipo errado (number) é rej
   assertEquals(result.success, false);
 });
 
+// SEC-1 (2026-08-21): action arbitrário diferente de 'registerWatch' era
+// aceito pelo schema antigo (z.string().max(100)) e, no handler, pulava a
+// checagem de token PORQUE o guard antigo era `if (!action)` — qualquer
+// string truthy escapava. O enum fecha isso na camada de contrato; o
+// handler (index.ts) foi corrigido em paralelo para `action !== 'registerWatch'`.
+Deno.test("Contract: gmail-webhook v1 — action arbitrário (bypass de auth, SEC-1) é rejeitado", () => {
+  const payload = { action: "x", message: { data: "eyJlbWFpbEFkZHJlc3MiOiJ2aWN0aW1AeC5jb20ifQ==" } };
+  const result = GmailWebhookV1Schema.safeParse(payload);
+  assertEquals(result.success, false);
+});
+
+Deno.test("Contract: gmail-webhook v1 — action 'renewWatch' inexistente é rejeitado (só 'registerWatch' existe)", () => {
+  const result = GmailWebhookV1Schema.safeParse({ action: "renewWatch", accountId: "acc_1" });
+  assertEquals(result.success, false);
+});
+
 Deno.test("Contract: gmail-webhook v2 — payload completo válido", () => {
   const payload = {
     version: "2.0",

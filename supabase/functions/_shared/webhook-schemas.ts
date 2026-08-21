@@ -86,7 +86,11 @@ export const WhatsAppCloudWebhookV2Schema = MetaWebhookPayloadSchema.extend({
  * Union: chamada interna (action) OU push do Google (message).
  */
 export const GmailWebhookV1Schema = z.object({
-  action: z.string().max(100).nullish(),
+  // SEC-1 hardening (2026-08-21): único action autenticado é 'registerWatch'
+  // (index.ts:61 exige requireUser); qualquer outro POST é tratado como push
+  // do Pub/Sub e exige token (index.ts, guarda `action !== 'registerWatch'`).
+  // Enum fecha a superfície no schema — defesa em profundidade com o handler.
+  action: z.enum(['registerWatch']).nullish(),
   accountId: z.string().max(200).nullish(),
   message: z.object({
     data: z.string().max(1_000_000).nullish(),
