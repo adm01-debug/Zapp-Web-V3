@@ -242,7 +242,10 @@ beforeEach(() => {
 });
 
 describe('useRealtimeMessages — assinatura postgres_changes (fanout v2)', () => {
-  it('assina INSERT/UPDATE/DELETE no espelho realtime_message_fanout com canal determinístico', async () => {
+  // Contrato pós-#1351 (RCA 2026-08-20): APENAS INSERT/UPDATE. O DELETE do
+  // espelho é manutenção do cron rt-fanout-ttl (~972 linhas/ciclo) — assiná-lo
+  // era a causa do refetch storm que saturava a fila do semáforo (P0).
+  it('assina INSERT/UPDATE no espelho realtime_message_fanout com canal determinístico (sem DELETE — #1351)', async () => {
     h.setSeed([makeContact('c1', 'Alice')], [makeMessage('m1', 'c1')]);
     const { result, unmount } = renderHook(() => useRealtimeMessages(), {
       wrapper: createWrapper(),
@@ -255,10 +258,10 @@ describe('useRealtimeMessages — assinatura postgres_changes (fanout v2)', () =
     expect(h.channels).toHaveLength(1);
 
     const regs = h.channels[0].onCalls;
-    expect(regs.map((r) => r.event).sort()).toEqual(['DELETE', 'INSERT', 'UPDATE']);
+    expect(regs.map((r) => r.event).sort()).toEqual(['INSERT', 'UPDATE']);
     for (const r of regs) {
       expect(r.filter).toMatchObject({ schema: 'zapp', table: 'realtime_message_fanout' });
-      expect(['INSERT', 'UPDATE', 'DELETE']).toContain(r.filter.event);
+      expect(['INSERT', 'UPDATE']).toContain(r.filter.event);
     }
     // subscribe registrou o callback de status
     expect(h.channels[0].statusCb).toBeTypeOf('function');
@@ -384,20 +387,19 @@ describe('useRealtimeMessages — dedup de mensagens duplicadas', () => {
   });
 });
 
-describe('useRealtimeMessages — DELETE', () => {
-  it('DELETE com old (REPLICA IDENTITY FULL) remove a mensagem da conversa', async () => {
+describe('useRealtimeMessages — DELETE do fanout NÃO é assinado (#1351)', () => {
+  // Guard-rail anti-reintrodução: o teste antigo simulava DELETE removendo a
+  // mensagem da conversa, mas essa subscription foi REMOVIDA no RCA do P0
+  // 2026-08-20 (cron rt-fanout-ttl deletava ~972 linhas/ciclo → ~972 eventos →
+  // refetch storm → SupabaseQueueSaturatedError em cascata). Remoção de
+  // mensagem para a UI chega como UPDATE (deleted_at → is_deleted, coberto
+  // no describe de transformação). Reassinar DELETE derruba o app de novo.
+  it('não registra callback DELETE — deleções do cron TTL são manutenção, não evento de UI', async () => {
     h.setSeed([makeContact('c1', 'Alice')], [makeMessage('m1', 'c1')]);
     const { result } = renderHook(() => useRealtimeMessages(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.conversations[0].messages).toHaveLength(1));
 
-    dispatchEvent('DELETE', {
-      eventType: 'DELETE',
-      new: undefined,
-      old: { ...makeMessage('m1', 'c1') },
-    } as unknown as RealtimePostgresChangesPayload<RealtimeMessage>);
-
-    await waitFor(() => expect(result.current.conversations[0].messages).toHaveLength(0));
-    expect(result.current.conversations).toHaveLength(1); // conversa permanece
+    expect(h.channels[0].onCalls.find((c) => c.event === 'DELETE')).toBeUndefined();
   });
 });
 
