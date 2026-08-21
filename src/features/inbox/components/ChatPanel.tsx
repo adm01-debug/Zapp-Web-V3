@@ -338,6 +338,8 @@ export function ChatPanel({
   }, [conversation.id, resetSearch, setFailuresOnly, resetAllDialogs]);
 
   // Deep-link "Ver no chat": encontra a mensagem alvo, faz scroll e aplica destaque temporário.
+  // Etapa 52: passa onLoadOlder/hasMoreOlder para que o hook pagine se a mensagem estiver
+  // em páginas anteriores (não carregadas ainda).
   useInitialHighlight({
     initialHighlightMessageId,
     messages,
@@ -345,6 +347,8 @@ export function ChatPanel({
     setHighlightedMessageIds,
     setActiveHighlightId,
     onHighlightConsumed,
+    onLoadOlder: failuresOnly ? undefined : onLoadOlder,
+    hasMoreOlder: failuresOnly ? false : hasMoreOlder,
   });
 
   const {
