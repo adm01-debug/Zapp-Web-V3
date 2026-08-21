@@ -275,8 +275,10 @@ export function ChatPanel({
     openDialog,
     closeDialog,
     handleSetActiveTool,
-    // /archive real: soft-delete do contato (a sidebar refetcha via realtime;
-    // sem onDone aqui pois ChatPanel não recebe refetch da lista).
+    // /archive real: soft-delete via useArchiveConversationActions.archive().
+    // Decisão consciente: com ID inválido faz early return silencioso (sem toast)
+    // — o guard UUID de onArchiveChat (handlers.onArchive) lança antes, então
+    // esta camada nunca é alcançada com ID inválido em condições normais.
     onArchive: handleArchiveConversation,
   });
 
@@ -310,11 +312,10 @@ export function ChatPanel({
     },
     onNextConversation: () => {}, // Handled in Sidebar
     onPrevConversation: () => {}, // Handled in Sidebar
-    // Mod+E religado ao arquivar REAL da conversa ativa (antes era no-op
-    // "Handled in Sidebar" — a Sidebar também registra o atalho; se ambos
-    // estiverem montados, a Sidebar arquiva o contato selecionado e este
-    // handler arquiva a conversa aberta, sem silent-fail).
-    onArchive: handleArchiveConversation,
+    // Mod+E unificado: usa o mesmo caminho validado do slash /archive
+    // (handlers.onArchive = onArchiveChat, que valida UUID e rejeita sem
+    // silent-fail), evitando duplicação de lógica com a mutation crua.
+    onArchive: () => { void handlers.onArchive?.(); },
     onTransfer: () => handlers.handleSlashCommand({ id: 'transfer' }),
     onRefresh: () => {}, // Handled in Sidebar
     onSearchFocusChat: () => handleSetActiveTool('chatSearch'),
