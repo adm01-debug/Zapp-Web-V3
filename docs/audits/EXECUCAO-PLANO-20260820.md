@@ -57,7 +57,7 @@
 | webhook_events_processed | 472MB / ~600k rows / 18d | 194k rows / retencao 7d ativa (tamanho fisico decai via vacuum semanal) | ✅ |
 | I2 (evo→zapp fora de boundary) | 1 (`fn_filter_canary_messages`) | **0** | ✅ |
 | Tabelas tmp `_backup_/_dedup_/_remap_` | 24 | **0** (movidas/dropadas, GATE-B) | ✅ |
-| Migrations repo↔banco (janela ≥2026-08-17) | colisao + serie f0xx sem arquivo | **0 divergencia do plano**; residuais fora do escopo: `20260817193000` e `20260817200001` (banco-only, ondas de 17/08) e `20260820230000` `fix_fanout_replica_identity_and_ttl` (onda paralela Hermes EM ANDAMENTO durante esta execucao — arquivo a cargo daquela sessao) | ✅ |
+| Migrations repo↔banco (janela ≥2026-08-17) | colisao + serie f0xx sem arquivo | **0 divergencia do plano**; residuais fora do escopo: `20260817193000` e `20260817200001` (banco-only, ondas de 17/08). A `20260820230000` (fix_fanout, onda paralela) teve o arquivo publicado no main durante esta execucao (#1351) — resolvida | ✅ |
 | Fila de midia | pending=0 (manha) | pending=1.869/failed=992 (backfill 20/08 + worker sem sucesso desde 10/08) — **alertado** (achado N-2) | ⚠️ operacional |
 
 ## 4. Migrations criadas/ajustadas por esta execucao
@@ -101,7 +101,7 @@ Rollbacks: documentados no cabecalho de cada arquivo.
 
 1. **UNKNOWN — dono do backfill de midia de 20/08**: quem enfileirou (staging `_unknown_media_backfill_20260820`) e se o worker de download deve ser religado ou o backfill descartado (itens >7d tendem a CDN expirado → perda historica aceita, etapa 18 do plano).
 2. **UNKNOWN — DDL exato da onda `20260820100000` (rls_class2)**: aplicado por sessao paralela sem captura previa; stub retroativo criado; estado vivo coberto pelo snapshot.
-3. Residuais banco-only fora do escopo do plano: `20260817193000` (e25_message_hourly_fdw_reconcile_delta1h), `20260817200001` (e39a_extra_webhook_v2_evo_reconciler_grants), `20260820230000` (fix_fanout_replica_identity_and_ttl — onda paralela ativa).
+3. Residuais banco-only fora do escopo do plano: `20260817193000` (e25_message_hourly_fdw_reconcile_delta1h) e `20260817200001` (e39a_extra_webhook_v2_evo_reconciler_grants). (`20260820230000` resolvida via #1351 durante esta execucao.)
 4. Sentry `SENTRY-GREEN-BASKET-ND` (contact_tags, UI de etiquetas): burst autolimitado na janela de deploy do front; investigar retry-loop do safeClient (84 eventos/5min).
 
 ## 7. Proximos passos (3)
