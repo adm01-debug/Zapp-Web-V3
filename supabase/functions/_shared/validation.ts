@@ -416,33 +416,6 @@ export function jsonResponse(data: unknown, status = 200, req?: Request, extraHe
   );
 }
 
-/** Standard Contract Validation Error Response (422) */
-export function contractErrorResponse(
-  code: string,
-  message: string,
-  issues: { path?: (string | number)[]; message?: string }[] = [],
-  requestId?: string,
-  req?: Request
-) {
-  const body = {
-    error: true,
-    code,
-    message,
-    requestId,
-    fields: issues.map(i => i.path?.join('.') || 'root'),
-    details: issues.map(i => ({
-      path: i.path?.join('.') || 'root',
-      message: i.message
-    }))
-  };
-  const headers = req ? getCorsHeaders(req) : corsHeaders;
-  return new Response(
-    JSON.stringify(body),
-    { status: 422, headers: { ...headers, 'Content-Type': 'application/json' } }
-  );
-}
-
-
 /** Handle CORS preflight with origin validation */
 export function handleCors(req: Request): Response | null {
   if (req.method === 'OPTIONS') {
@@ -689,41 +662,18 @@ export async function authorizeRoles(
   return { user, roles: userRoles };
 }
 
-// ─── parseBody + CommonSchemas + z (migrado de validation-legacy.ts em v2.2) ─
+// ─── CommonSchemas + z (migrado de validation-legacy.ts em v2.2) ────────────
 // Antes vivia só no arquivo -legacy; movido para cá para permitir a remoção
 // definitiva do legacy e destravar novos consumidores sem duplicar helpers.
+//
+// Bloco 2 (etapas 20/21/93, 2026-08-21): parseBody(req, schema) — o homônimo
+// de assinatura invertida vs. schemas.ts:parseBody(schema, body) — tinha 0
+// chamadores de produção e emitia status 400 (fora do envelope 422 canônico).
+// Removido junto com ParseSuccess/ParseFailure/ParseResult (usados só por
+// ele). O parseBody real em uso é o de schemas.ts (consumido por ai-router).
 /** Re-exported module members. */
 export { z } from './schemas.ts';
 import { z as _z } from './schemas.ts';
-
-/** Parse Success interface definition. */
-export interface ParseSuccess<T> { data: T; error: null; }
-/** Parse Failure interface definition. */
-export interface ParseFailure { data: null; error: Response; }
-/** Parse Result type alias. */
-export type ParseResult<T> = ParseSuccess<T> | ParseFailure;
-
-/** Parse JSON body and validate via Zod schema. Returns { data, error } discriminated union. */
-export async function parseBody<T>(req: Request, schema: _z.ZodSchema<T>): Promise<ParseResult<T>> {
-  let raw: unknown;
-  try {
-    raw = await req.json();
-  } catch {
-    return { data: null, error: errorResponse('Invalid JSON body', 400, req) };
-  }
-  const result = schema.safeParse(raw);
-  if (!result.success) {
-    return {
-      data: null,
-      error: errorResponse(
-        'Validation failed: ' + result.error.issues.map(i => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; '),
-        400,
-        req
-      ),
-    };
-  }
-  return { data: result.data, error: null };
-}
 
 /** Common Schemas constant. */
 export const CommonSchemas = {
