@@ -103,6 +103,10 @@ Rollbacks: documentados no cabecalho de cada arquivo.
 2. **UNKNOWN — DDL exato da onda `20260820100000` (rls_class2)**: aplicado por sessao paralela sem captura previa; stub retroativo criado; estado vivo coberto pelo snapshot.
 3. Residuais banco-only fora do escopo do plano: `20260817193000` (e25_message_hourly_fdw_reconcile_delta1h) e `20260817200001` (e39a_extra_webhook_v2_evo_reconciler_grants). (`20260820230000` resolvida via #1351 durante esta execucao.)
 4. Sentry `SENTRY-GREEN-BASKET-ND` (contact_tags, UI de etiquetas): burst autolimitado na janela de deploy do front; investigar retry-loop do safeClient (84 eventos/5min).
+5. **CI herdado do main (nao e deste PR; verificado no historico do Actions):**
+   - `Apply migrations from scratch`: vermelho no main tambem — `pglast` nao instalavel no runner self-hosted ("runner sem acesso a PyPI? pre-instalar na imagem"); fix e de infra (imagem dos runners) ou venv no workflow.
+   - `quality-gate` / `Build`: vermelhos no main desde o #1351 — o teste `useRealtimeMessages.orchestrator.test.tsx` ainda espera handler `DELETE` removido pelo proprio #1351 (fix trivial pertence ao follow-up da onda paralela: expectativa -> `['INSERT','UPDATE']`).
+   - `drift-check`: sensivel a onda paralela ativa — o snapshot canonico foi re-regenerado 2x neste PR porque producao mudou entre dumps (`fn_rt_fanout_insert` v2); enquanto a onda estiver aplicando DDL, novas regens podem ser necessarias.
 
 ## 7. Proximos passos (3)
 
