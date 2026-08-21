@@ -23,6 +23,18 @@ CREATE TABLE IF NOT EXISTS evo.recon_coverage_daily (
 
 COMMENT ON TABLE evo.recon_coverage_daily IS 'Snapshot diario da cobertura do espelho evo vs fonte PG14 — grafico de CP-2 do PLANO-100. coverage_pct = mirror/source sobre janela movel 24h por message_id (via FDW fdw_evolution_message); alerta <99pct via rpc_boundary_raise_alert.';
 
+-- RLS espelhando o estado real de producao (deny-all para roles do PostgREST;
+-- escrita/leitura apenas via service_role/cron SECDEF)
+ALTER TABLE evo.recon_coverage_daily ENABLE ROW LEVEL SECURITY;
+DO $pol$
+BEGIN
+  CREATE POLICY deny_all_recon ON evo.recon_coverage_daily
+    AS PERMISSIVE FOR ALL TO anon, authenticated
+    USING (false) WITH CHECK (false);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$pol$;
+
 -- Cron 543 — snapshot diario 04:30 UTC
 SELECT cron.schedule('recon-coverage-daily', '30 4 * * *', 'SELECT evo.fn_recon_coverage_snapshot()');
 
