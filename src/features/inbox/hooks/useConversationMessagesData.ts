@@ -34,8 +34,13 @@ export function useConversationMessagesData(contactId: string | null | undefined
     queryKey: ['conversation-messages', contactId ?? undefined],
     enabled: !!contactId && isValidUUID(contactId),
     staleTime: 30_000,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!contactId) return [];
+      // RCA 2026-08-20: propagar o AbortSignal do TanStack é OBRIGATÓRIO aqui.
+      // Sem ele, cada invalidateQueries (cancelRefetch) abandonava o fetch
+      // anterior SEM liberá-lo — o request órfão continuava ocupando slot/fila
+      // do semáforo do client.ts até o timeout, e rajadas de invalidação
+      // enchiam a fila até o cap (SupabaseQueueSaturatedError p/ o app todo).
       const { data, error } = await safeClient.from<ConversationMessageLite>(
         'messages',
         (q) =>
@@ -46,6 +51,7 @@ export function useConversationMessagesData(contactId: string | null | undefined
             // precisam de ordem cronológica revertem localmente.
             .order('created_at', { ascending: false })
             .range(0, MESSAGES_CAP - 1)
+            .abortSignal(signal)
       );
       if (error) throw error;
       return Array.isArray(data) ? data : [];
