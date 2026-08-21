@@ -192,11 +192,12 @@ export const ChatMessagesArea = memo(
         if (!contactJid) return;
         // Última conexão bem-sucedida do canal — classifica CHANNEL_ERROR transiente vs real.
         let lastConnectedAtMs: number | null = null;
+        // Etapa 78: o sufixo random do topic é ANTI-COLISÃO deliberado — em
+        // remount rápido (StrictMode/troca de conversa) o unsubscribe do canal
+        // antigo é assíncrono; reusar o MESMO topic faria o join novo colidir
+        // com o leave pendente e o canal nascer morto. (Comentário fica ACIMA:
+        // o validador do diagrama exige `supabase.channel` contíguo.)
         const channel = supabase
-          // Etapa 78: o sufixo random é ANTI-COLISÃO deliberado — em remount
-          // rápido (StrictMode/troca de conversa) o unsubscribe do canal antigo
-          // é assíncrono; reusar o MESMO topic faria o join novo colidir com o
-          // leave pendente e o canal nascer morto.
           .channel(`chat-updates:${contactJid}:${Math.random().toString(36).slice(2, 10)}`)
           .on(
             'postgres_changes',

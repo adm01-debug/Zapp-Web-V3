@@ -31,6 +31,8 @@ import { SendErrorBanner } from './chat/SendErrorBanner';
 import { ChatDragOverlay } from './chat/ChatDragOverlay';
 import { ChatSearchBar } from './chat/ChatSearchBar';
 import { useChatPanelHandlers } from './chat/useChatPanelHandlers';
+import { snoozeDurationToDate, type SnoozeToolbarDuration } from './chat/snoozeDurations';
+import { deriveContactJid } from '../utils/contactJid';
 import type { SearchResult } from './useGlobalSearchData';
 import type { ActiveTool } from './chat/ChatHeaderToolbar';
 import { FailureFilterBar } from './chat/FailureFilterBar';
@@ -192,18 +194,12 @@ export function ChatPanel({
   const messagesAreaRef = useRef<ChatMessagesAreaRef>(null);
   const { isDraggingOver, dragHandlers } = useChatDragAndDrop(fileUploaderRef);
 
-  const contactJid = useMemo(() => {
-    // Prefer the canonical remote_jid (present for groups, @lid, and broadcast JIDs
-    // where phone is null). Fall back to deriving from phone for legacy contacts.
-    const rj = conversation.contact.remote_jid;
-    if (rj) return rj;
-    const ph = conversation.contact.phone;
-    if (!ph) return '';
-    // Strategy B/C may have stored a full JID (e.g. 120363@g.us) in the phone field —
-    // appending @s.whatsapp.net would produce a malformed double-suffix JID.
-    if (ph.includes('@')) return ph;
-    return `${ph}@s.whatsapp.net`;
-  }, [conversation.contact.remote_jid, conversation.contact.phone]);
+  // Regra extraída para deriveContactJid (etapa 92) — testada em
+  // utils/__tests__/contactJid.test.ts.
+  const contactJid = useMemo(
+    () => deriveContactJid(conversation.contact.remote_jid, conversation.contact.phone),
+    [conversation.contact.remote_jid, conversation.contact.phone]
+  );
 
   const { typingUsers, handleTypingStart, handleTypingStop } = useTypingPresence({
     conversationId: conversation.id,
@@ -524,34 +520,10 @@ export function ChatPanel({
   // em data e delega ao snooze real da conversa (useChatPanelHandlers.onSnooze).
   const { onSnooze } = handlers;
   const handleSnoozeFromToolbar = useCallback(
-    (duration: '1h' | '3h' | 'tomorrow' | 'nextweek') => {
-      const now = new Date();
-      let until: Date;
-      switch (duration) {
-        case '1h':
-          until = new Date(now.getTime() + 60 * 60 * 1000);
-          break;
-        case '3h':
-          until = new Date(now.getTime() + 3 * 60 * 60 * 1000);
-          break;
-        case 'tomorrow': {
-          const t = new Date(now);
-          t.setDate(t.getDate() + 1);
-          t.setHours(9, 0, 0, 0);
-          until = t;
-          break;
-        }
-        case 'nextweek': {
-          const t = new Date(now);
-          const daysUntilMonday = (1 - t.getDay() + 7) % 7 || 7;
-          t.setDate(t.getDate() + daysUntilMonday);
-          t.setHours(9, 0, 0, 0);
-          until = t;
-          break;
-        }
-        default:
-          until = new Date(now.getTime() + 60 * 60 * 1000);
-      }
+    (duration: SnoozeToolbarDuration) => {
+      // Durações extraídas p/ snoozeDurationToDate (etapa 93) — testadas com
+      // relógio fake em __tests__/snoozeDurations.test.ts.
+      const until = snoozeDurationToDate(duration);
       // Etapa 73: origem real ('toolbar') em vez do 'slash' herdado do default.
       void onSnooze(until.toISOString(), 'toolbar').catch(() => {
         log.warn('[ChatPanel] Falha ao adiar conversa pela toolbar');
