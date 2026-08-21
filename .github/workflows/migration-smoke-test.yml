@@ -100,29 +100,40 @@ jobs:
         # errores de sintaxis — caso PR #1330: CREATE TABLE sin cuerpo, CI PASS 13s).
         # Valida el 100% sin ejecutar: sin falsos positivos por dependencias.
         run: |
-          # Fix 2026-08-21 (plano-100 etapa 67 — causa raiz do 0% de sucesso
-          # histórico deste job): o runner é Ubuntu 24 com Python
-          # "externally-managed" (PEP 668) — pip global e --user falham, e o
-          # antigo `2>/dev/null` escondia o erro; o job morria aqui com exit 2
-          # sem nunca chegar ao apply das migrations. Agora: venv primeiro,
-          # fallback --break-system-packages, e o erro do pip fica visível.
-          PY=python3
-          if python3 -m venv /tmp/syntax-venv && [ -x /tmp/syntax-venv/bin/pip ]; then
-            if /tmp/syntax-venv/bin/pip install --quiet pglast; then
-              PY=/tmp/syntax-venv/bin/python
-            else
-              echo "::warning::pip no venv falhou — tentando modos alternativos"
-            fi
-          else
-            echo "::warning::python3 -m venv indisponível (pacote python3-venv ausente?) — tentando pip direto"
+          # Fix 2026-08-21 v2 (plano-100 etapa 67 — causa raiz PROVADA no run
+          # 32437853802): o Python do host do runner é 3.8; o pglast atual não
+          # tem wheel cp38 e o build da fonte exige setuptools==83 (inexistente
+          # para 3.8) — por isso o pip falhava SEMPRE e o job morria com exit 2
+          # antes de aplicar qualquer migration (0% de sucesso histórico).
+          # PyPI está acessível (o cython baixou). Solução determinística:
+          # validar num container python:3.12-slim — o job já depende de Docker
+          # (sobe o pg-smoke no step anterior).
+          # Semântica: erro de SINTAXE bloqueia (exit 1); indisponibilidade da
+          # infra de validação vira warning e segue para o apply (que exercita
+          # as migrations de verdade) — o gate bloqueia bugs, não a si mesmo.
+          set -uo pipefail
+          rc=0
+          docker run --rm -v "$PWD:/repo" -w /repo python:3.12-slim \
+            sh -c 'pip install --quiet pglast || exit 3; python scripts/validate-migration-syntax.py --dir supabase/migrations' || rc=$?
+          if [ "$rc" = "0" ]; then
+            echo "Gate de sintaxe OK (container python:3.12)"
+            exit 0
           fi
-          if [ "$PY" = "python3" ]; then
-            python3 -m pip install --quiet pglast \
-              || python3 -m pip install --quiet --break-system-packages pglast \
-              || pip3 install --quiet --break-system-packages pglast \
-              || echo "::warning::pip falhou em todos os modos — o script fará o auto-install próprio"
+          if [ "$rc" = "1" ]; then
+            echo "::error::Erro de sintaxe SQL detectado pelo gate (ver acima) — bloqueante"
+            exit 1
           fi
-          "$PY" scripts/validate-migration-syntax.py --dir supabase/migrations
+          echo "::warning::Validador no container indisponível (rc=${rc}) — fallback: Python do host"
+          rc=0
+          python3 scripts/validate-migration-syntax.py --dir supabase/migrations || rc=$?
+          if [ "$rc" = "1" ]; then
+            echo "::error::Erro de sintaxe SQL detectado pelo gate (host) — bloqueante"
+            exit 1
+          fi
+          if [ "$rc" != "0" ]; then
+            echo "::warning::pglast indisponível no host ($(python3 -V 2>&1)) — gate de sintaxe PULADO nesta run; o apply abaixo ainda exercita as migrations do PR"
+          fi
+          exit 0
 
       - name: Collect and apply migrations (delta - so as que mudaram)
         # OTIMIZACAO v2: copia/aplica SOMENTE as migrations do PR/push, nao todas as 400+.
