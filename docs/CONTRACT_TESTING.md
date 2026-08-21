@@ -10,7 +10,7 @@
 | `_shared/contract-kit.ts` | Motor `parseOrReject`: valida body contra schema Zod, negocia versão (v1/v2) e emite o envelope 422 único. |
 | `_shared/contract-schemas.ts` | Registro central `CONTRACT_SCHEMAS` (contrato → versão → schema Zod). Schemas derivados do consumo REAL de campos de cada `index.ts`. |
 | `_shared/contract-versions.ts` | Registro `CONTRACTS` de versões `current`/`supported`/`sunset` por contrato. |
-| `_shared/edge-contract-schemas.ts` | Registry legado (`parseContractRequest`, `@deprecated` — 0 chamadores) + `ContractLifecycles` espelhando o canônico para os webhooks v2. |
+| `_shared/edge-contract-schemas.ts` | Registry legado (`EdgeFunctionContractSchemas` — mantido pelo Invariante 8) + `ContractLifecycles` espelhando o canônico para os webhooks v2. `parseContractRequest`/`contractErrorResponse` removidos em 2026-08-21 (Bloco 2, etapas 20/21/93 — 0 chamadores de produção). |
 | `_shared/webhook-schemas.ts` | Schemas dos webhooks externos (Evolution, Meta/WhatsApp Cloud, Gmail, ElevenLabs, WhatsApp legado) — V1 e V2. |
 | `_shared/__tests__/contract-kit.test.ts` | Envelope 422 consistente, negociação de versão, deprecação, payloads adversariais. |
 | `_shared/__tests__/contract-schemas.test.ts` | Matriz por endpoint: válido / campo ausente / tipo errado / valor vazio. |
