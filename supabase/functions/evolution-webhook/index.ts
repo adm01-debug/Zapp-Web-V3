@@ -1,3 +1,10 @@
+// STATUS OPERACIONAL (PLANO-100 e86/e87, 2026-08-20):
+// - O REGISTRO de webhook direto Evolution→esta função está DESABILITADO por decisão formal
+//   (A13) e deve permanecer assim; o runbook "Ativação de emergência do webhook nativo
+//   Evolution (A13)" em evo.ops_runbooks tem o payload exato do evo_set_webhook para religar.
+// - A função continua ATIVA como processadora do pipeline: o fluxo vigente é
+//   Evolution → RabbitMQ → evolution-rabbit-consumer → POST nas rotas internas desta função
+//   (/messages-upsert, /contacts-update, …) → schema evo. Não remover do deploy.
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getCorsHeaders, handleCors, redactSecrets } from "../_shared/validation.ts";
 import { initSentry, captureException } from "../_shared/sentry.ts";
