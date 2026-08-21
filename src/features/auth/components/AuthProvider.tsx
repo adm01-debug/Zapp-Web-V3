@@ -13,6 +13,7 @@ import {
 import { logChannelError } from '@/integrations/supabase/channelErrorLogging';
 import { clearCrmConfigCache } from '@/hooks/useSyncToCRM';
 import { verifyHttpOnlyCookieAuth } from '@/integrations/supabase/cookieStorage';
+import { isAbortLikeError } from '@/lib/retry';
 
 // ---------------------------------------------------------------------------
 // Utilitário de timeout para promises — definido no escopo do módulo para
@@ -575,7 +576,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setBootstrapElapsedMs(elapsedMs);
       // AbortError é esperado (StrictMode remount, navegação, timeout).
       // O app continua com a sessão do cache. Não poluir o console.
-      if ((err as Error)?.name === 'AbortError') {
+      if (isAbortLikeError(err)) {
         log.debug('[Auth] getSession abortado — sessão do cache mantida.');
         return;
       }
