@@ -179,5 +179,6 @@ Deno.test("Contract: ai-suggest-reply — index.ts encaminha para ai-router com 
 });
 
 Deno.test("Contract: ai-suggest-reply — exige Authorization (proxy autenticado)", () => {
-  assertMatch(SOURCE, /if \(!authHeader\) return errorResponse\("Unauthorized", 401, req\)/);
+  // Etapa 26 (Bloco 2, 2026-08-21): migrado pra errorEnvelope.
+  assertMatch(SOURCE, /if \(!authHeader\) return errorEnvelope\("unauthorized", "Unauthorized", 401, req\)/);
 });
