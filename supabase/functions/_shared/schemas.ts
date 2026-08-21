@@ -63,18 +63,23 @@ export const DetectNewDeviceSchema = z.object({
  * P1 security fix (extracted from PR #205): blocks IPv4-mapped IPv6 SSRF bypass.
  * Validated: 139 adversarial scenarios, 0 failures.
  */
-function isSafeHttpsUrl(url: string): boolean {
+export function isSafeHttpsUrl(url: string): boolean {
   let parsed: URL;
   try { parsed = new URL(url); } catch { return false; }
   if (parsed.protocol !== 'https:') return false;
-  const host = parsed.hostname.toLowerCase();
+  // SEC-2 fix (2026-08-21): `URL.hostname` para literais IPv6 (`https://[::1]/x`)
+  // vem COM colchetes nesta versão do Deno ("[::1]") — o comentário original
+  // ("Deno retorna bracketless") não bate com o runtime atual e o guard
+  // `startsWith('::')` nunca casava contra `[::1]`, deixando o bypass aberto.
+  // Remover colchetes torna a checagem robusta independente da versão.
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
   if (
     host === 'localhost' || host.endsWith('.localhost') || host === '0.0.0.0' ||
     /^127\./.test(host) || /^169\.254\./.test(host) ||
     /^10\./.test(host) || /^192\.168\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    // IPv6: Deno URL.hostname returns bracketless (e.g. '::1', 'fe80::1').
-    // WHATWG normalizes IPv4-compatible: ::127.0.0.1→::7f00:1, ::169.254.169.254→::a9fe:a9fe
+    // IPv6 (host já sem colchetes neste ponto).
+    // WHATWG normaliza IPv4-compatível: ::127.0.0.1→::7f00:1, ::169.254.169.254→::a9fe:a9fe
     host.startsWith('::') ||                   // loopback ::1, unspecified ::, IPv4-compat ::x, IPv4-mapped ::ffff:x
     /^fe[89ab][0-9a-f]:/i.test(host) ||       // link-local fe80::/10 (fe80–febf)
     /^fec[0-9a-f]:/i.test(host) ||            // site-local fec0::/10

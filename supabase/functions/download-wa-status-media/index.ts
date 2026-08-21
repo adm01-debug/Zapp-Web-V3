@@ -3,9 +3,13 @@
  * Downloads WhatsApp status media via Evolution API before URLs expire.
  * Called by pg_cron every 30min for non-expired status entries.
  * Evolution HTTP via evolutionClient (gateway canônico — decouple gate m2).
+ * SEC-3 (2026-08-21): parseOrReject ligado — status_id agora restrito a
+ * [A-Za-z0-9_-] antes de compor o path do storage (path traversal fechado).
  */
 
 import { evolutionClient } from '../_shared/providers/evolution/index.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -15,23 +19,19 @@ Deno.serve(async (req) => {
   const SUPABASE_URL = Deno.env.get('SELFHOSTED_SUPABASE_URL') || Deno.env.get('SUPABASE_URL') || '';
   const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') || '';
 
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return Response.json({ ok: false, error: 'Invalid JSON body' }, { status: 400 });
-  }
-
-  const { status_id, participant_jid, message_id, message_type } = body as {
+  const rawBody = await req.json().catch(() => null);
+  const parsed = parseOrReject(
+    'download-wa-status-media',
+    CONTRACT_SCHEMAS['download-wa-status-media'],
+    req,
+    rawBody,
+  );
+  if (parsed.ok === false) return parsed.response;
+  const { status_id, participant_jid, message_id } = parsed.data as {
     status_id: string;
     participant_jid: string;
     message_id: string;
-    message_type: string;
   };
-
-  if (!status_id || !participant_jid || !message_id) {
-    return Response.json({ ok: false, error: 'status_id, participant_jid, message_id required' }, { status: 400 });
-  }
 
   // 1. Call Evolution API (gateway canônico) to download and decrypt the status media
   const evoRes = await evolutionClient.post('chat/getBase64FromMediaMessage/wpp2', {

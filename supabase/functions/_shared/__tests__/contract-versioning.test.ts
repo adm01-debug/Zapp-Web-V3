@@ -128,11 +128,14 @@ const WEBHOOK_FIXTURES = [
   },
   {
     name: "gmail-webhook",
+    // SEC-1 (2026-08-21): `action` restrito a enum(['registerWatch']) — o
+    // fixture original usava "process" (nunca existiu em produção; único
+    // action real é 'registerWatch', autenticado via requireUser no handler).
+    // Sem `action`, o payload é o envelope Pub/Sub push (caminho real testado
+    // por este fixture: negociação de versão, não a rota interna).
     v2: {
       version: "2.0",
       timestamp: Date.now(),
-      action: "process",
-      accountId: "acc_1",
       message: {
         data: "eyJmb28iOiJiYXIifQ==",
         messageId: "m_1",
@@ -140,8 +143,6 @@ const WEBHOOK_FIXTURES = [
       },
     },
     v1: {
-      action: "process",
-      accountId: "acc_1",
       message: {
         data: "eyJmb28iOiJiYXIifQ==",
         messageId: "m_1",

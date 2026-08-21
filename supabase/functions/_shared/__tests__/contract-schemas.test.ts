@@ -36,14 +36,17 @@ const MATRICES: Matrix[] = [  {
     name: "gmail-webhook@v1 (envelope Pub/Sub OU ação interna)",
     schema: GmailWebhookV1Schema,
     valid: [
-      { action: "health" },
-      { accountId: "acc_1", action: "sync" },
+      // SEC-1 (2026-08-21): action é enum(['registerWatch']) — único valor
+      // autenticado por requireUser no handler; qualquer outro string era o
+      // bypass de auth (ver gmail-webhook/__tests__/contract.test.ts).
+      { accountId: "acc_1", action: "registerWatch" },
       { message: { data: "eyJmb28iOiJiYXIifQ==", messageId: "m1", publishTime: "2026-07-10T00:00:00Z" }, subscription: "projects/x/subscriptions/y" },
       { message: { data: null } }, // push sem data — tratado no handler
     ],
     invalid: [
       { label: "message com tipo errado (string)", payload: { message: "raw" }, expectPath: "message" },
       { label: "message.data com tipo errado (number)", payload: { message: { data: 42 } }, expectPath: "message.data" },
+      { label: "action arbitrário fora do enum (SEC-1)", payload: { action: "health" }, expectPath: "action" },
     ],
   },
   {

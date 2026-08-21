@@ -55,9 +55,13 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "whatsapp-cloud-send":          { current: "v1", supported: ["v1"] },
   "gmail-send":                   { current: "v1", supported: ["v1"] },
   "invite-user":           { current: "v1", supported: ["v1"] },
-  // zapp-auth-invite (registro fantasma — a edge virou invite-user) foi
-  // removido do CONTRACT_SCHEMAS em 2026-08-18 e daqui (CONTRACTS) na
-  // validação exaustiva 19/08 (contract-registry-integrity).
+  // zapp-auth-invite (registro fantasma — a edge virou invite-user): a
+  // remoção de 2026-08-18/19 nunca chegou a tirar a entrada de
+  // CONTRACT_SCHEMAS (só daqui), deixando contract-kit.test.ts:206
+  // vermelho sem que o CI acusasse (runs canceladas em série — ver
+  // PLANO-100-CONTRATOS-EDGE-20260821.md). Removido dos dois lados em
+  // 2026-08-21; invariante novo em contract-registry-integrity.test.ts
+  // (CONTRACT_SCHEMAS → CONTRACTS) evita a reincidência.
   "revoke-session":         { current: "v1", supported: ["v1"] },
   "send-email":                   { current: "v1", supported: ["v1"] },
   "talkx-send":                   { current: "v1", supported: ["v1"] },

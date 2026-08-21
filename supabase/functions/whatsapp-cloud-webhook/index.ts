@@ -88,7 +88,7 @@ function reqId(): string {
 
 // Registra atividade do webhook (best-effort, nunca bloqueia o fluxo)
 async function recordPing(
-  kind: "handshake" | "event" | "invalid_signature" | "invalid_token",
+  kind: "handshake" | "event" | "invalid_signature" | "invalid_token" | "webhook_misconfigured",
   meta: Record<string, unknown> = {},
 ): Promise<void> {
   try {
@@ -229,10 +229,16 @@ Deno.serve(async (req) => {
   const rawBody = await req.text();
   const signature = req.headers.get("x-hub-signature-256") ?? "";
 
-  // [W5] HMAC obrigatório quando o secret ESTÁ configurado: assinatura ausente ou
-  // incorreta → 401. Secret NÃO configurado → warning + segue (dev mode) — o
-  // antigo fail-closed 503 (WHATSAPP_CLOUD_WEBHOOK_STRICT) foi removido em favor
-  // deste comportamento explícito (requisito W5.1).
+  // [W5] HMAC obrigatório quando o secret ESTÁ configurado: assinatura ausente
+  // ou incorreta → 401.
+  // SEC-5 (2026-08-21): secret NÃO configurado agora falha-fechado (503), como
+  // evolution-webhook e zapp-email-inbound-webhook. O comportamento anterior
+  // (warning + segue, "dev mode") aceitava qualquer POST sem autenticação
+  // enquanto o secret não fosse provisionado — mesma classe de risco que o
+  // fail-closed de evolution-webhook (A-1 FIX 2026-07-12) já existe para
+  // prevenir. Este endpoint serve o modo Meta OFICIAL, hoje inativo em
+  // produção (o modo ativo é evolution-webhook) — sem risco de regressão
+  // funcional, só remove uma janela de exposição pré-existente.
   if (APP_SECRET) {
     const ok = signature
       ? await verifyHmacSignature(rawBody, signature, APP_SECRET)
@@ -248,8 +254,13 @@ Deno.serve(async (req) => {
       );
     }
   } else {
-    console.warn(
-      `[whatsapp-cloud-webhook][${rid}] WHATSAPP_CLOUD_APP_SECRET not configured — signature validation skipped (dev mode)`,
+    console.error(
+      `[whatsapp-cloud-webhook][${rid}] WHATSAPP_CLOUD_APP_SECRET not configured — refusing (fail-closed)`,
+    );
+    void recordPing("webhook_misconfigured", { rid });
+    return new Response(
+      JSON.stringify({ error: "webhook_misconfigured", reason: "no_secret_configured", requestId: rid }),
+      { status: 503, headers: { ...getCorsHeaders(req), "Content-Type": "application/json", "Retry-After": "120" } },
     );
   }
 
