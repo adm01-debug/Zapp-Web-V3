@@ -40,7 +40,13 @@ Deno.serve(async (req) => {
       // Contrato gmail-webhook@v1: action/accountId (rotas internas) OU
       // message (push Pub/Sub). Tudo nullish + passthrough — envelope novo do
       // Google nunca derruba a ingestão; falha real → 422 único.
-      const rawBody: Record<string, unknown> = await readJsonBodyOrEmpty(req) as Record<string, unknown>;
+      // Auditoria pós-Bloco 6 (2026-08-21): cast pra Record<string,unknown>
+      // removido — readJsonBodyOrEmpty pode devolver null (JSON malformado
+      // não-vazio), array, string ou número, não só objeto. O cast mentia
+      // pro compilador (sem ganho: parseOrReject já aceita unknown) e
+      // mascararia null-safety pra qualquer leitura futura de rawBody
+      // inserida antes do gate.
+      const rawBody = await readJsonBodyOrEmpty(req);
       const parsed = parseOrReject('gmail-webhook', CONTRACT_SCHEMAS['gmail-webhook'], req, rawBody, {
         extraHeaders: getCorsHeaders(req),
       });

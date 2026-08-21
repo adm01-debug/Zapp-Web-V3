@@ -33,12 +33,23 @@ export {
  * propunha) quebraria os cron/health-check legítimos — `parseOrReject`
  * rejeita `null` incondicionalmente (`isStructured = body !== null && ...`),
  * mesmo quando o schema aceitaria `{}`.
+ *
+ * Auditoria pós-Bloco 6 (2026-08-21): `JSON.parse` rodava sobre o texto
+ * NÃO-trimado — um corpo JSON válido com um BOM (U+FEFF) líder (comum em
+ * exports/payloads de origem Windows) tinha `text.trim() !== ""` (correto,
+ * não é vazio) mas `JSON.parse(text)` lançava `SyntaxError` no BOM, caindo
+ * incorretamente no caminho de malformado (`null` → 422 `invalid_json`) para
+ * um payload que na verdade era válido. `String.prototype.trim()` remove
+ * BOM (é WhiteSpace pela spec de ECMAScript); `JSON.parse` tolera espaço/
+ * quebra de linha ao redor do valor, então parsear o texto JÁ trimado é
+ * seguro pro caso comum e corrige o caso do BOM.
  */
 export async function readJsonBodyOrEmpty(req: Request): Promise<unknown> {
   const text = await req.text().catch(() => "");
-  if (text.trim() === "") return {};
+  const trimmed = text.trim();
+  if (trimmed === "") return {};
   try {
-    return JSON.parse(text);
+    return JSON.parse(trimmed);
   } catch {
     return null;
   }
