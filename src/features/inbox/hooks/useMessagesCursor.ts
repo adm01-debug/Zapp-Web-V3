@@ -26,6 +26,7 @@ import type { EvolutionMessage, EvolutionMessageLite } from '@/types/evolutionEx
 import { toEvolutionMessageLite } from '@/types/evolutionExternal';
 import { getLogger } from '@/lib/logger';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
+import { isAbortLikeError } from '@/lib/retry';
 
 const log = getLogger('useMessagesCursor');
 
@@ -159,7 +160,7 @@ export function useMessagesCursor({
       setHasMoreOlder(rows.length === pageSize);
     } catch (err: unknown) {
       const e = err as { name?: string; message?: string };
-      if (e?.name === 'AbortError') return;
+      if (isAbortLikeError(e)) return;
       log.error('first page fetch failed', e);
       if (mountedRef.current) setError(e?.message ?? 'Failed to load messages');
     } finally {
@@ -205,7 +206,7 @@ export function useMessagesCursor({
       setHasMoreOlder(rows.length === pageSize);
     } catch (err: unknown) {
       const e = err as { name?: string; message?: string };
-      if (e?.name === 'AbortError') return;
+      if (isAbortLikeError(e)) return;
       log.error('loadOlder failed', e);
       if (mountedRef.current) setError(e?.message ?? 'Failed to load older messages');
     } finally {
