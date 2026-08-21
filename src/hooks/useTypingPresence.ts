@@ -85,7 +85,7 @@ export function useTypingPresence({
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, [conversationId, currentUserId]);
+  }, [conversationId, currentUserId, currentUserName]);
 
   const handleTypingStop = useCallback(() => {
     if (!channelRef.current) return;

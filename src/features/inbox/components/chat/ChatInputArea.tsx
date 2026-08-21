@@ -581,6 +581,10 @@ function ChatInputAreaInner(props: ChatInputAreaProps) {
                   checkForMention(e.target.value, e.target.selectionStart ?? 0);
                 }}
                 onKeyDown={(e) => {
+                  // Delega ao handler pai primeiro — permite quick replies capturarem Enter.
+                  onKeyDown(e);
+                  if (e.defaultPrevented) return;
+
                   // Enter to send, Shift+Enter for new line
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -590,7 +594,6 @@ function ChatInputAreaInner(props: ChatInputAreaProps) {
                     return;
                   }
 
-                  onKeyDown(e);
                   if (e.key === 'ArrowUp' && !inputValue && messages.length > 0) {
                     const lastOwnMessage = [...messages]
                       .reverse()

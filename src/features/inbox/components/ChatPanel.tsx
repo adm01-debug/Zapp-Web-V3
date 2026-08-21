@@ -322,7 +322,11 @@ export function ChatPanel({
     // Mod+E unificado: usa o mesmo caminho validado do slash /archive
     // (handlers.onArchive = onArchiveChat, que valida UUID e rejeita sem
     // silent-fail), evitando duplicação de lógica com a mutation crua.
-    onArchive: () => { void handlers.onArchive?.(); },
+    onArchive: () => {
+      void handlers.onArchive?.()?.catch((err: unknown) => {
+        log.warn('[ChatPanel] Mod+E archive falhou', err);
+      });
+    },
     onTransfer: () => handlers.handleSlashCommand({ id: 'transfer' }),
     onRefresh: () => {}, // Handled in Sidebar
     onSearchFocusChat: () => handleSetActiveTool('chatSearch'),
@@ -640,9 +644,9 @@ export function ChatPanel({
           highlightedMessageIds={highlightedMessageIds}
           activeHighlightId={activeHighlightId}
           searchQuery={searchQuery}
-          {/* Etapa 50: paginação desabilitada no modo de falhas — carregar mensagens
-              mais antigas que não passariam no filtro seria desperdício de rede e
-              geraria confusão (botão "carregar mais" sem resultado visível). */}
+          // Etapa 50: paginação desabilitada no modo de falhas — carregar mensagens
+          // mais antigas que não passariam no filtro seria desperdício de rede e
+          // geraria confusão (botão "carregar mais" sem resultado visível).
           onLoadOlder={failuresOnly ? undefined : onLoadOlder}
           onCancelLoadOlder={failuresOnly ? undefined : onCancelLoadOlder}
           loadingOlder={failuresOnly ? false : loadingOlder}

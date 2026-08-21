@@ -576,11 +576,20 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         throw new Error('Nao foi possivel adicionar tag: contato ou usuario invalido.');
       }
       // Procura a tag pelo nome (ILIKE) e vincula via contact_tags.
-      const { data: tag, error: selectError } = await dbFrom('tags')
+      // Exact match prioritário; fallback com partial e wildcards escapados.
+      const escapedName = name.replace(/%/g, '\\%').replace(/_/g, '\\_');
+      const { data: exactTag, error: exactErr } = await dbFrom('tags')
         .select('id')
-        .ilike('name', `%${name}%`)
-        .limit(1)
+        .ilike('name', name)
         .maybeSingle();
+      if (exactErr) throw exactErr;
+      const { data: tag, error: selectError } = exactTag
+        ? { data: exactTag, error: null }
+        : await dbFrom('tags')
+            .select('id')
+            .ilike('name', `%${escapedName}%`)
+            .limit(1)
+            .maybeSingle();
       if (selectError) throw selectError;
       if (!tag) {
         toast({ title: 'Tag nao encontrada', description: `Nenhuma tag com nome "${name}".` });
