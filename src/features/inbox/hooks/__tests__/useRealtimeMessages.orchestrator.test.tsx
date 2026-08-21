@@ -3,7 +3,10 @@
  *
  * Comportamentos críticos cobertos (contrato do espelho zapp.realtime_message_fanout):
  *   1. Assinatura: dbChannel('messages', 'messages-realtime') com
- *      postgres_changes INSERT/UPDATE/DELETE em { schema:'zapp', table:'realtime_message_fanout' }.
+ *      postgres_changes INSERT/UPDATE em { schema:'zapp', table:'realtime_message_fanout' }.
+ *      (DELETE removido no RCA 2026-08-20: a purga do cron rt-fanout-ttl não é
+ *      deleção semântica de mensagem — assinar DELETE causava 972 invalidações
+ *      por ciclo e saturação da fila; ver docs/RCA_20260820_queue_saturation.md.)
  *   2. Transformação de payload: adaptEvoPayload mapeia from_me → sender
  *      ('agent'/'contact') e deleted_at → is_deleted; normalizeMessage preenche
  *      content '' quando null.
@@ -13,7 +16,8 @@
  *   4. Erro de canal: subscribe(status) classifica CHANNEL_ERROR/TIMED_OUT via
  *      logChannelError (padrão dos hooks irmãos: useMessagesCursor,
  *      useIncomingCallBroadcast) — o orquestrador só fazia log.debug (gap).
- *   5. DELETE remove a mensagem da conversa (payload.old com REPLICA IDENTITY FULL).
+ *   5. DELETE do fanout NÃO é assinado (RCA 2026-08-20) — mensagens permanecem
+ *      intactas quando o cron purga o espelho.
  *   6. UPDATE flui pelo useMessageUpdateBatcher (debounce 150ms) e reflete o status.
  *   7. Unmount remove o canal via dbRemoveChannel.
  *
@@ -242,7 +246,7 @@ beforeEach(() => {
 });
 
 describe('useRealtimeMessages — assinatura postgres_changes (fanout v2)', () => {
-  it('assina INSERT/UPDATE/DELETE no espelho realtime_message_fanout com canal determinístico', async () => {
+  it('assina INSERT/UPDATE no espelho realtime_message_fanout com canal determinístico (sem DELETE — RCA 2026-08-20)', async () => {
     h.setSeed([makeContact('c1', 'Alice')], [makeMessage('m1', 'c1')]);
     const { result, unmount } = renderHook(() => useRealtimeMessages(), {
       wrapper: createWrapper(),
@@ -255,10 +259,13 @@ describe('useRealtimeMessages — assinatura postgres_changes (fanout v2)', () =
     expect(h.channels).toHaveLength(1);
 
     const regs = h.channels[0].onCalls;
-    expect(regs.map((r) => r.event).sort()).toEqual(['DELETE', 'INSERT', 'UPDATE']);
+    // RCA 2026-08-20 (7a63f35): handler DELETE removido de propósito — a purga
+    // do cron rt-fanout-ttl não é deleção semântica; assinar DELETE saturava a
+    // fila (972 invalidações/ciclo). Este expect trava a regressão.
+    expect(regs.map((r) => r.event).sort()).toEqual(['INSERT', 'UPDATE']);
     for (const r of regs) {
       expect(r.filter).toMatchObject({ schema: 'zapp', table: 'realtime_message_fanout' });
-      expect(['INSERT', 'UPDATE', 'DELETE']).toContain(r.filter.event);
+      expect(['INSERT', 'UPDATE']).toContain(r.filter.event);
     }
     // subscribe registrou o callback de status
     expect(h.channels[0].statusCb).toBeTypeOf('function');
@@ -384,20 +391,25 @@ describe('useRealtimeMessages — dedup de mensagens duplicadas', () => {
   });
 });
 
-describe('useRealtimeMessages — DELETE', () => {
-  it('DELETE com old (REPLICA IDENTITY FULL) remove a mensagem da conversa', async () => {
+describe('useRealtimeMessages — DELETE (não assinado desde o RCA 2026-08-20)', () => {
+  it('NÃO registra callback DELETE — purga do fanout não remove mensagens da conversa', async () => {
     h.setSeed([makeContact('c1', 'Alice')], [makeMessage('m1', 'c1')]);
     const { result } = renderHook(() => useRealtimeMessages(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.conversations[0].messages).toHaveLength(1));
 
-    dispatchEvent('DELETE', {
-      eventType: 'DELETE',
-      new: undefined,
-      old: { ...makeMessage('m1', 'c1') },
-    } as unknown as RealtimePostgresChangesPayload<RealtimeMessage>);
+    // Regressão do RCA (7a63f35): se alguém reintroduzir o handler DELETE, o
+    // dispatch abaixo passa a encontrar callback e este teste falha.
+    expect(() =>
+      dispatchEvent('DELETE', {
+        eventType: 'DELETE',
+        new: undefined,
+        old: { ...makeMessage('m1', 'c1') },
+      } as unknown as RealtimePostgresChangesPayload<RealtimeMessage>)
+    ).toThrow('callback DELETE não registrado');
 
-    await waitFor(() => expect(result.current.conversations[0].messages).toHaveLength(0));
-    expect(result.current.conversations).toHaveLength(1); // conversa permanece
+    // Mensagens e conversa permanecem intactas — a purga do espelho é invisível.
+    expect(result.current.conversations[0].messages).toHaveLength(1);
+    expect(result.current.conversations).toHaveLength(1);
   });
 });
 
