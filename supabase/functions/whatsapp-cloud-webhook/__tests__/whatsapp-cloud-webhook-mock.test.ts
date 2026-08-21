@@ -30,6 +30,10 @@ Deno.test("assinatura inválida → 401", async () => { const res = await post(J
 Deno.test("duplicado → duplicate:true (ledger webhook_events_processed)", async () => { const raw = JSON.stringify(msg("wamid.3")); const sig = await sign(raw); assertEquals((await (await post(raw, sig)).json()).processed, 1); const res = await post(raw, sig); const b = await res.json(); assertEquals(b.duplicate, true); assertEquals(b.duplicates, 1); assertEquals(b.processed, 0); });
 Deno.test("statuses sent/delivered/read → update evolution_messages", async () => { const p = { object: "whatsapp_business_account", entry: [{ id: "0", changes: [{ field: "statuses", value: { statuses: ["sent", "delivered", "read"].map((s, i) => ({ id: `wamid.ack.${i}`, status: s, timestamp: "1723000000", recipient_id: "5511999999999" })) } }] }] }; const res = await signed(p); const b = await res.json(); assertEquals(res.status, 200); assertEquals(b.statusesUpdated, 3); assertEquals(acked, ["sent", "delivered", "read"]); });
 Deno.test("notificação vazia (entry []) → 200 benigno", async () => { const res = await signed({ object: "whatsapp_business_account", entry: [] }); assertEquals(res.status, 200); assertEquals((await res.json()).benign, true);
-  // Caminho benigno responde ANTES do gate parseOrReject (evita 422/retry-storm da Meta
-  // para payload estruturalmente inofensivo) — por isso não carrega x-contract-version.
-  assertEquals(res.headers.get("x-contract-version"), null); });
+  // Etapa 24 (Bloco 2, 2026-08-21): entry:[] agora passa pelo gate normal
+  // (o schema aceita, não é mais um bypass manual pré-gate) — por isso
+  // carrega x-contract-version como qualquer outra resposta de sucesso.
+  assertEquals(res.headers.get("x-contract-version"), "v1"); });
+Deno.test("notificação vazia (entry null) → 200 benigno", async () => { const res = await signed({ object: "whatsapp_business_account", entry: null }); assertEquals(res.status, 200); assertEquals((await res.json()).benign, true); });
+Deno.test("JSON malformado → 422 canônico (não mais 400 artesanal)", async () => { const raw = "{not valid json"; const res = await post(raw, await sign(raw)); assertEquals(res.status, 422);
+  const body = await res.json(); assertEquals(body.code, "invalid_json"); assertEquals(body.error, true); });

@@ -116,10 +116,14 @@ Deno.test(
         expectedPaths: ['timestamp'],
       },
       {
+        // Bloco 2 (etapa 24, 2026-08-21): entry:[] deixou de ser inválido —
+        // é notificação benigna aceita pelo contrato. Payload trocado por
+        // um entry NÃO-vazio com campos internos inválidos (id vazio,
+        // changes vazio), que continua determinístico e inválido.
         name: 'whatsapp-cloud-webhook',
         version: 'v1',
-        payload: { object: 'whatsapp_business_account', entry: [] },
-        expectedPaths: ['entry'],
+        payload: { object: 'whatsapp_business_account', entry: [{ id: '', changes: [] }] },
+        expectedPaths: ['entry.0.id', 'entry.0.changes'],
       },
       {
         name: 'whatsapp-cloud-webhook',
