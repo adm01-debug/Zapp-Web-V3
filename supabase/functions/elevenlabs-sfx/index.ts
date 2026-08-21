@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     if (authed instanceof Response) return authed;
 
     const rl = checkRateLimit(`elevenlabs-sfx:${authed.user.id}`, 15, 60_000);
-    if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
+    if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', 'Rate limit exceeded. Tente novamente em instantes.', 429, req);
 
     // Contrato elevenlabs-sfx@v1 — validação unificada 422 (parseOrReject).
     const raw = await req.json().catch(() => null);
@@ -71,6 +71,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ audioContent: audioBase64 }, 200, req);
   } catch (err: unknown) {
     log.error("Unhandled error", { error: err instanceof Error ? err.message : String(err) });
-    return errorResponse("Internal server error", 500, req);
+    return errorEnvelope("internal_error", "Internal server error", 500, req);
   }
 });
