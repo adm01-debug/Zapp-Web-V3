@@ -14,7 +14,16 @@ concurrency:
 jobs:
   quality-gate:
     runs-on: [Linux, X64, vps-zapp]
-    timeout-minutes: 45
+    # 45 nao bastava mais: as 2 tentativas desta sessao (runs 32456567383
+    # attempts 1 e 2, 2026-08-21) foram CANCELADAS pelo proprio timeout aos
+    # ~45m15-26s de wall-clock — nao intervencao externa (confirmado: mesmo
+    # commit, sem push novo, cancelamento sempre durante "E2E Tests boot
+    # suite", sempre ~45min do inicio do job). Causa: Unit & Integration
+    # Tests e Coverage ratchet rodando ~2x mais lentos que o historico
+    # (contencao no pool de runners compartilhado, ver nota 9 do PR #1354)
+    # — sobrou pouco/nenhum tempo pro E2E+Build+Perf Budget depois. 90min
+    # da folga generosa mesmo com os steps mais lentos observados.
+    timeout-minutes: 90
     env:
       CI: true
       VITE_SUPABASE_URL: https://example.supabase.co
