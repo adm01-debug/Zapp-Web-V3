@@ -617,6 +617,9 @@ export function ChatPanel({
           highlightedMessageIds={highlightedMessageIds}
           activeHighlightId={activeHighlightId}
           searchQuery={searchQuery}
+          {/* Etapa 50: paginação desabilitada no modo de falhas — carregar mensagens
+              mais antigas que não passariam no filtro seria desperdício de rede e
+              geraria confusão (botão "carregar mais" sem resultado visível). */}
           onLoadOlder={failuresOnly ? undefined : onLoadOlder}
           onCancelLoadOlder={failuresOnly ? undefined : onCancelLoadOlder}
           loadingOlder={failuresOnly ? false : loadingOlder}
