@@ -65,6 +65,12 @@ const telemetry: ClientTelemetry = {
 const resourceCache = new Map<string, { exists: boolean; expires: number }>();
 const _validationInFlight = new Map<string, Promise<boolean>>();
 let _healthLogInProgress = false;
+// FIX 2026-08-21: throttle de health log — se a RPC rpc_log_email_health falhar
+// consistentemente (403), para de tentar após N falhas para não floodar console.
+// Observado: ~192 warns em 5s no log 20/08.
+const MAX_HEALTH_LOG_RETRIES = 3;
+let _healthLogFailCount = 0;
+let _healthLogDisabled = false;
 
 function pruneResourceCache(): void {
   const entries = Array.from(resourceCache.entries()).sort((a, b) => a[1].expires - b[1].expires);
@@ -272,6 +278,8 @@ export const safeClient = {
 
   // Uses supabase.rpc() directly — NOT this.rpc() — to avoid recordFailure() recursion.
   async syncHealthState() {
+    if (_healthLogDisabled) return;
+
     if (_healthLogInProgress) return;
     _healthLogInProgress = true;
     try {
@@ -343,6 +351,8 @@ export const safeClient = {
     telemetry.recentFailures.unshift(record as unknown as OperationFailure);
     if (telemetry.recentFailures.length > MAX_FAILURES) telemetry.recentFailures.pop();
 
+    if (_healthLogDisabled) return;
+
     if (_healthLogInProgress) return;
     _healthLogInProgress = true;
     try {
@@ -362,9 +372,20 @@ export const safeClient = {
         timeoutPromise,
       ]);
       if (rpcErr) {
-        _log.warn('Falha ao persistir log de saúde', {
-          error: (rpcErr as { message?: string }).message,
-        });
+        _healthLogFailCount++;
+        if (_healthLogFailCount >= MAX_HEALTH_LOG_RETRIES) {
+          _healthLogDisabled = true;
+          _log.warn('Health log desabilitado apos falhas consecutivas', {
+            failures: _healthLogFailCount,
+          });
+        } else {
+          _log.warn('Falha ao persistir log de saude', {
+            error: (rpcErr as { message?: string }).message,
+          });
+        }
+      } else {
+        // Reset counter on success (RPC foi restaurada)
+        _healthLogFailCount = 0;
       }
     } catch (dbErr) {
       _log.warn('Falha ao persistir log de saúde (exceção)', {
