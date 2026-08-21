@@ -31,30 +31,6 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 }
 
 // ---------------------------------------------------------------------------
-// RCA 2026-08-20 — classificação robusta de abort.
-//
-// O check antigo (`error.name === 'AbortError'`) só cobria DOMException crua.
-// O postgrest-js EMBRULHA aborts num PostgrestError com `message` iniciando em
-// "AbortError: ..." e SEM campo `name` — e o semáforo do client.ts rejeita a
-// espera na fila com "AbortError: Supabase slot acquire aborted". Resultado:
-// todo boot logava 2 ERRORs fantasma ("Failed to fetch roles/profile") quando
-// o refreshAll do INITIAL_SESSION abortava o refreshAll da hidratação
-// otimista (~1,2s após o load — visível em TODO log de sessão de produção).
-// ---------------------------------------------------------------------------
-function isAbortLikeError(err: unknown): boolean {
-  if (!err || typeof err !== 'object') return false;
-  const name = String((err as { name?: unknown }).name ?? '');
-  if (name === 'AbortError') return true;
-  const message = String((err as { message?: unknown }).message ?? '');
-  return (
-    message.startsWith('AbortError') ||
-    message.includes('signal is aborted') ||
-    message.includes('slot acquire aborted') ||
-    message.toLowerCase().includes('page unload')
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Timeout ADAPTATIVO do getProfile.
 //
 // O getProfile NÃO é marcado como auth request (/auth/v1/), então passa pelo
