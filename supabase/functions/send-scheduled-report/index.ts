@@ -81,7 +81,9 @@ Deno.serve(async (req: Request) => {
     const runs = (Array.isArray(claimed) ? claimed : []) as ClaimedRun[];
     if (runs.length === 0) {
       log.done(200, { claimed: 0, sent: 0, failed: 0, dryRun });
-      return jsonResponse({ claimed: 0, sent: 0, failed: 0, dryRun }, 200, req);
+      // Bloco 5 (2026-08-21): propaga parsed.headers (x-contract-version/
+      // deprecated/sunset) — antes nunca chegava ao cliente.
+      return jsonResponse({ claimed: 0, sent: 0, failed: 0, dryRun }, 200, req, parsed.headers);
     }
 
     let sent = 0;
@@ -169,7 +171,7 @@ Deno.serve(async (req: Request) => {
     }
 
     log.done(200, { claimed: runs.length, sent, failed, dryRun });
-    return jsonResponse({ claimed: runs.length, sent, failed, dryRun }, 200, req);
+    return jsonResponse({ claimed: runs.length, sent, failed, dryRun }, 200, req, parsed.headers);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     log.error("Error processing scheduled reports", { error: errorMessage });

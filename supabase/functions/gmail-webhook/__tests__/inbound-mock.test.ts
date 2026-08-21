@@ -109,6 +109,11 @@ Deno.test("gmail-webhook inbound: push válido → 200 ok + grava gmail_threads/
   reset(); account = { ...ACCOUNT }; watch = { history_id: "h-100" };
   const res = await push(pushBody(), PUSH_TOKEN);
   assertEquals(res.status, 200);
+  // Auto-detecção (nenhuma versão pedida) tenta v2→v1; este fixture só casa com v1,
+  // que está em janela de sunset (2027-06-01) → resposta carrega deprecated+sunset.
+  assertEquals(res.headers.get("x-contract-version"), "v1");
+  assertEquals(res.headers.get("x-contract-deprecated"), "true");
+  assertEquals(res.headers.get("sunset"), "2027-06-01");
   assertEquals(await res.json(), { ok: true });
   // processHistory: history + message fetchados da Gmail API
   assertEquals(gmailApiCalls, ["history", "message"]);

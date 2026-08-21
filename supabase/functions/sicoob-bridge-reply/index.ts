@@ -125,7 +125,9 @@ Deno.serve(async (req) => {
 
     const result = await response.json();
     log.done(200);
-    return jsonResponse({ success: true, sicoob_response: result }, 200, req);
+    // Bloco 5 (2026-08-21): propaga x-contract-version/deprecated/sunset
+    // (parsed.headers) — antes desses headers nunca chegavam ao cliente.
+    return jsonResponse({ success: true, sicoob_response: result }, 200, req, parsed.headers);
 
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {

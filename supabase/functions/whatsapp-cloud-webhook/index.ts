@@ -376,7 +376,9 @@ Deno.serve(async (req) => {
         statusesUpdated, statusesSkipped, statusesOrphan,
         duplicate: duplicates > 0, requestId: rid,
       }),
-      { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
+      // Bloco 5 (2026-08-21): propaga parsed.headers (x-contract-version/
+      // deprecated/sunset) — antes nunca chegava ao cliente.
+      { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json", ...parsed.headers } },
     );
   } catch (e) {
     console.error(`[whatsapp-cloud-webhook][${rid}] error`, e);
@@ -384,7 +386,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ ok: false, requestId: rid }),
       {
         status: 200, // ack para evitar retry-storm da Meta
-        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json", ...parsed.headers },
       },
     );
   }

@@ -149,7 +149,39 @@ const WEBHOOK_FIXTURES = [
         publishTime: "2026-08-04T00:00:00.000Z",
       },
     },
-  },];
+  },
+  {
+    // Bloco 5 (2026-08-21), etapa 56: sicoob-bridge/sicoob-bridge-reply
+    // entram na cobertura genérica de retrocompat (mesmo mecanismo dos 3
+    // webhooks externos acima — current=v2, v1 em janela de sunset).
+    name: "sicoob-bridge",
+    v2: {
+      action: "new_message",
+      message_id: "m1",
+      content: "Olá, tudo bem?",
+      version: "2.0",
+      timestamp: Date.now(),
+    },
+    v1: {
+      action: "new_message",
+      message_id: "m1",
+      content: "Olá, tudo bem?",
+    },
+  },
+  {
+    name: "sicoob-bridge-reply",
+    v2: {
+      contact_id: "c1",
+      content: "Resposta registrada",
+      version: "2.0",
+      timestamp: Date.now(),
+    },
+    v1: {
+      contact_id: "c1",
+      content: "Resposta registrada",
+    },
+  },
+];
 
 for (const { name, v2, v1 } of WEBHOOK_FIXTURES) {
   const sunsetV1 = CONTRACTS[name].sunset?.["v1"];

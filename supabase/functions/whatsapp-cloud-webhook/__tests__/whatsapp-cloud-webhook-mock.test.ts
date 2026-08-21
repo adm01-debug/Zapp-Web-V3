@@ -19,8 +19,17 @@ const signed = async (o: unknown) => { const raw = JSON.stringify(o); return pos
 const msg = (id: string) => ({ object: "whatsapp_business_account", entry: [{ id: "0", changes: [{ field: "messages", value: { messaging_product: "whatsapp", contacts: [{ wa_id: "5511999999999", profile: { name: "T" } }], messages: [{ from: "5511999999999", id, timestamp: "1723000000", type: "text", text: { body: "oi" } }] } }] }] });
 Deno.test("handshake: token certo→200+challenge, errado→403", async () => { const ok = await h(new Request("http://mock.local/w?hub.mode=subscribe&hub.verify_token=test-token&hub.challenge=ch123")); assertEquals(ok.status, 200); assertEquals(await ok.text(), "ch123");
   const bad = await h(new Request("http://mock.local/w?hub.mode=subscribe&hub.verify_token=errado&hub.challenge=ch123")); assertEquals(bad.status, 403); });
-Deno.test("POST assinatura válida → 200 + processada", async () => { const res = await signed(msg("wamid.1")); assertEquals(res.status, 200); const b = await res.json(); assertEquals(b.processed, 1); assertEquals(b.duplicate, false); });
+Deno.test("POST assinatura válida → 200 + processada", async () => { const res = await signed(msg("wamid.1")); assertEquals(res.status, 200);
+  // Auto-detecção (nenhuma versão pedida) tenta v2→v1; este fixture só casa com v1,
+  // que está em janela de sunset (2027-06-01) → resposta carrega deprecated+sunset.
+  assertEquals(res.headers.get("x-contract-version"), "v1");
+  assertEquals(res.headers.get("x-contract-deprecated"), "true");
+  assertEquals(res.headers.get("sunset"), "2027-06-01");
+  const b = await res.json(); assertEquals(b.processed, 1); assertEquals(b.duplicate, false); });
 Deno.test("assinatura inválida → 401", async () => { const res = await post(JSON.stringify(msg("wamid.2")), "sha256=deadbeef"); assertEquals(res.status, 401); });
 Deno.test("duplicado → duplicate:true (ledger webhook_events_processed)", async () => { const raw = JSON.stringify(msg("wamid.3")); const sig = await sign(raw); assertEquals((await (await post(raw, sig)).json()).processed, 1); const res = await post(raw, sig); const b = await res.json(); assertEquals(b.duplicate, true); assertEquals(b.duplicates, 1); assertEquals(b.processed, 0); });
 Deno.test("statuses sent/delivered/read → update evolution_messages", async () => { const p = { object: "whatsapp_business_account", entry: [{ id: "0", changes: [{ field: "statuses", value: { statuses: ["sent", "delivered", "read"].map((s, i) => ({ id: `wamid.ack.${i}`, status: s, timestamp: "1723000000", recipient_id: "5511999999999" })) } }] }] }; const res = await signed(p); const b = await res.json(); assertEquals(res.status, 200); assertEquals(b.statusesUpdated, 3); assertEquals(acked, ["sent", "delivered", "read"]); });
-Deno.test("notificação vazia (entry []) → 200 benigno", async () => { const res = await signed({ object: "whatsapp_business_account", entry: [] }); assertEquals(res.status, 200); assertEquals((await res.json()).benign, true); });
+Deno.test("notificação vazia (entry []) → 200 benigno", async () => { const res = await signed({ object: "whatsapp_business_account", entry: [] }); assertEquals(res.status, 200); assertEquals((await res.json()).benign, true);
+  // Caminho benigno responde ANTES do gate parseOrReject (evita 422/retry-storm da Meta
+  // para payload estruturalmente inofensivo) — por isso não carrega x-contract-version.
+  assertEquals(res.headers.get("x-contract-version"), null); });

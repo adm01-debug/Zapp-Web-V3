@@ -359,11 +359,19 @@ export function securityErrorResponse(
 }
 
 /** Standard JSON success response (with origin-validated CORS) */
-export function jsonResponse(data: unknown, status = 200, req?: Request) {
+/**
+ * Bloco 5 (2026-08-21, PLANO-100-CONTRATOS-EDGE): 4º parâmetro opcional
+ * `extraHeaders` — usado por webhooks versionados (v1/v2) para propagar
+ * `parsed.headers` (x-contract-version, x-contract-deprecated, sunset) na
+ * resposta de sucesso. Antes desse fix, ESSES headers nunca chegavam ao
+ * cliente em nenhuma função — o versionamento existia só no servidor.
+ * Aditivo: chamadas existentes (2-3 args) continuam idênticas.
+ */
+export function jsonResponse(data: unknown, status = 200, req?: Request, extraHeaders?: Record<string, string>) {
   const headers = req ? getCorsHeaders(req) : corsHeaders;
   return new Response(
     JSON.stringify(data),
-    { status, headers: { ...headers, 'Content-Type': 'application/json' } }
+    { status, headers: { ...headers, ...extraHeaders, 'Content-Type': 'application/json' } }
   );
 }
 
