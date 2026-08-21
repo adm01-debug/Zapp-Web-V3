@@ -4,24 +4,24 @@
  * Fluxo de reset de senha com aprovação admin (Etapa 55): admin/supervisor
  * aprova ou rejeita uma solicitação de reset. Cobertura:
  *
- *   - Contrato registrado (permissivo por design — handler valida negócio):
- *     campos aceitos, extras passam, null → 422 invalid_json no gate.
+ *   - Contrato registrado valida o consumo REAL: requestId (obrigatório),
+ *     action (enum approve|reject, obrigatório), rejectionReason (opcional).
  *   - Ordem de segurança: rate-limit (429) → requireAdminOrSupervisor
  *     (401 sem JWT / 403 não-admin) → gate 422 (auth ANTES do contrato —
  *     oracle da micro-auditoria de gates 2026-08-05).
  *   - "Token inválido → erro tratado": requestId inexistente → 404
  *     "Reset request not found"; request já processado → 409
- *     "Request already processed" (atomicidade .eq(status,'pending'));
- *     guarda de compatibilidade → 400 quando requestId/action faltam.
+ *     "Request already processed" (atomicidade .eq(status,'pending')).
  *   - Fluxo do token: generateLink (recovery, TTL 1h) + RPC
  *     `store_reset_token` (hash isolado via SECURITY DEFINER).
  *
- * DRIFT DOCUMENTADO (contrato registrado × consumo real): o schema
- * registrado (ApprovePasswordResetV1Schema) é placeholder permissivo com
- * campos `reset_id`/`request_id`/`approved`/`decision`, mas o handler lê
- * `requestId`/`action`/`rejectionReason`. A guarda de compatibilidade 400
- * no index.ts preserva o comportamento antigo — testada abaixo. Não
- * "corrigir" o schema sem ordem do integrador (regra de ouro do repo).
+ * DRIFT FECHADO (2026-08-21, Bloco 2/3 do PLANO-100-CONTRATOS-EDGE): o
+ * schema antigo era placeholder permissivo com campos `reset_id`/
+ * `request_id`/`approved`/`decision` — nunca lidos pelo handler (que sempre
+ * usou `requestId`/`action`/`rejectionReason`) nem enviados pelo único
+ * chamador real (`PasswordResetRequestsPanel.tsx`, confirmado por grep).
+ * O bloco 400 manual que compensava isso foi removido — o gate 422 agora
+ * reprova de verdade.
  */
 import { assertEquals, assertMatch, assert } from "jsr:@std/assert";
 import { z } from "https://esm.sh/zod@3.23.8";
@@ -50,14 +50,27 @@ Deno.test("Contract: approve-password-reset v1 — reject com rejectionReason �
   assertEquals(r.success, true);
 });
 
-Deno.test("Contract: approve-password-reset v1 — {} → aceito (placeholder permissivo; guard 400 no handler)", () => {
-  // GAP CONHECIDO: schema registrado é placeholder (tudo optional + passthrough).
-  // A proteção real contra body vazio é a guarda de compatibilidade 400 no
-  // index.ts (testada abaixo nas âncoras).
-  assertEquals(ApprovePasswordResetV1Schema.safeParse({}).success, true);
+Deno.test("Contract: approve-password-reset v1 — {} → rejeitado (requestId/action obrigatórios)", () => {
+  assertEquals(ApprovePasswordResetV1Schema.safeParse({}).success, false);
 });
 
-Deno.test("Contract: approve-password-reset v1 — campos do schema antigo → aceitos", () => {
+Deno.test("Contract: approve-password-reset v1 — apenas requestId (sem action) → rejeitado", () => {
+  assertEquals(ApprovePasswordResetV1Schema.safeParse({ requestId: UUID }).success, false);
+});
+
+Deno.test("Contract: approve-password-reset v1 — action fora do enum → rejeitado", () => {
+  const r = ApprovePasswordResetV1Schema.safeParse({ requestId: UUID, action: "delete" });
+  assertEquals(r.success, false);
+});
+
+Deno.test("Contract: approve-password-reset v1 — requestId vazio → rejeitado", () => {
+  assertEquals(ApprovePasswordResetV1Schema.safeParse({ requestId: "", action: "approve" }).success, false);
+});
+
+Deno.test("Contract: approve-password-reset v1 — campos do schema antigo (reset_id/approved/decision) → rejeitados", () => {
+  // Regressão do drift fechado: esses campos nunca foram lidos pelo handler
+  // nem enviados por nenhum chamador real — agora corretamente rejeitados
+  // (schema .strict()) em vez de aceitos silenciosamente.
   const r = ApprovePasswordResetV1Schema.safeParse({
     action: "approve",
     reset_id: UUID,
@@ -65,11 +78,11 @@ Deno.test("Contract: approve-password-reset v1 — campos do schema antigo → a
     approved: true,
     decision: "ok",
   });
-  assertEquals(r.success, true);
+  assertEquals(r.success, false);
 });
 
-Deno.test("Contract: approve-password-reset v1 — campo extra → aceito (.passthrough())", () => {
-  assertEquals(ApprovePasswordResetV1Schema.safeParse({ requestId: UUID, hack: true }).success, true);
+Deno.test("Contract: approve-password-reset v1 — campo extra desconhecido → rejeitado (.strict())", () => {
+  assertEquals(ApprovePasswordResetV1Schema.safeParse({ requestId: UUID, action: "approve", hack: true }).success, false);
 });
 
 Deno.test("Contract: approve-password-reset v1 — null → rejeitado (zod object)", () => {
@@ -100,7 +113,7 @@ Deno.test("Contract: approve-password-reset v1 — gate: body null → 422 inval
   }
 });
 
-Deno.test("Contract: approve-password-reset v1 — gate: payload válido → ok (permissivo)", () => {
+Deno.test("Contract: approve-password-reset v1 — gate: payload válido → ok", () => {
   const r = parseOrReject(
     "approve-password-reset",
     CONTRACT_SCHEMAS["approve-password-reset"],
@@ -139,10 +152,11 @@ Deno.test("Contract: approve-password-reset v1 — request já processado → 40
   assertMatch(SOURCE, /\.eq\("status", "pending"\)/); // guard atômico (2x: approve + reject)
 });
 
-Deno.test("Contract: approve-password-reset v1 — guarda de compatibilidade 400 (requestId/action)", () => {
-  const block = extractBlock(SOURCE, "Guarda de compatibilidade", { maxSize: 1500 });
-  assertMatch(block, /requestId/);
-  assertMatch(block, /400, req\)/);
+Deno.test("Contract: approve-password-reset v1 — sem guarda 400 manual (gate 422 já reprova)", () => {
+  // Regressão do drift fechado: o bloco 400 manual foi removido do
+  // index.ts — requestId/action ausentes ou inválidos agora batem no
+  // gate 422 canônico (parseOrReject), nunca chegam a esta função.
+  assertEquals(/Guarda de compatibilidade/.test(SOURCE), false);
 });
 
 Deno.test("Contract: approve-password-reset v1 — geração do token: generateLink + store_reset_token", () => {

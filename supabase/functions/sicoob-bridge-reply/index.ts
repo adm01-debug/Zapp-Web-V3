@@ -44,14 +44,16 @@ Deno.serve(async (req) => {
       extraHeaders: getCorsHeaders(req),
     });
     if (parsed.ok === false) return parsed.response;
+    // Bloco 2/3 (2026-08-21): schema agora exige contact_id/content de
+    // verdade — o 422 canônico já reprova payload inválido; o bloco 400
+    // manual que existia foi removido.
     const body = parsed.data as Record<string, any>;
-
-    // Guarda de compatibilidade: schema registrado é permissivo (placeholder);
-    // preserva o 400 do antigo parseBody(SicoobBridgeReplySchema).
-    const { contact_id, content, message_id, created_at } = body;
-    if (typeof contact_id !== 'string' || contact_id.length === 0 || typeof content !== 'string' || content.length === 0) {
-      return errorResponse('contact_id: Required, content: Required', 400, req);
-    }
+    const { contact_id, content, message_id, created_at } = body as {
+      contact_id: string;
+      content: string;
+      message_id?: string;
+      created_at?: string;
+    };
     // For service-role callers the body may carry agent_id; for user callers use JWT identity.
     if (!agent_id) agent_id = (body.agent_id as string | undefined) ?? null;
 

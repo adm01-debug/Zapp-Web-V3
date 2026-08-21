@@ -23,14 +23,16 @@ Deno.serve(async (req) => {
       extraHeaders: getCorsHeaders(req),
     });
     if (parsed.ok === false) return parsed.response;
-    const body = parsed.data as Record<string, any>;
-
-    // Guarda de compatibilidade: schema registrado é permissivo (placeholder);
-    // preserva o 400 do antigo parseBody(ElevenLabsTTSSchema).
-    const { text, voiceId, modelId, languageCode, applyTextNormalization } = body;
-    if (typeof text !== 'string' || text.length === 0 || text.length > 10000) {
-      return errorResponse('text: Required (1..10000)', 400, req);
-    }
+    // Bloco 2/3 (2026-08-21): schema agora valida text/voiceId/modelId/
+    // languageCode/applyTextNormalization de verdade — o 422 canônico já
+    // reprova payload inválido; o bloco 400 manual que existia foi removido.
+    const { text, voiceId, modelId, languageCode, applyTextNormalization } = parsed.data as {
+      text: string;
+      voiceId?: string;
+      modelId?: string;
+      languageCode?: string;
+      applyTextNormalization?: string;
+    };
     const ELEVENLABS_API_KEY = requireEnv("ELEVENLABS_API_KEY");
 
     const selectedVoiceId = voiceId || 'TY3h8ANhQUsJaa0Bga5F';

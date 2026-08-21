@@ -601,15 +601,17 @@ export const ElevenLabsTtsV1Schema = z.object({
    }),
  ]);
 
- /** sicoob-bridge-reply@v1 — valida no index.ts. Schema de registro. */
- /**
- * sicoob-bridge-reply@v1 — real. Consumo (SicoobBridgeReplySchema):
- * { contact_id, content, message_id, created_at?, agent_id? }.
- * Ponte externa (dual-mode) → permissivo.
+/**
+ * sicoob-bridge-reply@v1 — Bloco 2/3 (2026-08-21): contact_id/content
+ * eram `.optional()`, mas o handler sempre exigiu os dois (bloco 400
+ * manual: "typeof contact_id !== 'string' || ... || typeof content !==
+ * 'string' || ..."). Agora obrigatórios no schema — o 422 canônico já
+ * reprova; o bloco 400 manual foi removido. message_id/created_at/
+ * agent_id continuam opcionais (agent_id vem do JWT quando ausente).
  */
 export const SicoobBridgeReplyV1Schema = z.object({
-  contact_id: z.string().optional(),
-  content: z.string().optional(),
+  contact_id: z.string().min(1, "contact_id é obrigatório"),
+  content: z.string().min(1, "content é obrigatório"),
   message_id: z.string().optional(),
   created_at: z.string().optional(),
   agent_id: z.string().optional(),
@@ -741,46 +743,51 @@ export const SicoobBridgeReplyV2Schema = SicoobBridgeReplyV1Schema.extend({
 
  /** ai-auto-tag@v1 — schema em _shared/schemas.ts. Schema de registro. */
  
- /** elevenlabs-tts-stream@v1 — streaming; body validado no handler. Schema de registro. */
- /**
- * elevenlabs-tts-stream@v1 — real. Consumo: { action?, text, voice_id?,
- * model_id?, speed?, stability?, similarity? }. Externo → permissivo.
+/**
+ * elevenlabs-tts-stream@v1 — Bloco 2/3 (2026-08-21): schema antigo validava
+ * voice_id/model_id (snake_case) e speed/stability/similarity (campos que
+ * o handler nunca leu — voice_settings é hardcoded). O consumo real é
+ * `{ text, voiceId?, modelId?, languageCode?, applyTextNormalization? }`
+ * (camelCase, ver index.ts). A validação de verdade vivia num bloco 400
+ * manual, removido junto com este fix.
  */
 export const ElevenLabsTtsStreamV1Schema = z.object({
-  action: z.string().optional(),
-  text: z.string().optional(),
-  voice_id: z.string().optional(),
-  model_id: z.string().optional(),
-  speed: z.number().optional(),
-  stability: z.number().optional(),
-  similarity: z.number().optional(),
-}).passthrough();
+  text: z.string().min(1, "text é obrigatório").max(10000),
+  voiceId: z.string().min(1).optional(),
+  modelId: z.string().min(1).optional(),
+  languageCode: z.string().max(10).optional(),
+  applyTextNormalization: z.string().max(20).optional(),
+}).strict();
 
- /** elevenlabs-sfx@v1 — valida no index.ts. Schema de registro. */
- /**
- * elevenlabs-sfx@v1 — real. Consumo: { action?, text, duration_seconds?,
- * prompt_influence? }. Externo → permissivo.
+/**
+ * elevenlabs-sfx@v1 — Bloco 2/3 (2026-08-21): schema antigo validava
+ * text/duration_seconds/prompt_influence — esses são campos do body de
+ * SAÍDA (para a API da ElevenLabs), não do body de ENTRADA do cliente. O
+ * consumo real é `{ prompt, duration?, mode? }` (ver index.ts e o único
+ * chamador, src/components/settings/media-library/AIGenerateDialog.tsx).
+ * A validação de verdade vivia num bloco 400 manual, removido junto.
  */
 export const ElevenLabsSfxV1Schema = z.object({
-  action: z.string().optional(),
-  text: z.string().optional(),
-  duration_seconds: z.number().optional(),
-  prompt_influence: z.number().optional(),
-}).passthrough();
+  prompt: z.string().min(1, "prompt é obrigatório").max(2000),
+  duration: z.number().positive().max(300).optional(),
+  mode: z.enum(["sfx", "music"]).optional(),
+}).strict();
 
- /** elevenlabs-dialogue@v1 — valida no index.ts. Schema de registro. */
- /**
- * elevenlabs-dialogue@v1 — real. Consumo: roteado por action (dialogue/tts).
- * Externo (ElevenLabs) → permissivo; campos conhecidos tipados opcionais.
+/**
+ * elevenlabs-dialogue@v1 — Bloco 2/3 (2026-08-21): schema antigo validava
+ * action/text/voice_id/model_id/dialogue (nenhum lido pelo index.ts) — o
+ * consumo real é `{ script: [{voice_id, text}], languageCode? }` (ver
+ * index.ts e o único chamador, src/components/voice/ElevenLabsDialogue.tsx).
+ * A validação de verdade vivia num bloco 400 manual, removido junto com
+ * este fix.
  */
 export const ElevenLabsDialogueV1Schema = z.object({
-  action: z.string().optional(),
-  text: z.string().optional(),
-  voice_id: z.string().optional(),
-  model_id: z.string().optional(),
-  voice_settings: z.unknown().optional(),
-  dialogue: z.unknown().optional(),
-}).passthrough();
+  script: z.array(z.object({
+    voice_id: z.string().min(1),
+    text: z.string().min(1),
+  })).min(1, "script precisa de ao menos 1 fala").max(100, "script aceita no máximo 100 falas"),
+  languageCode: z.string().max(10).optional(),
+}).strict();
 
  /**
   * create-user@v1 — schema REAL (espelha o antigo bodySchema local, agora
@@ -802,19 +809,19 @@ export const ElevenLabsDialogueV1Schema = z.object({
    dropbox_email: z.string().email("Email Dropbox inválido").max(255).optional(),
    }).passthrough();
 
-   /** approve-password-reset@v1 — valida no index.ts. Schema de registro. */
- /**
- * approve-password-reset@v1 — real. Consumo: { action (default 'approve'),
- * reset_id?/request_id?, approved?/decision? }. Endpoint interno →
- * permissivo (handler valida os campos).
+/**
+ * approve-password-reset@v1 — Bloco 2/3 (2026-08-21): schema antigo validava
+ * reset_id/request_id (snake_case) e approved/decision — campos que o
+ * handler NUNCA leu; o campo real é `requestId` (camelCase), e a validação
+ * de verdade vivia num bloco 400 manual logo após o gate (`index.ts`,
+ * "Guarda de compatibilidade: schema registrado é permissivo"). Reescrito
+ * para refletir o consumo real do index.ts — o bloco manual foi removido.
  */
 export const ApprovePasswordResetV1Schema = z.object({
-  action: z.string().optional(),
-  reset_id: z.string().optional(),
-  request_id: z.string().optional(),
-  approved: z.boolean().optional(),
-  decision: z.string().optional(),
-}).passthrough();
+  requestId: z.string().min(1, "requestId é obrigatório"),
+  action: z.enum(["approve", "reject"]),
+  rejectionReason: z.string().max(1000).optional(),
+}).strict();
 
 /**
  * request-password-reset@v1 — solicitação PÚBLICA de reset (Etapa 55).

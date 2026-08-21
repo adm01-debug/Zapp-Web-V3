@@ -225,13 +225,17 @@ const MATRICES: IntegrationCase[] = [
     name: "sicoob-bridge-reply",
     valid: [
       { contact_id: "c1", content: "Oi", message_id: "m1" },
-      {}, // todos os campos opcionais (dual-mode)
+      { contact_id: "c1", content: "Oi" }, // message_id/created_at/agent_id opcionais
     ],
     extraPass: [
       { contact_id: "c1", content: "x", created_at: "2026-01-01T00:00:00Z", agent_id: "a1", extra_field: true }, // extras passam
     ],
     invalid: [
       { label: "body primitivo (string)", payload: "x" },
+      // Bloco 2/3 (2026-08-21): contact_id/content viraram obrigatórios —
+      // {} era aceito antes do fix do drift (schema tinha os dois optional
+      // enquanto o handler sempre exigiu ambos via bloco 400 manual).
+      { label: "{} sem contact_id/content", payload: {} },
     ],
   },
   {

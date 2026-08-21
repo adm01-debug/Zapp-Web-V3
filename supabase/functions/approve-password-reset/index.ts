@@ -87,14 +87,14 @@ Deno.serve(async (req) => {
       extraHeaders: getCorsHeaders(req),
     });
     if (parsed.ok === false) return parsed.response;
-    const body = parsed.data as Record<string, any>;
-
-    // Guarda de compatibilidade: schema registrado é permissivo (placeholder);
-    // preserva o 400 do antigo parseBody(ApprovePasswordResetSchema).
-    const { requestId, action, rejectionReason } = body;
-    if (typeof requestId !== 'string' || requestId.length === 0 || (action !== 'approve' && action !== 'reject')) {
-      return errorResponse('requestId: Required, action: Required (approve|reject)', 400, req);
-    }
+    // Bloco 2/3 (2026-08-21): schema agora valida requestId/action de verdade
+    // (ver contract-schemas.ts) — o 422 canônico já reprova payload inválido
+    // antes daqui; o bloco 400 manual que existia foi removido.
+    const { requestId, action, rejectionReason } = parsed.data as {
+      requestId: string;
+      action: 'approve' | 'reject';
+      rejectionReason?: string;
+    };
     const supabaseAdmin = createZappAdminClient();
 
     log.info(`Processing ${action} for request ${requestId}`);
