@@ -616,6 +616,10 @@ export function ChatPanel({
   return (
     <div
       data-testid="chat-window"
+      // Etapa 96 (E2E follow-up): expõe o JID resolvido para o teste de
+      // broadcast de digitação simular o canal `typing:${jid}` correto sem
+      // depender de um contato fixo no fixture de E2E.
+      data-contact-jid={contactJid}
       className={`relative flex h-full min-h-0 min-w-0 overflow-hidden bg-muted/20 antialiased`}
       {...dragHandlers}
     >
