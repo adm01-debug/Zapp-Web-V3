@@ -52,6 +52,8 @@ interface ChatHeaderProps {
   failuresOnly?: boolean;
   onToggleFailuresOnly?: () => void;
   failuresCount?: number;
+  /** Indica que há mensagens mais antigas não carregadas — sufixo "+" no contador. */
+  hasMoreOlder?: boolean;
   onOpenWhisper?: () => void;
   whisperCount?: number;
   onOpenValidation?: () => void;
@@ -78,6 +80,7 @@ export const ChatHeader = memo(function ChatHeader({
   failuresOnly,
   onToggleFailuresOnly,
   failuresCount,
+  hasMoreOlder,
   onOpenWhisper,
   whisperCount,
   onOpenValidation,
@@ -412,6 +415,7 @@ export const ChatHeader = memo(function ChatHeader({
           onToggleFailuresOnly={onToggleFailuresOnly}
           failuresOnly={failuresOnly}
           failuresCount={failuresCount}
+          hasMoreOlder={hasMoreOlder}
           onCloseConversation={onCloseConversation}
         />
       </div>

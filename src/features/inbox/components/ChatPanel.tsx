@@ -525,6 +525,7 @@ export function ChatPanel({
             onCloseConversation={() => openDialog('closeDialog')}
             failuresOnly={failuresOnly}
             failuresCount={failedMessages.length}
+            hasMoreOlder={hasMoreOlder}
             onToggleFailuresOnly={() => setFailuresOnly((v) => !v)}
             activeTool={activeTool}
             whisperCount={whisperCount}
@@ -581,6 +582,7 @@ export function ChatPanel({
           categoryCounts={categoryCounts}
           setFailureCategory={setFailureCategory}
           setFailuresOnly={setFailuresOnly}
+          hasMoreOlder={hasMoreOlder}
         />
 
         <ChatPanelOverlays

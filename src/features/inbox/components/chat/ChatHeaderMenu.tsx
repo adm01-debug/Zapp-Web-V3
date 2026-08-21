@@ -27,6 +27,8 @@ interface ChatHeaderMenuProps {
   onToggleFailuresOnly?: () => void;
   failuresOnly?: boolean;
   failuresCount?: number;
+  /** Indica que há mensagens mais antigas não carregadas — sufixo "+" no contador. */
+  hasMoreOlder?: boolean;
   onCloseConversation?: () => void;
 }
 
@@ -38,6 +40,7 @@ export function ChatHeaderMenu({
   onToggleFailuresOnly,
   failuresOnly,
   failuresCount,
+  hasMoreOlder = false,
   onCloseConversation,
 }: ChatHeaderMenuProps) {
   return (
@@ -77,7 +80,7 @@ export function ChatHeaderMenu({
           className={cn(failuresOnly && 'font-medium text-destructive')}
         >
           <XCircle className="mr-2 h-4 w-4" />
-          {failuresOnly ? 'Ocultar Falhas' : `Ver Falhas (${failuresCount || 0})`}
+          {failuresOnly ? 'Ocultar Falhas' : `Ver Falhas (${failuresCount || 0}${hasMoreOlder ? '+' : ''})`}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled>

@@ -13,6 +13,8 @@ interface FailureFilterBarProps {
   };
   setFailureCategory: (category: FailureCategory | null) => void;
   setFailuresOnly: (value: boolean) => void;
+  /** Indica que há mais mensagens não carregadas — exibe "X+" na aba Todas. */
+  hasMoreOlder?: boolean;
 }
 
 /** Failure Filter Bar component for the chat section. */
@@ -24,6 +26,7 @@ export function FailureFilterBar({
   categoryCounts,
   setFailureCategory,
   setFailuresOnly,
+  hasMoreOlder = false,
 }: FailureFilterBarProps) {
   if (!failuresOnly) return null;
 
@@ -62,7 +65,7 @@ export function FailureFilterBar({
                 }
               >
                 {label}
-                <span className="opacity-70">({count})</span>
+                <span className="opacity-70">({count}{key === null && hasMoreOlder ? '+' : ''})</span>
               </button>
             );
           })}
