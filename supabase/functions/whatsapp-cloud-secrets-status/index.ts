@@ -1,7 +1,7 @@
 // Reporta presença (não valor!) dos secrets necessários para o modo OFICIAL.
 // Usado pela tela /admin/settings/whatsapp-mode para sinalizar o que falta.
 import { createZappClient } from '../_shared/db-client.ts';
-import { corsHeaders } from "../_shared/validation.ts";
+import { corsHeaders, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
   // Contrato whatsapp-cloud-secrets-status@v1: status admin — handler não lê
   // corpo (GET sem body; POST tolerado). Schema permissivo — nunca bloqueia.
   let body: unknown = {};
-  if (req.method === "POST") body = await req.json().catch(() => ({}));
+  if (req.method === "POST") body = await readJsonBodyOrEmpty(req);
   const parsed = parseOrReject('whatsapp-cloud-secrets-status', CONTRACT_SCHEMAS['whatsapp-cloud-secrets-status'], req, body, {
     extraHeaders: corsHeaders,
   });

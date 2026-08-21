@@ -3,13 +3,14 @@ import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { readJsonBodyOrEmpty } from '../_shared/validation.ts';
 
 Deno.serve(async (req: Request) => {
   const authError = requireServiceRoleOrCron(req);
   if (authError) return authError;
 
   // Contrato lgpd-scheduled-jobs@v1 (G4): cron/GET sem body → {} aceito.
-  const parsed = parseOrReject('lgpd-scheduled-jobs', CONTRACT_SCHEMAS['lgpd-scheduled-jobs'], req, await req.json().catch(() => ({})), {
+  const parsed = parseOrReject('lgpd-scheduled-jobs', CONTRACT_SCHEMAS['lgpd-scheduled-jobs'], req, await readJsonBodyOrEmpty(req), {
     extraHeaders: getCorsHeaders(req),
   });
   if (parsed.ok === false) return parsed.response;

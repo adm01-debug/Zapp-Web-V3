@@ -19,9 +19,11 @@ const FUNCTIONS = "supabase/functions";
 Deno.test("PR1339: lgpd-scheduled-jobs importa requireServiceRoleOrCron de _shared/auth.ts", async () => {
   const src = await Deno.readTextFile(`${FUNCTIONS}/lgpd-scheduled-jobs/index.ts`);
   const hasAuthImport = /import\s*\{[^}]*requireServiceRoleOrCron[^}]*\}\s*from\s*["']\.\.\/_shared\/auth\.ts["']/.test(src);
-  const hasWrongImport = /["']\.\.\/_shared\/validation\.ts["']/.test(src);
+  // O bug original era requireServiceRoleOrCron vindo de validation.ts (não existe lá).
+  // Não proíbe importar OUTRAS coisas de validation.ts (ex.: readJsonBodyOrEmpty, 2026-08-21).
+  const hasWrongImport = /import\s*\{[^}]*requireServiceRoleOrCron[^}]*\}\s*from\s*["']\.\.\/_shared\/validation\.ts["']/.test(src);
   assert(hasAuthImport, "deve importar requireServiceRoleOrCron de _shared/auth.ts");
-  assert(!hasWrongImport, "não deve importar de _shared/validation.ts");
+  assert(!hasWrongImport, "requireServiceRoleOrCron não deve vir de _shared/validation.ts");
 });
 
 // (2) health-check: resposta usa latency_ms — o type literal agora declara a prop.

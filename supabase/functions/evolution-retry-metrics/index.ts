@@ -3,6 +3,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { EvolutionRetryMetricsV1Schema } from '../_shared/contract-schemas.ts';
+import { readJsonBodyOrEmpty } from '../_shared/validation.ts';
 
 interface RetryRow {
   id: string;
@@ -80,7 +81,7 @@ Deno.serve(async (req) => {
 
   try {
     // Contrato evolution-retry-metrics@v1 (estrito): GET admin sem body → {} aceito.
-    const parsed = parseOrReject('evolution-retry-metrics', { v1: EvolutionRetryMetricsV1Schema }, req, await req.json().catch(() => ({})), {
+    const parsed = parseOrReject('evolution-retry-metrics', { v1: EvolutionRetryMetricsV1Schema }, req, await readJsonBodyOrEmpty(req), {
       extraHeaders: getCorsHeaders(req),
     });
     if (parsed.ok === false) return parsed.response;

@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getCorsHeaders, requireEnv } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getCorsHeaders, requireEnv, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor, timingSafeStringEqual } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -207,7 +207,7 @@ Deno.serve(async (req) => {
 
     // Allow targeting a single instance (manual "Verificar agora" do card).
     // Contrato connection-health-check@v1 (estrito): GET sem body → {} aceito; POST { instanceName? }.
-    const parsed = parseOrReject('connection-health-check', { v1: ConnectionHealthCheckV1Schema }, req, await req.json().catch(() => ({})), {
+    const parsed = parseOrReject('connection-health-check', { v1: ConnectionHealthCheckV1Schema }, req, await readJsonBodyOrEmpty(req), {
       extraHeaders: getCorsHeaders(req),
     });
     if (parsed.ok === false) return parsed.response;

@@ -9,7 +9,7 @@
 //   GET /functions/v1/health          → JSON detalhado
 //   GET /functions/v1/health?probe=1  → texto curto (OK | FAIL)
 
-import { corsHeaders } from '../_shared/validation.ts';
+import { corsHeaders, readJsonBodyOrEmpty } from '../_shared/validation.ts';
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { evolutionClient } from '../_shared/providers/evolution/index.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   // Contrato health@v1 (estrito): probe GET sem body → {} aceito.
-  const parsed = parseOrReject('health', { v1: HealthV1Schema }, req, await req.json().catch(() => ({})), {
+  const parsed = parseOrReject('health', { v1: HealthV1Schema }, req, await readJsonBodyOrEmpty(req), {
     extraHeaders: corsHeaders,
   });
   if (parsed.ok === false) return parsed.response;

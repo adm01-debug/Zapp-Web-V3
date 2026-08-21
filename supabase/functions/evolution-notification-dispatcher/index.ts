@@ -45,6 +45,7 @@ import { parseOrReject } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 import { getSecret } from '../_shared/vault.ts';
 import { fetchWithRetry } from '../_shared/retry-with-backoff.ts';
+import { readJsonBodyOrEmpty } from '../_shared/validation.ts';
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -389,7 +390,7 @@ Deno.serve(async (req) => {
   if (authErr) return authErr;
 
   // Contrato evolution-notification-dispatcher@v1 — cron sem body → {} aceito.
-  const parsed = parseOrReject('evolution-notification-dispatcher', CONTRACT_SCHEMAS['evolution-notification-dispatcher'], req, await req.json().catch(() => ({})), {
+  const parsed = parseOrReject('evolution-notification-dispatcher', CONTRACT_SCHEMAS['evolution-notification-dispatcher'], req, await readJsonBodyOrEmpty(req), {
     extraHeaders: getCorsHeaders(req),
   });
   if (parsed.ok === false) return parsed.response;

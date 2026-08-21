@@ -1,5 +1,5 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
-import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
+import { getCorsHeaders, handleCors, Logger, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
   const log = new Logger("recover-corrupted-audios");
 
   try {
-    const raw = await req.json().catch(() => ({}));
+    const raw = await readJsonBodyOrEmpty(req);
     const parsed = parseOrReject('recover-corrupted-audios', CONTRACT_SCHEMAS['recover-corrupted-audios'], req, raw, { extraHeaders: getCorsHeaders(req) });
     if (parsed.ok === false) return parsed.response;
     const { batch_size = 20, offset = 0, dry_run = false } = parsed.data as Record<string, any>;

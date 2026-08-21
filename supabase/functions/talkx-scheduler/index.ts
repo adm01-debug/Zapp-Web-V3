@@ -3,7 +3,7 @@
  * Called by pg_cron every minute
  */
 import { createZappAdminClient } from '../_shared/db-client.ts';
-import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
+import { getCorsHeaders, handleCors, Logger, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
   if (denied) return denied;
 
   // Contrato talkx-scheduler@v1 (G4): cron sem body → {} aceito.
-  const parsed = parseOrReject('talkx-scheduler', CONTRACT_SCHEMAS['talkx-scheduler'], req, await req.json().catch(() => ({})), {
+  const parsed = parseOrReject('talkx-scheduler', CONTRACT_SCHEMAS['talkx-scheduler'], req, await readJsonBodyOrEmpty(req), {
     extraHeaders: getCorsHeaders(req),
   });
   if (parsed.ok === false) return parsed.response;

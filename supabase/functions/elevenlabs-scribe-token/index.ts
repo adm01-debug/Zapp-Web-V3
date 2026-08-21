@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
     if (authed instanceof Response) return authed;
 
     // Contrato elevenlabs-scribe-token@v1 (G4): GET sem body → {} aceito.
-    const parsed = parseOrReject('elevenlabs-scribe-token', CONTRACT_SCHEMAS['elevenlabs-scribe-token'], req, await req.json().catch(() => ({})), {
+    const parsed = parseOrReject('elevenlabs-scribe-token', CONTRACT_SCHEMAS['elevenlabs-scribe-token'], req, await readJsonBodyOrEmpty(req), {
       extraHeaders: getCorsHeaders(req),
     });
     if (parsed.ok === false) return parsed.response;

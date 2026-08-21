@@ -5,6 +5,7 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { readJsonBodyOrEmpty } from '../_shared/validation.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 import { evolutionClient } from '../_shared/providers/evolution/index.ts';
@@ -22,7 +23,7 @@ Deno.serve(async (req) => {
   if (authErr) return authErr;
 
   // Contrato nps-scheduler@v1 (G4): cron sem body → {} aceito.
-  const parsed = parseOrReject('nps-scheduler', CONTRACT_SCHEMAS['nps-scheduler'], req, await req.json().catch(() => ({})), {
+  const parsed = parseOrReject('nps-scheduler', CONTRACT_SCHEMAS['nps-scheduler'], req, await readJsonBodyOrEmpty(req), {
     extraHeaders: getCorsHeaders(req),
   });
   if (parsed.ok === false) return parsed.response;

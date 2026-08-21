@@ -23,6 +23,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { evolutionClient } from "../_shared/providers/evolution/index.ts";
+import { readJsonBodyOrEmpty } from "../_shared/validation.ts";
 
 const DEFAULT_LIMIT = 50;
 
@@ -54,7 +55,7 @@ Deno.serve(async (req: Request) => {
   }
 
   // Cron chama sem body; {} é aceito. Contrato csat-dispatch@v1.
-  const parsed = parseOrReject("csat-dispatch", CONTRACT_SCHEMAS["csat-dispatch"], req, await req.json().catch(() => ({})), {
+  const parsed = parseOrReject("csat-dispatch", CONTRACT_SCHEMAS["csat-dispatch"], req, await readJsonBodyOrEmpty(req), {
     extraHeaders: getCorsHeaders(req),
   });
   if (parsed.ok === false) return parsed.response;

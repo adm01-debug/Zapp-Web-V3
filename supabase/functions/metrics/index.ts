@@ -8,6 +8,7 @@
 // =====================================================================
 import { timingSafeStringEqual, requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { MetricsV1Schema } from "../_shared/contract-schemas.ts";
 
@@ -159,7 +160,7 @@ Deno.serve(async (req) => {
     if (denied) return denied;
   }
   // Contrato metrics@v1 (estrito): scrape GET sem body → {} aceito.
-  const parsed = parseOrReject('metrics', { v1: MetricsV1Schema }, req, await req.json().catch(() => ({})), {
+  const parsed = parseOrReject('metrics', { v1: MetricsV1Schema }, req, await readJsonBodyOrEmpty(req), {
     extraHeaders: getCorsHeaders(req),
   });
   if (parsed.ok === false) return parsed.response;

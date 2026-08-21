@@ -63,6 +63,7 @@ import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
+import { readJsonBodyOrEmpty } from '../_shared/validation.ts';
 const VERIFY_TOKEN = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN") ?? "";
 const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '';
 
@@ -87,7 +88,7 @@ Deno.serve(async (req) => {
   // Contrato whatsapp-cloud-webhook-verify@v1: diagnóstico interno — handler
   // não lê corpo (handshake via query string). Schema permissivo guarda POSTs.
   let body: unknown = {};
-  if (req.method === "POST") body = await req.json().catch(() => ({}));
+  if (req.method === "POST") body = await readJsonBodyOrEmpty(req);
   const parsed = parseOrReject('whatsapp-cloud-webhook-verify', CONTRACT_SCHEMAS['whatsapp-cloud-webhook-verify'], req, body, {
     extraHeaders: getCorsHeaders(req),
   });

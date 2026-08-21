@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     if (authed instanceof Response) return authed;
 
     // Contrato get-sip-password@v1 (G4): GET sem body → {} aceito.
-    const parsed = parseOrReject('get-sip-password', CONTRACT_SCHEMAS['get-sip-password'], req, await req.json().catch(() => ({})), {
+    const parsed = parseOrReject('get-sip-password', CONTRACT_SCHEMAS['get-sip-password'], req, await readJsonBodyOrEmpty(req), {
       extraHeaders: getCorsHeaders(req),
     });
     if (parsed.ok === false) return parsed.response;

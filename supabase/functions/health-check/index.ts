@@ -3,11 +3,12 @@ import { parseOrReject } from '../_shared/contract-kit.ts';
 import { HealthCheckV1Schema } from '../_shared/contract-schemas.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { readJsonBodyOrEmpty } from '../_shared/validation.ts';
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
   // Contrato health-check@v1 (estrito): probe GET sem body → {} aceito.
-  const parsed = parseOrReject('health-check', { v1: HealthCheckV1Schema }, req, await req.json().catch(() => ({})), {
+  const parsed = parseOrReject('health-check', { v1: HealthCheckV1Schema }, req, await readJsonBodyOrEmpty(req), {
     extraHeaders: getCorsHeaders(req),
   });
   if (parsed.ok === false) return parsed.response;
