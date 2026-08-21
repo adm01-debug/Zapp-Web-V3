@@ -717,9 +717,10 @@ export function ChatPanel({
           onSendProduct={handlers.handleSendProduct}
           onSetInputValue={handlers.setInputValue}
           onSelectSearchResult={(result) => {
-            // BUG-24: resultado de mensagem navega direto na conversa;
-            // demais tipos (contato, acao, crm) mostram um toast informativo.
-            if (result.type === 'message' && result.id) {
+            // Etapa 51: BUG-24 residual — navegar de verdade em vez de toast morto.
+            // 'transcription' usa o mesmo scroll de 'message' (ligado ao id da mensagem).
+            if (result.type === 'message' || result.type === 'transcription') {
+              if (!result.id) return;
               if (failuresOnly && !failedMessages.some((m) => m.id === result.id)) {
                 toast({
                   title: 'Mensagem oculta pelo filtro',
@@ -728,9 +729,11 @@ export function ChatPanel({
                 return;
               }
               messagesAreaRef.current?.scrollToMessage(result.id);
-            } else {
-              toast({ title: 'Resultado', description: result.title });
+            } else if (result.action) {
+              // contact/action/crm: a camada de dados já embutiu a ação de navegação.
+              result.action();
             }
+            // sem ação definida e sem id navegável → silencioso (sem toast morto)
           }}
         />
       </div>
