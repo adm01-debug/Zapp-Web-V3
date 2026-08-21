@@ -15,6 +15,7 @@
  */
 
 import { assertEquals, assert } from "jsr:@std/assert";
+import { z } from "https://esm.sh/zod@3.23.8";
 import {
   parseOrReject,
   buildContractErrorBody,
@@ -199,6 +200,39 @@ Deno.test("requestId propaga para o envelope quando fornecido", () => {
   assertEquals(eb.requestId, "req-123");
   const eb2 = buildContractErrorBody("talkx-send", "v1", "contract_violation", "x", []);
   assertEquals("requestId" in eb2, false, "requestId ausente não deve virar undefined serializado");
+});
+
+// ─── Etapa 28 (Bloco 2, A3) — truncamento de details sinalizado, não escondido ──
+
+Deno.test("truncated: buildContractErrorBody só inclui a chave quando true", () => {
+  const truncated = buildContractErrorBody("talkx-send", "v1", "contract_violation", "x", [], undefined, true);
+  assertEquals(truncated.truncated, true);
+  const notTruncated = buildContractErrorBody("talkx-send", "v1", "contract_violation", "x", [], undefined, false);
+  assertEquals("truncated" in notTruncated, false, "truncated:false não deve virar chave serializada");
+  const omitted = buildContractErrorBody("talkx-send", "v1", "contract_violation", "x", []);
+  assertEquals("truncated" in omitted, false, "truncated ausente por padrão");
+});
+
+Deno.test("422 contract_violation: schema com >25 campos ausentes sinaliza truncated:true e corta details em 25", async () => {
+  const fields: Record<string, z.ZodTypeAny> = {};
+  for (let i = 0; i < 30; i++) fields[`campo${i}`] = z.string();
+  const bigSchema = z.object(fields).strict();
+
+  const r = parseOrReject("truncation-test", { v1: bigSchema }, req(), {});
+  const body = await assertContractError(r, "contract_violation");
+  assertEquals(body.details.length, 25, "details deve cortar em 25 mesmo com 30 issues reais");
+  assertEquals(body.truncated, true);
+});
+
+Deno.test("422 contract_violation: schema com <=25 campos ausentes NÃO sinaliza truncated", async () => {
+  const fields: Record<string, z.ZodTypeAny> = {};
+  for (let i = 0; i < 5; i++) fields[`campo${i}`] = z.string();
+  const smallSchema = z.object(fields).strict();
+
+  const r = parseOrReject("truncation-test", { v1: smallSchema }, req(), {});
+  const body = await assertContractError(r, "contract_violation");
+  assertEquals(body.details.length, 5);
+  assertEquals("truncated" in body, false, "sem corte real, a chave não deve aparecer");
 });
 
 // ─── 4. Registro central: todo contrato registrado tem schema para toda versão suportada ──

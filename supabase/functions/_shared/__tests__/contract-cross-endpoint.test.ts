@@ -31,7 +31,7 @@ async function readEnvelope(res: Response): Promise<ContractErrorBody> {
   assertEquals(res.status, 422);
   assertEquals(res.headers.get("Content-Type"), "application/json");
   const body = (await res.json()) as ContractErrorBody;
-  const keys = Object.keys(body).filter((k) => k !== "requestId").sort();
+  const keys = Object.keys(body).filter((k) => k !== "requestId" && k !== "truncated").sort();
   assertEquals(keys, CANONICAL_KEYS, "envelope 422 diverge do formato canônico");
   assertEquals(body.error, true);
   assert(typeof body.contract === "string" && body.contract.includes("@"));
@@ -122,7 +122,7 @@ Deno.test("cross-endpoint: consistência absoluta de chaves em TODOS os modos de
       if (r.ok === true) continue;
       total++;
       const body = await r.response.clone().json();
-      shapes.add(Object.keys(body).filter((k) => k !== "requestId").sort().join(","));
+      shapes.add(Object.keys(body).filter((k) => k !== "requestId" && k !== "truncated").sort().join(","));
     }
   }
   assertEquals(shapes.size, 1, `esperava 1 shape canônico entre ${total} falhas, obtido ${shapes.size}: ${[...shapes].join(" | ")}`);
