@@ -19,6 +19,7 @@ import {
 import type { EvolutionMessage } from '@/types/evolutionExternal';
 import type { RealtimeMessage } from '@/features/inbox';
 import { getLogger } from '@/lib/logger';
+import { isAbortLikeError } from '@/lib/retry';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import { dedupedFetch, subscribeDedupe } from '@/lib/realtime/crossTabDedupe';
 import { playerStateStore } from '@/features/inbox';
@@ -702,9 +703,7 @@ export function useExternalMessages(remoteJid: string | null) {
       });
       setHasMore(older.length === CONVERSATION_PAGE_SIZE);
     } catch (err) {
-      // Silence aborts (user navigated away or scrolled back down)
-      const name = (err as { name?: string } | null)?.name;
-      if (name === 'AbortError') return;
+      if (isAbortLikeError(err)) return;
       log.error('Error loading older messages:', err);
     } finally {
       if (loadOlderAbortRef.current === controller) {
