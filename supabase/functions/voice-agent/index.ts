@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, requireEnv, Logger, getCorsHeaders } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
     authed = await requireUser(req);
   } catch (authErr) {
     log.error('Auth check failed', { error: authErr instanceof Error ? authErr.message : String(authErr) });
-    return errorResponse('Unauthorized', 401, req);
+    return errorEnvelope('unauthorized', 'Unauthorized', 401, req);
   }
   if (authed instanceof Response) return authed;
 
@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
     }
 
     if (!response.ok) {
-      if (response.status === 429) return errorResponse('Rate limit exceeded', 429, req);
+      if (response.status === 429) return errorEnvelope('rate_limit_exceeded', 'Rate limit exceeded', 429, req);
       if (response.status === 402) return errorResponse('AI credits exhausted', 402, req);
       const errText = await response.text().catch(() => '');
       log.error('AI gateway error', { status: response.status, detail: errText.substring(0, 300) });

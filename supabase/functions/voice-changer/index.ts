@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, getCorsHeaders, Logger, requireEnv, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, getCorsHeaders, Logger, requireEnv, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser, requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getStoragePublicUrl } from "../_shared/storage-url.ts";
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
       const authed = await requireUser(req);
       if (authed instanceof Response) return authed;
       const rl = checkRateLimit(`voice-changer:${authed.user.id}`, 5, 60_000);
-      if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
+      if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', 'Rate limit exceeded', 429, req);
     }
 
     const supabaseClient = createZappAdminClient();
@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
         const { data: file, error: fileErr } = await supabaseClient.storage
           .from('audio-memes')
           .download(task.input_audio_url);
-        if (fileErr) return errorResponse('Storage error', 500, req);
+        if (fileErr) return errorEnvelope('storage_error', 'Storage error', 500, req);
         audioData = file;
       }
     }
@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
 
     // Validation for cloned voices
     if (preset.isCloned && !authorized) {
-      return errorResponse('Permissão necessária para usar esta voz clonada.', 403, req);
+      return errorEnvelope('permission_denied', 'Permissão necessária para usar esta voz clonada.', 403, req);
     }
 
     const startTime = Date.now();
@@ -283,6 +283,6 @@ Deno.serve(async (req) => {
     }
   } catch (err: unknown) {
     log.error("Global Voice Changer Error", { error: err instanceof Error ? err.message : String(err) });
-    return errorResponse('Internal server error', 500, req);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });
