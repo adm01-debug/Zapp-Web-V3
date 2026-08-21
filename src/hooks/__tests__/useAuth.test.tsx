@@ -16,6 +16,9 @@ vi.mock('@/integrations/supabase/client', () => ({
     maxConcurrent: 4,
     saturated: false,
   })),
+  // Passthrough: authService.getProfile() usa isto para priorizar a request
+  // no semáforo (client.ts:649) — irrelevante em teste, só precisa chamar fn().
+  withSupabaseHighPriority: vi.fn((fn: () => unknown) => fn()),
   supabase: {
     auth: {
       getSession: vi.fn(),

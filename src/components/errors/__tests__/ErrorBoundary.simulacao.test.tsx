@@ -12,8 +12,12 @@
  *
  * Inclui verificações estáticas de fonte (sem renderizar):
  *   - App.tsx: 5 lazyWithRetry, zero lazy() cru, ErrorBoundary fallback={null}
- *   - vercel.json: rewrite SPA exclui assets/version.json; headers imutáveis
- *     para /assets/(.*)
+ *
+ * Nota: as verificações de vercel.json (rewrite SPA, headers imutáveis para
+ * /assets/(.*)) foram removidas em 2026-08-21 — Vercel foi aposentada para o
+ * ZAPP (deploy 100% VPS, ver CLAUDE.md); o comportamento equivalente
+ * (try_files SPA fallback + Cache-Control immutable em /assets/) vive em
+ * nginx.conf, não testado aqui.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -275,31 +279,5 @@ describe('App.tsx — verificação estática (sem renderizar)', () => {
     expect(APP_SOURCE).toContain('<ErrorBoundary');
     expect(APP_SOURCE).toContain('fallback={null}');
     expect(APP_SOURCE).toContain('</ErrorBoundary>');
-  });
-});
-
-describe('vercel.json — verificação estática (parse JSON)', () => {
-  const vercelConfig = JSON.parse(
-    readFileSync(resolve(process.cwd(), 'vercel.json'), 'utf8')
-  ) as {
-    rewrites: { source: string; destination: string }[];
-    headers: { source: string; headers: { key: string; value: string }[] }[];
-  };
-
-  it('rewrite SPA exclui assets e version.json no lookahead negativo', () => {
-    expect(vercelConfig.rewrites.length).toBeGreaterThan(0);
-    const spaRewrite = vercelConfig.rewrites[0];
-    expect(spaRewrite.source).toContain('assets');
-    expect(spaRewrite.source).toContain('version\\.json');
-    expect(spaRewrite.destination).toBe('/index.html');
-  });
-
-  it('headers: /assets/(.*) com Cache-Control public, max-age=31536000, immutable', () => {
-    const assetsHeader = vercelConfig.headers.find((h) => h.source === '/assets/(.*)');
-    expect(assetsHeader).toBeDefined();
-    expect(assetsHeader?.headers).toContainEqual({
-      key: 'Cache-Control',
-      value: 'public, max-age=31536000, immutable',
-    });
   });
 });

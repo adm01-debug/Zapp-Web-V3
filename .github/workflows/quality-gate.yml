@@ -162,6 +162,11 @@ jobs:
       - name: Build (produces dist/ for the Performance Budget Gate)
         # O gate mede os chunks REAIS de dist/ — sem build ele falha com
         # "dist não encontrado" (E02-N02: antes passava sem medir nada).
+        # NODE_OPTIONS: mesmo runner/comando estourou o heap default do Node
+        # no job `build` do ci.yml (run 32443579939, 2026-08-21) — aplicado
+        # preventivamente aqui tambem (mesmo ajuste do job `test`).
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: bun run build
 
       - name: Performance Budget Gate (blocking — E02/F10-06)

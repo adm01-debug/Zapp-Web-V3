@@ -458,6 +458,11 @@ jobs:
         run: bun install
 
       - name: Build for production
+        # Sem NODE_OPTIONS o vite build estoura o heap default do Node (run
+        # 32443579939, 2026-08-21: "JavaScript heap out of memory" aos ~100s
+        # de transform) — mesmo ajuste ja usado no job `test` (linha ~394).
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: bun run build
 
       - name: Upload build artifacts
