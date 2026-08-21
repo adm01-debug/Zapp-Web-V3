@@ -42,7 +42,8 @@ interface DynamicSupabaseClient {
 type DynamicRpcClient = {
   rpc(
     name: string,
-    params?: Record<string, unknown>
+    params?: Record<string, unknown>,
+    opts?: { signal?: AbortSignal | null }
   ): Promise<{ data: unknown; error: PostgrestError | null }>;
 };
 
@@ -127,9 +128,14 @@ export function safeFrom(table: string): SafeQueryBuilder {
 export const safeClient = {
   async from<T = unknown>(
     table: string,
-    queryBuilder: (query: SafeQueryBuilder) => PromiseLike<{ data: unknown; error: unknown }>
+    queryBuilder: (query: SafeQueryBuilder) => PromiseLike<{ data: unknown; error: unknown }>,
+    opts?: { signal?: AbortSignal | null }
   ): Promise<SafeResponse<T[]>> {
     const requestId = crypto.randomUUID();
+    // Early-exit se o caller já cancelou antes de entrar na fila do semáforo.
+    if (opts?.signal?.aborted) {
+      return { data: [] as T[], error: null, requestId };
+    }
     telemetry.stats.totalCalls++;
     try {
       const { data, error } = await queryBuilder(_dynamicClient.from(table));
@@ -146,14 +152,18 @@ export const safeClient = {
       }
       return { data: (Array.isArray(data) ? data : []) as T[], error: null, requestId };
     } catch (err) {
-      this.log(requestId, 'error', `Erro crítico ao consultar tabela ${table}`, err);
-      await this.recordFailure(
-        requestId,
-        'from',
-        table,
-        err instanceof Error ? err.message : String(err)
-      );
-      telemetry.stats.failedCalls++;
+      // Aborts (unmount, cancelRefetch, page unload) são ruído esperado — rebaixar a WARN.
+      const level = isClientSideTransientError(err) ? 'warn' : 'error';
+      this.log(requestId, level, `Erro crítico ao consultar tabela ${table}`, err);
+      if (level === 'error') {
+        await this.recordFailure(
+          requestId,
+          'from',
+          table,
+          err instanceof Error ? err.message : String(err)
+        );
+        telemetry.stats.failedCalls++;
+      }
       return {
         data: [] as T[],
         error: err instanceof Error ? err : new Error(String(err)),
@@ -198,11 +208,19 @@ export const safeClient = {
     }
   },
 
-  async rpc<T = unknown>(name: string, params?: Record<string, unknown>): Promise<SafeResponse<T>> {
+  async rpc<T = unknown>(
+    name: string,
+    params?: Record<string, unknown>,
+    opts?: { signal?: AbortSignal | null }
+  ): Promise<SafeResponse<T>> {
     const requestId = crypto.randomUUID();
+    // Early-exit se o caller já cancelou antes de entrar na fila do semáforo.
+    if (opts?.signal?.aborted) {
+      return { data: null, error: null, requestId };
+    }
     telemetry.stats.totalCalls++;
     try {
-      const { data, error } = await _rpcClient.rpc(name, params); // ignore-audit — dynamic RPC name not in generated union
+      const { data, error } = await _rpcClient.rpc(name, params, { signal: opts?.signal ?? undefined }); // ignore-audit — dynamic RPC name not in generated union
       if (error) {
         this.log(requestId, 'error', `Erro ao executar RPC ${name}`, error);
         await this.recordFailure(requestId, 'rpc', name, error.message || 'Erro desconhecido');
@@ -212,14 +230,18 @@ export const safeClient = {
       if (data === undefined || data === null) return { data: null, error: null, requestId };
       return { data: data as T, error: null, requestId }; // ignore-audit: narrows Supabase query result to local interface
     } catch (err) {
-      this.log(requestId, 'error', `Erro crítico RPC ${name}`, err);
-      await this.recordFailure(
-        requestId,
-        'rpc',
-        name,
-        err instanceof Error ? err.message : String(err)
-      );
-      telemetry.stats.failedCalls++;
+      // Aborts (unmount, cancelRefetch, page unload) são ruído esperado — rebaixar a WARN.
+      const level = isClientSideTransientError(err) ? 'warn' : 'error';
+      this.log(requestId, level, `Erro crítico RPC ${name}`, err);
+      if (level === 'error') {
+        await this.recordFailure(
+          requestId,
+          'rpc',
+          name,
+          err instanceof Error ? err.message : String(err)
+        );
+        telemetry.stats.failedCalls++;
+      }
       return { data: null, error: err instanceof Error ? err : new Error(String(err)), requestId };
     }
   },

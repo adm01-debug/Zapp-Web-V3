@@ -12,11 +12,12 @@ const log = getLogger('useInboxDataQueries');
 export function useInboxDataQueries(conversations: ConversationWithMessages[]) {
   const { data: customScopes = [] } = useQuery({
     queryKey: queryKeys.contactDetails.inboxScopes(),
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const { data, error } = await supabase
         .from('inbox_custom_scopes')
         .select('id, name')
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .abortSignal(signal);
       if (error) throw error;
       return data || [];
     },
@@ -27,7 +28,7 @@ export function useInboxDataQueries(conversations: ConversationWithMessages[]) {
   const { data: contactTagsMap = {} } = useQuery({
     queryKey: queryKeys.contactDetails.tagsMap(),
     enabled: conversations.length > 0,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const conversationContactIds = new Set(
         conversations.filter((c) => c?.contact?.id).map((c) => c.contact.id)
       );
@@ -42,11 +43,13 @@ export function useInboxDataQueries(conversations: ConversationWithMessages[]) {
 
       const CHUNK_SIZE = 500;
       for (let i = 0; i < validContactIds.length; i += CHUNK_SIZE) {
+        if (signal?.aborted) break;
         const chunk = validContactIds.slice(i, i + CHUNK_SIZE);
         const { data, error } = await supabase
           .from('contact_tags')
           .select('contact_id, tag_id')
-          .in('contact_id', chunk);
+          .in('contact_id', chunk)
+          .abortSignal(signal);
 
         if (error) {
           log.warn('Error fetching contact tags for chunk', { error: error.message });

@@ -40,7 +40,7 @@ export const conversationEventsQueryOptions = (
     queryKey: queryKeys.adminOps.conversationTimeline(contactId ?? undefined),
     enabled: !!contactId && isValidUUID(contactId),
     staleTime: 30_000,
-    queryFn: async (): Promise<ConversationEventLite[]> => {
+    queryFn: async ({ signal }): Promise<ConversationEventLite[]> => {
       if (!contactId) return [];
       const { data, error } = await safeClient.from<ConversationEventLite>(
         'conversation_events',
@@ -60,6 +60,8 @@ export const conversationEventsQueryOptions = (
             // "Conversas" conta os `close` deste mesmo cache — 50 subestimaria
             // contatos com muitas transferências/atribuições.
             .limit(200)
+            .abortSignal(signal),
+        { signal }
       );
       if (error) throw error;
       return Array.isArray(data) ? (data as ConversationEventLite[]) : [];
