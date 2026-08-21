@@ -107,6 +107,7 @@ export const ChatMessagesArea = memo(
       const queryClient = useQueryClient();
       const scrollContainerRef = useRef<HTMLDivElement>(null);
       const isFetchingOlderRef = useRef(false);
+      const isFetchingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
       const prevLengthRef = useRef(messages.length);
       const prevScrollHeightRef = useRef<number | null>(null);
       const [showScrollBottom, setShowScrollBottom] = useState(false);
@@ -188,7 +189,12 @@ export const ChatMessagesArea = memo(
           .channel(`chat-updates:${contactJid}:${Math.random().toString(36).slice(2, 10)}`)
           .on(
             'postgres_changes',
-            { event: 'UPDATE', schema: 'zapp', table: 'realtime_message_fanout' },
+            {
+              event: 'UPDATE',
+              schema: 'zapp',
+              table: 'realtime_message_fanout',
+              filter: `remote_jid=eq.${contactJid}`,
+            },
             () => {
               void queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
             }
@@ -302,8 +308,10 @@ export const ChatMessagesArea = memo(
             prevScrollHeightRef.current = container.scrollHeight;
             void Promise.resolve(onLoadOlder())
               .finally(() => {
-                setTimeout(() => {
+                if (isFetchingTimerRef.current !== null) clearTimeout(isFetchingTimerRef.current);
+                isFetchingTimerRef.current = setTimeout(() => {
                   isFetchingOlderRef.current = false;
+                  isFetchingTimerRef.current = null;
                 }, 100);
               })
               .catch((err) => {
@@ -323,6 +331,14 @@ export const ChatMessagesArea = memo(
         }
         prevLengthRef.current = messages.length;
       }, [messages.length]);
+
+      useEffect(() => {
+        return () => {
+          if (isFetchingTimerRef.current !== null) {
+            clearTimeout(isFetchingTimerRef.current);
+          }
+        };
+      }, []);
 
       const handleMessageDeleted = useCallback(
         (id: string) => {
