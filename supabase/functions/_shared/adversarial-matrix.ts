@@ -206,34 +206,127 @@ export interface AdversarialCase {
   expectReject: boolean;
 }
 
-function wrongTypeValueFor(typeName: string): unknown {
+/** Resultado de tentar achar um valor de "tipo errado" pra um campo. */
+export interface WrongTypeResult {
+  supported: boolean;
+  value?: unknown;
+  /** Só presente quando supported=false — por que não há valor de tipo errado. */
+  reason?: string;
+}
+
+/**
+ * Auditoria pós-Bloco 6 (2026-08-21, MEDIUM): o switch original só cobria
+ * String/Number/Boolean/Enum/Array/Object — ZodUnion e ZodRecord (que TÊM
+ * forma real e testável) caíam no default e o eixo wrong_type era omitido
+ * SEM sinal nenhum no resumo do teste, violando o "no silent caps" que o
+ * cabeçalho deste arquivo declara pra outra limitação (refine/superRefine).
+ * Confirmado contra os 127 contratos reais: 33+ campos sem wrong_type,
+ * incluindo `to` (união e-mail/array) em zapp-email-send, `variables`
+ * (record) em evolution-templates, etc. Agora ZodUnion/ZodRecord/ZodLiteral
+ * são suportados; ZodAny/ZodUnknown continuam sem wrong_type de propósito
+ * (não existe "tipo errado" pra um campo que aceita qualquer tipo) — e essa
+ * exclusão intencional é reportada explicitamente pelo chamador (ver
+ * buildCasesForObject/contract-field-matrix.test.ts), não escondida.
+ */
+const UNTESTABLE_TYPES = new Set(["ZodAny", "ZodUnknown"]);
+
+/** Forma JS aproximada aceita por um node Zod já desembrulhado — usado só
+ * pra achar um antagonista de ZodUnion (não precisa ser exaustivo). */
+function jsShapeOf(uw: Unwrapped): string {
+  switch (uw.typeName) {
+    case "ZodString":
+    case "ZodEnum":
+      return "string";
+    case "ZodNumber":
+      return "number";
+    case "ZodBoolean":
+      return "boolean";
+    case "ZodArray":
+      return "array";
+    case "ZodObject":
+    case "ZodRecord":
+      return "object";
+    case "ZodLiteral": {
+      // deno-lint-ignore no-explicit-any
+      return typeof (uw.type as any)._def.value;
+    }
+    default:
+      return "unknown";
+  }
+}
+
+const WRONG_TYPE_CANDIDATES: Array<{ jsShape: string; value: unknown }> = [
+  { jsShape: "boolean", value: true },
+  { jsShape: "number", value: 987654321 },
+  { jsShape: "array", value: ["__wrong_type_probe__"] },
+  { jsShape: "object", value: { __wrong_type_probe__: true } },
+  { jsShape: "string", value: "__wrong_type_probe__" },
+];
+
+function wrongTypeValueFor(typeName: string, node: z.ZodTypeAny): WrongTypeResult {
   // Escolhe um valor de tipo JS diferente do esperado — Zod rejeita por tipo
   // ANTES de rodar refine/superRefine customizado, então é robusto mesmo
   // pra campos com validação de negócio complexa.
   switch (typeName) {
     case "ZodString":
-      return 12345;
+      return { supported: true, value: 12345 };
     case "ZodNumber":
-      return "not-a-number";
+      return { supported: true, value: "not-a-number" };
     case "ZodBoolean":
-      return "not-a-boolean";
+      return { supported: true, value: "not-a-boolean" };
     case "ZodEnum":
-      return 999;
+      return { supported: true, value: 999 };
     case "ZodArray":
-      return "not-an-array";
+      return { supported: true, value: "not-an-array" };
     case "ZodObject":
-      return "not-an-object";
+      return { supported: true, value: "not-an-object" };
+    case "ZodRecord":
+      return { supported: true, value: "not-a-record" };
+    case "ZodLiteral": {
+      // deno-lint-ignore no-explicit-any
+      const litValue = (node as any)._def.value;
+      const jsType = typeof litValue;
+      if (jsType === "string") return { supported: true, value: 12345 };
+      if (jsType === "number") return { supported: true, value: "not-a-number" };
+      if (jsType === "boolean") return { supported: true, value: "not-a-boolean" };
+      return { supported: false, reason: `ZodLiteral com tipo de valor não mapeado (${jsType})` };
+    }
+    case "ZodUnion": {
+      // deno-lint-ignore no-explicit-any
+      const options = (node as any)._def.options as z.ZodTypeAny[];
+      const acceptedShapes = new Set(options.map((opt) => jsShapeOf(unwrap(opt))));
+      const antagonist = WRONG_TYPE_CANDIDATES.find((c) => !acceptedShapes.has(c.jsShape));
+      if (antagonist) return { supported: true, value: antagonist.value };
+      return { supported: false, reason: "ZodUnion cujas opções cobrem todos os formatos JS candidatos testados" };
+    }
     default:
-      return null;
+      if (UNTESTABLE_TYPES.has(typeName)) {
+        return { supported: false, reason: `${typeName} aceita qualquer tipo — não existe "tipo errado" pra testar` };
+      }
+      return { supported: false, reason: `typeName não mapeado no gerador: ${typeName}` };
   }
+}
+
+/** Campo cujo eixo wrong_type foi omitido de propósito ou por lacuna real. */
+export interface UnsupportedWrongType {
+  fieldName: string;
+  typeName: string;
+  reason: string;
+}
+
+/** Resultado de buildCasesForObject: os casos gerados + o que ficou de fora do eixo wrong_type. */
+export interface BuildCasesResult {
+  cases: AdversarialCase[];
+  unsupportedWrongType: UnsupportedWrongType[];
 }
 
 /** Gera os casos adversariais pra um ZodObject dado um payload-base válido. */
 export function buildCasesForObject(
   schema: z.ZodObject<z.ZodRawShape>,
   validBase: Record<string, unknown>,
-): AdversarialCase[] {
+): BuildCasesResult {
   const cases: AdversarialCase[] = [];
+  const unsupportedWrongType: UnsupportedWrongType[] = [];
   cases.push({ axis: "happy_path", payload: validBase, expectReject: false });
 
   for (const [fieldName, fieldSchema] of Object.entries(schema.shape)) {
@@ -244,14 +337,16 @@ export function buildCasesForObject(
       cases.push({ axis: "missing_required", fieldName, payload: rest, expectReject: true });
     }
 
-    const wrongType = wrongTypeValueFor(uw.typeName);
-    if (wrongType !== null) {
+    const wrongType = wrongTypeValueFor(uw.typeName, uw.type);
+    if (wrongType.supported) {
       cases.push({
         axis: "wrong_type",
         fieldName,
-        payload: { ...validBase, [fieldName]: wrongType },
+        payload: { ...validBase, [fieldName]: wrongType.value },
         expectReject: true,
       });
+    } else {
+      unsupportedWrongType.push({ fieldName, typeName: uw.typeName, reason: wrongType.reason! });
     }
 
     if (uw.typeName === "ZodString") {
@@ -290,7 +385,7 @@ export function buildCasesForObject(
     });
   }
 
-  return cases;
+  return { cases, unsupportedWrongType };
 }
 
 /**
@@ -348,11 +443,12 @@ export function classifySchema(schema: z.ZodTypeAny): ContractSchemaKind {
 export function buildAdversarialCases(
   schema: z.ZodTypeAny,
   seedOverride?: Record<string, unknown>,
-): { branch: string; cases: AdversarialCase[] }[] {
+): { branch: string; cases: AdversarialCase[]; unsupportedWrongType: UnsupportedWrongType[] }[] {
   const asObject = unwrapToObject(schema);
   if (asObject) {
     const base = seedOverride ?? synthesizeObject(asObject);
-    return [{ branch: "default", cases: buildCasesForObject(asObject, base) }];
+    const result = buildCasesForObject(asObject, base);
+    return [{ branch: "default", cases: result.cases, unsupportedWrongType: result.unsupportedWrongType }];
   }
 
   const asDU = unwrapToDiscriminatedUnion(schema);
@@ -367,9 +463,11 @@ export function buildAdversarialCases(
         : synthesizeObject(opt);
       // deno-lint-ignore no-explicit-any
       const literalValue = (opt.shape[discriminatorKey] as any)._def.value;
+      const result = buildCasesForObject(opt, { ...base, [discriminatorKey]: literalValue });
       return {
         branch: String(literalValue),
-        cases: buildCasesForObject(opt, { ...base, [discriminatorKey]: literalValue }),
+        cases: result.cases,
+        unsupportedWrongType: result.unsupportedWrongType,
       };
     });
   }

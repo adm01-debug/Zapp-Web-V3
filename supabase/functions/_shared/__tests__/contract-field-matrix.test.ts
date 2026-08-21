@@ -46,7 +46,17 @@ import {
   MULTIPART_CONTRACTS,
   SEED_OVERRIDES,
   type AdversarialCase,
+  type UnsupportedWrongType,
 } from "../adversarial-matrix.ts";
+
+// Auditoria pós-Bloco 6 (2026-08-21, MEDIUM): antes desta correção, campos
+// ZodUnion/ZodRecord/ZodLiteral não tinham NENHUM sinal de que o eixo
+// wrong_type foi omitido — a suíte ficava 100% verde mesmo com lacunas
+// reais de cobertura (ex.: `to` em zapp-email-send, união e-mail/array,
+// nunca testava tipo errado). Só ZodAny/ZodUnknown são exclusão intencional
+// (não existe "tipo errado" pra campo que aceita qualquer tipo); qualquer
+// outro motivo reportado aqui é uma lacuna real que deve travar o build.
+const EXPECTED_UNTESTABLE_REASON = /aceita qualquer tipo/;
 
 function reqForVersion(version: string): Request {
   return new Request("http://localhost", { headers: { "x-contract-version": version } });
@@ -56,6 +66,7 @@ let totalCases = 0;
 let totalContracts = 0;
 let totalMultipartSkipped = 0;
 let totalUnsupported = 0;
+const allUnsupportedWrongType: Array<UnsupportedWrongType & { contract: string; version: string; branch: string }> = [];
 
 for (const contractName of Object.keys(CONTRACT_SCHEMAS)) {
   if (MULTIPART_CONTRACTS.has(contractName)) {
@@ -76,7 +87,10 @@ for (const contractName of Object.keys(CONTRACT_SCHEMAS)) {
 
     const branches = buildAdversarialCases(schema, SEED_OVERRIDES[contractName]);
 
-    for (const { branch, cases } of branches) {
+    for (const { branch, cases, unsupportedWrongType } of branches) {
+      for (const u of unsupportedWrongType) {
+        allUnsupportedWrongType.push({ ...u, contract: contractName, version, branch });
+      }
       for (const c of cases) {
         totalCases++;
         const label = c.fieldName ? `${c.axis}:${c.fieldName}` : c.axis;
@@ -113,15 +127,33 @@ for (const contractName of Object.keys(CONTRACT_SCHEMAS)) {
 }
 
 Deno.test("Field Matrix: resumo", () => {
+  const untestable = allUnsupportedWrongType.filter((u) => EXPECTED_UNTESTABLE_REASON.test(u.reason));
+  const unexpected = allUnsupportedWrongType.filter((u) => !EXPECTED_UNTESTABLE_REASON.test(u.reason));
+
   console.log(`\n📊 Contract Field Matrix Summary:`);
   console.log(`   Contratos cobertos (contrato@versão): ${totalContracts}`);
   console.log(`   Multipart pulados (etapa 72, fora do denominador): ${totalMultipartSkipped}`);
   console.log(`   Schemas não suportados pelo classificador: ${totalUnsupported}`);
-  console.log(`   Total de casos adversariais gerados e testados: ${totalCases}\n`);
+  console.log(`   Total de casos adversariais gerados e testados: ${totalCases}`);
+  console.log(`   Campos sem wrong_type — exclusão intencional (ZodAny/ZodUnknown): ${untestable.length}`);
+  console.log(`   Campos sem wrong_type — lacuna NÃO esperada: ${unexpected.length}\n`);
+
   if (totalUnsupported > 0) {
     throw new Error(
       `${totalUnsupported} schema(s) não classificados pelo gerador (nem ZodObject nem ` +
       `ZodDiscriminatedUnion) — cobertura silenciosamente incompleta. Investigar antes de mergear.`,
     );
   }
+
+  // Etapa 28-like ("no silent caps", agora aplicado ao eixo wrong_type):
+  // qualquer motivo de exclusão que NÃO seja "aceita qualquer tipo" (ZodAny/
+  // ZodUnknown) é uma lacuna real do gerador — trava o build em vez de
+  // deixar a suíte ficar verde escondendo cobertura incompleta.
+  assertEquals(
+    unexpected,
+    [],
+    `${unexpected.length} campo(s) sem cobertura wrong_type por motivo NÃO esperado — ` +
+    `gerador precisa de suporte pro(s) typeName(s) envolvido(s):\n` +
+    unexpected.map((u) => `  ${u.contract}@${u.version}${u.branch !== "default" ? ` [${u.branch}]` : ""} — ${u.fieldName} (${u.typeName}): ${u.reason}`).join("\n"),
+  );
 });
