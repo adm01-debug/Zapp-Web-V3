@@ -18,6 +18,8 @@ import { useMessageReactionHandlers } from './useMessageReactionHandlers';
 import { ticketStore } from '@/lib/inbox/ticketStore';
 import { isValidUUID } from '@/utils/uuid';
 
+const EDIT_WINDOW_MINUTES = 15;
+
 interface UseChatPanelHandlersOptions {
   conversationId: string;
   contactId: string;
@@ -90,8 +92,6 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   replyToMessageRef.current = replyToMessage;
   const isWhisperRef = useRef(isWhisper);
   isWhisperRef.current = isWhisper;
-
-  const EDIT_WINDOW_MINUTES = 15;
 
   const handleEditStart = useCallback((message: Message) => {
     const minutesAgo = (Date.now() - new Date(message.timestamp).getTime()) / 60000;
@@ -178,7 +178,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
 
           if (dbError) throw dbError;
           if (!updated || updated.length === 0) {
-            log.warn('[editMessage] UPDATE casou 0 linhas', { id: currentEditing.id });
+            log.warn('[editMessage] UPDATE casou 0 linhas', { id: currentEditing.id, instanceName, contactId, contactPhone });
             toast({
               title: 'Editada no WhatsApp',
               description: 'A alteração foi enviada, mas o histórico local não foi atualizado.',
@@ -202,6 +202,29 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         setEditingMessage(null);
         setInputValue('');
         return;
+      }
+
+      // Guards de whisper ANTES de alterar qualquer estado — preserva o texto do usuário.
+      if (isWhisperRef.current) {
+        if (attachments && attachments.length > 0) {
+          toast({
+            title: 'Aviso',
+            description: 'Arquivos nao sao suportados em modo sussurro no momento.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        // Guard: whisper_messages.contact_id is uuid. If opts.contactId is a
+        // WhatsApp JID (external mode), passing it causes PostgREST 400.
+        if (!isUuidRef(resolveContactRef(contactId))) {
+          toast({
+            title: 'Sussurro indisponivel',
+            description:
+              'Esta conversa usa ID externo (JID WhatsApp). Sussurros requerem contato interno com UUID.',
+            variant: 'destructive',
+          });
+          return;
+        }
       }
 
       // Só aplica assinatura quando há texto real.
@@ -229,29 +252,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         }
 
         if (isWhisperRef.current) {
-          if (attachments && attachments.length > 0) {
-            toast({
-              title: 'Aviso',
-              description: 'Arquivos nao sao suportados em modo sussurro no momento.',
-              variant: 'destructive',
-            });
-            setIsSending(false);
-            return;
-          }
           if (!profile?.id) throw new Error('Usuario nao autenticado');
-
-          // Guard: whisper_messages.contact_id is uuid. If opts.contactId is a
-          // WhatsApp JID (external mode), passing it causes PostgREST 400.
-          if (!isUuidRef(resolveContactRef(contactId))) {
-            toast({
-              title: 'Sussurro indisponivel',
-              description:
-                'Esta conversa usa ID externo (JID WhatsApp). Sussurros requerem contato interno com UUID.',
-              variant: 'destructive',
-            });
-            setIsSending(false);
-            return;
-          }
 
           const { error } = await insertWhisperMessage({
             contact_id: contactId,
@@ -270,6 +271,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           message: 'Mensagem enviada',
           icon: 'ok',
           delay: 3000,
+          actionLabel: 'Restaurar texto',
           onUndo: () => {
             setInputValue(rawInput);
             if (wasReply) setReplyToMessage(wasReply);
@@ -577,7 +579,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       throw new Error('Nao foi possivel arquivar: acao nao configurada.');
     }
     await opts.onArchive();
-  }, [contactId, opts]);
+  }, [contactId, opts.onArchive]);
 
   const { handleInputChange, handleKeyDown, handleSlashCommand } = useInputHandlers({
     setInputValue,

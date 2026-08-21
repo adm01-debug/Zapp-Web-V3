@@ -66,11 +66,11 @@ export function useMessageReactionHandlers({
       const results: string[] = [];
       for (const targetId of targetIds) {
         try {
-          const content =
-            msg.type === 'text'
-              ? `➡️ *Encaminhada:*\n\n${msg.content}`
-              : `➡️ *Mensagem encaminhada*`;
-          const result = await sendMessageToContact(targetId, content, 'text', msg.mediaUrl);
+          const isTextMsg = msg.type === 'text';
+          const content = isTextMsg
+            ? `➡️ *Encaminhada:*\n\n${msg.content}`
+            : (msg.content ?? '');
+          const result = await sendMessageToContact(targetId, content, msg.type || 'text', msg.mediaUrl);
           log2.debug('Forwarded to', targetId, result);
           results.push(targetId);
         } catch (err) {

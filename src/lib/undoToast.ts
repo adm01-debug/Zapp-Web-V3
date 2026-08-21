@@ -9,6 +9,8 @@ interface UndoToastOptions {
   delay?: number;
   /** Optional icon emoji */
   icon?: string;
+  /** Label for the undo action button (default 'Desfazer') */
+  actionLabel?: string;
 }
 
 /**
@@ -24,14 +26,14 @@ interface UndoToastOptions {
  * });
  * ```
  */
-export function undoToast({ message, onUndo, delay = 5000, icon = '🗑️' }: UndoToastOptions) {
+export function undoToast({ message, onUndo, delay = 5000, icon = '🗑️', actionLabel = 'Desfazer' }: UndoToastOptions) {
   let undone = false;
 
   toast(message, {
     icon,
     duration: delay,
     action: {
-      label: 'Desfazer',
+      label: actionLabel,
       onClick: () => {
         undone = true;
         onUndo();
