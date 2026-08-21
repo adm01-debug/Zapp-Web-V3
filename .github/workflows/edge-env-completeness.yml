@@ -14,7 +14,8 @@ concurrency:
 jobs:
   check:
     name: Edge Env Completeness
-    runs-on: [Linux, X64, vps-zapp]
+    # ubuntu-latest (auditoria 2026-08-21, PR #1368 piloto validado): grep estático local, sem DB/VPS.
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7

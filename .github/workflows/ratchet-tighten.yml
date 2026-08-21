@@ -12,7 +12,8 @@ concurrency:
 
 jobs:
   tighten:
-    runs-on: [Linux, X64, vps-zapp]
+    # ubuntu-latest (auditoria 2026-08-21, PR #1368 piloto validado): cálculo local + push com GITHUB_TOKEN genérico, sem DB/VPS.
+    runs-on: ubuntu-latest
     env:
       GH_PUSH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:

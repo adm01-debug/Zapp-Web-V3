@@ -17,7 +17,8 @@ permissions:
 jobs:
   parity:
     name: Edge Schema Parity
-    runs-on: [Linux, X64, vps-zapp]
+    # ubuntu-latest (auditoria 2026-08-21, PR #1368 piloto validado): find/grep/sed local, sem DB/VPS.
+    runs-on: ubuntu-latest
     # NOTE: continue-on-error REMOVIDO — falhas bloqueiam o pipeline
     timeout-minutes: 15
     permissions:

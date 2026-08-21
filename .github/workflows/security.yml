@@ -19,7 +19,8 @@ concurrency:
 jobs:
   gitleaks:
     name: 🔍 Secret Scan (gitleaks)
-    runs-on: [Linux, X64, vps-zapp]
+    # ubuntu-latest (auditoria 2026-08-21, PR #1368 piloto validado): gitleaks sobre histórico git local, sem DB/VPS.
+    runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v7

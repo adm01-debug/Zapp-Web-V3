@@ -20,7 +20,8 @@ concurrency:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
-    runs-on: [Linux, X64, vps-zapp]
+    # ubuntu-latest (auditoria 2026-08-21, PR #1368 piloto validado): análise estática, sem DB/VPS.
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     # SEM continue-on-error: o autobuild quebrava silenciosamente (husky ESM + node10
     # no runner self-hosted). Corrigido com setup-node@v7 (node22) + HUSKY=0 para
