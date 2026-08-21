@@ -59,6 +59,12 @@ export interface ContractErrorBody {
   contract: string;
   requestId?: string;
   details: ContractErrorDetail[];
+  /**
+   * Etapa 28 (Bloco 2, 2026-08-21, A3): true quando `details` foi cortado em
+   * 25 issues — sinaliza o truncamento em vez de escondê-lo. Omitido (não
+   * `false`) quando não houve corte, no mesmo padrão de `requestId`.
+   */
+  truncated?: boolean;
 }
 
 /** Partial map of version strings to Zod schemas for contract validation. */
@@ -121,11 +127,16 @@ export function resolveRequestedVersion(req: Request | null, body: unknown): str
   return null;
 }
 
-function zodIssuesToDetails(error: z.ZodError): ContractErrorDetail[] {
-  return error.issues.slice(0, 25).map((i) => ({
-    path: i.path.length ? i.path.join(".") : "root",
-    message: i.message,
-  }));
+const MAX_DETAILS = 25;
+
+function zodIssuesToDetails(error: z.ZodError): { details: ContractErrorDetail[]; truncated: boolean } {
+  return {
+    details: error.issues.slice(0, MAX_DETAILS).map((i) => ({
+      path: i.path.length ? i.path.join(".") : "root",
+      message: i.message,
+    })),
+    truncated: error.issues.length > MAX_DETAILS,
+  };
 }
 
 /** build Contract Error Body function. */
@@ -136,6 +147,7 @@ export function buildContractErrorBody(
   message: string,
   details: ContractErrorDetail[] = [],
   requestId?: string,
+  truncated?: boolean,
 ): ContractErrorBody {
   return {
     error: true,
@@ -144,6 +156,7 @@ export function buildContractErrorBody(
     contract: contractLabel(contractName, version),
     ...(requestId ? { requestId } : {}),
     details,
+    ...(truncated ? { truncated: true } : {}),
   };
 }
 
@@ -272,11 +285,15 @@ export function parseOrReject<T = unknown>(
     }
   }
 
+  const { details, truncated } = firstError
+    ? zodIssuesToDetails(firstError)
+    : { details: [{ path: "root", message: "nenhum schema registrado" }], truncated: false };
   const eb = buildContractErrorBody(
     contractName, firstErrorVersion, "contract_violation",
     `Payload não satisfaz o contrato ${contractLabel(contractName, firstErrorVersion)}.`,
-    firstError ? zodIssuesToDetails(firstError) : [{ path: "root", message: "nenhum schema registrado" }],
+    details,
     opts.requestId,
+    truncated,
   );
   return { ok: false, response: errorResponse422(eb, extra), body: eb };
 }
