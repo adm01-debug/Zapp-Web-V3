@@ -305,6 +305,19 @@ export const SEED_OVERRIDES: Record<string, Record<string, unknown>> = {
   "send-email": { to: "test@example.com", subject: "Assunto de teste", html: "<p>Corpo de teste</p>" },
   // superRefine: pelo menos um de html/text é obrigatório.
   "zapp-email-send": { to: "test@example.com", subject: "Assunto de teste", html: "<p>Corpo de teste</p>" },
+  // superRefine (Bloco 2, etapa 23, 2026-08-21): to (array não vazio),
+  // subject e pelo menos um de text/html são obrigatórios — E, diferente de
+  // zapp-email-send acima, este objeto (branch "default", não discriminated
+  // union) faz REPLACE do base sintetizado, não merge (buildAdversarialCases
+  // linha ~344) — por isso id/from (também obrigatórios no schema) precisam
+  // entrar aqui também, senão o happy_path falha por campo errado.
+  "zapp-email-inbound-webhook": {
+    id: "test-message-id",
+    from: "sender@example.com",
+    to: ["test@example.com"],
+    subject: "Assunto de teste",
+    html: "<p>Corpo de teste</p>",
+  },
 };
 
 /**

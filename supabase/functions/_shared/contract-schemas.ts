@@ -417,7 +417,28 @@ export const ZappEmailInboundWebhookV1Schema = z.object({
   attachments: z.array(EmailAttachmentV1Schema).max(20).optional(),
   headers: z.unknown().optional(),
   date: z.string().max(100).optional(),
-}).passthrough();
+}).passthrough().superRefine((val, ctx) => {
+  // Bloco 2 (etapa 23, 2026-08-21 — fecha D2): regras portadas de
+  // validateMinimalPayload (index.ts), que rodava ANTES do gate — o 422
+  // canônico nunca era atingido, sempre caía num 400 artesanal
+  // {error,details:string[]}. id/from já eram obrigatórios aqui (min(1));
+  // to/subject/text-ou-html só existiam no check manual — consolidados
+  // nesta única fonte de validação.
+  if (
+    !Array.isArray(val.to) || val.to.length === 0 ||
+    !val.to.every((t) => typeof t === "string" && t.trim().length > 0)
+  ) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["to"], message: "to: obrigatório (array de destinatários, não vazio)" });
+  }
+  if (typeof val.subject !== "string" || val.subject.trim().length === 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["subject"], message: "subject: obrigatório (assunto, string não vazia)" });
+  }
+  const text = typeof val.text === "string" ? val.text.trim() : "";
+  const html = typeof val.html === "string" ? val.html.trim() : "";
+  if (text.length === 0 && html.length === 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["text"], message: "text/html: pelo menos um dos dois é obrigatório (corpo do email)" });
+  }
+});
 
 /** Cron sem body — aceita somente {} (ou nada). Base dos schedulers internos. */
 const EmptyStrictV1Schema = z.object({}).strict();
