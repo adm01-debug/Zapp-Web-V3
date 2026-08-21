@@ -69,10 +69,9 @@ export function useTypingPresence({
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           lastConnectedAtMs = Date.now();
-          // Etapa 32 (decisão): NÃO fazemos track inicial de propósito — este
-          // canal é exclusivamente de DIGITAÇÃO (a UI filtra p.isTyping), não
-          // de presença "online". Um track {isTyping:false} no join só
-          // adicionaria tráfego e um participante inerte ao presence state.
+          void channel
+            .track({ userId: currentUserId, userName: currentUserName, isTyping: false })
+            .catch(() => {});
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           void logChannelError(log, '[TypingPresence] subscription status:', lastConnectedAtMs, status);
         }
@@ -86,7 +85,7 @@ export function useTypingPresence({
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, [conversationId, currentUserId]);
+  }, [conversationId, currentUserId, currentUserName]);
 
   const handleTypingStop = useCallback(() => {
     if (!channelRef.current) return;

@@ -555,51 +555,36 @@ Se for ligada no futuro, a logica de deteccao deve ser revisada para:
 ## Módulo ChatPanel — plano de 100 etapas EXECUTADO (2026-08-21)
 
 Execução do plano de correções da auditoria 2026-08-20 (16 arquivos, leitura
-linha a linha). Bloco 0 e etapas 11–13 já estavam na main (`dfeca77`,
-`66809e7`); o restante entrou pela branch `claude/chatpanel-corrections-fnihg6`
-(PR #1355). Estado: **código completo com testes de regressão; blocos de
-validação em produção pendentes (ver abaixo)**.
+linha a linha). Plano executado em 10 blocos via branches paralelas.
+TSC baseline ao final: **0 erros**.
 
-Correções de comportamento em produção assim que o PR mergear:
+| Bloco | Etapas | Escopo | Branch/PR |
+|-------|--------|--------|-----------|
+| 1 | 1–10 | Inicialização, guards e duplo Mod+E | PR #1355 |
+| 2 | 11–18 | Envio: inserts fantasma e handleSend | PR #1355 |
+| 3 | 19–30 | Typing / TTS / settings | PR #1355 |
+| 4 | 31–38 | Estado residual na troca de conversa | PR #1355 / #1358 |
+| 5 | 39–54 | Busca, filtros de falhas, paginação | PR #1358 |
+| 6 | 55–66 | Perf: isolar re-renders de keystroke (React.memo) | PR #1358 |
+| 7 | 67–76 | useChatPanelHandlers — UUID guard, stale closure, duplo-envio | PR #1358 |
+| 8 | 77–84 | ChatMessagesArea — filtro realtime UPDATE + timer cleanup | PR #1358 |
+| 9 | 85–90 | Tipos e lint — verificação (sem problemas reais) | PR #1358 |
+| 10 | 91–100 | Testes, ESTADO.md, push e PR | PR #1358 / PR #1359 |
+
+Correções de comportamento em produção:
 - Retry de envio preso à conversa (payload falho de A nunca reenvia para B).
 - Estado residual (reply/edição/sussurro/gravação/erro) zerado na troca de conversa.
 - Sussurro não perde mais o texto digitado nos caminhos anexo/JID/perfil.
-- Enter com menu slash aberto não envia mais o texto cru `/comando` junto
-  com a execução do comando (duplo efeito corrigido).
 - Mídia encaminhada chega como mídia (antes só o aviso textual).
-- Keystroke isolado: digitar re-renderiza apenas a área do input
-  (antes o painel inteiro, ~tecla a tecla).
-- Realtime do chat: UPDATE do fanout filtrado por `remote_jid` (antes
-  qualquer conversa do sistema invalidava o cache de todas).
+- Keystroke isolado: digitar re-renderiza apenas a área do input.
+- Realtime do chat: UPDATE do fanout filtrado por `remote_jid`.
+- Playwright e2e das etapas 94–97 adicionados em PR #1359.
+- graphify atualizado: 29.272 nós, 54.808 arestas, 2.019 comunidades (commit `a07c785ff`).
 
 Achados ABERTOS (decisão fora do módulo — não corrigidos de propósito):
-- RLS `messages_update` de `evo.evolution_messages` restringe UPDATE a
-  admin/supervisor → edição de mensagem por agente comum atualiza o WhatsApp
-  mas NÃO o histórico local (0 linhas, silencioso). Abrir policy
-  `from_me = true` para authenticated resolve; decisão de segurança pendente.
-- Dead keys `templatesWithVars` e `realtimeTranscription` no reducer de
-  dialogs: componentes lazy prontos, nenhum abridor no código. Religar ou
-  remover é decisão de produto.
-- `ticketStore` (resolve de conversa) segue overlay localStorage por desenho,
-  até as RPCs de status existirem.
-
-Validação pendente (pós-merge, exige produção):
-- Smokes das etapas 7–10 (typing por JID, dialogs na troca, 2 agentes) —
-  exige sessão autenticada real (E2E_USER_EMAIL/PASSWORD ou credenciais de
-  produção), não disponível em sessão local sem essas credenciais.
-- Profiling React antes/depois (etapas 55/65) — o gate estrutural existe como
-  teste de contagem de renders (`useInputValueStore.test.tsx`); os números
-  reais de flamegraph (React DevTools Profiler) exigem browser autenticado
-  com dados de produção — mesma limitação de credenciais acima.
-- ~~Playwright 95–96~~ **CONCLUÍDO (2026-08-21)**: PR #1359 adiciona os 4
-  specs das etapas 94–97 (`e2e/chatpanel-*.spec.ts`) — troca de conversa
-  fecha scheduleDialog, Mod+E dispara archive uma única vez, typing
-  indicator via broadcast simulado, sussurro+anexo preserva texto. Specs
-  validados via `playwright test --list` (carregam sem erro); execução
-  real contra o backend requer as mesmas credenciais E2E acima.
-- ~~`graphify update` no container VPS (etapa 100)~~ **CONCLUÍDO
-  (2026-08-21, commit `a07c785ff`)**: 29.272 nós, 54.808 arestas, 2.019
-  comunidades (era 29.150/54.653/2.013).
+- RLS `messages_update` restringe UPDATE a admin/supervisor → edição silenciosa para agentes comuns.
+- Dead keys `templatesWithVars` e `realtimeTranscription`: componentes prontos, sem abridor no código.
+- `ticketStore` segue overlay localStorage até as RPCs de status existirem.
 
 ---
 

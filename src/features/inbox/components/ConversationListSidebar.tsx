@@ -178,12 +178,11 @@ export function ConversationListSidebar({
     onSearchFocus,
     onNextConversation: handleNextConversation,
     onPrevConversation: handlePrevConversation,
-    // Com conversa aberta, o ChatPanel é o dono do Mod+E — sem isso os dois
-    // handlers disparam archive(selectedContactId) no mesmo keydown (mutation dupla).
-    enableArchive: !inbox.selectedContactId,
     onArchive: () => onArchive(),
     onTransfer,
     onRefresh,
+    // Quando o ChatPanel está montado (conversa selecionada), cede o Mod+E a ele.
+    archiveEnabled: !inbox.selectedContactId,
   });
 
   return (

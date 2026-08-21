@@ -3,6 +3,7 @@ import { Conversation, Message, InteractiveMessage, LocationMessage } from '@/ty
 import { ExternalProduct } from '@/hooks/useExternalApiManagement';
 import { ExternalProductCatalog } from '@/components/catalog/ExternalProductCatalog';
 import type { SearchResult } from '../useGlobalSearchData';
+import type { DialogKey, DialogState } from './hooks/useChatDialogs';
 
 const TransferDialog = lazy(() =>
   import('../TransferDialog').then((m) => ({ default: m.TransferDialog }))
@@ -32,26 +33,6 @@ const RealtimeTranscription = lazy(() =>
   import('../RealtimeTranscription').then((m) => ({ default: m.RealtimeTranscription }))
 );
 
-type DialogKey =
-  | 'quickReplies'
-  | 'slashCommands'
-  | 'transferDialog'
-  | 'scheduleDialog'
-  | 'callDialog'
-  | 'globalSearch'
-  | 'chatSearch'
-  | 'interactiveBuilder'
-  | 'forwardDialog'
-  | 'locationPicker'
-  | 'aiAssistant'
-  | 'catalogDirect'
-  | 'whisper'
-  | 'templatesWithVars'
-  | 'realtimeTranscription'
-  | 'closeDialog';
-
-type DialogState = Record<DialogKey, boolean>;
-
 interface ChatDialogsProps {
   dialogs: DialogState;
   openDialog: (key: DialogKey) => void;
@@ -69,6 +50,10 @@ interface ChatDialogsProps {
   onSetInputValue: (value: string | ((prev: string) => string)) => void;
   onSelectSearchResult?: (result: SearchResult) => void;
 }
+
+/* TODO(etapa-54): templatesWithVars — chave presente no DialogKey/estado inicial mas sem
+   bloco de render e sem opener; implementar quando o componente de templates-com-variáveis
+   for criado. */
 
 /** Chat Dialogs component for the chat section. */
 // memo (etapa 63): todos os dialogs montam condicionalmente (barato fechado);
@@ -177,6 +162,8 @@ export const ChatDialogs = memo(function ChatDialogs({
         />
       )}
 
+      {/* TODO(etapa-54): realtimeTranscription — bloco de render presente mas sem opener wired;
+           adicionar botão speech-to-text em InputExtraTools quando feature for habilitada. */}
       {dialogs.realtimeTranscription && (
         <Suspense fallback={null}>
           <div className="mb-2 px-3">

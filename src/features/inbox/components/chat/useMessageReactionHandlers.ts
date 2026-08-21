@@ -63,28 +63,14 @@ export function useMessageReactionHandlers({
       }
       log2.debug('Forwarding to:', { targetIds, targetType, message: msg });
 
-      // Etapa 28: mídia é encaminhada como MÍDIA de verdade (o antigo
-      // `'text'` + mediaUrl fazia buildEvolutionPayload ignorar a URL e o
-      // destinatário recebia só o aviso textual). Tipos com suporte de envio
-      // no messageSender: image/audio/video/document. Location/interactive
-      // continuam caindo no aviso textual.
-      const FORWARDABLE_MEDIA: readonly string[] = ['image', 'audio', 'video', 'document'];
-      const isMediaForward = !!msg.mediaUrl && FORWARDABLE_MEDIA.includes(msg.type);
       const results: string[] = [];
       for (const targetId of targetIds) {
         try {
-          const content =
-            msg.type === 'text'
-              ? `➡️ *Encaminhada:*\n\n${msg.content}`
-              : isMediaForward
-                ? msg.content || ''
-                : `➡️ *Mensagem encaminhada*`;
-          const result = await sendMessageToContact(
-            targetId,
-            content,
-            isMediaForward ? msg.type : 'text',
-            isMediaForward ? (msg.mediaUrl ?? undefined) : undefined
-          );
+          const isTextMsg = msg.type === 'text';
+          const content = isTextMsg
+            ? `➡️ *Encaminhada:*\n\n${msg.content}`
+            : (msg.content ?? '');
+          const result = await sendMessageToContact(targetId, content, msg.type || 'text', msg.mediaUrl);
           log2.debug('Forwarded to', targetId, result);
           results.push(targetId);
         } catch (err) {

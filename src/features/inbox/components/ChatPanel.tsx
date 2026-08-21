@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useChatScheduleMessage } from './chat/hooks/useChatScheduleMessage';
+import { useChatQuickReplyControl } from './chat/hooks/useChatQuickReplyControl';
 import { Conversation, Message } from '@/types/chat';
 import { FileUploaderRef } from './FileUploader';
 import { useTypingPresence } from '@/hooks/useTypingPresence';
@@ -29,11 +30,9 @@ import { AutomationSuggestionsBar } from './chat/AutomationSuggestionsBar';
 import { useAutomations } from '@/hooks/useAutomations';
 import { SendErrorBanner } from './chat/SendErrorBanner';
 import { ChatDragOverlay } from './chat/ChatDragOverlay';
+import { ChatQuickRepliesPopover } from './chat/ChatQuickRepliesPopover';
 import { ChatSearchBar } from './chat/ChatSearchBar';
 import { useChatPanelHandlers } from './chat/useChatPanelHandlers';
-import { snoozeDurationToDate, type SnoozeToolbarDuration } from './chat/snoozeDurations';
-import { deriveContactJid } from '../utils/contactJid';
-import type { SearchResult } from './useGlobalSearchData';
 import type { ActiveTool } from './chat/ChatHeaderToolbar';
 import { FailureFilterBar } from './chat/FailureFilterBar';
 import { useChatFilters } from './chat/hooks/useChatFilters';
@@ -61,17 +60,11 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('ChatPanel');
 
-// Etapa 86: default estável para onToggleDetails — `|| (() => {})` inline
-// criava uma arrow nova por render e quebrava memo de quem a recebia.
-const noop = () => {};
-
 if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
   (window as Window).requestIdleCallback(() => {
-    // Etapa 77: prefetch é otimização — sem o catch, chunk rotacionado
-    // pós-deploy (hash antigo 404) virava unhandled rejection global.
-    import('./TransferDialog').catch(() => {});
-    import('./AIConversationAssistant').catch(() => {});
-    import('./CloseConversationDialog').catch(() => {});
+    import('./TransferDialog').catch(() => undefined);
+    import('./AIConversationAssistant').catch(() => undefined);
+    import('./CloseConversationDialog').catch(() => undefined);
   });
 }
 
@@ -104,7 +97,7 @@ export function ChatPanel({
   onSendMessage,
   onSendAudio,
   showDetails = false,
-  onToggleDetails = noop,
+  onToggleDetails,
   onBack,
   hideHeader = false,
   onLoadOlder,
@@ -130,19 +123,8 @@ export function ChatPanel({
   // ContactDetails: chamada direta + catch(() => undefined) p/ evitar
   // unhandled rejection (sem toast duplicado do wrapper do slash).
   const handleArchiveConversation = useCallback(() => {
-    const id = conversation.contact.id;
-    if (!id || !isValidUUID(id)) {
-      // Etapa 14: o menu do header já desabilita o item p/ contato externo;
-      // este toast cobre o Mod+E, que antes falhava em silêncio (paridade de
-      // feedback com o slash /archive, que lança erro visível).
-      toast({
-        title: 'Não é possível arquivar',
-        description: 'Contato externo (JID WhatsApp) sem cadastro interno.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    void archiveConversation(id).catch(() => undefined);
+    if (!isValidUUID(conversation.contact.id ?? '')) return;
+    void archiveConversation(conversation.contact.id ?? '').catch(() => undefined);
   }, [archiveConversation, conversation.contact.id]);
   const [historyOpen, setHistoryOpen] = useState(false);
 
@@ -152,8 +134,6 @@ export function ChatPanel({
   }, []);
 
   useEffect(() => {
-    // Etapa 85: comparações diretas — 'chatSearch'/'aiAssistant' pertencem ao
-    // union ActiveTool; os casts `as string` eram ruído herdado.
     const isSearch = activeTool === 'chatSearch';
     const isAssistant = activeTool === 'aiAssistant';
 
@@ -192,14 +172,21 @@ export function ChatPanel({
 
   const fileUploaderRef = useRef<FileUploaderRef>(null);
   const messagesAreaRef = useRef<ChatMessagesAreaRef>(null);
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { isDraggingOver, dragHandlers } = useChatDragAndDrop(fileUploaderRef);
 
-  // Regra extraída para deriveContactJid (etapa 92) — testada em
-  // utils/__tests__/contactJid.test.ts.
-  const contactJid = useMemo(
-    () => deriveContactJid(conversation.contact.remote_jid, conversation.contact.phone),
-    [conversation.contact.remote_jid, conversation.contact.phone]
-  );
+  const contactJid = useMemo(() => {
+    // Prefer the canonical remote_jid (present for groups, @lid, and broadcast JIDs
+    // where phone is null). Fall back to deriving from phone for legacy contacts.
+    const rj = conversation.contact.remote_jid;
+    if (rj) return rj;
+    const ph = conversation.contact.phone;
+    if (!ph) return '';
+    // Strategy B/C may have stored a full JID (e.g. 120363@g.us) in the phone field —
+    // appending @s.whatsapp.net would produce a malformed double-suffix JID.
+    if (ph.includes('@')) return ph;
+    return `${ph}@s.whatsapp.net`;
+  }, [conversation.contact.remote_jid, conversation.contact.phone]);
 
   const { typingUsers, handleTypingStart, handleTypingStop } = useTypingPresence({
     conversationId: conversation.id,
@@ -230,25 +217,25 @@ export function ChatPanel({
   );
 
   const saveSettingsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const saveSettingsRef = useRef(saveSettings);
-  saveSettingsRef.current = saveSettings;
   const debouncedSave = useCallback(() => {
     if (saveSettingsTimerRef.current !== null) clearTimeout(saveSettingsTimerRef.current);
     saveSettingsTimerRef.current = setTimeout(() => {
       saveSettingsTimerRef.current = null;
       void saveSettings();
-      // Etapa 35: 100ms gerava rajada de PATCH com o slider de velocidade.
     }, 500);
   }, [saveSettings]);
   useEffect(
     () => () => {
-      // Etapa 34: FLUSH no unmount — só cancelar descartava mudança feita
-      // <500ms antes de sair do painel (voz/velocidade nunca persistidas).
       if (saveSettingsTimerRef.current !== null) {
         clearTimeout(saveSettingsTimerRef.current);
-        saveSettingsTimerRef.current = null;
-        void saveSettingsRef.current();
+        void saveSettings();
       }
+    },
+    [saveSettings]
+  );
+  useEffect(
+    () => () => {
+      if (focusTimerRef.current !== null) clearTimeout(focusTimerRef.current);
     },
     []
   );
@@ -277,13 +264,16 @@ export function ChatPanel({
     onVoiceChange: handleVoiceChange,
     onSpeedChange: handleSpeedChange,
   });
+  useEffect(() => {
+    if (settings.tts_voice_id) setVoiceId(settings.tts_voice_id);
+    if (settings.tts_speed !== undefined) setSpeed(settings.tts_speed);
+  }, [settings.tts_voice_id, settings.tts_speed, setVoiceId, setSpeed]);
 
   const handlers = useChatPanelHandlers({
     conversationId: conversation.id ?? '',
     contactId: conversation.contact.id ?? '',
     contactPhone: conversation.contact.phone ?? '',
     instanceName,
-    whatsappConnectionId,
     onSendMessage,
     editMessageApi: editMessage,
     applySignature,
@@ -292,43 +282,16 @@ export function ChatPanel({
     openDialog,
     closeDialog,
     handleSetActiveTool,
-    // /archive real: soft-delete do contato (a sidebar refetcha via realtime;
-    // sem onDone aqui pois ChatPanel não recebe refetch da lista).
+    // /archive real: soft-delete via useArchiveConversationActions.archive().
+    // Decisão consciente: com ID inválido faz early return silencioso (sem toast)
+    // — o guard UUID de onArchiveChat (handlers.onArchive) lança antes, então
+    // esta camada nunca é alcançada com ID inválido em condições normais.
     onArchive: handleArchiveConversation,
   });
 
-  // Etapa 17: resolver do header unificado com o contrato do slash /resolve —
-  // handlers.onResolveConversation LANÇA em contato/perfil inválido; chamado
-  // cru pelo menu virava unhandled rejection sem nenhum feedback. Paridade com
-  // o run() do useInputHandlers: sucesso só após a ação resolver de verdade.
-  const { onResolveConversation } = handlers;
-  const handleResolveFromHeader = useCallback(() => {
-    void (async () => {
-      try {
-        await onResolveConversation();
-        toast({
-          title: 'Conversa Resolvida',
-          description: 'A conversa foi marcada como resolvida.',
-        });
-      } catch (err) {
-        toast({
-          title: 'Erro',
-          description: err instanceof Error ? err.message : 'Nao foi possivel concluir a acao.',
-          variant: 'destructive',
-        });
-      }
-    })();
-  }, [onResolveConversation]);
-
   useEffect(() => {
     initResolve();
-    // Etapa 36: `instanceNameProp` explícito nas deps — quando a prop chega
-    // tarde (inbox resolve a instância async), o useChatMediaSending reseta o
-    // resolvedRef e este effect precisa re-disparar sem depender da cascata de
-    // identidade de initResolve. Limitação conhecida: com hint fornecido,
-    // resolveInstance retorna cedo e whatsappConnectionId pode ficar null
-    // (rastreado pelo log do eco local — etapa 21).
-  }, [conversation.contact.id, instanceNameProp, initResolve]);
+  }, [conversation.contact.id, initResolve, instanceNameProp]);
 
   // Avalia regras de automação para a conversa ativa
   useAutomations({
@@ -344,10 +307,7 @@ export function ChatPanel({
   useEffect(() => {
     const el = messagesAreaRef.current?.getScrollContainer();
     return el ? bindScrollListener(el) : undefined;
-    // Etapa 82: re-bind também na transição de loading — se o container do
-    // scroll remontar no swap spinner→lista, o listener antigo morre com o
-    // nó e o auto-scroll ficava sem rastreio até a próxima troca de conversa.
-  }, [bindScrollListener, conversation.id, isLoading]);
+  }, [bindScrollListener, conversation.id]);
 
   useInboxShortcuts({
     onSearchFocus: () => {
@@ -359,10 +319,14 @@ export function ChatPanel({
     },
     onNextConversation: () => {}, // Handled in Sidebar
     onPrevConversation: () => {}, // Handled in Sidebar
-    // Mod+E arquiva a conversa ABERTA. Dono único do atalho com painel
-    // montado: a Sidebar cede via enableArchive=!selectedContactId
-    // (ConversationListSidebar) — sem duplo disparo (etapas 12–13, PR #1350).
-    onArchive: handleArchiveConversation,
+    // Mod+E unificado: usa o mesmo caminho validado do slash /archive
+    // (handlers.onArchive = onArchiveChat, que valida UUID e rejeita sem
+    // silent-fail), evitando duplicação de lógica com a mutation crua.
+    onArchive: () => {
+      void handlers.onArchive?.()?.catch((err: unknown) => {
+        log.warn('[ChatPanel] Mod+E archive falhou', err);
+      });
+    },
     onTransfer: () => handlers.handleSlashCommand({ id: 'transfer' }),
     onRefresh: () => {}, // Handled in Sidebar
     onSearchFocusChat: () => handleSetActiveTool('chatSearch'),
@@ -374,12 +338,12 @@ export function ChatPanel({
     setFailuresOnly(false);
     resetAllDialogs();
     setHistoryOpen(false);
-    // Etapa 39: direção de chamada residual da conversa anterior não deve
-    // pré-selecionar o dialog de chamada da próxima.
     setCallDirection('outbound');
   }, [conversation.id, resetSearch, setFailuresOnly, resetAllDialogs]);
 
   // Deep-link "Ver no chat": encontra a mensagem alvo, faz scroll e aplica destaque temporário.
+  // Etapa 52: passa onLoadOlder/hasMoreOlder para que o hook pagine se a mensagem estiver
+  // em páginas anteriores (não carregadas ainda).
   useInitialHighlight({
     initialHighlightMessageId,
     messages,
@@ -387,145 +351,70 @@ export function ChatPanel({
     setHighlightedMessageIds,
     setActiveHighlightId,
     onHighlightConsumed,
+    onLoadOlder: failuresOnly ? undefined : onLoadOlder,
+    hasMoreOlder: failuresOnly ? false : hasMoreOlder,
   });
 
-  // Bloco 6 (etapas 57–61): callbacks estáveis para os filhos memoizados.
-  // O controle de respostas rápidas + popover DESCERAM para o ChatInputArea
-  // (etapa 59) — este componente não lê mais o valor do input por tecla.
-  const openQuickReplies = useCallback(() => openDialog('quickReplies'), [openDialog]);
-  const closeQuickReplies = useCallback(() => closeDialog('quickReplies'), [closeDialog]);
-  const closeSlashCommands = useCallback(() => closeDialog('slashCommands'), [closeDialog]);
-  const openInteractiveBuilder = useCallback(() => openDialog('interactiveBuilder'), [openDialog]);
-  const openScheduleDialog = useCallback(() => openDialog('scheduleDialog'), [openDialog]);
-  const openLocationPicker = useCallback(() => openDialog('locationPicker'), [openDialog]);
-  const openCatalogDirect = useCallback(() => openDialog('catalogDirect'), [openDialog]);
-  const openTransferDialog = useCallback(() => openDialog('transferDialog'), [openDialog]);
-  const openCloseDialog = useCallback(() => openDialog('closeDialog'), [openDialog]);
-  const openValidationDialog = useCallback(() => openDialog('visualValidation'), [openDialog]);
-  const openTeamFiles = useCallback(() => handleSetActiveTool('teamFiles'), [handleSetActiveTool]);
-  const openChatSearchTool = useCallback(
-    () => handleSetActiveTool('chatSearch'),
-    [handleSetActiveTool]
-  );
-  const openAIAssistantTool = useCallback(
-    () => handleSetActiveTool('aiAssistant'),
-    [handleSetActiveTool]
-  );
-  const { setIsWhisper, setReplyToMessage, setIsRecordingAudio, handleAudioSend } = handlers;
-  const toggleWhisper = useCallback(() => setIsWhisper((v) => !v), [setIsWhisper]);
-  const cancelReply = useCallback(() => setReplyToMessage(null), [setReplyToMessage]);
-  const toggleRecording = useCallback(() => setIsRecordingAudio((v) => !v), [setIsRecordingAudio]);
-  const cancelRecording = useCallback(() => setIsRecordingAudio(false), [setIsRecordingAudio]);
-  const handleAudioSendWithProp = useCallback(
-    (blob: Blob) => handleAudioSend(blob, onSendAudio),
-    [handleAudioSend, onSendAudio]
-  );
-  const startOutboundCall = useCallback(() => {
-    setCallDirection('outbound');
-    openDialog('callDialog');
-  }, [openDialog]);
-  const toggleFailuresOnly = useCallback(() => setFailuresOnly((v) => !v), [setFailuresOnly]);
+  const {
+    filtered: filteredQuickReplies,
+    selectedIndex: selectedQuickReplyIndex,
+    handleQuickReply,
+    handleKeyDown,
+    handleInputChange,
+  } = useChatQuickReplyControl({
+    inputValue: handlers.inputValue,
+    dbQuickReplies,
+    quickRepliesOpen: dialogs.quickReplies,
+    openQuickReplies: () => openDialog('quickReplies'),
+    closeQuickReplies: () => closeDialog('quickReplies'),
+    slashCommandsOpen: dialogs.slashCommands,
+    setInputValue: handlers.setInputValue,
+    focusInput: () => handlers.inputRef.current?.focus(),
+    incrementUseCount,
+    baseHandleInputChange: handlers.handleInputChange,
+    baseHandleKeyDown: handlers.handleKeyDown,
+  });
 
   // Stable refs for ChatMessagesArea to prevent re-renders on input change
   const contactAvatar = conversation.contact.avatar || undefined;
-
-  // Etapa 81: setTimeouts de focus com cleanup centralizado — ids soltos
-  // vazavam depois do unmount (focus em ref de painel desmontado).
-  const focusTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
-  const { inputRef } = handlers;
-  const focusInputSoon = useCallback(
-    (delayMs: number) => {
-      const id = setTimeout(() => {
-        focusTimersRef.current.delete(id);
-        inputRef.current?.focus();
-      }, delayMs);
-      focusTimersRef.current.add(id);
-    },
-    [inputRef]
-  );
-  useEffect(
-    () => () => {
-      const timers = focusTimersRef.current;
-      timers.forEach(clearTimeout);
-      timers.clear();
-    },
-    []
-  );
-
-  // Etapa 48: navegação para mensagem respeitando o filtro de falhas — o
-  // scrollToMessage retornava false (hit fora de visibleMessages) e virava
-  // no-op SILENCIOSO. Agora: com filtro ativo, desliga o filtro, avisa e
-  // re-tenta; fora da janela carregada, avisa em vez de silenciar.
-  const failuresOnlyRef = useRef(failuresOnly);
-  failuresOnlyRef.current = failuresOnly;
   const handleScrollToMessage = useCallback(
-    (id: string) => {
-      const found = messagesAreaRef.current?.scrollToMessage(id) ?? false;
-      if (found) return;
-      if (failuresOnlyRef.current) {
-        setFailuresOnly(false);
-        toast({
-          title: 'Filtro de falhas desativado',
-          description: 'A mensagem estava oculta pelo filtro.',
-        });
-        const retryId = setTimeout(() => {
-          focusTimersRef.current.delete(retryId);
-          messagesAreaRef.current?.scrollToMessage(id);
-        }, 50);
-        focusTimersRef.current.add(retryId);
-        return;
-      }
-      toast({
-        title: 'Mensagem fora da janela carregada',
-        description: 'Carregue mensagens mais antigas para visualizá-la.',
-      });
-    },
-    [setFailuresOnly]
-  );
-
-  // Etapa 47: fechar a busca é EXPLÍCITO — o toggle antigo
-  // (handleSetActiveTool('chatSearch')) REABRIRIA a barra caso o estado já
-  // tivesse divergido (ex.: resetado pela troca de conversa).
-  const closeChatSearch = useCallback(() => {
-    setActiveTool((prev) => (prev === 'chatSearch' ? null : prev));
-    focusInputSoon(150);
-  }, [focusInputSoon]);
-
-  const handleSelectSearchResult = useCallback(
-    (result: SearchResult) => {
-      // Etapa 51 (BUG-24 residual): mensagem navega direto; resultado com
-      // `action` própria executa-a; contato/CRM não têm API de navegação de
-      // conversa DENTRO do painel (a seleção vive no RealtimeInboxView) —
-      // feedback honesto com instrução em vez de toast morto.
-      if (result.type === 'message' && result.id) {
-        handleScrollToMessage(result.id);
-        return;
-      }
-      if (result.action) {
-        result.action();
-        return;
-      }
-      toast({
-        title: result.type === 'contact' ? 'Contato encontrado' : 'Resultado',
-        description:
-          result.type === 'contact'
-            ? `Abra "${result.title}" pela lista de conversas.`
-            : result.title,
-      });
-    },
-    [handleScrollToMessage]
+    (id: string) => messagesAreaRef.current?.scrollToMessage(id),
+    []
   );
 
   // Etapa 41: "Responder depois" da toolbar de mensagem — converte a duração
   // em data e delega ao snooze real da conversa (useChatPanelHandlers.onSnooze).
   const { onSnooze } = handlers;
   const handleSnoozeFromToolbar = useCallback(
-    (duration: SnoozeToolbarDuration) => {
-      // Durações extraídas p/ snoozeDurationToDate (etapa 93) — testadas com
-      // relógio fake em __tests__/snoozeDurations.test.ts.
-      const until = snoozeDurationToDate(duration);
-      // Etapa 73: origem real ('toolbar') em vez do 'slash' herdado do default.
-      void onSnooze(until.toISOString(), 'toolbar').catch(() => {
+    (duration: '1h' | '3h' | 'tomorrow' | 'nextweek') => {
+      const now = new Date();
+      let until: Date;
+      switch (duration) {
+        case '1h':
+          until = new Date(now.getTime() + 60 * 60 * 1000);
+          break;
+        case '3h':
+          until = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+          break;
+        case 'tomorrow': {
+          const t = new Date(now);
+          t.setDate(t.getDate() + 1);
+          t.setHours(9, 0, 0, 0);
+          until = t;
+          break;
+        }
+        case 'nextweek': {
+          const t = new Date(now);
+          const daysUntilMonday = (1 - t.getDay() + 7) % 7 || 7;
+          t.setDate(t.getDate() + daysUntilMonday);
+          t.setHours(9, 0, 0, 0);
+          until = t;
+          break;
+        }
+        default:
+          until = new Date(now.getTime() + 60 * 60 * 1000);
+      }
+      void onSnooze(until.toISOString()).catch(() => {
         log.warn('[ChatPanel] Falha ao adiar conversa pela toolbar');
       });
     },
@@ -567,65 +456,73 @@ export function ChatPanel({
     onDone: () => closeDialog('scheduleDialog'),
   });
 
-  // Etapas 19–22: eco local de enquete/cartão de contato — helper ÚNICO (antes
-  // duplicado inline no JSX e recriado a cada render). O callback dispara
-  // APÓS o envio real resolver no AdvancedMessageMenu (`await sendPoll...`),
-  // por isso `status: 'sent'` é honesto aqui (etapa 20). Em modo externo
-  // (JID) não insere: o webhook da Evolution já persiste a mensagem.
-  // Etapa 84 (verificado no DB 2026-08-21): zapp.messages é VIEW com triggers
-  // INSTEAD OF (fn_messages_view_insert_handler) roteando para a MESMA base
-  // física do editMessage (evo.evolution_messages) — caminhos consistentes.
-  const echoContactId = conversation.contact.id;
-  const insertLocalEcho = useCallback(
-    async (content: string) => {
-      if (!isValidUUID(echoContactId)) return;
-      try {
-        const ref = resolveContactRef(echoContactId);
-        if (!isUuidRef(ref)) return;
-        if (!whatsappConnectionId) {
-          // Etapa 21: conexão ainda não resolvida — o eco entra sem vínculo
-          // (histórico vale mais que o vínculo), mas fica rastreável no log.
-          log.warn('[ChatPanel] eco local sem whatsapp_connection_id', { contactId: ref.uuid });
-        }
-        await dbFrom('messages').insert({
-          contact_id: ref.uuid,
-          whatsapp_connection_id: whatsappConnectionId,
-          content,
-          message_type: 'text',
-          sender: 'agent',
-          status: 'sent',
-        });
-      } catch (err) {
-        log.error('[ChatPanel] falha ao inserir eco local', err);
-      }
-    },
-    [echoContactId, whatsappConnectionId]
-  );
-  const handlePollSent = useCallback(
-    (poll: { name: string; options: string[]; selectableCount: number }) =>
-      void insertLocalEcho(
-        `📊 *Enquete:* ${poll.name}\n${poll.options.map((o, i) => `${i + 1}. ${o}`).join('\n')}`
-      ),
-    [insertLocalEcho]
-  );
-  const handleContactSent = useCallback(
-    (contactName: string) => void insertLocalEcho(`📇 Cartão de contato: ${contactName}`),
-    [insertLocalEcho]
-  );
+  const stableOnToggleDetails = useCallback(() => {
+    onToggleDetails?.();
+  }, [onToggleDetails]);
+
+  const handlePollSent = useCallback(async (poll: { name: string; options: string[] }) => {
+    if (!isValidUUID(conversation.contact.id)) return;
+    try {
+      const ref = resolveContactRef(conversation.contact.id);
+      if (!isUuidRef(ref)) return;
+      await dbFrom('messages').insert({
+        contact_id: ref.uuid,
+        whatsapp_connection_id: whatsappConnectionId,
+        content: `📊 *Enquete:* ${poll.name}\n${poll.options.map((o, i) => `${i + 1}. ${o}`).join('\n')}`,
+        message_type: 'text',
+        sender: 'agent',
+        status: 'pending',
+      });
+    } catch (err) {
+      log.error('Failed to insert poll message', err);
+    }
+  }, [conversation.contact.id, whatsappConnectionId]);
+
+  const handleContactSent = useCallback(async (contactName: string) => {
+    if (!isValidUUID(conversation.contact.id)) return;
+    try {
+      const ref = resolveContactRef(conversation.contact.id);
+      if (!isUuidRef(ref)) return;
+      await dbFrom('messages').insert({
+        contact_id: ref.uuid,
+        whatsapp_connection_id: whatsappConnectionId,
+        content: `📇 Cartão de contato: ${contactName}`,
+        message_type: 'text',
+        sender: 'agent',
+        status: 'pending',
+      });
+    } catch (err) {
+      log.error('Failed to insert contact card message', err);
+    }
+  }, [conversation.contact.id, whatsappConnectionId]);
+
+  // ── Bloco 6: stable callbacks para ChatInputArea (React.memo) ────────────
+  const { setIsWhisper, handleSend, setReplyToMessage, setIsRecordingAudio,
+          handleAudioSend, setInputValue } = handlers;
+  const cbToggleWhisper = useCallback(() => setIsWhisper((v) => !v), [setIsWhisper]);
+  const cbSend = useCallback((att?: File[]) => handleSend(att), [handleSend]);
+  const cbCancelReply = useCallback(() => setReplyToMessage(null), [setReplyToMessage]);
+  const cbCloseSlashCommands = useCallback(() => closeDialog('slashCommands'), [closeDialog]);
+  const cbRecordToggle = useCallback(() => setIsRecordingAudio((v) => !v), [setIsRecordingAudio]);
+  const cbAudioSend = useCallback((blob: Blob) => handleAudioSend(blob, onSendAudio), [handleAudioSend, onSendAudio]);
+  const cbAudioCancel = useCallback(() => setIsRecordingAudio(false), [setIsRecordingAudio]);
+  const cbOpenInteractiveBuilder = useCallback(() => openDialog('interactiveBuilder'), [openDialog]);
+  const cbOpenScheduleDialog = useCallback(() => openDialog('scheduleDialog'), [openDialog]);
+  const cbOpenLocationPicker = useCallback(() => openDialog('locationPicker'), [openDialog]);
+  const cbOpenCatalog = useCallback(() => openDialog('catalogDirect'), [openDialog]);
+  const cbSelectSuggestion = useCallback((text: string) => setInputValue(text), [setInputValue]);
+  const cbSelectTemplate = useCallback((text: string) => setInputValue(text), [setInputValue]);
+  const cbOpenTeamFiles = useCallback(() => handleSetActiveTool('teamFiles'), [handleSetActiveTool]);
+  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <div
       data-testid="chat-window"
-      // Etapa 96 (E2E follow-up): expõe o JID resolvido para o teste de
-      // broadcast de digitação simular o canal `typing:${jid}` correto sem
-      // depender de um contato fixo no fixture de E2E.
-      data-contact-jid={contactJid}
       className={`relative flex h-full min-h-0 min-w-0 overflow-hidden bg-muted/20 antialiased`}
       {...dragHandlers}
     >
       <ChatDragOverlay isDraggingOver={isDraggingOver} />
-      {/* Etapa 62: messageCount removido — era messages.length duplicado. */}
-      <CRMAutoSync conversation={conversation} messages={messages} />
+      <CRMAutoSync conversation={conversation} messageCount={messages.length} messages={messages} />
 
       <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--background))]">
         {!hideHeader && (
@@ -636,23 +533,27 @@ export function ChatPanel({
             showDetails={showDetails}
             voiceId={voiceId}
             speed={speed}
-            onToggleAIAssistant={openAIAssistantTool}
-            onToggleDetails={onToggleDetails}
-            onStartCall={startOutboundCall}
-            onOpenSearch={openChatSearchTool}
-            onOpenValidation={isDevExact ? openValidationDialog : undefined}
-            onResolveConversation={handleResolveFromHeader}
+            onToggleAIAssistant={() => handleSetActiveTool('aiAssistant')}
+            onToggleDetails={stableOnToggleDetails}
+            onStartCall={() => {
+              setCallDirection('outbound');
+              openDialog('callDialog');
+            }}
+            onOpenSearch={() => handleSetActiveTool('chatSearch')}
+            onOpenValidation={isDevExact ? () => openDialog('visualValidation') : undefined}
+            onResolveConversation={handlers.onResolveConversation}
             onArchiveConversation={handleArchiveConversation}
-            onOpenTransfer={openTransferDialog}
-            onOpenSchedule={openScheduleDialog}
+            onOpenTransfer={() => openDialog('transferDialog')}
+            onOpenSchedule={() => openDialog('scheduleDialog')}
             onVoiceChange={setVoiceId}
             onSpeedChange={setSpeed}
             onBack={onBack}
-            onGenerateSummary={openAIAssistantTool}
-            onCloseConversation={openCloseDialog}
+            onGenerateSummary={() => handleSetActiveTool('aiAssistant')}
+            onCloseConversation={() => openDialog('closeDialog')}
             failuresOnly={failuresOnly}
             failuresCount={failedMessages.length}
-            onToggleFailuresOnly={toggleFailuresOnly}
+            hasMoreOlder={hasMoreOlder}
+            onToggleFailuresOnly={() => setFailuresOnly((v) => !v)}
             activeTool={activeTool}
             whisperCount={whisperCount}
             onSetActiveTool={handleSetActiveTool}
@@ -667,7 +568,8 @@ export function ChatPanel({
             onUseTemplate={(content) => {
               handlers.setInputValue(content);
               setActiveTool(null);
-              focusInputSoon(10);
+              if (focusTimerRef.current !== null) clearTimeout(focusTimerRef.current);
+              focusTimerRef.current = setTimeout(() => handlers.inputRef.current?.focus(), 10);
             }}
           />
         )}
@@ -675,28 +577,29 @@ export function ChatPanel({
         <ChatSearchBar
           messages={messages}
           isOpen={activeTool === 'chatSearch'}
-          onClose={closeChatSearch}
-          onNavigateToMessage={handleScrollToMessage}
+          onClose={() => {
+            setActiveTool(null);
+            if (focusTimerRef.current !== null) clearTimeout(focusTimerRef.current);
+            focusTimerRef.current = setTimeout(() => handlers.inputRef.current?.focus(), 150);
+          }}
+          onNavigateToMessage={(id) => messagesAreaRef.current?.scrollToMessage(id)}
           onHighlightChange={handleHighlightChange}
           onSearchQueryChange={setSearchQuery}
         />
 
-        {/* Etapa 83: ticket overlay indexa por contact_id — em modo externo
-            (JID/'' ) montaria com chave inválida e sujaria o storage local. */}
-        {isValidUUID(conversation.contact.id) && (
-          <>
-            <TicketActionsBar
-              contactId={conversation.contact.id}
-              onOpenHistory={() => setHistoryOpen(true)}
-            />
-            <TicketHistorySheet
-              contactId={conversation.contact.id}
-              open={historyOpen}
-              onOpenChange={setHistoryOpen}
-            />
-          </>
-        )}
-        <ChatAssignedBar conversation={conversation} onOpenTransfer={openTransferDialog} />
+        <TicketActionsBar
+          contactId={conversation.contact.id ?? ''}
+          onOpenHistory={() => setHistoryOpen(true)}
+        />
+        <TicketHistorySheet
+          contactId={conversation.contact.id}
+          open={historyOpen}
+          onOpenChange={setHistoryOpen}
+        />
+        <ChatAssignedBar
+          conversation={conversation}
+          onOpenTransfer={() => openDialog('transferDialog')}
+        />
 
         <FailureFilterBar
           failuresOnly={failuresOnly}
@@ -704,9 +607,9 @@ export function ChatPanel({
           categoryFilteredMessages={categoryFilteredMessages}
           failedMessagesCount={failedMessages.length}
           categoryCounts={categoryCounts}
-          hasMoreOlder={hasMoreOlder}
           setFailureCategory={setFailureCategory}
           setFailuresOnly={setFailuresOnly}
+          hasMoreOlder={hasMoreOlder}
         />
 
         <ChatPanelOverlays
@@ -721,11 +624,7 @@ export function ChatPanel({
           ref={messagesAreaRef}
           messages={visibleMessages}
           isContactTyping={isContactTyping}
-          // Etapa 31: indicadores separados — o do contato usa o NOME DO
-          // CONTATO (antes um agente digitando ao mesmo tempo sobrescrevia o
-          // nome); o de agente tem fallback honesto 'Agente'.
-          typingUserName={conversation.contact.name ?? ''}
-          agentTypingName={typingUsers.length > 0 ? typingUsers[0].name || 'Agente' : null}
+          typingUserName={typingUsers[0]?.name || 'Agente'}
           ttsLoading={ttsLoading}
           ttsPlaying={ttsPlaying}
           ttsMessageId={ttsMessageId}
@@ -745,12 +644,23 @@ export function ChatPanel({
           highlightedMessageIds={highlightedMessageIds}
           activeHighlightId={activeHighlightId}
           searchQuery={searchQuery}
+          // Etapa 50: paginação desabilitada no modo de falhas — carregar mensagens
+          // mais antigas que não passariam no filtro seria desperdício de rede e
+          // geraria confusão (botão "carregar mais" sem resultado visível).
           onLoadOlder={failuresOnly ? undefined : onLoadOlder}
           onCancelLoadOlder={failuresOnly ? undefined : onCancelLoadOlder}
           loadingOlder={failuresOnly ? false : loadingOlder}
           hasMoreOlder={failuresOnly ? false : hasMoreOlder}
           isLoading={isLoading}
           onAudioVoiceChange={handlers.handleAudioVoiceChange}
+        />
+
+        <ChatQuickRepliesPopover
+          show={dialogs.quickReplies}
+          replies={filteredQuickReplies}
+          onSelect={handleQuickReply}
+          onClose={() => closeDialog('quickReplies')}
+          selectedIndex={selectedQuickReplyIndex}
         />
 
         <SendErrorBanner
@@ -763,19 +673,15 @@ export function ChatPanel({
 
         <AutomationSuggestionsBar
           contactId={conversation.contact.id}
-          onUseSuggestion={handlers.setInputValue}
+          onUseSuggestion={(t) => handlers.setInputValue(t)}
         />
 
         <ChatInputArea
-          inputStore={handlers.inputStore}
+          inputValue={handlers.inputValue}
           replyToMessage={handlers.replyToMessage}
           editingMessage={handlers.editingMessage}
           isRecordingAudio={handlers.isRecordingAudio}
           showSlashCommands={dialogs.slashCommands}
-          quickRepliesOpen={dialogs.quickReplies}
-          onOpenQuickReplies={openQuickReplies}
-          onCloseQuickReplies={closeQuickReplies}
-          incrementQuickReplyUse={incrementUseCount}
           contactId={conversation.contact.id ?? ''}
           contactPhone={conversation.contact.phone ?? ''}
           contactName={conversation.contact.name ?? ''}
@@ -785,22 +691,23 @@ export function ChatPanel({
           isSending={handlers.isSending}
           sendProgress={handlers.sendProgress}
           isWhisper={handlers.isWhisper}
-          onToggleWhisper={toggleWhisper}
-          onInputChange={handlers.handleInputChange}
-          onKeyDown={handlers.handleKeyDown}
+          onToggleWhisper={cbToggleWhisper}
+          onInputChange={handleInputChange}
+          onKeyDown={handleKeyDown}
           onBlur={handleTypingStop}
-          onSend={handlers.handleSend}
-          onCancelReply={cancelReply}
+          onSend={cbSend}
+          onCancelReply={cbCancelReply}
           onCancelEdit={handlers.handleCancelEdit}
           onEditStart={handlers.handleEditStart}
           onSlashCommand={handlers.handleSlashCommand}
-          onCloseSlashCommands={closeSlashCommands}
-          onRecordToggle={toggleRecording}
-          onAudioSend={handleAudioSendWithProp}
-          onAudioCancel={cancelRecording}
-          onOpenInteractiveBuilder={openInteractiveBuilder}
-          onOpenSchedule={openScheduleDialog}
-          onOpenLocationPicker={openLocationPicker}
+          onCloseSlashCommands={cbCloseSlashCommands}
+          onQuickReply={handleQuickReply}
+          onRecordToggle={cbRecordToggle}
+          onAudioSend={cbAudioSend}
+          onAudioCancel={cbAudioCancel}
+          onOpenInteractiveBuilder={cbOpenInteractiveBuilder}
+          onOpenSchedule={cbOpenScheduleDialog}
+          onOpenLocationPicker={cbOpenLocationPicker}
           onSendProduct={handlers.handleSendProduct}
           onSendSticker={handleSendSticker}
           onSendAudioMeme={handleSendAudioMeme}
@@ -810,10 +717,10 @@ export function ChatPanel({
           onToggleSignature={toggleSignature}
           onPollSent={handlePollSent}
           onContactSent={handleContactSent}
-          onOpenCatalog={openCatalogDirect}
-          onSelectSuggestion={handlers.setInputValue}
-          onSelectTemplate={handlers.setInputValue}
-          onOpenTeamFiles={openTeamFiles}
+          onOpenCatalog={cbOpenCatalog}
+          onSelectSuggestion={cbSelectSuggestion}
+          onSelectTemplate={cbSelectTemplate}
+          onOpenTeamFiles={cbOpenTeamFiles}
           fileUploaderRef={fileUploaderRef}
           inputRef={handlers.inputRef}
           queue={messageQueue?.queue}
@@ -836,7 +743,25 @@ export function ChatPanel({
           onSendLocation={handlers.handleSendLocation}
           onSendProduct={handlers.handleSendProduct}
           onSetInputValue={handlers.setInputValue}
-          onSelectSearchResult={handleSelectSearchResult}
+          onSelectSearchResult={(result) => {
+            // Etapa 51: BUG-24 residual — navegar de verdade em vez de toast morto.
+            // 'transcription' usa o mesmo scroll de 'message' (ligado ao id da mensagem).
+            if (result.type === 'message' || result.type === 'transcription') {
+              if (!result.id) return;
+              if (failuresOnly && !failedMessages.some((m) => m.id === result.id)) {
+                toast({
+                  title: 'Mensagem oculta pelo filtro',
+                  description: 'Desative o filtro de falhas para navegar até esta mensagem.',
+                });
+                return;
+              }
+              messagesAreaRef.current?.scrollToMessage(result.id);
+            } else if (result.action) {
+              // contact/action/crm: a camada de dados já embutiu a ação de navegação.
+              result.action();
+            }
+            // sem ação definida e sem id navegável → silencioso (sem toast morto)
+          }}
         />
       </div>
 
@@ -846,7 +771,7 @@ export function ChatPanel({
         messages={messages}
         contactId={conversation.contact.id ?? ''}
         contactName={conversation.contact.name ?? ''}
-        onSelectSuggestion={handlers.setInputValue}
+        onSelectSuggestion={(text) => handlers.setInputValue(text)}
       />
       <ChatMonitoringDialog
         open={activeTool === 'monitoring'}

@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef, useCallback, memo } from 'react';
+import { useMemo, useEffect, useRef, memo } from 'react';
 import { isFeatureEnabled } from '@/lib/featureFlags';
 import { cn } from '@/lib/utils';
 import { Message } from '@/types/chat';
@@ -35,9 +35,6 @@ import { InputPreviewBars } from './InputPreviewBars';
 import { ChatSendProgress } from './ChatSendProgress';
 import { getQueueLength, normalizeAttempts, getLastAttemptDuration } from './chatInputGuards';
 import { useChatInputLogic, setNativeValue } from './useChatInputLogic';
-import { useInputValue, type InputValueStore } from './hooks/useInputValueStore';
-import { useChatQuickReplyControl } from './hooks/useChatQuickReplyControl';
-import { ChatQuickRepliesPopover } from './ChatQuickRepliesPopover';
 import { playNotificationSound } from '@/utils/notificationSounds';
 import { formatFileSize } from '@/utils/whatsappFileTypes';
 import { asRef } from '@/lib/reactRefs';
@@ -57,21 +54,11 @@ interface QuickReplyItem {
 }
 
 interface ChatInputAreaProps {
-  /**
-   * Bloco 6 (etapa 57): o texto vem por STORE — este componente é o ÚNICO
-   * assinante do valor por tecla. Não converter de volta para prop string:
-   * isso faria o ChatPanel inteiro re-renderizar a cada keystroke.
-   */
-  inputStore: InputValueStore;
+  inputValue: string;
   replyToMessage: Message | null;
   editingMessage?: Message | null;
   isRecordingAudio: boolean;
   showSlashCommands: boolean;
-  /** Etapa 59: controle de respostas rápidas mora AQUI (aberto/fechar vêm do reducer de dialogs). */
-  quickRepliesOpen: boolean;
-  onOpenQuickReplies: () => void;
-  onCloseQuickReplies: () => void;
-  incrementQuickReplyUse: (id: string) => void;
   contactId: string;
   contactPhone: string;
   contactName: string;
@@ -82,10 +69,8 @@ interface ChatInputAreaProps {
   quickReplies: QuickReplyItem[];
   isSending?: boolean;
   sendProgress?: number;
-  /** Handler BASE (useInputHandlers) — o wrapper de respostas rápidas é composto aqui dentro. */
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  /** Handler BASE (useInputHandlers) — recebe o estado do menu slash como 2º argumento. */
-  onKeyDown: (e: React.KeyboardEvent, slashCommandsOpen: boolean) => void;
+  onKeyDown: (e: React.KeyboardEvent) => void;
   onBlur: () => void;
   onSend: (attachments?: File[]) => void;
   onCancelReply: () => void;
@@ -93,6 +78,7 @@ interface ChatInputAreaProps {
   onEditStart?: (message: Message) => void;
   onSlashCommand: (command: SlashCommand, subCommand?: string) => void;
   onCloseSlashCommands: () => void;
+  onQuickReply: (reply: QuickReplyItem) => void;
   onRecordToggle: () => void;
   onAudioSend: (blob: Blob) => void;
   onAudioCancel: () => void;
@@ -122,20 +108,13 @@ interface ChatInputAreaProps {
 }
 
 /** Chat Input Area component for the chat section. */
-// memo (Bloco 6): com o valor do input vindo por store, as demais props são
-// estáveis (useCallback no ChatPanel) — chegada de mensagem nova não
-// re-renderiza a área de composição (só `messages` legitimamente muda).
-export const ChatInputArea = memo(function ChatInputArea(props: ChatInputAreaProps) {
+function ChatInputAreaInner(props: ChatInputAreaProps) {
   const {
-    inputStore,
+    inputValue,
     replyToMessage,
     editingMessage,
     isRecordingAudio,
     showSlashCommands,
-    quickRepliesOpen,
-    onOpenQuickReplies,
-    onCloseQuickReplies,
-    incrementQuickReplyUse,
     contactId,
     contactPhone,
     contactName,
@@ -154,6 +133,7 @@ export const ChatInputArea = memo(function ChatInputArea(props: ChatInputAreaPro
     onCancelEdit,
     onSlashCommand,
     onCloseSlashCommands,
+    onQuickReply,
     onRecordToggle,
     onAudioSend,
     onAudioCancel,
@@ -180,9 +160,6 @@ export const ChatInputArea = memo(function ChatInputArea(props: ChatInputAreaPro
     onRetry: _onRetry,
     onRemoveFromQueue: _onRemoveFromQueue,
   } = props;
-
-  // Único assinante do valor por tecla (Bloco 6).
-  const inputValue = useInputValue(inputStore);
 
   const prevRecordingRef = useRef(isRecordingAudio);
 
@@ -217,31 +194,6 @@ export const ChatInputArea = memo(function ChatInputArea(props: ChatInputAreaPro
     close: closeMention,
   } = useMentions(inputRef);
 
-  // Etapa 59: o controle de respostas rápidas (filtro por "/", navegação por
-  // setas, Enter seleciona) morava no ChatPanel — o que fazia o painel inteiro
-  // re-renderizar por tecla enquanto o popover estava aberto. Aqui ele compõe
-  // os handlers BASE vindos do useInputHandlers.
-  const focusInput = useCallback(() => inputRef.current?.focus(), [inputRef]);
-  const {
-    filtered: filteredQuickReplies,
-    selectedIndex: selectedQuickReplyIndex,
-    handleQuickReply,
-    handleKeyDown: composedKeyDown,
-    handleInputChange: composedInputChange,
-  } = useChatQuickReplyControl({
-    inputValue,
-    dbQuickReplies: quickReplies,
-    quickRepliesOpen,
-    openQuickReplies: onOpenQuickReplies,
-    closeQuickReplies: onCloseQuickReplies,
-    slashCommandsOpen: showSlashCommands,
-    setInputValue: inputStore.set,
-    focusInput,
-    incrementUseCount: incrementQuickReplyUse,
-    baseHandleInputChange: onInputChange,
-    baseHandleKeyDown: onKeyDown,
-  });
-
   const tertiaryTools = useMemo(
     () => (
       <TertiaryToolsMenu
@@ -256,7 +208,7 @@ export const ChatInputArea = memo(function ChatInputArea(props: ChatInputAreaPro
         onSendProduct={onSendProduct}
         onSelectSuggestion={onSelectSuggestion}
         onSelectTemplate={onSelectTemplate}
-        onQuickReply={handleQuickReply}
+        onQuickReply={onQuickReply}
         signatureEnabled={signatureEnabled}
         signatureName={signatureName}
         onToggleSignature={onToggleSignature}
@@ -277,7 +229,7 @@ export const ChatInputArea = memo(function ChatInputArea(props: ChatInputAreaPro
       onSendProduct,
       onSelectSuggestion,
       onSelectTemplate,
-      handleQuickReply,
+      onQuickReply,
       signatureEnabled,
       signatureName,
       onToggleSignature,
@@ -491,16 +443,6 @@ export const ChatInputArea = memo(function ChatInputArea(props: ChatInputAreaPro
           <ChatSendProgress key="send-progress" isSending={isSending} sendProgress={sendProgress} />
         )}
       </AnimatePresence>
-
-      {/* Etapa 59: popover de respostas rápidas renderizado junto do controle —
-          âncora (ancestral posicionado) continua sendo o container do painel. */}
-      <ChatQuickRepliesPopover
-        show={quickRepliesOpen}
-        replies={filteredQuickReplies}
-        onSelect={handleQuickReply}
-        onClose={onCloseQuickReplies}
-        selectedIndex={selectedQuickReplyIndex}
-      />
       <div
         className={cn(
           'relative flex shrink-0 flex-col gap-3 border-t border-border/10 bg-background/95 px-4 py-4 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.05)] backdrop-blur-3xl transition-all duration-500 md:px-10 md:py-6',
@@ -635,22 +577,16 @@ export const ChatInputArea = memo(function ChatInputArea(props: ChatInputAreaPro
                 ref={asRef(inputRef)}
                 value={inputValue}
                 onChange={(e) => {
-                  composedInputChange(e);
+                  onInputChange(e);
                   checkForMention(e.target.value, e.target.selectionStart ?? 0);
                 }}
                 onKeyDown={(e) => {
+                  // Delega ao handler pai primeiro — permite quick replies capturarem Enter.
+                  onKeyDown(e);
+                  if (e.defaultPrevented) return;
+
                   // Enter to send, Shift+Enter for new line
                   if (e.key === 'Enter' && !e.shiftKey) {
-                    // Menus de seleção abertos são donos do Enter (achado da
-                    // etapa 75): o SlashCommands executa o comando via listener
-                    // global e o popover de respostas rápidas seleciona via
-                    // composedKeyDown. Sem estes guards, o texto cru
-                    // "/comando" era ENVIADO junto com a execução do comando.
-                    if (showSlashCommands) return;
-                    if (quickRepliesOpen && filteredQuickReplies.length > 0) {
-                      composedKeyDown(e);
-                      return;
-                    }
                     e.preventDefault();
                     if (!isSending && logic.canSend) {
                       logic.handleSendWithAnimation();
@@ -658,7 +594,6 @@ export const ChatInputArea = memo(function ChatInputArea(props: ChatInputAreaPro
                     return;
                   }
 
-                  composedKeyDown(e);
                   if (e.key === 'ArrowUp' && !inputValue && messages.length > 0) {
                     const lastOwnMessage = [...messages]
                       .reverse()
@@ -924,4 +859,6 @@ export const ChatInputArea = memo(function ChatInputArea(props: ChatInputAreaPro
       </div>
     </>
   );
-});
+}
+
+export const ChatInputArea = memo(ChatInputAreaInner);

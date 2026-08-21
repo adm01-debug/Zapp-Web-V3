@@ -72,6 +72,8 @@ interface ChatPanelHeaderProps {
   failuresOnly?: boolean;
   onToggleFailuresOnly?: () => void;
   failuresCount?: number;
+  /** Indica que há mensagens mais antigas não carregadas — sufixo "+" no contador. */
+  hasMoreOlder?: boolean;
   whisperCount?: number;
   onOpenValidation?: () => void;
   /** Etapa 42: resolve a conversa (ticketStore) — vindo do ChatPanel handlers. */
@@ -105,6 +107,7 @@ export const ChatPanelHeader = memo(function ChatPanelHeader({
   failuresOnly,
   onToggleFailuresOnly,
   failuresCount,
+  hasMoreOlder,
   whisperCount,
   onOpenValidation,
   onResolveConversation,
@@ -249,6 +252,7 @@ export const ChatPanelHeader = memo(function ChatPanelHeader({
           failuresOnly={failuresOnly}
           onToggleFailuresOnly={onToggleFailuresOnly}
           failuresCount={failuresCount}
+          hasMoreOlder={hasMoreOlder}
           onOpenValidation={onOpenValidation}
         />
 

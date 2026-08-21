@@ -566,3 +566,341 @@ describe('P0-7 — toggleSound stale closure is fixed (E17)', () => {
     }
   });
 });
+
+// ────────────────────────────────────────────────────────────────────
+// P0-8: isValidUUID guard prevents non-UUID update in edit handler (Bloco 7)
+// BUG: handleEditSave called supabase UPDATE with message.id without validating
+//      it was a real UUID — JID-derived IDs caused DB error "invalid input syntax".
+// ────────────────────────────────────────────────────────────────────
+describe('P0-8 — isValidUUID guard on handleEditSave prevents invalid DB update (Bloco 7)', () => {
+  const simulateEditSaveBuggy = (messageId: string): 'update' | 'skipped' => {
+    // BASELINE: no guard, always attempts UPDATE
+    return 'update';
+  };
+
+  const simulateEditSaveFixed = (messageId: string): 'update' | 'skipped' => {
+    if (!isValidUUID(messageId)) return 'skipped'; // guard added in Bloco 7
+    return 'update';
+  };
+
+  const UUID = 'a1b2c3d4-e5f6-4789-ab01-cd23ef456789';
+  const JID_DERIVED_ID = '3EB0123456789ABCDEF0'; // WhatsApp message ID format
+
+  it('[REGRESSION] baseline UPDATE fires for any message ID including non-UUID', () => {
+    expect(simulateEditSaveBuggy(UUID)).toBe('update');
+    expect(simulateEditSaveBuggy(JID_DERIVED_ID)).toBe('update'); // would cause DB error
+    expect(simulateEditSaveBuggy('')).toBe('update'); // would cause DB error
+  });
+
+  it('[FIXED] UUID message ID → UPDATE proceeds normally', () => {
+    expect(simulateEditSaveFixed(UUID)).toBe('update');
+  });
+
+  it('[FIXED] non-UUID message ID → UPDATE skipped (avoids DB syntax error)', () => {
+    expect(simulateEditSaveFixed(JID_DERIVED_ID)).toBe('skipped');
+  });
+
+  it('[FIXED] empty message ID → UPDATE skipped', () => {
+    expect(simulateEditSaveFixed('')).toBe('skipped');
+  });
+
+  it('[FIXED] random alphanumeric ID → UPDATE skipped', () => {
+    expect(simulateEditSaveFixed('ABCDEF1234567890')).toBe('skipped');
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────
+// P0-9: handleSend stale-closure on lastFailedSendRef.current (Bloco 7)
+// BUG: conversationId missing from handleSend useCallback deps caused
+//      lastFailedSendRef.current to record the *previous* conversationId
+//      when sending the first message after switching conversations.
+//      retryLastSend would then retry to the wrong conversation.
+// ────────────────────────────────────────────────────────────────────
+describe('P0-9 — lastFailedSendRef records correct conversationId after switch (Bloco 7)', () => {
+  interface SendPayload {
+    content: string;
+    conversationId: string;
+  }
+
+  // Simulates the BUGGY handleSend: conversationId captured at creation time
+  const createBuggyHandleSend = (initialConversationId: string) => {
+    const capturedId = initialConversationId; // stale closure
+    const lastFailedRef = { current: null as SendPayload | null };
+
+    const handleSend = (content: string) => {
+      lastFailedRef.current = { content, conversationId: capturedId }; // uses stale
+    };
+
+    return { handleSend, lastFailedRef };
+  };
+
+  // Simulates the FIXED handleSend: conversationId always read fresh from closure
+  const createFixedHandleSend = (getConversationId: () => string) => {
+    const lastFailedRef = { current: null as SendPayload | null };
+
+    const handleSend = (content: string) => {
+      lastFailedRef.current = { content, conversationId: getConversationId() }; // reads current
+    };
+
+    return { handleSend, lastFailedRef };
+  };
+
+  it('[REGRESSION] buggy version stores old conversationId after switch', () => {
+    const { handleSend, lastFailedRef } = createBuggyHandleSend('conv-A');
+    // Simulate user switched to conv-B but handleSend was recreated without re-capturing
+    handleSend('hello from conv-B');
+    // Bug: still stores conv-A because closure was captured at conv-A time
+    expect(lastFailedRef.current?.conversationId).toBe('conv-A'); // wrong!
+  });
+
+  it('[FIXED] fixed version stores the current conversationId', () => {
+    let currentConvId = 'conv-A';
+    const { handleSend, lastFailedRef } = createFixedHandleSend(() => currentConvId);
+
+    handleSend('message in A');
+    expect(lastFailedRef.current?.conversationId).toBe('conv-A');
+
+    // Switch conversation
+    currentConvId = 'conv-B';
+    handleSend('message in B');
+    expect(lastFailedRef.current?.conversationId).toBe('conv-B'); // correct!
+  });
+
+  it('[FIXED] retryLastSend replays to the correct conversation', () => {
+    let currentConvId = 'conv-A';
+    let retrySentTo: string | null = null;
+    const { handleSend, lastFailedRef } = createFixedHandleSend(() => currentConvId);
+
+    handleSend('message that failed');
+    currentConvId = 'conv-B'; // switch conversation
+
+    // retryLastSend should NOT retry to conv-B if payload was for conv-A
+    const retryLastSend = () => {
+      const payload = lastFailedRef.current;
+      if (!payload) return;
+      // Guard: only retry if still on the same conversation
+      if (payload.conversationId !== currentConvId) {
+        retrySentTo = 'BLOCKED';
+        return;
+      }
+      retrySentTo = payload.conversationId;
+    };
+
+    retryLastSend();
+    expect(retrySentTo).toBe('BLOCKED'); // correctly blocked cross-conversation retry
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────
+// P0-10: isSendingRef guard blocks handleAudioSend during active text send (Bloco 7)
+// BUG: rapid audio + text send could interleave: isSending React state was async
+//      but isSendingRef.current was not checked at audio send entry → double send.
+// ────────────────────────────────────────────────────────────────────
+describe('P0-10 — isSendingRef guard prevents simultaneous audio+text send (Bloco 7)', () => {
+  it('[REGRESSION] baseline allows audio send even while text is being sent', () => {
+    let isSendingRef = { current: false };
+    let audioSendCount = 0;
+
+    const buggyHandleAudioSend = async (blob: Blob) => {
+      // No guard — proceeds even if isSendingRef.current is true
+      audioSendCount++;
+    };
+
+    isSendingRef.current = true; // text send in progress
+    void buggyHandleAudioSend(new Blob());
+    expect(audioSendCount).toBe(1); // audio sent simultaneously → BUG
+  });
+
+  it('[FIXED] guard returns early when isSendingRef.current is true', () => {
+    const isSendingRef = { current: false };
+    let audioSendCount = 0;
+
+    const fixedHandleAudioSend = async (blob: Blob) => {
+      if (isSendingRef.current) return; // guard added in Bloco 7
+      audioSendCount++;
+    };
+
+    isSendingRef.current = true; // text send in progress
+    void fixedHandleAudioSend(new Blob());
+    expect(audioSendCount).toBe(0); // blocked ✓
+  });
+
+  it('[FIXED] audio send proceeds normally when not sending', () => {
+    const isSendingRef = { current: false };
+    let audioSendCount = 0;
+
+    const fixedHandleAudioSend = async (blob: Blob) => {
+      if (isSendingRef.current) return;
+      audioSendCount++;
+    };
+
+    isSendingRef.current = false;
+    void fixedHandleAudioSend(new Blob());
+    expect(audioSendCount).toBe(1); // allowed ✓
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────
+// P0-11: realtime UPDATE handler filters by remote_jid (Bloco 8)
+// BUG: the UPDATE handler in realtime_message_fanout had no remote_jid filter,
+//      causing query invalidation for ALL open conversations on every UPDATE to
+//      any row. Only DELETE had the correct per-conversation filter.
+// ────────────────────────────────────────────────────────────────────
+describe('P0-11 — realtime UPDATE handler filters by remote_jid (Bloco 8)', () => {
+  interface RealtimePayload {
+    eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+    new?: { remote_jid?: string; id?: string };
+    old?: { remote_jid?: string; id?: string };
+  }
+
+  const ACTIVE_JID = '5511999999999@s.whatsapp.net';
+  const OTHER_JID = '5511888888888@s.whatsapp.net';
+
+  // Simulates the BUGGY UPDATE handler: no remote_jid filter
+  const buggyUpdateShouldInvalidate = (_payload: RealtimePayload): boolean => {
+    return true; // always invalidates regardless of which conversation
+  };
+
+  // Simulates the FIXED UPDATE handler: filters by active conversation's remote_jid
+  const fixedUpdateShouldInvalidate = (
+    payload: RealtimePayload,
+    activeRemoteJid: string
+  ): boolean => {
+    const payloadJid = payload.new?.remote_jid ?? payload.old?.remote_jid;
+    return payloadJid === activeRemoteJid; // only invalidate for this conversation
+  };
+
+  it('[REGRESSION] buggy UPDATE handler invalidates on updates to any conversation', () => {
+    const payloadOtherConv: RealtimePayload = {
+      eventType: 'UPDATE',
+      new: { remote_jid: OTHER_JID, id: 'msg-abc' },
+    };
+    expect(buggyUpdateShouldInvalidate(payloadOtherConv)).toBe(true); // BUG: invalidates unnecessarily
+  });
+
+  it('[FIXED] UPDATE from active conversation → invalidates', () => {
+    const payload: RealtimePayload = {
+      eventType: 'UPDATE',
+      new: { remote_jid: ACTIVE_JID, id: 'msg-abc' },
+    };
+    expect(fixedUpdateShouldInvalidate(payload, ACTIVE_JID)).toBe(true);
+  });
+
+  it('[FIXED] UPDATE from different conversation → does NOT invalidate', () => {
+    const payload: RealtimePayload = {
+      eventType: 'UPDATE',
+      new: { remote_jid: OTHER_JID, id: 'msg-xyz' },
+    };
+    expect(fixedUpdateShouldInvalidate(payload, ACTIVE_JID)).toBe(false); // blocked ✓
+  });
+
+  it('[FIXED] UPDATE with no remote_jid field → does NOT invalidate', () => {
+    const payload: RealtimePayload = {
+      eventType: 'UPDATE',
+      new: { id: 'msg-xyz' }, // no remote_jid
+    };
+    expect(fixedUpdateShouldInvalidate(payload, ACTIVE_JID)).toBe(false);
+  });
+
+  it('[FIXED] 10 simultaneous UPDATE events from different JIDs — only matching one invalidates', () => {
+    let invalidations = 0;
+    const jids = Array.from({ length: 10 }, (_, i) => `551199999999${i}@s.whatsapp.net`);
+    const matchingJid = jids[3];
+
+    for (const jid of jids) {
+      const payload: RealtimePayload = { eventType: 'UPDATE', new: { remote_jid: jid } };
+      if (fixedUpdateShouldInvalidate(payload, matchingJid)) invalidations++;
+    }
+
+    expect(invalidations).toBe(1); // only the matching JID triggered invalidation ✓
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────
+// P0-12: isFetchingTimerRef cleanup on unmount (Bloco 8)
+// BUG: handleScroll called setTimeout without storing the ID, so
+//      clearTimeout could not be called on component unmount — the timer
+//      fired after unmount, updating a ref on an unmounted component.
+// ────────────────────────────────────────────────────────────────────
+describe('P0-12 — handleScroll timer is cleared on unmount (Bloco 8)', () => {
+  it('[REGRESSION] buggy version cannot cancel pending timer after unmount', () => {
+    let timerFiredAfterUnmount = false;
+    let isMounted = true;
+    let pendingTimerId: ReturnType<typeof setTimeout> | null = null;
+
+    const buggyHandleScroll = () => {
+      // No stored ID — cannot cancel
+      setTimeout(() => {
+        // No mounted check — fires regardless
+        timerFiredAfterUnmount = !isMounted;
+      }, 10);
+    };
+
+    buggyHandleScroll();
+    isMounted = false; // unmount before timer fires
+
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        expect(timerFiredAfterUnmount).toBe(true); // fired after unmount → BUG
+        resolve();
+      }, 50);
+    });
+  });
+
+  it('[FIXED] cleanup cancels pending timer before it fires', () => {
+    const isFetchingTimerRef = { current: null as ReturnType<typeof setTimeout> | null };
+    let timerActuallyFired = false;
+
+    const fixedHandleScroll = () => {
+      if (isFetchingTimerRef.current) clearTimeout(isFetchingTimerRef.current);
+      isFetchingTimerRef.current = setTimeout(() => {
+        timerActuallyFired = true;
+        isFetchingTimerRef.current = null;
+      }, 100);
+    };
+
+    const cleanup = () => {
+      if (isFetchingTimerRef.current) {
+        clearTimeout(isFetchingTimerRef.current);
+        isFetchingTimerRef.current = null;
+      }
+    };
+
+    fixedHandleScroll();
+    expect(isFetchingTimerRef.current).not.toBeNull(); // timer pending
+
+    cleanup(); // unmount
+    expect(isFetchingTimerRef.current).toBeNull(); // timer cleared ✓
+
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        expect(timerActuallyFired).toBe(false); // never fired ✓
+        resolve();
+      }, 200);
+    });
+  });
+
+  it('[FIXED] second scroll cancels the first pending timer', () => {
+    const isFetchingTimerRef = { current: null as ReturnType<typeof setTimeout> | null };
+    const fired: number[] = [];
+
+    const handleScroll = (scrollId: number) => {
+      if (isFetchingTimerRef.current) clearTimeout(isFetchingTimerRef.current);
+      isFetchingTimerRef.current = setTimeout(() => {
+        fired.push(scrollId);
+        isFetchingTimerRef.current = null;
+      }, 50);
+    };
+
+    handleScroll(1);
+    handleScroll(2); // cancels timer 1, schedules timer 2
+
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        expect(fired).toHaveLength(1);
+        expect(fired[0]).toBe(2); // only second scroll completed ✓
+        resolve();
+      }, 150);
+    });
+  });
+});

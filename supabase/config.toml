@@ -98,3 +98,63 @@ verify_jwt = true
 [functions.login-attempts]
 verify_jwt = false
 
+# ================================================================
+# Funcoes publicas da PUBLIC_FNS (supabase/functions/main/index.ts)
+# Todas sao chamadas sem JWT (webhooks, schedulers, health checks).
+# Alinhado ao CI Edge Schema Parity — 2026-08-21.
+# ================================================================
+
+[functions.auto-close-conversations]
+verify_jwt = false
+
+[functions.cleanup-storage-orphans]
+verify_jwt = false
+
+[functions.db-health-monitor]
+verify_jwt = false
+
+[functions.email-track-link]
+verify_jwt = false
+
+[functions.email-track-pixel]
+verify_jwt = false
+
+[functions.evolution-consumer-stats]
+verify_jwt = false
+
+[functions.gmail-oauth]
+verify_jwt = false
+
+[functions.gmail-webhook]
+verify_jwt = false
+
+[functions.health-check]
+verify_jwt = false
+
+[functions.nps-scheduler]
+verify_jwt = false
+
+[functions.public-api]
+verify_jwt = false
+
+[functions.sicoob-bridge]
+verify_jwt = false
+
+[functions.sicoob-bridge-reply]
+verify_jwt = false
+
+[functions.sla-alert-forward]
+verify_jwt = false
+
+[functions.status]
+verify_jwt = false
+
+[functions.talkx-scheduler]
+verify_jwt = false
+
+[functions.whatsapp-cloud-webhook-verify]
+verify_jwt = false
+
+[functions.zapp-notifications-dispatch]
+verify_jwt = false
+

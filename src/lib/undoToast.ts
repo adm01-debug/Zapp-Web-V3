@@ -9,11 +9,7 @@ interface UndoToastOptions {
   delay?: number;
   /** Optional icon emoji */
   icon?: string;
-  /**
-   * Rótulo do botão de ação (default 'Desfazer'). Use um rótulo específico
-   * quando a ação NÃO reverte o efeito de verdade (ex.: 'Restaurar texto'
-   * após um envio — a mensagem já foi; só o campo é reidratado).
-   */
+  /** Label for the undo action button (default 'Desfazer') */
   actionLabel?: string;
 }
 
@@ -30,13 +26,7 @@ interface UndoToastOptions {
  * });
  * ```
  */
-export function undoToast({
-  message,
-  onUndo,
-  delay = 5000,
-  icon = '🗑️',
-  actionLabel = 'Desfazer',
-}: UndoToastOptions) {
+export function undoToast({ message, onUndo, delay = 5000, icon = '🗑️', actionLabel = 'Desfazer' }: UndoToastOptions) {
   let undone = false;
 
   toast(message, {

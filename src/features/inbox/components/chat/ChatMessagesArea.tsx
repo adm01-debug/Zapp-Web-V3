@@ -34,14 +34,7 @@ const log = getLogger('ChatMessagesArea');
 interface ChatMessagesAreaProps extends LoadOlderProps {
   messages: Message[];
   isContactTyping: boolean;
-  /** Nome exibido no indicador do CONTATO digitando (broadcast `typing:${jid}`). */
   typingUserName: string;
-  /**
-   * Etapa 31: nome do AGENTE digitando (presence da conversa) — indicador
-   * separado. Antes o nome do agente sobrescrevia o do contato no mesmo
-   * indicador e o fallback era o nome do contato num indicador de agente.
-   */
-  agentTypingName?: string | null;
   ttsLoading: boolean;
   ttsPlaying: boolean;
   ttsMessageId: string | null;
@@ -84,7 +77,6 @@ export const ChatMessagesArea = memo(
         messages,
         isContactTyping,
         typingUserName,
-        agentTypingName,
         ttsLoading,
         ttsPlaying,
         ttsMessageId,
@@ -115,6 +107,7 @@ export const ChatMessagesArea = memo(
       const queryClient = useQueryClient();
       const scrollContainerRef = useRef<HTMLDivElement>(null);
       const isFetchingOlderRef = useRef(false);
+      const isFetchingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
       const prevLengthRef = useRef(messages.length);
       const prevScrollHeightRef = useRef<number | null>(null);
       const [showScrollBottom, setShowScrollBottom] = useState(false);
@@ -192,11 +185,6 @@ export const ChatMessagesArea = memo(
         if (!contactJid) return;
         // Última conexão bem-sucedida do canal — classifica CHANNEL_ERROR transiente vs real.
         let lastConnectedAtMs: number | null = null;
-        // Etapa 78: o sufixo random do topic é ANTI-COLISÃO deliberado — em
-        // remount rápido (StrictMode/troca de conversa) o unsubscribe do canal
-        // antigo é assíncrono; reusar o MESMO topic faria o join novo colidir
-        // com o leave pendente e o canal nascer morto. (Comentário fica ACIMA:
-        // o validador do diagrama exige `supabase.channel` contíguo.)
         const channel = supabase
           .channel(`chat-updates:${contactJid}:${Math.random().toString(36).slice(2, 10)}`)
           .on(
@@ -205,9 +193,6 @@ export const ChatMessagesArea = memo(
               event: 'UPDATE',
               schema: 'zapp',
               table: 'realtime_message_fanout',
-              // Etapa 79: sem este filtro, UPDATE de QUALQUER conversa do
-              // sistema invalidava o cache de mensagens de todas — o DELETE
-              // abaixo já filtrava por remote_jid; paridade aplicada.
               filter: `remote_jid=eq.${contactJid}`,
             },
             () => {
@@ -323,8 +308,10 @@ export const ChatMessagesArea = memo(
             prevScrollHeightRef.current = container.scrollHeight;
             void Promise.resolve(onLoadOlder())
               .finally(() => {
-                setTimeout(() => {
+                if (isFetchingTimerRef.current !== null) clearTimeout(isFetchingTimerRef.current);
+                isFetchingTimerRef.current = setTimeout(() => {
                   isFetchingOlderRef.current = false;
+                  isFetchingTimerRef.current = null;
                 }, 100);
               })
               .catch((err) => {
@@ -344,6 +331,14 @@ export const ChatMessagesArea = memo(
         }
         prevLengthRef.current = messages.length;
       }, [messages.length]);
+
+      useEffect(() => {
+        return () => {
+          if (isFetchingTimerRef.current !== null) {
+            clearTimeout(isFetchingTimerRef.current);
+          }
+        };
+      }, []);
 
       const handleMessageDeleted = useCallback(
         (id: string) => {
@@ -481,12 +476,6 @@ export const ChatMessagesArea = memo(
           {isContactTyping && (
             <div className="mt-4">
               <TypingIndicator isVisible={true} userName={typingUserName} />
-            </div>
-          )}
-
-          {agentTypingName && (
-            <div className="mt-4">
-              <TypingIndicator isVisible={true} userName={agentTypingName} />
             </div>
           )}
 

@@ -42,6 +42,8 @@ interface ChatHeaderToolbarProps {
   onToggleFailuresOnly?: () => void;
   /** Quantidade de mensagens em falha — exibida no aria-label e como contador. */
   failuresCount?: number;
+  /** Indica que há mensagens mais antigas não carregadas — sufixo "+" no contador. */
+  hasMoreOlder?: boolean;
   onOpenValidation?: () => void;
 }
 
@@ -101,6 +103,7 @@ export function ChatHeaderToolbar({
   failuresOnly,
   onToggleFailuresOnly,
   failuresCount = 0,
+  hasMoreOlder = false,
   onOpenValidation,
 }: ChatHeaderToolbarProps) {
   return (
@@ -121,7 +124,7 @@ export function ChatHeaderToolbar({
                   className="absolute -right-1 -top-1 h-[14px] min-w-[14px] rounded-full bg-destructive px-1 text-center text-[9px] font-bold leading-[14px] text-destructive-foreground"
                   aria-hidden="true"
                 >
-                  {failuresCount > 99 ? '99+' : failuresCount}
+                  {failuresCount > 99 ? '99+' : hasMoreOlder ? `${failuresCount}+` : failuresCount}
                 </span>
               )}
             </span>
