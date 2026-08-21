@@ -92,6 +92,44 @@ const safeImageUrlSchema = z.string().url().refine(isSafeHttpsUrl, {
   message: 'image_url must be a public HTTPS URL',
 });
 
+/**
+ * Bloco 4 (2026-08-21, PLANO-100-CONTRATOS-EDGE): validador de telefone
+ * compartilhado — NÃO transforma o valor (preserva a string original).
+ *
+ * Campos como whatsapp-cloud-send.to aceitam telefone OU JID do WhatsApp
+ * (handler faz `to.includes('@')` para decidir o caminho) — um validador
+ * que normaliza para dígitos (strip de +/-/espaço) quebraria o caminho JID
+ * ao mutar o valor. Este helper só REPROVA lixo óbvio (garante formato de
+ * telefone OU JID), sem alterar o que passa adiante.
+ */
+export function phoneOrJidField(opts: { min?: number; max?: number } = {}) {
+  const { min = 6, max = 30 } = opts;
+  return z.string()
+    .min(min, `Informe um número com DDI e DDD (mínimo ${min} caracteres).`)
+    .max(max, `Número excede o tamanho permitido (${max} caracteres).`)
+    .refine(
+      (value: string) => value.includes('@') || value.replace(/\D/g, '').length >= 10,
+      { message: 'Número inválido. Use DDI + DDD + número, ou um JID do WhatsApp.' },
+    );
+}
+
+/**
+ * Validador de telefone PURO — para campos que nunca recebem JID (ex.:
+ * cadastro de contato, avatar por telefone). Também não transforma: só
+ * reprova valores sem dígitos suficientes, preservando a formatação
+ * original (alguns consumidores esperam o valor como o cliente enviou).
+ */
+export function phoneOnlyField(opts: { min?: number; max?: number } = {}) {
+  const { min = 6, max = 30 } = opts;
+  return z.string()
+    .min(min, `Informe um número com DDI e DDD (mínimo ${min} caracteres).`)
+    .max(max, `Número excede o tamanho permitido (${max} caracteres).`)
+    .refine(
+      (value: string) => value.replace(/\D/g, '').length >= 10,
+      { message: 'Número inválido. Use DDI + DDD + número (mínimo 10 dígitos).' },
+    );
+}
+
 /** Schema para classificação de emoji customizado (classify-emoji) */
 export const ClassifyEmojiSchema = z.object({
   image_url: safeImageUrlSchema.optional().nullable(),

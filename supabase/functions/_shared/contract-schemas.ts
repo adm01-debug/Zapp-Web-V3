@@ -36,6 +36,8 @@ import {
   AiTranscribeAudioV1Schema,
   AiAutoTagSchema,
   isSafeHttpsUrl,
+  phoneOrJidField,
+  phoneOnlyField,
 } from "./schemas.ts";
 /** ai-auto-tag@v1 — schema REAL (era placeholder). Proxy que injeta action:'auto_tag'
  * e repassa ao ai-router; validação do payload do cliente = AiAutoTagSchema estrito. */
@@ -171,10 +173,22 @@ export const InstancePauseControlV1Schema = z.object({
   minutes: z.number().int().min(1).max(1440).optional(),
 }).passthrough();
 
-/** contacts-import@v1 — rows[] obrigatório; workspace_id default 'wpp2'. */
+/**
+ * contacts-import@v1 — rows[] obrigatório; workspace_id default 'wpp2'.
+ * Bloco 4 (2026-08-21): apesar do nome, workspace_id é o NOME DA INSTÂNCIA
+ * WhatsApp (confirmado: index.ts usa como `rawInstanceName`), não um UUID.
+ * O regex `/^[a-zA-Z0-9_-]{1,64}$/` vivia num bloco 400 manual pós-gate
+ * ("Validate instance name to prevent URL path injection") — movido para
+ * o schema; o bloco manual foi removido.
+ * max(10_000) → max(50_000): o schema era mais restritivo que o handler,
+ * que sempre documentou/checou manualmente até 50k ("Bulk CSV import — 50k
+ * rows" no cabeçalho do index.ts) — como o gate roda ANTES do check manual,
+ * o limite de 50k nunca era alcançado (10.001-50.000 linhas eram rejeitadas
+ * cedo demais pelo próprio contrato).
+ */
 export const ContactsImportV1Schema = z.object({
-  rows: z.array(z.record(z.unknown())).min(1, "rows vazio").max(10_000),
-  workspace_id: z.string().min(1).max(100).optional(),
+  rows: z.array(z.record(z.unknown())).min(1, "rows vazio").max(50_000),
+  workspace_id: z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/, "workspace_id inválido").optional(),
 }).passthrough();
 
 /** voice-copilot-action@v1 — { action, params }. */
@@ -254,8 +268,11 @@ export const WhatsappCloudApiV1Schema = z.object({
   action: z.string().max(50).nullish(),
   instanceName: z.string().max(100).nullish(),
   instance: z.string().max(100).nullish(),
-  number: z.string().max(30).nullish(),
-  to: z.string().max(30).nullish(),
+  // Bloco 4 (2026-08-21): aceitava qualquer string ≤30 chars; number/to
+  // (aliases) recebem telefone OU JID — phoneOrJidField reprova lixo sem
+  // transformar o valor (mantém nullish: ausente em ações que não enviam).
+  number: phoneOrJidField({ max: 30 }).nullish(),
+  to: phoneOrJidField({ max: 30 }).nullish(),
   text: z.string().max(100_000).nullish(),
   linkPreview: z.boolean().nullish(),
   mediatype: z.string().max(50).nullish(),
@@ -327,7 +344,9 @@ export const GmailOauthV1Schema = z.object({
 
 /** Config IMAP/SMTP aninhada (saveCredentials/testConnection). */
 const ImapSmtpConfigV1Schema = z.object({
-  email: z.string().min(1).max(320).optional(),
+  // Bloco 4 (2026-08-21): endereço de login IMAP/SMTP (não header de e-mail
+  // "Nome <endereço>" como zapp-email-inbound-webhook) — .email() é seguro aqui.
+  email: z.string().max(320).email("email inválido").optional(),
   password: z.string().min(1).max(2000).optional(),
   provider: z.enum(["outlook", "yahoo", "gmail", "custom"]).optional(),
   imap_host: z.string().min(1).max(253).optional(),
@@ -429,7 +448,9 @@ export const EvolutionCredentialsWriteV1Schema = z.discriminatedUnion("action", 
   }).passthrough(),
   z.object({
     action: z.literal("delete"),
-    id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, "invalid uuid"),
+    // Bloco 4 (2026-08-21): regex manual equivalente a .uuid() — padronizado
+    // com o resto do arquivo (ex.: zapp-auto-export) para consistência.
+    id: z.string().uuid("id deve ser um UUID válido"),
   }).passthrough(),
 ]);
 
@@ -562,8 +583,11 @@ export const ElevenLabsTtsV1Schema = z.object({
    action: z.literal("new_message"),
    message_id: z.string().max(200),
    sender_name: z.string().max(200).optional().nullable(),
-   sender_email: z.string().max(320).optional().nullable(),
-   sender_phone: z.string().max(50).optional().nullable(),
+   // Bloco 4 (2026-08-21): campos metadados do webhook externo Sicoob —
+   // formato validado (email/telefone) sem ficar tão estrito a ponto de
+   // dropar payloads reais por variação de formatação de terceiro.
+   sender_email: z.string().max(320).email().optional().nullable(),
+   sender_phone: phoneOnlyField({ min: 1, max: 50 }).optional().nullable(),
    singular_name: z.string().max(200).optional().nullable(),
    singular_id: z.string().max(200).optional().nullable(),
    content: z.string().max(10000),
@@ -650,7 +674,8 @@ export const SicoobBridgeReplyV2Schema = SicoobBridgeReplyV1Schema.extend({
  export const ZappCrmSyncV1Schema = z.object({
    entity_id: z.string().uuid().optional(),
    entity_data: z.object({
-     phone: z.string().min(1),
+     // Bloco 4 (2026-08-21): min(1) aceitava qualquer string não-vazia.
+     phone: phoneOnlyField({ min: 1, max: 50 }),
      channel: z.string().min(1),
      direction: z.enum(["inbound", "outbound"]),
      assunto: z.string().nullable().optional(),
@@ -671,7 +696,10 @@ export const SicoobBridgeReplyV2Schema = SicoobBridgeReplyV1Schema.extend({
   * campos opcionais. Permissivo (extras passam) — igual ao schema local.
   */
  export const WhatsappCloudSendV1Schema = z.object({
-   to: z.string().min(5),
+   // Bloco 4 (2026-08-21): min(5) aceitava qualquer string curta; `to`
+   // recebe telefone OU JID (handler faz `to.includes('@')`, index.ts:133)
+   // — phoneOrJidField reprova lixo sem quebrar o caminho JID (não transforma).
+   to: phoneOrJidField(),
    type: z.enum([
      "text", "image", "video", "audio", "document", "sticker", "template",
      "reaction", "location", "contacts", "read", "interactive",
@@ -907,7 +935,9 @@ export const TranscribeAudioInternalV1Schema = z.object({
      "verify-authentication",
    ]),
    userId: z.string().max(200).optional().nullable(),
-   userEmail: z.string().max(320).optional().nullable(),
+   // Bloco 4 (2026-08-21): max(320) aceitava qualquer string; .email() valida
+   // formato de verdade (max mantido — limite RFC 5321 de endereço de e-mail).
+   userEmail: z.string().max(320).email().optional().nullable(),
    userName: z.string().max(200).optional().nullable(),
    credential: z.record(z.unknown()).optional().nullable(),
    friendlyName: z.string().max(200).optional().nullable(),
@@ -923,7 +953,10 @@ export const EvolutionApiV1Schema = z.object({
   action: z.string().optional(),
   instanceName: z.string().optional(),
   instance: z.string().optional(),
-  number: z.string().optional(),
+  // Bloco 4 (2026-08-21): aceitava qualquer string; number recebe telefone
+  // OU JID (mesmo domínio de whatsapp-cloud-api/whatsapp-cloud-send) —
+  // phoneOrJidField reprova lixo sem transformar o valor.
+  number: phoneOrJidField({ min: 1, max: 100 }).optional(),
   remoteJid: z.string().optional(),
   chat: z.string().optional(),
   readMessages: z.boolean().optional(),

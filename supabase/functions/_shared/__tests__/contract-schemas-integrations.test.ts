@@ -205,7 +205,7 @@ const MATRICES: IntegrationCase[] = [
     valid: [
       {
         action: "new_message", message_id: "m1", content: "Olá",
-        sender_name: "João", sender_email: "j@example.com", sender_phone: "5511",
+        sender_name: "João", sender_email: "j@example.com", sender_phone: "5511999999999",
         singular_name: "Empresa", singular_id: "s1", vendedor_user_id: "v1",
         created_at: "2026-01-01T00:00:00Z", sender_id: "snd1",
       },
@@ -219,6 +219,9 @@ const MATRICES: IntegrationCase[] = [
       { label: "new_message sem content", payload: { action: "new_message", message_id: "m" }, expectPath: "content" },
       { label: "mark_read sem external_ids", payload: { action: "mark_read" }, expectPath: "external_ids" },
       { label: "action fora da union", payload: { action: "hack" }, expectPath: "action" },
+      // Bloco 4 (2026-08-21): sender_email/sender_phone agora validam formato.
+      { label: "sender_email inválido", payload: { action: "new_message", message_id: "m1", content: "x", sender_email: "não-é-email" }, expectPath: "sender_email" },
+      { label: "sender_phone curto (<10 dígitos)", payload: { action: "new_message", message_id: "m1", content: "x", sender_phone: "551" }, expectPath: "sender_phone" },
     ],
   },
   {

@@ -2,7 +2,9 @@
  * Contract tests — contacts-import@v1 (business).
  *
  * Garante o contrato derivado do consumo real em index.ts:
- *   - rows[] é OBRIGATÓRIO e não pode ser vazio (min: 1, max: 10_000).
+ *   - rows[] é OBRIGATÓRIO e não pode ser vazio (min: 1, max: 50_000 —
+ *     Bloco 4 2026-08-21: corrigido de 10_000, que era mais restritivo que
+ *     o limite real documentado/checado pelo handler, "50k rows").
  *   - workspace_id é opcional — o handler usa o default 'wpp2'.
  *
  * Modos de falha cobertos: rows ausente/vazio/tipo errado/acima do limite,
@@ -96,12 +98,18 @@ Deno.test("contacts-import@v1: rows com tipo errado (string) → contract_violat
   );
 });
 
-Deno.test("contacts-import@v1: rows acima de 10_000 → contract_violation (max)", async () => {
-  const rows = Array.from({ length: 10_001 }, () => ({}));
+Deno.test("contacts-import@v1: rows acima de 50_000 → contract_violation (max)", async () => {
+  const rows = Array.from({ length: 50_001 }, () => ({}));
   await assertContractError(
     parseOrReject("contacts-import", SCHEMAS, req(), { rows }),
     "contract_violation",
   );
+});
+
+Deno.test("contacts-import@v1: rows com 50_000 (limite exato) → aceito", () => {
+  const rows = Array.from({ length: 50_000 }, () => ({}));
+  const result = parseOrReject("contacts-import", SCHEMAS, req(), { rows });
+  assertEquals(result.ok, true);
 });
 
 // ─── Edge cases ─────────────────────────────────────────────────────────────

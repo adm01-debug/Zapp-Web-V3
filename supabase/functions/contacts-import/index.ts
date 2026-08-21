@@ -7,26 +7,9 @@
 import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
-import { parseOrReject, buildContractErrorBody } from '../_shared/contract-kit.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts';
 
-
-
-/**
- * Falha de validação pós-gate → envelope 422 ÚNICO (contract-kit).
- * Correção 2026-08-06 (gap A1): era 400 com shape avulso.
- */
-function contractViolation422(path: string, message: string, req: Request, extra?: Record<string, string>): Response {
-  const eb = buildContractErrorBody(
-    'contacts-import', undefined, 'contract_violation',
-    `Campo obrigatório ausente: ${path}.`,
-    [{ path, message }],
-  );
-  return new Response(JSON.stringify(eb), {
-    status: 422,
-    headers: { ...(extra ?? {}), 'Content-Type': 'application/json' },
-  });
-}
 const VALID_DDDS = new Set([11,12,13,14,15,16,17,18,19,21,22,24,27,28,31,32,33,34,35,37,38,41,42,43,44,45,46,47,48,49,51,53,54,55,61,62,63,64,65,66,67,68,69,71,73,74,75,77,79,81,82,83,84,85,86,87,88,89,91,92,93,94,95,96,97,98,99]);
 
 const normalizePhone = (raw: string): string | null => {
@@ -68,23 +51,13 @@ Deno.serve(async (req) => {
       extraHeaders: getCorsHeaders(req),
     });
     if (parsed.ok === false) return parsed.response;
+    // Bloco 4 (2026-08-21): schema agora valida rows (array, 1..50_000
+    // itens, cada um objeto plano — z.record() já rejeita array/null/
+    // string, confirmado) e workspace_id (regex anti path-injection) de
+    // verdade. Os blocos 400/422 manuais que existiam foram removidos.
     const body = parsed.data as Record<string, any>;
     const rows = body.rows;
-    const rawInstanceName = body.workspace_id ?? 'wpp2';
-
-    if (!Array.isArray(rows)) return new Response(JSON.stringify({ error: 'rows must be an array' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
-    if (!rows.length) return new Response(JSON.stringify({ error: 'No rows provided' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
-    if (rows.length > 50000) return new Response(JSON.stringify({ error: 'Max 50,000 rows per import' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
-    if (!rows.every((r: unknown) => r !== null && typeof r === 'object' && !Array.isArray(r))) {
-      return new Response(JSON.stringify({ error: 'Each row must be a plain object' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
-    }
-
-    // Validate instance name to prevent URL path injection
-    const INSTANCE_NAME_RE = /^[a-zA-Z0-9_-]{1,64}$/;
-    if (!INSTANCE_NAME_RE.test(String(rawInstanceName))) {
-      return contractViolation422('workspace_id', 'Invalid workspace_id', req, getCorsHeaders(req));
-    }
-    const instanceName = String(rawInstanceName);
+    const instanceName = String(body.workspace_id ?? 'wpp2');
 
     // F12 security fix: verify the caller owns the WhatsApp connection they are importing into.
     // Use callerClient (RLS-enforced) so RLS policies enforce tenant isolation via the user's JWT.
