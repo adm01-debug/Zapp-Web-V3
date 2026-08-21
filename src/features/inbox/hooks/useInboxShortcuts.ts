@@ -9,6 +9,10 @@ interface UseInboxShortcutsProps {
   onRefresh: () => void;
   onSearchFocusChat?: () => void;
   enabled?: boolean;
+  /** Controla independentemente o Mod+E (arquivo). Permite que apenas um
+   *  componente (ChatPanel ou Sidebar) possua o atalho em cada momento,
+   *  evitando duplo disparo quando ambos estão montados. */
+  archiveEnabled?: boolean;
 }
 
 /** Registers inbox keyboard shortcuts: Mod+K/slash for search, Alt+Up/Down for navigation, Mod+E archive, Mod+Shift+T transfer, Mod+R refresh, Mod+F chat search. */
@@ -21,6 +25,7 @@ export function useInboxShortcuts({
   onRefresh,
   onSearchFocusChat,
   enabled = true,
+  archiveEnabled,
 }: UseInboxShortcutsProps) {
   // Focus search: Cmd+K or Ctrl+K
   useHotkeys(['mod+k', '/'], (e) => {
@@ -44,11 +49,12 @@ export function useInboxShortcuts({
     onNextConversation();
   }, { enabled });
 
-  // Actions
+  // Mod+E — um único dono: quando ChatPanel está montado (conversa selecionada),
+  // o Sidebar desativa este atalho via archiveEnabled=false, evitando duplo disparo.
   useHotkeys('mod+e', (e) => {
     e.preventDefault();
     onArchive();
-  }, { enabled });
+  }, { enabled: enabled && (archiveEnabled ?? true) });
 
   useHotkeys('mod+shift+t', (e) => {
     e.preventDefault();

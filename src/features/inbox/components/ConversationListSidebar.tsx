@@ -181,6 +181,8 @@ export function ConversationListSidebar({
     onArchive: () => onArchive(),
     onTransfer,
     onRefresh,
+    // Quando o ChatPanel está montado (conversa selecionada), cede o Mod+E a ele.
+    archiveEnabled: !inbox.selectedContactId,
   });
 
   return (
