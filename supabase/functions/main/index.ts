@@ -8,7 +8,7 @@
 import * as jose from 'https://deno.land/x/jose@v4.14.4/index.ts'
 import { initSentry, captureException } from '../_shared/sentry.ts'
 import { parseOrReject } from '../_shared/contract-kit.ts'
-import { readJsonBodyOrEmpty } from '../_shared/validation.ts'
+import { readJsonBodyOrEmpty, errorEnvelope } from '../_shared/validation.ts'
 import { CONTRACT_SCHEMAS } from '../_shared/contract-schemas.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
 
@@ -139,10 +139,7 @@ Deno.serve(async (req: Request) => {
   const service_name = path_parts[1]
 
   if (!service_name || service_name === '') {
-    return new Response(JSON.stringify({ msg: 'missing function name in request' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return errorEnvelope('missing_function_name', 'missing function name in request', 400, req)
   }
 
   // Validate: reject path traversal characters, oversized names, and self-invocation.
@@ -151,10 +148,7 @@ Deno.serve(async (req: Request) => {
     service_name.length > MAX_SERVICE_NAME_LEN ||
     service_name === 'main'
   ) {
-    return new Response(JSON.stringify({ msg: 'invalid function name' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return errorEnvelope('invalid_function_name', 'invalid function name', 400, req)
   }
 
   // Gate de autenticação: OPTIONS (CORS preflight) sempre passa; allowlist passa
@@ -164,18 +158,12 @@ Deno.serve(async (req: Request) => {
       const token = getAuthToken(req)
       const isValidJWT = await verifyJWT(token)
       if (!isValidJWT) {
-        return new Response(JSON.stringify({ msg: 'Invalid JWT' }), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        })
+        return errorEnvelope('invalid_jwt', 'Invalid JWT', 401, req)
       }
     } catch (e) {
       console.error(e)
       if (sentryReady) captureException(e, { functionName: 'edge-runtime-main', requestUrl: req.url })
-      return new Response(JSON.stringify({ msg: 'Authorization failed' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      return errorEnvelope('authorization_failed', 'Authorization failed', 401, req)
     }
   }
 
@@ -232,9 +220,6 @@ Deno.serve(async (req: Request) => {
   } catch (e) {
     console.error('worker error:', e)
     if (sentryReady) captureException(e, { functionName: service_name, requestUrl: req.url })
-    return new Response(JSON.stringify({ msg: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return errorEnvelope('internal_error', 'Internal server error', 500, req)
   }
 })

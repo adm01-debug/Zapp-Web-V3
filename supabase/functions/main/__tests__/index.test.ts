@@ -93,6 +93,29 @@ Deno.test('função inexistente (evaluation-health) → 404 JSON estruturado, wo
   assertEquals(createdServices.length, 0)
 })
 
+// ─── etapa 26 (Bloco 2, 2026-08-21): {msg:...} migrado pra errorEnvelope ────
+// (as 2 rotas de JWT — Invalid JWT/Authorization failed — não são exercitáveis
+// nesta suíte porque VERIFY_JWT é lido uma vez no import do módulo, linha 64,
+// e este arquivo já força 'false'; cobertura dessas 2 ficaria num arquivo
+// separado que reimporta o módulo com VERIFY_JWT='true', fora do escopo desta
+// etapa — o padrão já existe em outros *-failclosed.test.ts do repo).
+
+Deno.test('nome de função ausente (pathname "/") → 400 envelope canônico', async () => {
+  resetStubs()
+  const res = await capturedHandler!(new Request('https://zapp.example/', { method: 'GET' }))
+  assertEquals(res.status, 400)
+  assertEquals(await res.json(), { error: true, code: 'missing_function_name', message: 'missing function name in request' })
+  assertEquals(createdServices.length, 0)
+})
+
+Deno.test('nome de função inválido (self-invocation "main") → 400 envelope canônico', async () => {
+  resetStubs()
+  const res = await capturedHandler!(req('main'))
+  assertEquals(res.status, 400)
+  assertEquals(await res.json(), { error: true, code: 'invalid_function_name', message: 'invalid function name' })
+  assertEquals(createdServices.length, 0)
+})
+
 Deno.test('caminho existe mas não é diretório → 404', async () => {
   resetStubs()
   statMode = 'file'
