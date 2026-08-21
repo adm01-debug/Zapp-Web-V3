@@ -25,8 +25,13 @@ Deno.serve(async (req) => {
 
   const supabase = createZappAdminClient();
 
+  // Bloco 5 (2026-08-21): contractResponseHeaders içado pra fora do gate —
+  // json() é definida antes de `parsed` existir (só é resolvido dentro do
+  // branch POST). Mutável e mesclado em toda resposta; antes desse fix
+  // nenhum cliente via x-contract-version/deprecated/sunset nesta função.
+  let contractResponseHeaders: Record<string, string> = {};
   const json = (data: unknown, status = 200) =>
-    new Response(JSON.stringify(data), { status, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+    new Response(JSON.stringify(data), { status, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json', ...contractResponseHeaders } });
 
   try {
     // ── Push notification do Google Pub/Sub (POST sem body action) ────
@@ -39,6 +44,7 @@ Deno.serve(async (req) => {
         extraHeaders: getCorsHeaders(req),
       });
       if (parsed.ok === false) return parsed.response;
+      contractResponseHeaders = parsed.headers;
       const body = parsed.data as Record<string, unknown>;
       const { action } = body;
 

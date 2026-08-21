@@ -263,3 +263,49 @@ Deno.test("Registry Integrity: nenhum schema placeholder (z.object vazio) fora d
   }
   assertEquals(violations, [], `Placeholders em CONTRACT_SCHEMAS (${violations.length}):\n` + violations.join("\n"));
 });
+
+// ─── Invariante 10 (Bloco 5, etapa 59): resolveRequestedVersion (contract-kit.ts)
+//     lê `x-contract-version` (header) > `body.contract_version` > `body.version`
+//     para negociar a versão do contrato ANTES de validar o payload contra o
+//     schema. Se um schema de versão MAIS ANTIGA (a que a auto-detecção tenta
+//     por último) declarasse um campo de NEGÓCIO literalmente chamado `version`
+//     ou `contract_version`, um payload legítimo dessa versão acabaria sendo
+//     reinterpretado como pedido de negociação — ex.: um payload de negócio com
+//     `version: "3"` seria lido como "cliente pediu contrato v3" → 422
+//     unsupported_contract_version, mesmo sendo um payload v1 válido.
+//     Hoje nenhum contrato tem essa colisão (nenhum campo de negócio usa esses
+//     nomes) — este teste é o guard-rail estático que pega a regressão se
+//     alguém registrar um schema assim no futuro. Limitação conhecida: só
+//     cobre z.object (schemas discriminatedUnion, como sicoob-bridge, não
+//     expõem `.shape` e são pulados — checados manualmente na criação do
+//     fixture WEBHOOK_FIXTURES em contract-versioning.test.ts).
+
+Deno.test("Registry Integrity: nenhum schema de versão SEM metadata de contrato usa `version`/`contract_version` como campo de negócio", () => {
+  const violations: string[] = [];
+  for (const [name, versions] of Object.entries(CONTRACT_SCHEMAS)) {
+    for (const [version, schema] of Object.entries(versions)) {
+      if (!schema) continue;
+      const shape = (schema as z.ZodObject<any>).shape;
+      if (!shape) continue; // discriminatedUnion/outros — fora do escopo deste guard estático
+      for (const key of ["version", "contract_version"]) {
+        if (!(key in shape)) continue;
+        const fieldSchema = shape[key];
+        // Metadata de contrato legítima = z.literal("2.0") (ou similar) — não é
+        // dado de negócio arbitrário, é o próprio marcador de versão do envelope.
+        const isVersionLiteral = fieldSchema?._def?.typeName === "ZodLiteral";
+        if (!isVersionLiteral) {
+          violations.push(
+            `${name}@${version}: campo '${key}' não é z.literal(...) — colide com a negociação de ` +
+            `versão em resolveRequestedVersion (contract-kit.ts) e pode sequestrar payloads legítimos.`,
+          );
+        }
+      }
+    }
+  }
+  assertEquals(
+    violations,
+    [],
+    `Campos 'version'/'contract_version' usados como dado de negócio (${violations.length}):\n` +
+    violations.join("\n"),
+  );
+});

@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
       if (msgError) {
         if ((msgError as { code?: string }).code === '23505') {
           log.info("Duplicate message_id — returning idempotent success", { message_id });
-          return jsonResponse({ success: true, message: 'Message already exists', idempotent: true }, 200, req);
+          return jsonResponse({ success: true, message: 'Message already exists', idempotent: true }, 200, req, parsed.headers);
         }
         throw new Error(`Failed to create message: ${msgError.message}`);
       }
@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
       await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contactId);
 
       log.done(200, { contactId, messageId: newMessage.id });
-      return jsonResponse({ success: true, contact_id: contactId, message_id: newMessage.id }, 200, req);
+      return jsonResponse({ success: true, contact_id: contactId, message_id: newMessage.id }, 200, req, parsed.headers);
 
     } else if (action === 'mark_read') {
       const { external_ids } = body;
@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
       if (error) throw new Error(`Failed to mark messages as read: ${error.message}`);
 
       log.done(200, { count: external_ids.length });
-      return jsonResponse({ success: true, updated: external_ids.length }, 200, req);
+      return jsonResponse({ success: true, updated: external_ids.length }, 200, req, parsed.headers);
 
     } else {
       return errorResponse(`Unknown action: ${action}. Supported: new_message, mark_read`, 400, req);

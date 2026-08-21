@@ -185,6 +185,11 @@ Deno.serve(async (req) => {
   }
 
   let payload: WebhookPayload;
+  // Bloco 5 (2026-08-21): parsed.headers (x-contract-version/deprecated/
+  // sunset) içado pra fora do try — parsed é let-scoped ao bloco, mas as
+  // respostas de sucesso (200) mais abaixo ficam fora dele. Antes desse
+  // fix, nenhum cliente jamais via esses headers nesta função.
+  let contractResponseHeaders: Record<string, string> = {};
   try {
     const json = JSON.parse(rawBody);
     // Contrato evolution-webhook@v1/v2: parseOrReject negocia versão
@@ -209,6 +214,7 @@ Deno.serve(async (req) => {
       return parsed.response;
     }
     payload = parsed.data as WebhookPayload;
+    contractResponseHeaders = parsed.headers;
   } catch {
     await auditWebhookEvent(supabase, {
       request_id: requestId, status: 'rejected', status_code: 422, error_message: 'invalid_json',
@@ -253,7 +259,7 @@ Deno.serve(async (req) => {
     });
     return new Response(
       JSON.stringify({ success: true, ignored: true, reason: 'event_type_not_in_whitelist', requestId }),
-      { status: 200, headers: corsHeaders },
+      { status: 200, headers: { ...corsHeaders, ...contractResponseHeaders } },
     );
   }
 
@@ -296,7 +302,7 @@ Deno.serve(async (req) => {
     console.warn(`[webhook][${requestId}] SECURITY unknown_instance='${instance}' event=${event} - ignored`);
     return new Response(
       JSON.stringify({ success: true, ignored: true, reason: 'unknown_instance', requestId }),
-      { status: 200, headers: corsHeaders },
+      { status: 200, headers: { ...corsHeaders, ...contractResponseHeaders } },
     );
   }
 
@@ -321,7 +327,7 @@ Deno.serve(async (req) => {
       duration_ms: Date.now() - startedAt,
     });
     console.log(`[webhook][${requestId}] duplicate event_id=${eventId.slice(0, 48)}… skipped`);
-    return new Response(JSON.stringify({ success: true, duplicate: true, requestId }), { status: 200, headers: corsHeaders });
+    return new Response(JSON.stringify({ success: true, duplicate: true, requestId }), { status: 200, headers: { ...corsHeaders, ...contractResponseHeaders } });
   }
 
   // Rate Limit guard: conta apenas eventos UNICOS (idempotency ja filtrou retries)
@@ -594,7 +600,7 @@ Deno.serve(async (req) => {
       console.warn(`[webhook][${requestId}] payload persist failed: ${e instanceof Error ? e.message : String(e)}`);
     }
 
-    return new Response(JSON.stringify({ success: true, requestId }), { status: 200, headers: corsHeaders });
+    return new Response(JSON.stringify({ success: true, requestId }), { status: 200, headers: { ...corsHeaders, ...contractResponseHeaders } });
   } catch (error: unknown) {
     // Logical/handler errors: log the detail internally, return 200 to evo so it does not
     // retry-storm the same event. The idempotency guard above marks the event processed
@@ -630,7 +636,7 @@ Deno.serve(async (req) => {
     });
     return new Response(
       JSON.stringify({ success: false, error: 'internal_error', requestId }),
-      { status: 200, headers: corsHeaders },
+      { status: 200, headers: { ...corsHeaders, ...contractResponseHeaders } },
     );
   }
 });
