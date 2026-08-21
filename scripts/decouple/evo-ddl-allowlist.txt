@@ -26,3 +26,14 @@
 20260818120000_regularize_public_ingest_ledger_view.sql | regularização da view public.ingest_ledger (PG14-HARDENING 18/08 — espelho do evo.ingest_ledger usado pela edge; migration de regularização de DDL manual existente)
 20260818210102_fix_perf_rpc_list_messages_lite_or_generic.sql | zapp.rpc_list_messages_lite retorna SETOF evo.evolution_messages — referencia de tipo, nao DDL no schema evo
 20260818210103_capture_get_avatars_by_jids_batch_fixed.sql | zapp.get_avatars_by_jids_batch faz FROM evo.evolution_contacts — leitura, nao DDL no schema evo
+# --- Plano 100 etapas (2026-08-20/21): registros RETROATIVOS de DDL evo JA
+# --- aplicado/revisado em producao durante a auditoria + correcoes (marcados
+# --- "NAO REAPLICAR" ou idempotentes). Justificativa: docs/decouple/ALLOWLIST-E42-PLANO100-20260820.md
+20260818140000_sentinel_teste_mensal.sql
+20260820093000_recon_coverage_daily.sql
+20260820130000_f008_comments_full_coverage.sql
+20260820151000_f010_webhook_events_retention_7d_purge.sql
+20260820180000_f011_drop_evo_fn_filter_canary_messages.sql
+20260820192000_f007_extra_dup_idx_fk_indexes.sql
+20260820193000_f002_fdw_delta_sentinel.sql
+20260820194000_f008_comments_evo_staging_e_meta.sql
