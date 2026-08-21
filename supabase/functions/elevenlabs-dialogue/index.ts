@@ -23,14 +23,13 @@ Deno.serve(async (req) => {
       extraHeaders: getCorsHeaders(req),
     });
     if (parsed.ok === false) return parsed.response;
-    const body = parsed.data as Record<string, any>;
-
-    // Guarda de compatibilidade: schema registrado é permissivo (placeholder);
-    // preserva o 400 do antigo parseBody(ElevenLabsDialogueSchema).
-    const { script, languageCode } = body;
-    if (!Array.isArray(script) || script.length === 0 || script.length > 100) {
-      return errorResponse('script: Required (array 1..100)', 400, req);
-    }
+    // Bloco 2/3 (2026-08-21): schema agora valida script/languageCode de
+    // verdade — o 422 canônico já reprova payload inválido; o bloco 400
+    // manual que existia foi removido.
+    const { script, languageCode } = parsed.data as {
+      script: Array<{ voice_id: string; text: string }>;
+      languageCode?: string;
+    };
     const ELEVENLABS_API_KEY = requireEnv("ELEVENLABS_API_KEY");
 
     log.info(`Generating dialogue with ${script.length} lines`);

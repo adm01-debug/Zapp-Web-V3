@@ -25,14 +25,14 @@ Deno.serve(async (req) => {
       extraHeaders: getCorsHeaders(req),
     });
     if (parsed.ok === false) return parsed.response;
-    const body = parsed.data as Record<string, any>;
-
-    // Guarda de compatibilidade: schema registrado é permissivo (placeholder);
-    // preserva o 400 do antigo parseBody(ElevenLabsSFXSchema).
-    const { prompt, duration, mode } = body;
-    if (typeof prompt !== 'string' || prompt.length === 0 || prompt.length > 2000) {
-      return errorResponse('prompt: Required (1..2000)', 400, req);
-    }
+    // Bloco 2/3 (2026-08-21): schema agora valida prompt/duration/mode de
+    // verdade — o 422 canônico já reprova payload inválido; o bloco 400
+    // manual que existia foi removido.
+    const { prompt, duration, mode } = parsed.data as {
+      prompt: string;
+      duration?: number;
+      mode?: 'sfx' | 'music';
+    };
     const ELEVENLABS_API_KEY = requireEnv("ELEVENLABS_API_KEY");
 
     const isMusic = mode === "music";

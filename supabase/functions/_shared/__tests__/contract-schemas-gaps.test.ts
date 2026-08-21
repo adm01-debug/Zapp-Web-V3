@@ -7,10 +7,10 @@
  *   gmail-token-refresh, bitrix-api
  *
  * (elevenlabs-voice-design saiu da lista: função removida na onda #922.)
- * Todos os campos desses contratos são opcionais/nullish (permissivos por
- * design), EXCETO bitrix-api (action enum obrigatório) — o teste negativo
- * trava o TIPO de cada campo tipado: payload com tipo errado DEVE falhar;
- * `{}` DEVE passar onde não há obrigatórios.
+ * O teste negativo trava o TIPO de cada campo tipado: payload com tipo
+ * errado DEVE falhar; `{}` só passa onde o contrato não tem obrigatórios
+ * (`acceptsEmpty`, default true — false em bitrix-api e nos 3 elevenlabs-*,
+ * que ganharam campo obrigatório real no Bloco 2/3, 2026-08-21).
  */
 import { assertEquals } from "jsr:@std/assert";
 import { CONTRACT_SCHEMAS } from "../contract-schemas.ts";
@@ -30,28 +30,49 @@ interface Matrix {
 
 const MATRICES: Matrix[] = [
   {
+    // Bloco 2/3 (2026-08-21): text é obrigatório desde o fix do drift
+    // (campos reais são text/voiceId/modelId/languageCode/
+    // applyTextNormalization — o schema antigo validava voice_id/speed/
+    // stability/similarity, que não existem no handler). {} agora falha.
     name: "elevenlabs-tts-stream",
+    acceptsEmpty: false,
     invalid: [
-      { label: "speed string onde number", payload: { speed: "1.0" }, expectPath: "speed" },
-      { label: "stability string", payload: { stability: "0.5" }, expectPath: "stability" },
-      { label: "similarity boolean", payload: { similarity: true }, expectPath: "similarity" },
+      { label: "text ausente (body {})", payload: {}, expectPath: "text" },
       { label: "text number", payload: { text: 42 }, expectPath: "text" },
+      { label: "text vazio", payload: { text: "" }, expectPath: "text" },
+      { label: "voiceId objeto", payload: { text: "oi", voiceId: { x: 1 } }, expectPath: "voiceId" },
+      { label: "modelId number", payload: { text: "oi", modelId: 7 }, expectPath: "modelId" },
+      // .strict(): erro de chave desconhecida vem com path raiz ([] → ""),
+      // não path.speed — o nome da chave fica em issue.keys, não issue.path.
+      { label: "campo do schema antigo (speed) → extra desconhecido", payload: { text: "oi", speed: 1 }, expectPath: "" },
     ],
   },
   {
+    // Bloco 2/3 (2026-08-21): prompt é obrigatório desde o fix do drift
+    // (campos reais são prompt/duration/mode — o schema antigo validava
+    // text/duration_seconds/prompt_influence, campos de SAÍDA para a API
+    // da ElevenLabs, não de entrada do cliente). {} agora falha.
     name: "elevenlabs-sfx",
+    acceptsEmpty: false,
     invalid: [
-      { label: "duration_seconds string", payload: { duration_seconds: "10" }, expectPath: "duration_seconds" },
-      { label: "prompt_influence string", payload: { prompt_influence: "0.3" }, expectPath: "prompt_influence" },
-      { label: "text objeto", payload: { text: { x: 1 } }, expectPath: "text" },
+      { label: "prompt ausente (body {})", payload: {}, expectPath: "prompt" },
+      { label: "prompt objeto", payload: { prompt: { x: 1 } }, expectPath: "prompt" },
+      { label: "prompt vazio", payload: { prompt: "" }, expectPath: "prompt" },
+      { label: "duration string onde number", payload: { prompt: "x", duration: "10" }, expectPath: "duration" },
+      { label: "mode fora do enum", payload: { prompt: "x", mode: "voice" }, expectPath: "mode" },
     ],
   },
   {
+    // Bloco 2/3 (2026-08-21): script é obrigatório desde o fix do drift
+    // (campo real é script[]/languageCode — o schema antigo validava
+    // text/voice_id/model_id soltos, que não existem no handler). {} agora falha.
     name: "elevenlabs-dialogue",
+    acceptsEmpty: false,
     invalid: [
-      { label: "text number", payload: { text: 42 }, expectPath: "text" },
-      { label: "voice_id objeto", payload: { voice_id: { x: 1 } }, expectPath: "voice_id" },
-      { label: "model_id number", payload: { model_id: 7 }, expectPath: "model_id" },
+      { label: "script ausente (body {})", payload: {}, expectPath: "script" },
+      { label: "script vazio []", payload: { script: [] }, expectPath: "script" },
+      { label: "script item sem text", payload: { script: [{ voice_id: "v" }] }, expectPath: "script.0.text" },
+      { label: "languageCode number", payload: { script: [{ voice_id: "v", text: "x" }], languageCode: 7 }, expectPath: "languageCode" },
     ],
   },
   {
