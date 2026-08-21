@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, Logger } from "../_shared/validation.ts";
+import { handleCors, errorEnvelope, jsonResponse, Logger } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
@@ -86,6 +86,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true, message: "Alert processed" }, 200, req);
   } catch (error: unknown) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse('Internal server error', 500, req);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });

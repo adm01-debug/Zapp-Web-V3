@@ -1,5 +1,5 @@
 import { type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { handleCors, jsonResponse, errorResponse, Logger, readJsonBodyOrEmpty } from "../_shared/validation.ts";
+import { handleCors, jsonResponse, errorEnvelope, Logger, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getStoragePublicUrl } from "../_shared/storage-url.ts";
@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
   } catch (err: unknown) {
     log.error('Migration error', { error: err instanceof Error ? err.message : String(err) });
     log.done(500);
-    return errorResponse('Internal server error', 500, req);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });
 

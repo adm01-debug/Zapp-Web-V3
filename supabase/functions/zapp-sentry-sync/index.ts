@@ -18,7 +18,7 @@
  *   - DSN nunca retorna em claro — apenas mascarado (dsn_masked).
  *   - dsn vazio = desligado (enabled=false) — estado inicial do contrato.
  */
-import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, Logger, getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser, requireAdminOrSupervisor } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
 
     const rl = checkRateLimit(`zapp-sentry-sync:${authed.user.id}`, 60, 60_000);
     if (!rl.allowed) {
-      return errorResponse("Rate limit exceeded", 429, req);
+      return errorEnvelope('rate_limit_exceeded', "Rate limit exceeded", 429, req);
     }
 
     const supabase = createZappAdminClient();
@@ -256,7 +256,7 @@ Deno.serve(async (req) => {
     // ── action=test: evento real contra o DSN configurado ─────────────────
     if (body.action === "test") {
       if (!row.dsn || row.dsn.trim() === "") {
-        return errorResponse("Sentry DSN not configured", 400, req);
+        return errorEnvelope('sentry_dsn_not_configured', "Sentry DSN not configured", 400, req);
       }
       const result = await sendTestEvent(row.dsn, row.environment);
       if (!result) {
@@ -349,6 +349,6 @@ Deno.serve(async (req) => {
     if (sentryReady) {
       captureException(error, { functionName: "zapp-sentry-sync" });
     }
-    return errorResponse("Internal error", 500, req);
+    return errorEnvelope('internal_error', "Internal error", 500, req);
   }
 });

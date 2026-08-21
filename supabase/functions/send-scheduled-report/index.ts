@@ -17,7 +17,7 @@
 //   scheduled-reports-dispatch a cada 15 min chama com body '{}').
 //
 // Auth: requireServiceRoleOrCron (cron usa service_role do vault).
-import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, Logger, getCorsHeaders } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -181,7 +181,7 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     log.error("Error processing scheduled reports", { error: errorMessage });
-    return errorResponse("Internal server error", 500, req, undefined, contractResponseHeaders);
+    return errorEnvelope('internal_error', "Internal server error", 500, req, undefined, contractResponseHeaders);
   }
 });
 

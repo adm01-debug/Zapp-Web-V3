@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, Logger, readJsonBodyOrEmpty } from "../_shared/validation.ts";
+import { handleCors, errorEnvelope, jsonResponse, Logger, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -166,6 +166,6 @@ Deno.serve(async (req) => {
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     log.error("Erro fatal na limpeza", { error: msg });
-    return errorResponse("Internal server error", 500, req);
+    return errorEnvelope('internal_error', "Internal server error", 500, req);
   }
 });

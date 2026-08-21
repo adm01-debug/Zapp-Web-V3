@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, Logger, readJsonBodyOrEmpty } from "../_shared/validation.ts";
+import { handleCors, errorEnvelope, jsonResponse, Logger, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -55,6 +55,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true, ...summary }, 200, req);
   } catch (error: unknown) {
     log.error("Cleanup error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse('Internal server error', 500, req);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });

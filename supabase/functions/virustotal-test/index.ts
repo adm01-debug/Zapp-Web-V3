@@ -1,4 +1,4 @@
-import { handleCors, jsonResponse, Logger, errorResponse, checkRateLimit, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, jsonResponse, Logger, errorResponse, errorEnvelope, checkRateLimit, getCorsHeaders } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     if (authed instanceof Response) return authed;
 
     const rl = checkRateLimit(`virustotal-test:${authed.user.id}`, 10, 60_000);
-    if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
+    if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', "Rate limit exceeded", 429, req);
 
     if (req.method !== "POST") {
       return errorResponse("Method not allowed", 405, req);
@@ -60,6 +60,6 @@ Deno.serve(async (req) => {
 
   } catch (error: unknown) {
     log.error("Error testing VirusTotal API", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse("Internal error testing API Key", 500, req);
+    return errorEnvelope('internal_error', "Internal error testing API Key", 500, req);
   }
 });

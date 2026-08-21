@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getCorsHeaders, requireEnv, readJsonBodyOrEmpty } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, Logger, checkRateLimit, getCorsHeaders, requireEnv, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor, timingSafeStringEqual } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
     const authed = await requireAdminOrSupervisor(req);
     if (authed instanceof Response) return authed;
     const rl = checkRateLimit(`connection-health-check:${authed.user.id}`, 20, 60_000);
-    if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
+    if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', 'Rate limit exceeded', 429, req);
   }
 
   try {
@@ -380,7 +380,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true, checked_at: new Date().toISOString(), connections: results, alerts_created: alertsToCreate.length }, 200, req);
   } catch (err) {
     log.error("Health check error", { error: err instanceof Error ? err.message : String(err) });
-    return errorResponse('Internal server error', 500, req);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });
 
