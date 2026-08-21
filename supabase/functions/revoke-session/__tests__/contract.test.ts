@@ -88,7 +88,7 @@ Deno.test("Contract: revoke-session v1 — gate parseOrReject com contrato regis
 Deno.test("Contract: revoke-session v1 — ownership: sessão de outro usuário → 403", () => {
   // Dono só revoga as próprias; admin/supervisor revoga de outros (Etapa 56.8).
   assertMatch(SOURCE, /is_admin_or_supervisor/);
-  assertMatch(SOURCE, /errorResponse\([^)]*, 403, req\)/);
+  assertMatch(SOURCE, /error(?:Response|Envelope)\([^)]*, 403, req\)/);
 });
 
 Deno.test("Contract: revoke-session v1 — backend RPC sessions_revoke (SECURITY DEFINER)", () => {

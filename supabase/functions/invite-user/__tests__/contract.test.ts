@@ -97,7 +97,7 @@ Deno.test("Contract: invite-user v1 — admin-only: requireAdminOrSupervisor (40
 Deno.test("Contract: invite-user v1 — rate limit ANTES da auth (429)", () => {
   // Mesmo padrão do create-user: checkRateLimit primeiro, depois auth.
   assertMatch(SOURCE, /checkRateLimit\(`invite-user:/);
-  assertMatch(SOURCE, /errorResponse\("Rate limit exceeded", 429, req\)/);
+  assertMatch(SOURCE, /errorEnvelope\('rate_limit_exceeded', "Rate limit exceeded", 429, req\)/);
 });
 
 Deno.test("Contract: invite-user v1 — gate parseOrReject com contrato registrado", () => {

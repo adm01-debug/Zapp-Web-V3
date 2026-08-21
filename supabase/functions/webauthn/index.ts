@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, Logger, checkRateLimit, getClientIP, getCorsHeaders } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
 
   const ip = getClientIP(req);
   const rl = checkRateLimit(`webauthn:${ip}`, 20, 60_000);
-  if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
+  if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', 'Rate limit exceeded', 429, req);
 
   const log = new Logger("webauthn");
 
@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
         const authed = await requireUser(req);
         if (authed instanceof Response) return authed;
         if (authed.user.id !== userId) {
-          return errorResponse('Unauthorized: you can only register passkeys for your own account', 403, req);
+          return errorEnvelope('forbidden', 'Unauthorized: you can only register passkeys for your own account', 403, req);
         }
 
         const { data: existingCredentials } = await supabaseAdmin.from('passkey_credentials').select('credential_id').eq('user_id', userId);
@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
         const authed = await requireUser(req);
         if (authed instanceof Response) return authed;
         if (authed.user.id !== userId) {
-          return errorResponse('Unauthorized: you can only verify passkeys for your own account', 403, req);
+          return errorEnvelope('forbidden', 'Unauthorized: you can only verify passkeys for your own account', 403, req);
         }
 
         const { data: challengeData, error: challengeError } = await supabaseAdmin
@@ -330,6 +330,6 @@ Deno.serve(async (req) => {
     }
   } catch (error: unknown) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse('Internal server error', 500, req);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });

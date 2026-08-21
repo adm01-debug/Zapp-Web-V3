@@ -129,7 +129,7 @@ const SOURCE = await readSourceFrom(import.meta.url, "../index.ts");
 
 Deno.test("Contract: approve-password-reset v1 — rate limit ANTES da auth (429)", () => {
   assertMatch(SOURCE, /checkRateLimit\(`approve-reset:\$\{ip\}`, 10, 60_000\)/);
-  assertMatch(SOURCE, /errorResponse\("Rate limit exceeded", 429, req\)/);
+  assertMatch(SOURCE, /errorEnvelope\('rate_limit_exceeded', "Rate limit exceeded", 429, req\)/);
 });
 
 Deno.test("Contract: approve-password-reset v1 — admin-only: auth ANTES do gate (401/403)", () => {

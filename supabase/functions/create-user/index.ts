@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, Logger, sanitizeString, checkRateLimit, getClientIP, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, Logger, sanitizeString, checkRateLimit, getClientIP, getCorsHeaders } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
 
   const ip = getClientIP(req);
   const rl = checkRateLimit(`create-user:${ip}`, 5, 60_000);
-  if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
+  if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', 'Rate limit exceeded', 429, req);
 
   try {
     const authed = await requireAdminOrSupervisor(req);
@@ -128,6 +128,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true, user_id: newUser.user?.id }, 200, req);
   } catch (err: unknown) {
     log.error("Unhandled error", { error: err instanceof Error ? err.message : String(err) });
-    return errorResponse("Internal server error", 500, req);
+    return errorEnvelope('internal_error', "Internal server error", 500, req);
   }
 });

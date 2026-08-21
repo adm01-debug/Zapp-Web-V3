@@ -97,7 +97,7 @@ Deno.test("Contract: request-password-reset v1 — pública: SEM requireUser/req
 
 Deno.test("Contract: request-password-reset v1 — rate limit por IP ANTES de qualquer lookup", () => {
   assertMatch(SOURCE, /checkRateLimit\(`reset-request:\$\{ip\}`, 5, 60_000\)/);
-  assertMatch(SOURCE, /errorResponse\("Rate limit exceeded", 429, req\)/);
+  assertMatch(SOURCE, /errorEnvelope\('rate_limit_exceeded', "Rate limit exceeded", 429, req\)/);
   // Ordem: rate limit → gate zod → lookup. O rate limit aparece antes do
   // primeiro acesso a .from( (banco) e antes do parseOrReject.
   const rlIdx = SOURCE.indexOf("checkRateLimit");

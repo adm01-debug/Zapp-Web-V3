@@ -34,7 +34,7 @@
  *     solicitante é refletido na resposta.
  *   - status sempre "pending" — a aprovação (admin) é a única porta para o link.
  */
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+import { handleCors, errorEnvelope, jsonResponse, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
   try {
     const ip = getClientIP(req);
     const rl = checkRateLimit(`reset-request:${ip}`, 5, 60_000);
-    if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
+    if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', "Rate limit exceeded", 429, req);
 
     // Contrato request-password-reset@v1 — validação unificada 422 (parseOrReject).
     const raw = await req.json().catch(() => null);
@@ -95,6 +95,6 @@ Deno.serve(async (req) => {
     return genericSuccess;
   } catch (error: unknown) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse("Internal server error", 500, req);
+    return errorEnvelope('internal_error', "Internal server error", 500, req);
   }
 });

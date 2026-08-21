@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, Logger, checkRateLimit, getClientIP, getCorsHeaders } from "../_shared/validation.ts";
 import { timingSafeStringEqual } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { extractEvolutionMessageId } from "../_shared/evolution-message-id.ts";
@@ -14,18 +14,18 @@ Deno.serve(async (req) => {
 
   const ip = getClientIP(req);
   const rl = checkRateLimit(`public-api:${ip}`, 60, 60_000);
-  if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
+  if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', 'Rate limit exceeded', 429, req);
 
   try {
     const supabase = createZappAdminClient();
 
     const apiKey = req.headers.get('x-api-key');
-    if (!apiKey) return errorResponse('Missing x-api-key header', 401, req);
+    if (!apiKey) return errorEnvelope('unauthorized', 'Missing x-api-key header', 401, req);
 
     const { data: setting } = await supabase.from('global_settings').select('value').eq('key', 'api_token').single();
     if (!setting?.value || !timingSafeStringEqual(setting.value, apiKey)) {
       log.warn('Invalid API token attempt');
-      return errorResponse('Invalid API token', 403, req);
+      return errorEnvelope('unauthorized', 'Invalid API token', 403, req);
     }
 
     if (req.method !== 'POST') return errorResponse('Method not allowed', 405, req);
@@ -97,6 +97,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true, messageId: msg.id, contactId: contact.id, requestId }, 200, req);
   } catch (err) {
     log.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
-    return errorResponse('Internal server error', 500, req);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });
