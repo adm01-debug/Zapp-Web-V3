@@ -17,6 +17,7 @@ import { recordQueryEvent, classifySeverity, type QueryOperation } from '@/lib/c
 import { generateCorrelationId } from '@/lib/correlationId';
 import { getLogger } from '@/lib/logger';
 import { getExternalSupabase } from '@/integrations/supabase/externalClient';
+import { isAbortLikeError } from '@/lib/retry';
 
 const proxyLog = getLogger('externalProxy');
 
@@ -219,7 +220,7 @@ async function executeDirect<T>(params: ProxyParams): Promise<ProxyResponse<T>> 
   } catch (err) {
     // Exceção inesperada do próprio cliente (ex.: falha de rede) — registra e repassa.
     const message = (err as Error)?.message ?? 'unknown';
-    const isAbort = (err as Error)?.name === 'AbortError' || /abort/i.test(message);
+    const isAbort = isAbortLikeError(err);
     const durationMs = Math.round(performance.now() - startedAt);
     recordQueryEvent({
       ...meta,
@@ -236,7 +237,7 @@ async function executeDirect<T>(params: ProxyParams): Promise<ProxyResponse<T>> 
 
   if (result.error) {
     const message = result.error.message || 'External DB query error';
-    const isAbort = result.error.name === 'AbortError' || /abort/i.test(message);
+    const isAbort = isAbortLikeError(result.error);
     const durationMs = Math.round(performance.now() - startedAt);
     recordQueryEvent({
       ...meta,

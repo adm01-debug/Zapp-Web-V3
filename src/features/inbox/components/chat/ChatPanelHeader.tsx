@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Conversation } from '@/types/chat';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -83,7 +84,9 @@ interface ChatPanelHeaderProps {
 }
 
 /** Chat Panel Header component for the chat section. */
-export function ChatPanelHeader({
+// memo (etapa 61): com callbacks estáveis no ChatPanel, o header deixa de
+// re-renderizar a cada mensagem nova/estado transiente do painel.
+export const ChatPanelHeader = memo(function ChatPanelHeader({
   conversation,
   isContactTyping,
   showAIAssistant,
@@ -349,4 +352,4 @@ export function ChatPanelHeader({
       </div>
     </div>
   );
-}
+});

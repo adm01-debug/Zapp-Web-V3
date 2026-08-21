@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, memo } from 'react';
 import { Conversation, Message, InteractiveMessage, LocationMessage } from '@/types/chat';
 import { ExternalProduct } from '@/hooks/useExternalApiManagement';
 import { ExternalProductCatalog } from '@/components/catalog/ExternalProductCatalog';
@@ -56,7 +56,9 @@ interface ChatDialogsProps {
    for criado. */
 
 /** Chat Dialogs component for the chat section. */
-export function ChatDialogs({
+// memo (etapa 63): todos os dialogs montam condicionalmente (barato fechado);
+// o memo evita re-render do wrapper a cada mensagem nova do painel.
+export const ChatDialogs = memo(function ChatDialogs({
   dialogs,
   openDialog,
   closeDialog,
@@ -177,4 +179,4 @@ export function ChatDialogs({
       )}
     </>
   );
-}
+});

@@ -12,8 +12,12 @@
  *
  * Inclui verificações estáticas de fonte (sem renderizar):
  *   - App.tsx: 5 lazyWithRetry, zero lazy() cru, ErrorBoundary fallback={null}
- *   - vercel.json: rewrite SPA exclui assets/version.json; headers imutáveis
- *     para /assets/(.*)
+ *
+ * Nota: as verificações de vercel.json (rewrite SPA, headers imutáveis para
+ * /assets/(.*)) foram removidas em 2026-08-21 — Vercel foi aposentada para o
+ * ZAPP (deploy 100% VPS, ver CLAUDE.md); o comportamento equivalente
+ * (try_files SPA fallback + Cache-Control immutable em /assets/) vive em
+ * nginx.conf, não testado aqui.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -278,28 +282,23 @@ describe('App.tsx — verificação estática (sem renderizar)', () => {
   });
 });
 
-describe('vercel.json — verificação estática (parse JSON)', () => {
-  const vercelConfig = JSON.parse(
-    readFileSync(resolve(process.cwd(), 'vercel.json'), 'utf8')
-  ) as {
-    rewrites: { source: string; destination: string }[];
-    headers: { source: string; headers: { key: string; value: string }[] }[];
-  };
+// describe('vercel.json — verificação estática') REMOVIDO no PR #1355: a Vercel
+// foi aposentada para o ZAPP (2026-08-20 — domínio www.zappweb.app.br migrado
+// para o VPS; Traefik router `zappweb-www` inline no stack 157) e o vercel.json
+// saiu do repo — o readFileSync na raiz derrubava a suíte inteira (ENOENT).
+// O rewrite SPA e o Cache-Control de /assets agora são responsabilidade do
+// Traefik/host no VPS — o gate equivalente abaixo (nginx.conf, adicionado no
+// review do PR #1354) fecha a lacuna: sem ele, uma regressão nesses dois
+// comportamentos de deploy passaria pelo CI sem detecção.
+describe('nginx.conf — verificação estática (sem renderizar)', () => {
+  const NGINX_SOURCE = readFileSync(resolve(process.cwd(), 'nginx.conf'), 'utf8');
 
-  it('rewrite SPA exclui assets e version.json no lookahead negativo', () => {
-    expect(vercelConfig.rewrites.length).toBeGreaterThan(0);
-    const spaRewrite = vercelConfig.rewrites[0];
-    expect(spaRewrite.source).toContain('assets');
-    expect(spaRewrite.source).toContain('version\\.json');
-    expect(spaRewrite.destination).toBe('/index.html');
+  it('faz fallback SPA via try_files para /index.html', () => {
+    expect(NGINX_SOURCE).toMatch(/try_files\s+\$uri\s+\$uri\/\s+\/index\.html/);
   });
 
-  it('headers: /assets/(.*) com Cache-Control public, max-age=31536000, immutable', () => {
-    const assetsHeader = vercelConfig.headers.find((h) => h.source === '/assets/(.*)');
-    expect(assetsHeader).toBeDefined();
-    expect(assetsHeader?.headers).toContainEqual({
-      key: 'Cache-Control',
-      value: 'public, max-age=31536000, immutable',
-    });
+  it('serve /assets/ com Cache-Control public, immutable', () => {
+    const assetsBlock = NGINX_SOURCE.match(/location\s+\/assets\/\s*\{[\s\S]*?\}/)?.[0] ?? '';
+    expect(assetsBlock).toContain('Cache-Control "public, immutable"');
   });
 });

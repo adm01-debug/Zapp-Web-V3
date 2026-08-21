@@ -2,6 +2,8 @@
 ---
 
 ## OBRIGATORIO: leia antes de qualquer acao
+
+> **Regra de commits (multi-agente):** Commits de codigo, docs ou config vao pelo container VPS (stack 122, claude-code). Sessao de chat nunca faz git push direto no main - causa rebases competitivos com a sessao VPS. Use portainer_exec_container para delegar. Politica canonica: HERMES.md.
 > Para agentes Hermes: leia tambem [`HERMES.md`](./HERMES.md) para regras especificas de execucao paralela e estado do framework.
 
 **1. Leia ESTADO.md (raiz do repo) antes de qualquer mudanca.**
@@ -91,18 +93,18 @@ ou de ligar algo intencionalmente desligado.
 
 1. **SEMPRE usar `schema: 'zapp'`** — o cliente Supabase já está configurado com isso em `src/integrations/supabase/client.ts`. Não trocar para `public`.
 
-2. **Para dados Evolution (mensagens/contatos/conversas)**: usar o cliente padrão (`supabase.from('evolution_messages')` etc.). **TOPOLOGIA ATUAL (migração evo→zapp; corrigido 2026-08-15 — fonte de verdade: `docs/decouple/ANALISE_FRONTEIRA_EVO_ZAPP_20260815.md`, ver issue #1098):** `zapp.evolution_messages` e `zapp.evolution_conversations` são as **tabelas físicas particionadas** e `zapp.evolution_contacts` é **tabela física** — NÃO são views. `evo.evolution_messages`, `evo.evolution_contacts` e `evo.evolution_conversations` **NÃO EXISTEM** (`evo.evolution_messages_v2` é uma view que lê `zapp`). NÃO usar `.schema('evo')` para dado de negócio: `evo` não está exposto no PostgREST (retorna `PGRST205`) e hoje contém apenas operação/monitoria/mídia/LID.
+2. **Para dados Evolution (mensagens/contatos/conversas)**: usar o cliente padrão (`supabase.from('evolution_messages')` etc.). **TOPOLOGIA ATUAL (revalidada AO VIVO em 2026-08-20 via `pg_class`/`pg_publication_tables` — ver `docs/plano-100/VALIDACAO_PLANO_100_2026-08-20.md`):** as tabelas **físicas** vivem no schema **`evo`** — `evo.evolution_messages` (raiz particionada, `relkind='p'`), `evo.evolution_conversations` (raiz particionada, `relkind='p'`) e `evo.evolution_contacts` (`relkind='r'`, 14 MB / 22.351 linhas). No schema `zapp`, `evolution_messages`/`evolution_conversations`/`evolution_contacts` são **views auto-updatable** (`security_invoker=on`) apontando para `evo` — por isso o cliente padrão (schema `zapp`) funciona para SELECT/INSERT/UPDATE. A afirmação anterior deste arquivo ("físicas em zapp; evo.evolution_messages NÃO EXISTE") estava **invertida** em relação ao banco de produção. NÃO usar `.schema('evo')` para REST: `evo` não está exposto no PostgREST (retorna `PGRST205`). **Exceção: Realtime** — subscriptions leem o WAL direto e DEVEM usar `schema: 'evo'` para as tabelas evolution_* (regra 4 abaixo).
 
 3. **PostgREST**: sem o header `Accept-Profile: zapp`, queries falham com `PGRST205`.
 
-4. **Realtime — IMPORTANTE**: a publicação `supabase_realtime` tem `publish_via_partition_root = true`. Isso significa que eventos CDC são publicados pela **tabela raiz particionada**, nunca pela partição. Use a tabela raiz nos listeners:
-   - Mensagens do WhatsApp → `schema: 'zapp'`, tabela **`evolution_messages`** (raiz física em `zapp` desde a migração evo→zapp), NÃO `evolution_messages_wpp2`. **Subscription em `schema: 'evo'` recebe ZERO eventos** — a relação física não está lá.
-   - Conversas → `schema: 'zapp'`, tabela **`evolution_conversations`** (raiz física em `zapp`), NÃO `evolution_conversations_wpp2`
-   - Perfis/notificações → `schema: 'zapp'`
-   - **`failed_messages`** → `schema: 'zapp'` (tabela física; `public.failed_messages` é VIEW, não entra na publication — subscription com `schema: 'public'` é no-op silencioso)
-   - **`dispatch_error_logs`** → `schema: 'zapp'` (adicionada à publication `supabase_realtime` em `20260721_fix_cursor_rpcs_and_search_path.sql`)
+4. **Realtime — IMPORTANTE**: a publicação `supabase_realtime` tem `publish_via_partition_root = true`. Eventos CDC saem pela **tabela raiz física** — nunca pela partição, nunca por view. Conteúdo da publication **verificado ao vivo em 2026-08-20** (`pg_publication_tables`): `evo.evolution_messages`, `evo.evolution_conversations`, `evo.evolution_contacts`, `zapp.profiles`, `zapp.app_notifications` (+ `zapp.failed_messages` e `zapp.dispatch_error_logs` reincorporadas pela migration `20260821001000`). Use nos listeners:
+   - Mensagens do WhatsApp → `schema: 'evo'`, tabela **`evolution_messages`** (raiz física em `evo`), NÃO `evolution_messages_wpp2`. **Subscription em `schema: 'zapp'` recebe ZERO eventos** — `zapp.evolution_messages` é view, e view nunca emite CDC. (O código de produção já faz isso: `useZappMessages.ts`, `useZappConversations.ts`, `useRealtimeContacts.ts` assinam `schema: 'evo'`.)
+   - Conversas → `schema: 'evo'`, tabela **`evolution_conversations`**; Contatos → `schema: 'evo'`, **`evolution_contacts`**.
+   - Perfis/notificações → `schema: 'zapp'` (`profiles`, `app_notifications` — físicas em `zapp` e presentes na publication).
+   - **`failed_messages`** → `schema: 'zapp'` (tabela física). Estava **fora** da publication em 2026-08-20 (canal silencioso p/ `useFailedMessageAlerts`) — corrigido pela migration `20260821001000_realtime_pub_failed_messages_dispatch_error_logs.sql`.
+   - **`dispatch_error_logs`** → `schema: 'zapp'` — idem (reincorporada pela mesma migration; a adição original de `20260721` havia se perdido).
    - **Subscriptions na partição ficam silenciosas** (zero eventos) com `publish_via_partition_root=true`.
-   - **Regra geral**: Realtime usa o WAL físico — apenas relations físicas na publication emitem eventos. Views nunca emitem, independentemente do schema.
+   - **Regra geral**: Realtime usa o WAL físico — apenas relations físicas na publication emitem eventos. Views nunca emitem, independentemente do schema. Antes de assinar uma tabela nova, confira `pg_publication_tables`.
 
 5. **Tipos TypeScript**: importar SEMPRE de `@/integrations/supabase/schema` (barrel canônico), nunca de `types.ts` diretamente.
 
@@ -129,14 +131,14 @@ ou de ligar algo intencionalmente desligado.
 
 | Tabela | Função |
 |--------|--------|
-| ~~`evolution_messages`~~ | **MOVIDA para `zapp`** (migração evo→zapp) — em `evo` só existe a view `evolution_messages_v2` → `zapp.evolution_messages` |
-| ~~`evolution_contacts`~~ | **MOVIDA para `zapp`** — `zapp.evolution_contacts` é a tabela física |
-| ~~`evolution_conversations`~~ | **MOVIDA para `zapp`** — raiz particionada física em `zapp` |
+| `evolution_messages` | **Raiz particionada FÍSICA em `evo`** (`relkind='p'`; revalidado ao vivo 2026-08-20 via `pg_class`) — `zapp.evolution_messages` é view auto-updatable sobre ela |
+| `evolution_contacts` | **TABELA FÍSICA** em `evo` (14 MB, 22.351 linhas; auditado 2026-08-20 via `pg_class`) — `zapp.evolution_contacts` é VIEW auto-updatable (security_invoker=on) que aponta para cá |
+| `evolution_conversations` | **Raiz particionada FÍSICA em `evo`** (`relkind='p'`) — `zapp.evolution_conversations` é view auto-updatable sobre ela |
 | `evolution_webhook_events_v2_*` | Webhooks particionados por mês (2026-03 a 2027-06 + default) |
 | `evolution_media` | Mídias (23.366, 10 MB) |
 | `evolution_whatsapp_status` | Status WA (14.789, 10 MB) |
 
-**Partições de `zapp.evolution_messages` (14 partições — raiz física em `zapp`; revalidado via `pg_class`/`pg_inherits` em 2026-08-15):**
+**Partições de `evo.evolution_messages` (raiz física em `evo`; revalidado via `pg_class` em 2026-08-20):**
 `wpp2`, `comercial_01`–`comercial_08`, `compras`, `default`, `financeiro`, `logistica`, `marketing`
 
 **Partições de `evolution_conversations` (13 partições — confirmado via `pg_inherits` em 2026-08-06):**
@@ -144,11 +146,12 @@ ou de ligar algo intencionalmente desligado.
 
 > **Nota:** `evo.evolution_messages_wpp2_archive` é uma **tabela standalone regular** (`relkind='r'`), NÃO uma partição — não aparece em `pg_inherits`. Não confundir com as partições acima.
 
-> `evolution_messages` e `evolution_conversations` são **tabelas raiz particionadas** (relkind='p' no evo schema).
-> Os dados ficam nas partições listadas acima. No schema `zapp`, `evolution_messages` existe como
-> **view auto-updatable** (security_invoker=on) que aponta para a raiz no schema `evo`.
+> `evolution_messages` e `evolution_conversations` são **tabelas raiz particionadas** (relkind='p' no schema `evo`).
+> Os dados ficam nas partições listadas acima. No schema `zapp`, `evolution_messages`/`evolution_conversations`/
+> `evolution_contacts` existem como **views auto-updatable** (security_invoker=on) que apontam para as raízes em `evo`.
 > Para queries SELECT, tanto a raiz quanto as partições funcionam.
-> Para **Realtime**, sempre use a raiz (regra 4 acima).
+> Para **Realtime**, sempre use a raiz física em `evo` (regra 4 acima).
+> Revalidado ao vivo em 2026-08-20 (`pg_class`) — este bloco é a descrição correta; ignorar qualquer texto antigo que afirme "físicas em zapp".
 
 ### Storage Buckets (13 buckets em produção)
 
@@ -168,7 +171,8 @@ ou de ligar algo intencionalmente desligado.
 | `team-chat-files` | não | — | |
 | `whatsapp-media` | **sim** | 50 MB | Público desde BUG-MEDIA-20260806. LEITURA pública via `/object/public/`. UPLOAD requer autenticação. 18.494 objetos. |
 
-> **Cron jobs ativos:** 218 jobs em `cron.job` (pg_cron — auditado 2026-08-15; anterior: 151 em 2026-08-06)
+> **Cron jobs ativos:** 239 jobs em `cron.job` (pg_cron — auditado ao vivo 2026-08-20; anteriores: 218 em 2026-08-15, 151 em 2026-08-06)
+> **Vault:** 37 secrets em `vault.secrets` (faxina concluída — zero `minio_*`/DEPRECATED; inventário canônico em `docs/SECRETS_INVENTORY.md`)
 
 ---
 
@@ -188,7 +192,8 @@ ou de ligar algo intencionalmente desligado.
 |------|-----------|-----------|-------------|
 | 2026-08-20 | Bundle público dos 3 hosts embutia **anon key inválida** → 401 em auth e dados (`PGRST301`, `Unauthorized` no Kong) | Secret GitHub `VITE_SUPABASE_PUBLISHABLE_KEY` continha anon key de **outro ambiente** (assinada com JWT_SECRET diferente; Kong e PostgREST recusavam). `client.ts` já era defensivo — a falha foi de **config de env**, que teste de código não pega | Secret corrigido via `gh secret set` + redeploy (run 32421024974). Guard reforçado (commit 3fcc3223): `bundle-secret-guard.yml` agora, além de barrar `service_role`, **valida que a anon key é ACEITA pelo Kong** e falha em 401 (`ANON_KEY_REJECTED`). Roda pós-deploy + diário |
 
-> **Domínio ZAPP:** `www.zappweb.app.br` migrado da Vercel → **VPS** (DNS A `209.142.67.51`; Traefik router `zappweb-www` inline no stack 157). Vercel **aposentada** para o ZAPP; projetos `zapp-web`/`zapp-web-v2` deletados. **Fonte única = VPS.** Não recriar deploy na Vercel para este app.
+> **Domínio ZAPP:** `www.zappweb.app.br` migrado da Vercel → **VPS** (DNS A `<IP-VPS>`; Traefik router `zappweb-www` inline no stack 157). Vercel **aposentada** para o ZAPP; verificado ao vivo em 2026-08-20 que o team `juca1` não tem mais NENHUM projeto zapp. **Fonte única = VPS.** Não recriar deploy na Vercel para este app.
+> **Domínio canônico:** `zapp.atomicabr.com.br` (é o `rel=canonical` do index.html); `zappweb.app.br` e `www.zappweb.app.br` são aliases servindo o MESMO bundle (verificado byte-a-byte em 2026-08-20). Detalhes: `docs/ARQUITETURA_CANONICA.md`.
 
 ---
 
@@ -250,7 +255,7 @@ O repositório possui um **grafo de conhecimento** em `graphify-out/` (Apache 2.
 
 - **29.150 nós, 54.653 arestas, 2.013 comunidades** (rebuild 2026-08-20, commit 3fcc3223)
 - Extração: 99% EXTRACTED · 1% INFERRED · inclui as 220 migrations SQL (graphifyy[sql])
-- **Top god nodes:** `cn()` (982°), `Button` (504°), `supabase` (410°), `Badge` (366°)
+- **Top god nodes (rebuild 2026-08-20):** `cn()` (982°), `Button` (504°), `supabase` (412°), `Badge` (366°), `Card` (329°), `CardContent` (316°), `CardHeader` (257°), `getLogger()` (257°), `CardTitle` (255°), `err()` (213°)
 - **Limitação conhecida do parser (NÃO é bug):** 31 arquivos `.tsx` saem como "partially extracted" — todos por **`&` literal em texto JSX** (ex.: `VoIP & Chamadas`, `Conexões & Integrações`, `Privacidade & LGPD`). O tree-sitter do graphify aborta no `&` cru; esbuild/tsc/React aceitam (build de prod passa). Consultas a esses componentes podem faltar nós/arestas a partir da 1ª linha com `&`. **Não** trocar por `&amp;` — é churn por falso positivo de ferramenta.
 - **MCP server:** 8 tools (`graphify_query`, `graphify_path`, `graphify_db_crossref`, etc.)
 
@@ -270,6 +275,9 @@ Consultar: `graphify explain "<no>"` · `graphify path "A" "B"`
 
 | Doc | Conteúdo |
 |-----|----------|
+| `docs/ARQUITETURA_CANONICA.md` | **Arquitetura canônica pós-auditoria** (hosting, DB, edge, secrets, deploy) — 2026-08-20 |
+| `docs/plano-100/VALIDACAO_PLANO_100_2026-08-20.md` | Validação exaustiva das 100 etapas do plano de melhorias (status + evidências) |
+| `docs/SECRETS_INVENTORY.md` | Inventário único de chaves/secrets (onde vive, rotação) |
 | `docs/SCHEMA_REFERENCE.md` | **Documento canônico** de schemas e tabelas |
 | `docs/SCHEMA_SNAPSHOT.md` | Snapshot de contagens do DB (2026-08-04) |
 | `docs/RPC_STUBS_STATUS.md` | Status dos stubs de RPC ativos |

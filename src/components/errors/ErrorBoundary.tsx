@@ -8,6 +8,7 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('ErrorBoundary');
 import { recordQueryEvent, type Severity } from '@/lib/clientTelemetry';
 import { isChunkLoadError, triggerChunkReload } from '@/lib/lazyWithRetry';
+import { isAbortLikeError } from '@/lib/retry';
 
 /**
  * Returns true and triggers a hard reload when `error` is a chunk-load failure
@@ -54,7 +55,7 @@ function classifyRenderFailure(error: Error): {
     error?.name === 'TimeoutError' ||
     /timeout|timed out|statement timeout|canceling statement|proxy_timeout/.test(msg);
   const isProxy = /query timed out/.test(msg);
-  const isAbort = error?.name === 'AbortError' || /aborted/.test(msg);
+  const isAbort = isAbortLikeError(error);
   // Tightened: specific DB/network patterns only.
   const isQueryPattern =
     /\brpc\b|postgrest|fetch failed|network request failed|econnrefused/.test(msg) ||

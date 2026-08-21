@@ -27,6 +27,7 @@ import { log } from '@/lib/logger';
 import { tanstackRetry } from '@/lib/errors/queryErrors';
 import { queryKeys } from '@/services/api/queryKeys';
 import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
+import { isAbortLikeError } from '@/lib/retry';
 
 /** Strips all non-numeric characters from a phone string so it can be used as a consistent lookup key. */
 function cleanPhone(phone: string): string {
@@ -856,8 +857,7 @@ export function useExternalMessages(
       });
       setHasMore(older.length === CONVERSATION_PAGE_SIZE);
     } catch (err) {
-      const name = (err as { name?: string } | null)?.name;
-      if (name === 'AbortError') return;
+      if (isAbortLikeError(err)) return;
       logMessages.error('Error loading older messages:', err);
     } finally {
       if (loadOlderAbortRef.current === controller) {

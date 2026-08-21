@@ -18,6 +18,9 @@ ARG VITE_SENTRY_DSN
 ARG VITE_GIT_SHA
 ARG VITE_SENTRY_ENVIRONMENT=production
 ARG VITE_APP_ENV=production
+# plano-100 etapa 91 (2026-08-20): liga o upload de web-vitals para a edge fn
+# client-observability em prod (gate exato ==='true' em src/lib/webVitals.ts).
+ARG VITE_ENABLE_CLIENT_OBSERVABILITY=true
 
 ENV VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
 ENV VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
@@ -26,6 +29,7 @@ ENV VITE_SENTRY_DSN=${VITE_SENTRY_DSN}
 ENV VITE_GIT_SHA=${VITE_GIT_SHA}
 ENV VITE_SENTRY_ENVIRONMENT=${VITE_SENTRY_ENVIRONMENT}
 ENV VITE_APP_ENV=${VITE_APP_ENV}
+ENV VITE_ENABLE_CLIENT_OBSERVABILITY=${VITE_ENABLE_CLIENT_OBSERVABILITY}
 
 # build direto pelo Vite (determinístico em CI/Docker; component-registry já versionado)
 RUN bunx vite build

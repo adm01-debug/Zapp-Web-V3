@@ -95,6 +95,42 @@ jobs:
             if [ "$PROTECTED_FOUND" -eq 0 ]; then
               echo "OK: nenhuma funcao protegida (admin, delete-user, reset-password) na allowlist"
             fi
+
+            # ============================================================
+            # 2b. Paridade config.toml × PUBLIC_FNS (plano-100 etapa 23)
+            # O runtime NAO le verify_jwt do config.toml, mas o arquivo
+            # continua versionado e ja divergiu silenciosamente (caso
+            # zapp-crm-sync, 2026-08-20). Toda funcao declarada com
+            # verify_jwt=false no config.toml DEVE estar na PUBLIC_FNS.
+            # ============================================================
+            echo ""
+            echo "=== Paridade config.toml (verify_jwt=false) x PUBLIC_FNS ==="
+            CONFIG_TOML="supabase/config.toml"
+            if [ ! -f "$CONFIG_TOML" ]; then
+              echo "::error::$CONFIG_TOML nao encontrado — contrato de paridade verify_jwt obrigatorio"
+              FAILED=1
+            else
+              TOML_PUBLIC=$(awk '/^\[functions\./{fn=$0; gsub(/\[functions\.|\]/,"",fn)} /^verify_jwt[[:space:]]*=[[:space:]]*false/{print fn}' "$CONFIG_TOML" | sort -u)
+              RUNTIME_PUBLIC=$(echo "$PUBLIC_FNS_BLOCK" | grep -vE '^\s*//' | grep -oE "['\"][A-Za-z0-9_-]+['\"]" | tr -d "'\"" | sort -u)
+              TOML_DIVERGE=0
+              for fn in $TOML_PUBLIC; do
+                if ! echo "$PUBLIC_FNS_BLOCK" | grep -qE "['\"]${fn}['\"]"; then
+                  echo "::error::config.toml declara '${fn}' com verify_jwt=false, mas '${fn}' NAO esta na PUBLIC_FNS (fonte de verdade do runtime) — alinhar o config.toml"
+                  TOML_DIVERGE=1
+                  FAILED=1
+                fi
+              done
+              for fn in $RUNTIME_PUBLIC; do
+                if ! awk -v target="$fn" '/^\[functions\./{fn=$0; gsub(/\[functions\.|\]/,"",fn)} /^verify_jwt[[:space:]]*=[[:space:]]*false/{if (fn==target) found=1} END{exit !found}' "$CONFIG_TOML"; then
+                  echo "::error::'${fn}' esta na PUBLIC_FNS (runtime publico) mas config.toml NAO declara verify_jwt=false para ela — alinhar o config.toml"
+                  TOML_DIVERGE=1
+                  FAILED=1
+                fi
+              done
+              if [ "$TOML_DIVERGE" -eq 0 ]; then
+                echo "OK: config.toml e PUBLIC_FNS em paridade bidirecional"
+              fi
+            fi
           fi
 
           # ================================================================

@@ -1309,30 +1309,44 @@ describe('Team Chat — RLS & Database Contract (migrations)', () => {
     expect(migrationsSql).toContain('EXISTS (SELECT 1 FROM zapp.team_conversation_members tcm');
   });
 
+  // Sincronizado no PR #1355: a migration 20260817260016 (PR #1328) retrabalhou
+  // as policies do team-chat e estes testes de contrato de ARQUIVO ficaram órfãos
+  // (mesma classe do orchestrator/#1351) — quebravam o quality-gate de qualquer
+  // branch. Asserções abaixo refletem o conteúdo real das migrations versionadas.
+
   it('team_messages INSERT requires an authenticated sender identity', () => {
-    expect(migrationsSql).toContain('team_messages_insert_v2');
-    expect(migrationsSql).toMatch(/sender_id = auth\.uid\(\)/);
-  });
-
-  it('GAP real: team_messages INSERT policy does NOT verify conversation membership server-side', () => {
-    // O WITH CHECK valida apenas a identidade do sender — sem join com memberships
-    const insertBlock = migrationsSql.match(/CREATE POLICY team_messages_insert_v2[\s\S]*?;\n/)?.[0] ?? '';
-    expect(insertBlock).toContain('sender_id');
-    expect(insertBlock).not.toContain('team_conversation_members');
-  });
-
-  it('team_messages UPDATE policy exists (own messages or admin)', () => {
-    expect(migrationsSql).toContain('CREATE POLICY team_messages_update ON zapp.team_messages FOR UPDATE');
-  });
-
-  it('team_messages DELETE policy exists (sender or admin)', () => {
-    expect(migrationsSql).toContain('CREATE POLICY team_messages_delete ON zapp.team_messages FOR DELETE');
+    // 20260817260016 dropou team_messages_insert_v2 (identidade apenas) e
+    // recriou como team_messages_insert com identidade via zapp.profiles.
+    expect(migrationsSql).toContain('CREATE POLICY team_messages_insert ON zapp.team_messages');
     expect(migrationsSql).toMatch(/sender_id = \(SELECT p\.id FROM zapp\.profiles p WHERE p\.user_id = auth\.uid\(\)\)/);
   });
 
-  it('GAP real: team_conversations has NO DELETE/UPDATE/INSERT policy (only SELECT)', () => {
+  it('gap FECHADO (20260817260016): team_messages INSERT verifica membership server-side', () => {
+    // Guard-rail da correção E11/fase-08: o WITH CHECK exige membership na
+    // conversa ALVO (conversation_id qualificado — sem a tautologia antiga
+    // tcm.conversation_id = tcm.conversation_id). Não reintroduzir INSERT sem join.
+    const insertBlock = migrationsSql.match(/CREATE POLICY team_messages_insert ON zapp\.team_messages[\s\S]*?;/)?.[0] ?? '';
+    expect(insertBlock).toContain('sender_id');
+    expect(insertBlock).toContain('team_conversation_members');
+    expect(insertBlock).toContain('tcm.conversation_id = team_messages.conversation_id');
+  });
+
+  it('team_messages UPDATE policy exists (own messages or admin)', () => {
+    expect(migrationsSql).toMatch(/CREATE POLICY team_messages_update ON zapp\.team_messages\s+FOR UPDATE/);
+  });
+
+  it('gap FECHADO: team_messages DELETE policy agora versionada (20260821003000)', () => {
+    // Drift arquivo↔DB (pg_policies, auditado 2026-08-21): team_messages_delete
+    // FOR DELETE existia no banco (squash de 133 migrations não a incorporou)
+    // mas não em nenhuma migration versionada — materializada em
+    // 20260821003000_materializa_policies_team_messages_dml.sql.
+    expect(migrationsSql).toMatch(/CREATE POLICY team_messages_delete ON zapp\.team_messages\s+FOR DELETE/);
+  });
+
+  it('gap parcialmente fechado (20260817260016): team_conversations tem DELETE admin-only; INSERT/UPDATE seguem sem policy', () => {
     expect(migrationsSql).toContain('CREATE POLICY team_conversations_select ON zapp.team_conversations FOR SELECT');
-    expect(migrationsSql).not.toMatch(/CREATE POLICY[^;]*team_conversations FOR (INSERT|UPDATE|DELETE)/);
+    expect(migrationsSql).toMatch(/CREATE POLICY team_conversations_delete ON zapp\.team_conversations\s+FOR DELETE/);
+    expect(migrationsSql).not.toMatch(/CREATE POLICY[^;]*team_conversations\s+FOR (INSERT|UPDATE)/);
   });
 
   it('GAP real: team_conversation_members has NO INSERT policy (default deny)', () => {
@@ -1340,9 +1354,14 @@ describe('Team Chat — RLS & Database Contract (migrations)', () => {
     expect(migrationsSql).not.toMatch(/CREATE POLICY[^;]*team_conversation_members FOR INSERT/);
   });
 
-  it('team-chat-files storage bucket is owner-restricted (gap FIXED)', () => {
+  it('gap FECHADO: policy auth_rw_teamfiles (bucket team-chat-files) restaurada do archive', () => {
+    // pg_policies (produção, auditado 2026-08-21): auth_rw_teamfiles (ALL) em
+    // storage.objects — arquivada por engano em docs/history/migrations-archive/
+    // (mesmo bug de janela de 20260807200000, ver header do arquivo restaurado);
+    // git mv de volta para supabase/migrations/ nesta sessão. Valida também o
+    // owner-path (storage.foldername(name))[1] = auth.uid()::text.
     expect(migrationsSql).toContain('CREATE POLICY auth_rw_teamfiles ON storage.objects');
-    expect(migrationsSql).toMatch(/storage\.foldername\(name\)\)\[1\] = auth\.uid\(\)::text/);
+    expect(migrationsSql).toContain("(storage.foldername(name))[1] = auth.uid()::text");
   });
 
   it('GAP real: no message content length limit at DB level', () => {

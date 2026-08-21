@@ -55,3 +55,44 @@ ao vivo nesta sessão** (não só por commit), com a evidência medida:
   pós-deploy vira defesa-em-profundidade + drift diário.
 - **Higiene de deploy:** `paths-ignore` (`**.md`, `docs/**`) no `on.push` — pushes
   docs-only (como este) não redeployam mais produção.
+
+---
+
+## Etapa 37 — Limpeza pg_temp (executada 2026-08-20)
+
+**Estado pré-limpeza:** 114 schemas `pg_temp_N` + 114 schemas `pg_toast_temp_N` = 228 namespaces
+órfãos em `pg_namespace`. Todos vazios (0 objetos em qualquer deles). Causa: sessões encerradas
+de forma não-limpa ao longo da história do banco (migrações, restarts, deploys). Não causavam erro
+ativado mas poluíam `pg_namespace` e o `\dn` do psql.
+
+**Procedimento executado:**
+```sql
+-- Loop com exception handler; dropou apenas schemas SEM objetos
+DO $$ ... DROP SCHEMA IF EXISTS pg_temp_N; ... $$
+-- Idêntico para pg_toast_temp_N
+```
+**Resultado:** 114 pg_temp + 114 pg_toast_temp = **228 schemas dropados, 0 skipped, 78 backends estáveis**.
+
+**Verificação pós:** pg_temp_remaining=0, pg_toast_temp_remaining=0, active_backends=78 (inalterado).
+
+---
+
+## Registro de infra — Stacks com `updatedAt=1970-01-01` (nunca gerenciados via API Portainer)
+
+Os stacks abaixo existem e estão `active` no Swarm, mas nunca receberam um `PUT /api/stacks/{id}`
+via Portainer (foram criados diretamente via CLI ou outro mecanismo). Isso significa que o stack-file
+no Portainer pode divergir do que realmente roda em caso de redeploy via API — usar sempre
+`portainer_get_stack_file(id)` para ler o estado real antes de qualquer update.
+
+| Stack ID | Nome | Observação |
+|---|---|---|
+| 207 | `disk-actioner` | Criado 2026-08-01, atualizado via CLI/restart direto. |
+| 223 | `disk-monitor` | Criado 2026-08-07, mesmo padrão. |
+| 245 | `scanopy-ops` | Criado 2026-08-13. Contém probe de saúde do Scanopy. |
+| 270 | `supabase-pgbackrest-backup` | Criado 2026-08-16. Backup pgBackRest do Supabase. |
+| 275 | `traefik` | Criado 2026-08-17. Stack principal do reverse-proxy. |
+| 278 | `guard-pin` | Criado 2026-08-18. Watchdog de pin de stack crítico. |
+
+**Risco:** se um agente ou operador chamar `portainer_update_stack(id, compose)` nesses stacks
+sem ler o compose atual primeiro, pode sobrescrever configs que foram aplicadas out-of-band.
+**Mitigação:** sempre `portainer_get_stack_file(id)` → review → update. Nunca update cego.

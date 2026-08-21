@@ -100,8 +100,44 @@ jobs:
         # errores de sintaxis — caso PR #1330: CREATE TABLE sin cuerpo, CI PASS 13s).
         # Valida el 100% sin ejecutar: sin falsos positivos por dependencias.
         run: |
-          pip install -q pglast 2>/dev/null || echo "pglast ya instalado"
-          python3 scripts/validate-migration-syntax.py --dir supabase/migrations
+          # Fix 2026-08-21 v2 (plano-100 etapa 67 — causa raiz PROVADA no run
+          # 32437853802): o Python do host do runner é 3.8; o pglast atual não
+          # tem wheel cp38 e o build da fonte exige setuptools==83 (inexistente
+          # para 3.8) — por isso o pip falhava SEMPRE e o job morria com exit 2
+          # antes de aplicar qualquer migration (0% de sucesso histórico).
+          # PyPI está acessível (o cython baixou). Solução determinística:
+          # validar num container python:3.12-slim — o job já depende de Docker
+          # (sobe o pg-smoke no step anterior).
+          # Semântica: erro de SINTAXE bloqueia (exit 1). Indisponibilidade de
+          # UM validador (container OU host) tenta o outro antes de desistir —
+          # mas se NENHUM dos dois conseguir rodar, o step falha (nao passa em
+          # silencio): um step marcado [BLOQUEANTE] que vira no-op quando a
+          # infra de validacao cai reabre exatamente o buraco que este gate
+          # existe para fechar (PR #1330, achado no review do PR #1354).
+          set -uo pipefail
+          rc=0
+          docker run --rm -v "$PWD:/repo" -w /repo python:3.12-slim \
+            sh -c 'pip install --quiet pglast || exit 3; python scripts/validate-migration-syntax.py --dir supabase/migrations' || rc=$?
+          if [ "$rc" = "0" ]; then
+            echo "Gate de sintaxe OK (container python:3.12)"
+            exit 0
+          fi
+          if [ "$rc" = "1" ]; then
+            echo "::error::Erro de sintaxe SQL detectado pelo gate (ver acima) — bloqueante"
+            exit 1
+          fi
+          echo "::warning::Validador no container indisponível (rc=${rc}) — fallback: Python do host"
+          rc=0
+          python3 scripts/validate-migration-syntax.py --dir supabase/migrations || rc=$?
+          if [ "$rc" = "1" ]; then
+            echo "::error::Erro de sintaxe SQL detectado pelo gate (host) — bloqueante"
+            exit 1
+          fi
+          if [ "$rc" != "0" ]; then
+            echo "::error::Nenhum validador de sintaxe SQL disponível (container e host $(python3 -V 2>&1)) — gate bloqueante não pode rodar, falhando por segurança"
+            exit "$rc"
+          fi
+          exit 0
 
       - name: Collect and apply migrations (delta - so as que mudaram)
         # OTIMIZACAO v2: copia/aplica SOMENTE as migrations do PR/push, nao todas as 400+.

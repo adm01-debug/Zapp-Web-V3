@@ -178,6 +178,9 @@ export function ConversationListSidebar({
     onSearchFocus,
     onNextConversation: handleNextConversation,
     onPrevConversation: handlePrevConversation,
+    // Com conversa aberta, o ChatPanel é o dono do Mod+E — sem isso os dois
+    // handlers disparam archive(selectedContactId) no mesmo keydown (mutation dupla).
+    enableArchive: !inbox.selectedContactId,
     onArchive: () => onArchive(),
     onTransfer,
     onRefresh,
@@ -348,9 +351,7 @@ export function ConversationListSidebar({
       <div className="shrink-0 border-b border-border/20 px-4 pb-2 pt-1">
         <Tabs
           value={filter}
-          onValueChange={(v) =>
-            setFilter(v as 'all' | 'open' | 'pending' | 'waiting' | 'archived')
-          }
+          onValueChange={(v) => setFilter(v as 'all' | 'open' | 'pending' | 'waiting' | 'archived')}
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-2 rounded-xl border-none bg-muted/30 p-1">

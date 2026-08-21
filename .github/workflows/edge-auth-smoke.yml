@@ -28,7 +28,12 @@ jobs:
     runs-on: [Linux, X64, vps-zapp]
     env:
       SUPABASE_URL: "${{ inputs.supabase_url || secrets.SUPABASE_URL || 'https://supabase.atomicabr.com.br' }}"
-      VERIFY_JWT_ENABLED: "${{ inputs.verify_jwt_enabled == true }}"
+      # Fix 2026-08-20 (plano-100 etapa 24): em `schedule`, `inputs` não existe e
+      # `inputs.verify_jwt_enabled == true` avaliava `false` — a rodada diária caía
+      # sempre no ramo permissivo (função protegida respondendo 200 sem JWT virava
+      # só ::warning::). Agora o modo enforcing é o default; só o dispatch manual
+      # pode relaxar explicitamente com verify_jwt_enabled=false.
+      VERIFY_JWT_ENABLED: "${{ github.event_name != 'workflow_dispatch' || inputs.verify_jwt_enabled == true }}"
     permissions:
       contents: read
     steps:

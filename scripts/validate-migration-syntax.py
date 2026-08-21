@@ -31,7 +31,13 @@ except ImportError:
     for cmd in (
         [sys.executable, "-m", "pip", "install", "--quiet", "--user", "pglast"],
         [sys.executable, "-m", "pip", "install", "--quiet", "pglast"],
+        # PEP 668 (Ubuntu 24 "externally-managed") — causa real da falha no
+        # runner vps-zapp (2026-08-21): sem esta flag, pip global e --user
+        # retornam erro e o gate morria com exit 2 antes do apply.
+        [sys.executable, "-m", "pip", "install", "--quiet", "--break-system-packages", "--user", "pglast"],
+        [sys.executable, "-m", "pip", "install", "--quiet", "--break-system-packages", "pglast"],
         ["pip3", "install", "--quiet", "--user", "pglast"],
+        ["pip3", "install", "--quiet", "--break-system-packages", "--user", "pglast"],
         ["pip", "install", "--quiet", "--user", "pglast"],
     ):
         try:

@@ -47,7 +47,7 @@ export function getDomain(url: string): string {
  * External favicons from other domains will fail CSP and trigger console violations.
  * The app falls back to a Globe icon via onError when favicon is empty or fails.
  *
- * @see vercel.json Content-Security-Policy img-src directive
+ * @see nginx.conf Content-Security-Policy img-src directive (vercel.json foi removido — Vercel aposentada)
  */
 const FAVICON_SAFE_DOMAINS = new Set([
   'supabase.atomicabr.com.br',

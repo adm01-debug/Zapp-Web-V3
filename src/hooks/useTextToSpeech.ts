@@ -45,6 +45,20 @@ export function useTextToSpeech(
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
+  // Etapa 33: re-sincroniza quando as preferências resolvem ASYNC — o
+  // useState acima congela o valor do 1º render; sem estes effects o seletor
+  // ficava preso no default quando settings chegavam depois do mount.
+  // setState com valor idêntico não re-renderiza; escolha manual posterior do
+  // usuário atualiza a própria setting via onVoiceChange/onSpeedChange, então
+  // não há sobrescrita da escolha nem loop.
+  const { initialVoiceId, initialSpeed } = options;
+  useEffect(() => {
+    if (initialVoiceId !== undefined) setVoiceIdState(initialVoiceId);
+  }, [initialVoiceId]);
+  useEffect(() => {
+    if (initialSpeed !== undefined) setSpeedState(initialSpeed);
+  }, [initialSpeed]);
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {

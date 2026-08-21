@@ -9,6 +9,14 @@
 Durante o **Plano de Limpeza de Migrations (2026-08-19)**, 281 arquivos antigos
 (versão entre `20260804000000` e `20260817000000` = BASELINE) foram **arquivados** aqui.
 
+> **Exceção (2026-08-21, plano-100):** `20260807200000_ag06_sto_team_chat_files_owner_check.sql`
+> foi **restaurado** para `supabase/migrations/` — o manifest marcava `in_snapshot=yes`, mas o
+> snapshot de rebuild não é lido por `team-chat-comprehensive.test.tsx` (quality-gate) nem pelo
+> apply-from-scratch do `migration-smoke-test`, ambos que só enxergam `supabase/migrations/*.sql`.
+> A policy `auth_rw_teamfiles` está confirmada ao vivo em produção (`pg_policies`); sua ausência
+> quebrava o teste sem risco algum em prod. Restam **280 arquivos** nesta pasta. Os demais 53
+> arquivos do bloco `20260807…` não foram reauditados nesta sessão.
+
 Motivo único: **o efeito de cada um já está consolidado** no snapshot de rebuild
 (`scripts/decouple/snapshots/zapp_schema_snapshot.sql`) e/ou no squash canônico
 (`supabase/migrations/20260804000000_canonical_schema_squash_133_migrations.sql`).
@@ -26,7 +34,7 @@ git log --all --oneline -- "docs/history/migrations-archive/<arquivo>"
 git show <sha>^:"supabase/migrations/<arquivo>"   # conteúdo original
 ```
 
-## Índice resumido (281 arquivos)
+## Índice resumido (280 arquivos — ver nota de restauração acima; tabela abaixo reflete a contagem original de 281, `20260807…` já descontado do restaurado)
 
 | Faixa | Tema dominante | Qtd |
 |---|---|---|

@@ -107,9 +107,20 @@ describe('Sprint 1 · HIGH-2 · prevent_role_escalation', () => {
 });
 
 describe('Sprint 1 · HIGH-3 · notify_sicoob_on_reply sem service_role_key na GUC', () => {
-  // Merge 2026-08-15: adotada a versão #1095 (função REAL evo.fn_notify_sicoob_on_reply,
-  // corrigida na Fase 2 — regex latestDefinition ampliado para evo.*). A abordagem
-  // anterior (canonicalDefinition da órfã zapp.*) ficou documentada acima.
+  // CORRIGIDO no merge com PR #1355 (2026-08-21): a sincronização daquele PR
+  // apontou este teste para zapp.notify_sicoob_on_reply (versionada no squash
+  // 20260804000000) alegando ser "a" definição real — mas checagem ao vivo
+  // (pg_trigger, produção) mostra que essa função tem ZERO triggers anexados
+  // (órfã) e AINDA carrega o próprio anti-padrão que este describe existe pra
+  // prevenir: service_role_key via current_setting('app.settings...', true).
+  // O trigger REAL (trg_sicoob_reply, tgenabled='O', 3x: evo.evolution_messages
+  // + partições evolution_messages_default/_wpp2) chama zapp.fn_notify_sicoob_on_reply
+  // — materializada em 20260821004000_materializa_fn_notify_sicoob_on_reply.sql
+  // após o mesmo bug de janela de arquivamento descrito lá (a versão em evo.*
+  // de docs/history/migrations-archive/20260815200008_decouple_i4_sicoob.sql
+  // nunca foi aplicada — produção ficou com a cópia zapp.*, sem GUC, via
+  // ops.fn_get_vault_secret). ARCHIVE_DIR acima (supabase/migrations/archive/)
+  // não existe neste repo — por isso a materialização via migration ativa.
   const sql = allMigrationsSql();
   const def = latestDefinition(sql, 'fn_notify_sicoob_on_reply');
 
@@ -124,6 +135,15 @@ describe('Sprint 1 · HIGH-3 · notify_sicoob_on_reply sem service_role_key na G
 
   it('tem EXCEPTION handler — nunca aborta o INSERT da mensagem', () => {
     expect(def).toMatch(/EXCEPTION\s+WHEN\s+OTHERS/);
+  });
+
+  it('NÃO usa service_role_key via GUC (current_setting) — segredo vem do vault', () => {
+    // O nome do describe promete isto desde a auditoria original; nenhuma
+    // asserção checava até agora (a versão órfã zapp.notify_sicoob_on_reply
+    // AINDA tem o anti-padrão — ver comentário acima). fn_notify_sicoob_on_reply
+    // (a que o trigger real chama) resolve o segredo via ops.fn_get_vault_secret.
+    expect(def).not.toMatch(/current_setting\(\s*'app\.settings\.service_role_key'/);
+    expect(def).toMatch(/fn_get_vault_secret/);
   });
 
   it('tem SECURITY DEFINER com SET search_path', () => {
