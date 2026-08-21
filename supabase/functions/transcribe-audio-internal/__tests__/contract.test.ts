@@ -88,3 +88,25 @@ Deno.test("Contract: transcribe-audio-internal v1 — audioUrl HTTPS público le
   });
   assertEquals(result.success, true);
 });
+
+// Hotfix (auditoria multi-agente 2026-08-21, Bloco 5.1): isSafeHttpsUrl só valida
+// a URL DECLARADA no payload — sem redirect:'error' no fetch, um 302 do host de
+// destino pra 169.254.169.254/127.0.0.1/RFC-1918 era seguido automaticamente
+// (default 'follow' do fetch), contornando o guard SSRF por completo. Reproduzido
+// ao vivo pela auditoria com um servidor local respondendo 302 → fetch idêntico ao
+// do handler vazou o corpo do endpoint "interno". Os outros 6 fetches
+// SSRF-guardados do repo (ai-router, batch-fetch-avatars, fetch-whatsapp-avatar,
+// voice-changer, _shared/evolution-media.ts, _shared/evolution-webhook-messages.ts)
+// já usam redirect:'error' — este era o único que faltava. Como não há teste de
+// handler-mock para esta função (index.ts chama ElevenLabs/Storage reais), o guard
+// de regressão é a âncora de fonte abaixo.
+Deno.test("SEC-2 hotfix: fetch(audioUrl) fixa redirect:'error' (bloqueia bypass SSRF via 302)", async () => {
+  const source = await Deno.readTextFile(new URL("../index.ts", import.meta.url));
+  const fetchCall = source.slice(source.indexOf("audioRes = await fetch(audioUrl"));
+  if (!fetchCall.slice(0, 200).includes("redirect: 'error'")) {
+    throw new Error(
+      "fetch(audioUrl) em transcribe-audio-internal/index.ts perdeu o redirect:'error' — " +
+      "reabre o bypass SSRF via 302 documentado na auditoria de 2026-08-21 (Bloco 5.1).",
+    );
+  }
+});

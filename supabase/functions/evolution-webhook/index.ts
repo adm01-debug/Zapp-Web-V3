@@ -278,9 +278,11 @@ Deno.serve(async (req) => {
       latencyMs: Date.now() - startedAt,
     });
     console.warn(`[webhook][${requestId}] instance=${instance} is paused — skipping event ${event}`);
+    // Hotfix (auditoria 2026-08-21, Bloco 5.1): faltava ...contractResponseHeaders
+    // — único branch pós-gate do arquivo que montava headers sem ele.
     return new Response(
       JSON.stringify({ error: 'instance_paused', instance, requestId }),
-      { status: 503, headers: { ...corsHeaders, 'Retry-After': '60' } },
+      { status: 503, headers: { ...corsHeaders, ...contractResponseHeaders, 'Retry-After': '60' } },
     );
   }
 
@@ -379,9 +381,11 @@ Deno.serve(async (req) => {
     } else {
       console.warn(`[webhook][${requestId}] rate limit exceeded for ${instance}:${event} (${rateLimit.currentCount}/${rateLimit.limit}) — idempotency rolled back, retry after ${retryAfterSeconds}s`);
     }
+    // Hotfix (auditoria 2026-08-21, Bloco 5.1): faltava ...contractResponseHeaders
+    // — mesma omissao do branch instance_paused acima.
     return new Response(
       JSON.stringify({ error: 'rate_limit_exceeded', instance, requestId }),
-      { status: 429, headers: { ...corsHeaders, 'Retry-After': String(retryAfterSeconds) } }
+      { status: 429, headers: { ...corsHeaders, ...contractResponseHeaders, 'Retry-After': String(retryAfterSeconds) } }
     );
   }
 

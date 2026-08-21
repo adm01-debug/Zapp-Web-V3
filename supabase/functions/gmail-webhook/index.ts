@@ -71,7 +71,14 @@ Deno.serve(async (req) => {
       // ── registerWatch — registra Pub/Sub watch para uma conta ─────
       if (action === 'registerWatch') {
         const authed = await requireUser(req);
-        if (authed instanceof Response) return authed;
+        if (authed instanceof Response) {
+          // Hotfix (auditoria 2026-08-21, Bloco 5.1): requireUser() devolve um
+          // Response cru (errorResponse), que não carrega contractResponseHeaders
+          // — reconstrói via json() pra não perder x-contract-version/deprecated/
+          // sunset justo no erro de auth, onde o cliente mais precisaria vê-los.
+          const errBody = await authed.json().catch(() => ({ error: 'Unauthorized' }));
+          return json(errBody, authed.status);
+        }
 
         const { accountId } = body;
         const accountIdStr = typeof accountId === 'string' ? accountId : '';
