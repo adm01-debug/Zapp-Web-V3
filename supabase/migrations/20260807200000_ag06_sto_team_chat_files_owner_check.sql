@@ -11,6 +11,11 @@
 -- quebrando `team-chat-comprehensive.test.tsx` (quality-gate) e a reprodutibilidade em
 -- banco limpo. Demais arquivos pós-squash arquivados na mesma limpeza não foram
 -- auditados aqui — este é o único caso confirmado como bloqueante nesta sessão.
+--
+-- ROLLBACK: não recomendado — dropar sem recriar deixaria storage.objects do
+-- bucket team-chat-files (privado) sem policy de owner-check para authenticated,
+-- ou caindo na policy legada que este arquivo substitui (não capturada em
+-- nenhuma migration ativa; ver histórico git deste arquivo antes de reverter).
 DROP POLICY IF EXISTS auth_rw_teamfiles ON storage.objects;
 CREATE POLICY auth_rw_teamfiles ON storage.objects FOR ALL TO authenticated
   USING (bucket_id = 'team-chat-files' AND (storage.foldername(name))[1] = auth.uid()::text)

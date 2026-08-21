@@ -22,9 +22,9 @@
 | N/A (deixou de existir o alvo) | **1** |
 | ❌ Não implementado e sem ação | **0** |
 
-**Resultado: 63/100 etapas concluídas, 21 concluídas com ressalvas documentadas,
-16 com pendência objetiva (dono/janela definidos abaixo). Nenhuma etapa ficou
-sem tratamento.**
+**Resultado: 62/100 etapas concluídas (+ 1 N/A, alvo deixou de existir), 21
+concluídas com ressalvas documentadas, 16 com pendência objetiva (dono/janela
+definidos abaixo). Nenhuma etapa ficou sem tratamento.**
 
 ### 🔴 Achados NOVOS desta validação (fora do plano original)
 
@@ -59,7 +59,7 @@ sem tratamento.**
 | 1 | ✅ | Resolvido por caminho superior: **Vercel aposentada** — team `juca1` sem NENHUM projeto zapp (API Vercel, 2026-08-20). Bundle servido (VPS) contém só anon válida. |
 | 2 | N/A | Não há mais env na Vercel para localizar — projeto não existe. |
 | 3 | ✅ | Rotação do JWT secret invalida qualquer service_role antiga por assinatura; bundle dos 3 hosts baixado nesta sessão: **1 único JWT, `role=anon`**; `bundle-secret-guard` + gate pré-PUT barram regressão. |
-| 4 | ✅ | **Prova criptográfica nesta sessão**: anon do bundle NÃO verifica contra o secret demo (`super-secret…`) — HMAC-SHA256 recalculado ≠ assinatura. Secret ativo: 40c próprio (`d139ca…`, `/run/secrets/supabase_jwt_secret_v1`; reconciliação 2026-08-20). |
+| 4 | ✅ | **Prova criptográfica nesta sessão**: anon do bundle NÃO verifica contra o secret demo público do Supabase (`super-secret-jwt-token-with-at-least-32-characters-long`) — HMAC-SHA256 recalculado ≠ assinatura. Secret ativo: próprio, 40 caracteres, em `/run/secrets/supabase_jwt_secret_v1` (reconciliação 2026-08-20). |
 | 5 | ✅ | anon v2 + service v3 assinadas pelo novo secret e propagadas (secrets Swarm `supabase_anon_key_v2`/`supabase_service_key_v3`; PID1 do edge-runtime conferido). |
 | 6 | ✅ | Secret GitHub corrigido (incidente 2026-08-20) + blindagem tripla: preflight `check-deploy-secrets.mjs` (valida no Kong), gate pré-PUT, guard pós-deploy diário. ▶️ guard migrado de `ubuntu-latest` p/ runner `vps-zapp` (não fica preso em fila). |
 | 7 | ✅ | `vault.supabase_service_role_key` atualizado 2026-08-10 (pós-rotação). |

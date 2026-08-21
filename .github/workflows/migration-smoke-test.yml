@@ -108,9 +108,12 @@ jobs:
           # PyPI está acessível (o cython baixou). Solução determinística:
           # validar num container python:3.12-slim — o job já depende de Docker
           # (sobe o pg-smoke no step anterior).
-          # Semântica: erro de SINTAXE bloqueia (exit 1); indisponibilidade da
-          # infra de validação vira warning e segue para o apply (que exercita
-          # as migrations de verdade) — o gate bloqueia bugs, não a si mesmo.
+          # Semântica: erro de SINTAXE bloqueia (exit 1). Indisponibilidade de
+          # UM validador (container OU host) tenta o outro antes de desistir —
+          # mas se NENHUM dos dois conseguir rodar, o step falha (nao passa em
+          # silencio): um step marcado [BLOQUEANTE] que vira no-op quando a
+          # infra de validacao cai reabre exatamente o buraco que este gate
+          # existe para fechar (PR #1330, achado no review do PR #1354).
           set -uo pipefail
           rc=0
           docker run --rm -v "$PWD:/repo" -w /repo python:3.12-slim \
@@ -131,7 +134,8 @@ jobs:
             exit 1
           fi
           if [ "$rc" != "0" ]; then
-            echo "::warning::pglast indisponível no host ($(python3 -V 2>&1)) — gate de sintaxe PULADO nesta run; o apply abaixo ainda exercita as migrations do PR"
+            echo "::error::Nenhum validador de sintaxe SQL disponível (container e host $(python3 -V 2>&1)) — gate bloqueante não pode rodar, falhando por segurança"
+            exit "$rc"
           fi
           exit 0
 

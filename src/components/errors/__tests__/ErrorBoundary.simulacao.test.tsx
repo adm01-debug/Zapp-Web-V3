@@ -287,4 +287,18 @@ describe('App.tsx — verificação estática (sem renderizar)', () => {
 // para o VPS; Traefik router `zappweb-www` inline no stack 157) e o vercel.json
 // saiu do repo — o readFileSync na raiz derrubava a suíte inteira (ENOENT).
 // O rewrite SPA e o Cache-Control de /assets agora são responsabilidade do
-// Traefik/host no VPS, fora deste repositório.
+// Traefik/host no VPS — o gate equivalente abaixo (nginx.conf, adicionado no
+// review do PR #1354) fecha a lacuna: sem ele, uma regressão nesses dois
+// comportamentos de deploy passaria pelo CI sem detecção.
+describe('nginx.conf — verificação estática (sem renderizar)', () => {
+  const NGINX_SOURCE = readFileSync(resolve(process.cwd(), 'nginx.conf'), 'utf8');
+
+  it('faz fallback SPA via try_files para /index.html', () => {
+    expect(NGINX_SOURCE).toMatch(/try_files\s+\$uri\s+\$uri\/\s+\/index\.html/);
+  });
+
+  it('serve /assets/ com Cache-Control public, immutable', () => {
+    const assetsBlock = NGINX_SOURCE.match(/location\s+\/assets\/\s*\{[\s\S]*?\}/)?.[0] ?? '';
+    expect(assetsBlock).toContain('Cache-Control "public, immutable"');
+  });
+});

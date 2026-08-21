@@ -157,7 +157,7 @@ Verificar se ha trigger SQL, chamada externa ou se o agendamento foi perdido.
 
 ## A — Chamada pelo front
 
-<details><summary>72 funcoes</summary>
+<details><summary>73 funcoes</summary>
 
 - `ai-churn-analysis`
 - `ai-classify-tickets`

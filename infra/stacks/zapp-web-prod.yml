@@ -33,10 +33,18 @@ services:
       start_period: 30s
     security_opt:
       - no-new-privileges:true
-    # cap_drop: ALL removido 2026-08-20 (plano-100 etapa 65): a imagem nginx roda o
-    # master como root e faz bind na porta 80 — sem CAP_NET_BIND_SERVICE o container
-    # não sobe. O compose inline de produção nunca teve cap_drop; manter aqui tornava
-    # este arquivo inutilizável para um redeploy real.
+    # cap_drop: ALL sozinho quebra o boot (2026-08-20, etapa 65): a imagem nginx
+    # roda o master como root e faz bind na porta 80 — sem CAP_NET_BIND_SERVICE
+    # o container não sobe. Corrigido (review CodeRabbit, PR #1354): manter
+    # cap_drop: ALL e devolver só a capability necessária via cap_add, em vez
+    # de remover o drop inteiro (que restauraria capabilities padrão
+    # desnecessárias, ex. NET_RAW). O compose inline de produção (Portainer)
+    # ainda não tem esse hardening — este arquivo fica mais restritivo que o
+    # deploy atual até um redeploy a partir dele.
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
     deploy:
       mode: replicated
       replicas: 1

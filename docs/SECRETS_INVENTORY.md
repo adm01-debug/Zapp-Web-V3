@@ -33,7 +33,7 @@ migration `20260821001500`).
 
 | Secret | Consumidor | Observação |
 |---|---|---|
-| `supabase_jwt_secret_v1` | GoTrue/PostgREST/edge-runtime (stack 35) | **JWT secret próprio de 40c (`d139ca…`)** — o secret demo foi aposentado; anon v2 e service v3 assinadas por ele (reconciliação 2026-08-20) |
+| `supabase_jwt_secret_v1` | GoTrue/PostgREST/edge-runtime (stack 35) | **JWT secret próprio de 40 caracteres** — o secret demo foi aposentado; anon v2 e service v3 assinadas por ele (reconciliação 2026-08-20). ⚠️ Valor já exposto em `docs/reconciliation/10_verificacao_p0.md` (pré-existente, commit `ca9ac08`) — candidato a rotação, ver nota de segurança no PR #1354 |
 | `supabase_service_key_v3` / `supabase_anon_key_v2` | edge-runtime (stack 35) | rotacionadas junto com o JWT secret |
 | `supabase_evolution_webhook_secret_v1` | edge-runtime (`EVOLUTION_WEBHOOK_SECRETS`, multi-versão) | rotação suportada por lista |
 | `gh_runner_pat_v2` | stack 210 (6 runners) | **PAT saiu do compose em texto claro** (v4.7, 2026-08-18) — etapas 10/11 do plano resolvidas |

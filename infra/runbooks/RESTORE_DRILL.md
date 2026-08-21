@@ -43,16 +43,26 @@ grep -n -i 'r2\|offsite\|error' /backups/backup_v4.log | tail -30
 sh /infra/backup/backup_v4.sh --offsite-only --dry-run   # ver flags reais no script
 ```
 
-Causas prováveis (ordem de verificação):
-1. **Credencial R2 rotacionada** — o stack 261 `r2-rotation` roda desde 2026-08-13;
-   se rotacionou `r2_backup_*` sem atualizar o consumo do stack 124, o upload
-   passa a falhar com 403 (timeline compatível com a falha em 08-10/08-13).
-2. Bucket/endpoint alterado.
-3. Falha de rede pontual sem retry — o script marca `OFFSITE_FAILED` e não
+Causas prováveis (ordem de verificação) — **a falha começou em 2026-08-10, o
+stack 261 `r2-rotation` só existe desde 2026-08-13: a rotação NÃO explica a
+falha original, só uma continuação/agravamento a partir de 08-13.** Investigar
+os dois períodos separadamente, com logs de cada um:
+1. **Período 08-10 → 08-13 (pré-rotação, causa ainda desconhecida)** — checar
+   `backup_v4.log` desse intervalo especificamente; credencial R2 rotacionada
+   não é hipótese válida aqui.
+2. **Período pós-08-13 (rotação como hipótese)** — se a falha persistiu depois
+   do stack 261 subir: credencial R2 rotacionada — se rotacionou `r2_backup_*`
+   sem atualizar o consumo do stack 124, o upload passa a falhar com 403.
+3. Bucket/endpoint alterado.
+4. Falha de rede pontual sem retry — o script marca `OFFSITE_FAILED` e não
    reenvia (backfill manual necessário após o conserto).
 
 Após religar: **backfill** dos dumps locais mais recentes para
-`backups/supabase-db/daily/` e remover o marcador.
+`backups/supabase-db/daily/`. Só remover o marcador `OFFSITE_FAILED_*` depois
+de (a) confirmar que o upload terminou sem erro, (b) conferir o checksum do
+objeto no R2 contra o dump local, e (c) validar que o objeto está presente e
+legível no bucket. Se qualquer uma dessas checagens falhar, mantenha o
+marcador — removê-lo cedo demais esconde o incidente em vez de fechá-lo.
 
 ## 3) Procedimento de drill completo (repetir trimestralmente)
 

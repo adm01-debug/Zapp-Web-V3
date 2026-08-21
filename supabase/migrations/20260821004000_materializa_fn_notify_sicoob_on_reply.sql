@@ -27,6 +27,23 @@
 --   (não recomendado — é o trigger que despacha as respostas ao Sicoob Bridge;
 --    dropar sem remover o trigger correspondente em zapp.messages quebra o
 --    INSERT de mensagens, já que a função também está referenciada por trigger).
+--
+-- ACHADO (review CodeRabbit, PR #1354, não corrigido aqui de propósito):
+-- a chamada net.http_post abaixo manda só Content-Type — sem Authorization.
+-- supabase/functions/sicoob-bridge-reply/index.ts exige OU um JWT de usuário
+-- OU um bearer que bata com SUPABASE_SERVICE_ROLE_KEY (modo "internal caller
+-- — Postgres trigger", comentário no próprio handler). Sem esse header, TODA
+-- chamada desta trigger recebe 401 do handler — engolido pelo EXCEPTION WHEN
+-- OTHERS silencioso logo abaixo, então o INSERT de mensagem nunca falha e
+-- ninguém percebe. Ou seja: como está, esta integração (notificar Sicoob
+-- Gifts quando o agente responde) está provavelmente NO-OP em produção desde
+-- que este padrão de auth foi introduzido no handler. `vault.secrets` tem
+-- `supabase_service_role_key` (confirmado ao vivo) — candidato óbvio pra
+-- `Authorization: Bearer <valor>` no header do PERFORM. NÃO apliquei esse
+-- fix aqui: essa migration materializa o texto EXATO do catálogo vivo (o
+-- objetivo é fechar o drift arquivo↔DB, não mudar comportamento de uma
+-- integração de cliente real sem sign-off do dono). Documentado como achado
+-- separado no corpo do PR — decisão de correção fica para o dono.
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION zapp.fn_notify_sicoob_on_reply()
@@ -50,3 +67,12 @@ BEGIN
   END;
   RETURN NEW;
 END $function$;
+
+-- Hardening (review CodeRabbit, PR #1354): função nova ganha EXECUTE p/ PUBLIC
+-- por padrão; CREATE OR REPLACE preserva grants explícitos já existentes (ao
+-- vivo: authenticated também tem EXECUTE — confirmado via pg_proc.proacl,
+-- 2026-08-21). Na prática authenticated executar isto diretamente é inócuo —
+-- Postgres recusa invocar função RETURNS trigger fora de contexto de trigger
+-- — mas é SECURITY DEFINER + acessa vault + abre conexão de rede, então
+-- reduzir a superfície é a postura certa mesmo sem exploit conhecido.
+REVOKE ALL ON FUNCTION zapp.fn_notify_sicoob_on_reply() FROM PUBLIC, anon, authenticated;

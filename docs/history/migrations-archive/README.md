@@ -34,7 +34,7 @@ git log --all --oneline -- "docs/history/migrations-archive/<arquivo>"
 git show <sha>^:"supabase/migrations/<arquivo>"   # conteúdo original
 ```
 
-## Índice resumido (281 arquivos)
+## Índice resumido (280 arquivos — ver nota de restauração acima; tabela abaixo reflete a contagem original de 281, `20260807…` já descontado do restaurado)
 
 | Faixa | Tema dominante | Qtd |
 |---|---|---|

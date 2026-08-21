@@ -422,22 +422,20 @@ jobs:
             IMG=$(docker service inspect "$SVC" --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' 2>/dev/null || echo "?")
             echo "estado=${STATUS} replicas=${REPL:-?} image=${IMG}"
             case "$STATUS" in
-              completed|none) break ;;
               rollback_completed|rollback_paused|paused)
                 echo "::error::CONVERGENCE_FAIL — UpdateStatus=${STATUS} (Swarm reverteu/pausou o rollout; a imagem nova NÃO está servindo)"; exit 1 ;;
             esac
+            REPL_OK=$(echo "${REPL:-0/1}" | awk -F/ '{print ($1==$2 && $2!="0") ? "1" : "0"}')
+            if { [ "$STATUS" = "completed" ] || [ "$STATUS" = "none" ]; } \
+              && echo "$IMG" | grep -Fq -- "$EXPECTED_SHA" \
+              && [ "$REPL_OK" = "1" ]; then
+              break
+            fi
             if [ "$SECONDS" -ge "$DEADLINE" ]; then
-              echo "::error::CONVERGENCE_TIMEOUT — rollout não convergiu em 300s (estado=${STATUS})"; exit 1
+              echo "::error::CONVERGENCE_TIMEOUT — rollout não convergiu em 300s (estado=${STATUS} image=${IMG} replicas=${REPL})"; exit 1
             fi
             sleep 15
           done
-          if ! echo "$IMG" | grep -q "$EXPECTED_SHA"; then
-            echo "::error::CONVERGENCE_FAIL — serviço aponta ${IMG}, esperado *:${EXPECTED_SHA}"; exit 1
-          fi
-          REPL_OK=$(echo "${REPL:-0/1}" | awk -F/ '{print ($1==$2 && $2!="0") ? "1" : "0"}')
-          if [ "$REPL_OK" != "1" ]; then
-            echo "::error::CONVERGENCE_FAIL — replicas ${REPL} (esperado N/N)"; exit 1
-          fi
           echo "✅ Convergência verificada: ${SVC} @ ${IMG} (replicas ${REPL})"
 
       - name: 🧹 Prune dangling images pós-deploy (manutenção disco VPS)
