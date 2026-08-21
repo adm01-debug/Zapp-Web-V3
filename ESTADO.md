@@ -82,14 +82,17 @@ Proxima medicao planejada: T1 (apos E24 — Phase 1 completa)
 
 | Grupo | Qtd | Acao |
 |---|---|---|
-| A — chamada pelo front | 72 | manter |
+| A — chamada pelo front | 73 | manter |
 | B — chamada por outra edge fn | 3 | manter |
 | C — chamada por cron ativo | 0 | manter |
 | D — infra/chamador externo por design | 10 | manter |
 | E — VERIFICAR antes de decidir | 4 | investigar |
-| F — SEM CHAMADOR identificado | 18 | candidata a arquivar |
+| F — SEM CHAMADOR identificado | 17 | candidata a arquivar |
 
-**22 de 107 funcoes sem chamador confirmado.**
+**21 de 107 funcoes sem chamador confirmado.**
+> 2026-08-20 (plano-100 etapa 91): `client-observability` movida de F para A — chamador
+> declarado: `src/lib/webVitals.ts` (web-vitals), ligado em prod via build-arg
+> `VITE_ENABLE_CLIENT_OBSERVABILITY=true` no `deploy-vps.yml`.
 
 ---
 
@@ -103,7 +106,6 @@ Decisao de arquivar e do responsavel — esta lista e diagnostico, nao sentenca.
 | `ai-auto-tag` | 0 | 0 |
 | `auto-close-conversations` | 0 | 0 |
 | `cleanup-rate-limit-logs` | 0 | 0 |
-| `client-observability` | 0 | 0 |
 | `contact-media` | 0 | 0 |
 | `db-health-monitor` | 0 | 0 |
 | `email-health` | 0 | 1 |
@@ -155,7 +157,7 @@ Verificar se ha trigger SQL, chamada externa ou se o agendamento foi perdido.
 
 ## A — Chamada pelo front
 
-<details><summary>72 funcoes</summary>
+<details><summary>73 funcoes</summary>
 
 - `ai-churn-analysis`
 - `ai-classify-tickets`
@@ -173,6 +175,7 @@ Verificar se ha trigger SQL, chamada externa ou se o agendamento foi perdido.
 - `chatbot-l1`
 - `classify-audio-meme`
 - `classify-sticker`
+- `client-observability`
 - `connection-health-check`
 - `connection-test`
 - `contacts-import`
@@ -608,4 +611,4 @@ Validação pendente (pós-merge, exige produção):
 - **Reforçado 2026-08-20 (commit 3fcc3223):** também valida que a anon key embutida é **ACEITA pelo Kong** — falha em 401 (`ANON_KEY_REJECTED`).
 - **Motivo:** incidente 2026-08-20 — bundle embutia anon key de outro ambiente; `role` era `anon`, então o check antigo (só role) passou cego. Ver `CLAUDE.md › Incidentes fechados`.
 
-Estado dos 3 hosts após o fix: **200**, servidos pela VPS (Traefik stack 157), key `== Kong`. `www.zappweb.app.br` **fora da Vercel** (DNS `209.142.67.51`). Guard verificado verde no run 32422659816.
+Estado dos 3 hosts após o fix: **200**, servidos pela VPS (Traefik stack 157), key `== Kong`. `www.zappweb.app.br` **fora da Vercel** (DNS `<IP-VPS>`). Guard verificado verde no run 32422659816.

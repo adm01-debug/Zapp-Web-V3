@@ -21,6 +21,6 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Run ownership gate
         run: node --experimental-vm-modules scripts/decouple/ownership-gate.mjs --ci

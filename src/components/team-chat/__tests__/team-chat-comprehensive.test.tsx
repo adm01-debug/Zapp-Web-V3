@@ -1335,12 +1335,12 @@ describe('Team Chat — RLS & Database Contract (migrations)', () => {
     expect(migrationsSql).toMatch(/CREATE POLICY team_messages_update ON zapp\.team_messages\s+FOR UPDATE/);
   });
 
-  it('DRIFT arquivo↔DB: team_messages DELETE policy existe apenas no banco vivo', () => {
-    // pg_policies (produção, auditado 2026-08-21): team_messages_delete FOR DELETE
-    // EXISTE no banco, mas o CREATE não está em nenhuma migration versionada
-    // (o squash de 133 migrations não a incorporou). Quando a policy for
-    // versionada, inverter esta asserção para toContain.
-    expect(migrationsSql).not.toContain('CREATE POLICY team_messages_delete');
+  it('gap FECHADO: team_messages DELETE policy agora versionada (20260821003000)', () => {
+    // Drift arquivo↔DB (pg_policies, auditado 2026-08-21): team_messages_delete
+    // FOR DELETE existia no banco (squash de 133 migrations não a incorporou)
+    // mas não em nenhuma migration versionada — materializada em
+    // 20260821003000_materializa_policies_team_messages_dml.sql.
+    expect(migrationsSql).toMatch(/CREATE POLICY team_messages_delete ON zapp\.team_messages\s+FOR DELETE/);
   });
 
   it('gap parcialmente fechado (20260817260016): team_conversations tem DELETE admin-only; INSERT/UPDATE seguem sem policy', () => {
@@ -1354,12 +1354,14 @@ describe('Team Chat — RLS & Database Contract (migrations)', () => {
     expect(migrationsSql).not.toMatch(/CREATE POLICY[^;]*team_conversation_members FOR INSERT/);
   });
 
-  it('DRIFT arquivo↔DB: policy auth_rw_teamfiles (bucket team-chat-files) existe apenas no banco vivo', () => {
+  it('gap FECHADO: policy auth_rw_teamfiles (bucket team-chat-files) restaurada do archive', () => {
     // pg_policies (produção, auditado 2026-08-21): auth_rw_teamfiles (ALL) em
-    // storage.objects EXISTE no banco, mas o CREATE não está em nenhuma migration
-    // versionada. Quando for versionada, inverter para toContain e validar o
+    // storage.objects — arquivada por engano em docs/history/migrations-archive/
+    // (mesmo bug de janela de 20260807200000, ver header do arquivo restaurado);
+    // git mv de volta para supabase/migrations/ nesta sessão. Valida também o
     // owner-path (storage.foldername(name))[1] = auth.uid()::text.
-    expect(migrationsSql).not.toContain('CREATE POLICY auth_rw_teamfiles');
+    expect(migrationsSql).toContain('CREATE POLICY auth_rw_teamfiles ON storage.objects');
+    expect(migrationsSql).toContain("(storage.foldername(name))[1] = auth.uid()::text");
   });
 
   it('GAP real: no message content length limit at DB level', () => {

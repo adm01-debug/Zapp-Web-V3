@@ -131,6 +131,7 @@ jobs:
             VITE_GIT_SHA=${{ github.sha }}
             VITE_SENTRY_ENVIRONMENT=production
             VITE_APP_ENV=production
+            VITE_ENABLE_CLIENT_OBSERVABILITY=true
 
       - name: 📋 Ler tags de rollback protegidas (infra/ghcr-protected-tags.txt)
         id: protect
@@ -167,11 +168,12 @@ jobs:
       # ETAPA 34 — Faxina Portainer (2026-08-05): retenção GHCR
       # Cada deploy cria ~3 versões (1 index tagado production-<sha> +
       # manifest amd64 + attestation-manifest, ambos untagged, pois o
-      # buildx gera provenance por padrão). min-versions-to-keep=9
-      # = 3 deploys ÍNTEGROS (múltiplo de 3: o corte por recência cai
-      # ENTRE builds, nunca no meio — com 8, o 3º deploy ficava com
+      # buildx gera provenance por padrão). min-versions-to-keep=30
+      # = 10 deploys ÍNTEGROS (múltiplo de 3: o corte por recência cai
+      # ENTRE builds, nunca no meio — um valor não-múltiplo deixaria um
       # index mantido + amd64 deletado → pull com 'manifest unknown').
-      # O rollback (penúltimo deploy) ocupa as posições 4–6 das 9.
+      # 2026-08-20 (plano-100 etapa 71): comentários alinhados ao valor
+      # efetivo (30) — antes o código dizia 30 e a documentação dizia 9.
       # ⚠️ NÃO usar delete-only-untagged-versions aqui: apagaria os
       # manifests-filho (imagem/attestation) e o pull da tag falharia
       # com 'manifest unknown' (P0 confirmado via OCI index).
@@ -179,16 +181,16 @@ jobs:
       # continue-on-error: retenção nunca pode BLOQUEAR o deploy; falha
       # é sinalizada pelo step de alerta abaixo (sentinel greppável).
       # ============================================================
-      - name: 🧹 GHCR retention (keep 9 versions — 3 deploys íntegros)
+      - name: 🧹 GHCR retention (keep 30 versions — 10 deploys íntegros)
         id: retention
         continue-on-error: true
         uses: actions/delete-package-versions@v5
         with:
           package-name: zapp-web-v3/zapp-web
           package-type: container
-          # 3 versões/deploy (index + amd64 + attestation). 9 = 3 deploys completos:
+          # 3 versões/deploy (index + amd64 + attestation). 30 = 10 deploys completos:
           # o corte de recência cai ENTRE builds, nunca no meio (evita index
-          # mantido com filho deletado → manifest unknown). 8 cortava o 3º deploy.
+          # mantido com filho deletado → manifest unknown). Sempre múltiplo de 3.
           min-versions-to-keep: 30
           # Proteger rollbacks históricos — lidos de infra/ghcr-protected-tags.txt.
           # NÃO usar delete-only-untagged-versions (apagaria manifests-filho → pull falha).
@@ -307,6 +309,8 @@ jobs:
                 timeout: 5s
                 retries: 3
                 start_period: 30s
+              security_opt:
+                - no-new-privileges:true
               deploy:
                 mode: replicated
                 replicas: 1
@@ -391,6 +395,48 @@ jobs:
           echo "Health /auth: ${HC}"
           case "${HC}" in 200|301|302) echo "App OK" ;; *) echo "::warning::POST_DEPLOY_HC=${HC} — verificar serviço manualmente"; esac
 
+      # ============================================================
+      # Convergência verificada (plano-100 etapa 66, portada do draft
+      # deploy-vps-selfhosted.yml em 2026-08-20): o PUT no Portainer
+      # retorna 200 ANTES do rollout terminar. Sem esta verificação, um
+      # deploy que não converge (rollback silencioso do Swarm, replica
+      # 0/1, imagem antiga mantida) passava verde — e o post-deploy-health
+      # não detecta, porque com order:start-first o container antigo
+      # continua respondendo nas URLs públicas.
+      # Escape hatch: repo variable ENFORCE_CONVERGENCE=0 desativa o gate
+      # sem commit, caso um falso positivo bloqueie deploys.
+      # ============================================================
+      - name: ✅ Convergência verificada (Swarm × imagem do deploy)
+        if: ${{ vars.ENFORCE_CONVERGENCE != '0' }}
+        env:
+          EXPECTED_IMAGE: ${{ needs.build-and-push.outputs.image }}
+        run: |
+          set -euo pipefail
+          SVC="zapp-web-prod_web"
+          EXPECTED_SHA="${EXPECTED_IMAGE##*:}"
+          DEADLINE=$((SECONDS + 300))
+          IMG="?"; REPL="0/1"
+          while :; do
+            STATUS=$(docker service inspect "$SVC" --format '{{if .UpdateStatus}}{{.UpdateStatus.State}}{{else}}none{{end}}' 2>/dev/null || echo "inspect_fail")
+            REPL=$(docker service ls --filter "name=${SVC}" --format '{{.Replicas}}' | head -1)
+            IMG=$(docker service inspect "$SVC" --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' 2>/dev/null || echo "?")
+            echo "estado=${STATUS} replicas=${REPL:-?} image=${IMG}"
+            case "$STATUS" in
+              rollback_completed|rollback_paused|paused)
+                echo "::error::CONVERGENCE_FAIL — UpdateStatus=${STATUS} (Swarm reverteu/pausou o rollout; a imagem nova NÃO está servindo)"; exit 1 ;;
+            esac
+            REPL_OK=$(echo "${REPL:-0/1}" | awk -F/ '{print ($1==$2 && $2!="0") ? "1" : "0"}')
+            if { [ "$STATUS" = "completed" ] || [ "$STATUS" = "none" ]; } \
+              && echo "$IMG" | grep -Fq -- "$EXPECTED_SHA" \
+              && [ "$REPL_OK" = "1" ]; then
+              break
+            fi
+            if [ "$SECONDS" -ge "$DEADLINE" ]; then
+              echo "::error::CONVERGENCE_TIMEOUT — rollout não convergiu em 300s (estado=${STATUS} image=${IMG} replicas=${REPL})"; exit 1
+            fi
+            sleep 15
+          done
+          echo "✅ Convergência verificada: ${SVC} @ ${IMG} (replicas ${REPL})"
 
       - name: 🧹 Prune dangling images pós-deploy (manutenção disco VPS)
         if: always()

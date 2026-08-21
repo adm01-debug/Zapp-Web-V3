@@ -12,8 +12,12 @@
  *
  * Inclui verificações estáticas de fonte (sem renderizar):
  *   - App.tsx: 5 lazyWithRetry, zero lazy() cru, ErrorBoundary fallback={null}
- *   - vercel.json: rewrite SPA exclui assets/version.json; headers imutáveis
- *     para /assets/(.*)
+ *
+ * Nota: as verificações de vercel.json (rewrite SPA, headers imutáveis para
+ * /assets/(.*)) foram removidas em 2026-08-21 — Vercel foi aposentada para o
+ * ZAPP (deploy 100% VPS, ver CLAUDE.md); o comportamento equivalente
+ * (try_files SPA fallback + Cache-Control immutable em /assets/) vive em
+ * nginx.conf, não testado aqui.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -283,4 +287,18 @@ describe('App.tsx — verificação estática (sem renderizar)', () => {
 // para o VPS; Traefik router `zappweb-www` inline no stack 157) e o vercel.json
 // saiu do repo — o readFileSync na raiz derrubava a suíte inteira (ENOENT).
 // O rewrite SPA e o Cache-Control de /assets agora são responsabilidade do
-// Traefik/host no VPS, fora deste repositório.
+// Traefik/host no VPS — o gate equivalente abaixo (nginx.conf, adicionado no
+// review do PR #1354) fecha a lacuna: sem ele, uma regressão nesses dois
+// comportamentos de deploy passaria pelo CI sem detecção.
+describe('nginx.conf — verificação estática (sem renderizar)', () => {
+  const NGINX_SOURCE = readFileSync(resolve(process.cwd(), 'nginx.conf'), 'utf8');
+
+  it('faz fallback SPA via try_files para /index.html', () => {
+    expect(NGINX_SOURCE).toMatch(/try_files\s+\$uri\s+\$uri\/\s+\/index\.html/);
+  });
+
+  it('serve /assets/ com Cache-Control public, immutable', () => {
+    const assetsBlock = NGINX_SOURCE.match(/location\s+\/assets\/\s*\{[\s\S]*?\}/)?.[0] ?? '';
+    expect(assetsBlock).toContain('Cache-Control "public, immutable"');
+  });
+});

@@ -53,7 +53,10 @@ permissions:
   packages: write
 
 concurrency:
-  group: deploy-vps
+  # 2026-08-20 (plano-100 etapa 63): mesmo group do deploy canônico (deploy-vps.yml).
+  # Antes usava `deploy-vps` — grupos diferentes NÃO se serializam e um dispatch
+  # manual deste draft podia rodar em paralelo com o deploy canônico no stack 157.
+  group: deploy-vps-v3
   cancel-in-progress: false
 
 env:
@@ -146,14 +149,15 @@ jobs:
       # Retenção GHCR: manter 9 versões (3 deploys íntegros: index+amd64+attestation).
       # Proteger rollbacks via infra/ghcr-protected-tags.txt. NÃO usar
       # delete-only-untagged-versions (quebraria o pull: manifest unknown).
-      - name: 🧹 GHCR retention (keep 9 — 3 deploys íntegros)
+      - name: 🧹 GHCR retention (keep 30 — 10 deploys íntegros)
         id: retention
         continue-on-error: true
         uses: actions/delete-package-versions@v5
         with:
           package-name: zapp-web-v3/zapp-web
           package-type: container
-          min-versions-to-keep: 9
+          # 2026-08-20 (plano-100 etapa 71): alinhado ao valor efetivo do canônico (30).
+          min-versions-to-keep: 30
           ignore-versions: ${{ steps.protect.outputs.regex }}
           token: ${{ secrets.GITHUB_TOKEN }}
 

@@ -1,0 +1,77 @@
+{
+  "__inputs": [
+    { "name": "DS_PROMETHEUS", "label": "Prometheus", "type": "datasource", "pluginId": "prometheus" },
+    { "name": "DS_LOKI", "label": "Loki", "type": "datasource", "pluginId": "loki" }
+  ],
+  "title": "ZAPP — Saúde Única (web + edge + evo + DB)",
+  "uid": "zapp-health-unico",
+  "tags": ["zapp", "plano-100", "etapa-92"],
+  "timezone": "America/Sao_Paulo",
+  "schemaVersion": 39,
+  "refresh": "1m",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "type": "row", "title": "Web (stack 157 — zapp-web-prod)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "type": "timeseries", "title": "CPU do container web", "datasource": "${DS_PROMETHEUS}",
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 1 },
+      "targets": [{ "expr": "sum(rate(container_cpu_usage_seconds_total{container_label_com_docker_swarm_service_name=\"zapp-web-prod_web\"}[5m]))", "legendFormat": "cpu" }]
+    },
+    {
+      "type": "timeseries", "title": "Memória do container web (limite 256M)", "datasource": "${DS_PROMETHEUS}",
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 1 },
+      "targets": [{ "expr": "container_memory_usage_bytes{container_label_com_docker_swarm_service_name=\"zapp-web-prod_web\"}", "legendFormat": "mem" }],
+      "fieldConfig": { "defaults": { "unit": "bytes", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 200000000 }, { "color": "red", "value": 250000000 }] } }, "overrides": [] }
+    },
+    {
+      "type": "timeseries", "title": "Requests 4xx/5xx no Traefik (routers zapp)", "datasource": "${DS_PROMETHEUS}",
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 1 },
+      "targets": [
+        { "expr": "sum by (code) (rate(traefik_service_requests_total{service=~\"zapp-prod.*|zappweb.*\", code=~\"4..|5..\"}[5m]))", "legendFormat": "{{code}}" }
+      ]
+    },
+    { "type": "row", "title": "Edge Functions (supabase_functions)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 8 } },
+    {
+      "type": "timeseries", "title": "CPU/Mem do edge-runtime", "datasource": "${DS_PROMETHEUS}",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 9 },
+      "targets": [
+        { "expr": "sum(rate(container_cpu_usage_seconds_total{container_label_com_docker_swarm_service_name=\"supabase_functions\"}[5m]))", "legendFormat": "cpu" },
+        { "expr": "container_memory_usage_bytes{container_label_com_docker_swarm_service_name=\"supabase_functions\"} / 1024 / 1024", "legendFormat": "mem MiB" }
+      ]
+    },
+    {
+      "type": "logs", "title": "Erros das edge functions (Loki)", "datasource": "${DS_LOKI}",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 9 },
+      "targets": [{ "expr": "{swarm_service=\"supabase_functions\"} |~ \"(?i)(error|fatal|unhandled)\"" }]
+    },
+    { "type": "row", "title": "Evolution / mensageria", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 } },
+    {
+      "type": "timeseries", "title": "Consumer RabbitMQ — CPU", "datasource": "${DS_PROMETHEUS}",
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 17 },
+      "targets": [{ "expr": "sum(rate(container_cpu_usage_seconds_total{container_label_com_docker_swarm_service_name=\"evolution-rabbit-consumer_consumer\"}[5m]))", "legendFormat": "cpu" }]
+    },
+    {
+      "type": "logs", "title": "Erros do consumer (Loki)", "datasource": "${DS_LOKI}",
+      "gridPos": { "h": 7, "w": 16, "x": 8, "y": 17 },
+      "targets": [{ "expr": "{swarm_service=\"evolution-rabbit-consumer_consumer\"} |~ \"(?i)(error|refused|amqp)\"" }]
+    },
+    { "type": "row", "title": "Banco (Postgres Supabase + pg14)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 } },
+    {
+      "type": "timeseries", "title": "Conexões ativas (pgx-supabase)", "datasource": "${DS_PROMETHEUS}",
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 25 },
+      "targets": [{ "expr": "sum(pg_stat_activity_count)", "legendFormat": "conexões" }]
+    },
+    {
+      "type": "timeseries", "title": "Tuplas mortas (top) — autovacuum", "datasource": "${DS_PROMETHEUS}",
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 25 },
+      "targets": [{ "expr": "topk(5, pg_stat_user_tables_n_dead_tup)", "legendFormat": "{{schemaname}}.{{relname}}" }]
+    },
+    {
+      "type": "timeseries", "title": "Tamanho dos WAL slots / replicação", "datasource": "${DS_PROMETHEUS}",
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 25 },
+      "targets": [{ "expr": "pg_replication_slots_pg_wal_lsn_diff", "legendFormat": "{{slot_name}}" }]
+    }
+  ]
+}
