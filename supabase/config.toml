@@ -40,8 +40,11 @@ verify_jwt = true
 [functions.bitrix-api]
 verify_jwt = false
 
+# 2026-08-20 (plano-100 etapa 23): alinhado à PUBLIC_FNS (fonte de verdade) —
+# zapp-crm-sync NÃO está na allowlist do main/index.ts, portanto exige JWT.
+# O valor anterior (false) era drift silencioso deste arquivo morto.
 [functions.zapp-crm-sync]
-verify_jwt = false
+verify_jwt = true
 
 [functions.elevenlabs-tts]
 verify_jwt = true

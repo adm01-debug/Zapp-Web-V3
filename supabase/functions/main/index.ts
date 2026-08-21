@@ -39,7 +39,9 @@ const PUBLIC_FNS = new Set<string>([
   'db-health-monitor',
   'status',
   'login-attempts',
-  // health GET público (POST exige JWT de usuário) — validação Claude #783
+  // NOTA (2026-08-20, plano-100): 'health' NÃO está nesta allowlist — é interno
+  // (x-health-secret via vault `health_secret`); validado ao vivo: GET sem JWT → 401
+  // fail-closed. O comentário antigo ("health GET público") era órfão da validação #783.
   // cron/alert com segredo próprio (CRON_SECRET / *_SECRET)
   'cleanup-rate-limit-logs',
   'cleanup-storage-orphans',

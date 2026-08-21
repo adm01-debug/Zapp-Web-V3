@@ -35,10 +35,13 @@ const envSchema = z.object({
 
 function parseEnv() {
   const rawEnv = {
-    // Vite expõe variáveis com prefixo VITE_ para o frontend
-    SUPABASE_PUBLIC_URL: import.meta.env.VITE_SUPABASE_URL ?? import.meta.env.VITE_SUPABASE_PUBLIC_URL,
-    SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY ?? import.meta.env.VITE_ANON_KEY,
-    APP_VERSION: import.meta.env.VITE_APP_VERSION ?? import.meta.env.VITE_VERSION,
+    // Vite expõe variáveis com prefixo VITE_ para o frontend.
+    // Aliases legados (VITE_SUPABASE_PUBLIC_URL, VITE_ANON_KEY, VITE_VERSION)
+    // removidos em 2026-08-20 (plano-100 etapa 14) — o CI injeta apenas os
+    // nomes canônicos desde o deploy-vps.yml.
+    SUPABASE_PUBLIC_URL: import.meta.env.VITE_SUPABASE_URL,
+    SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
+    APP_VERSION: import.meta.env.VITE_APP_VERSION,
   };
 
   const result = envSchema.safeParse(rawEnv);

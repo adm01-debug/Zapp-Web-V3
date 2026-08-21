@@ -21,6 +21,10 @@ services:
     image: ${ZAPP_IMAGE:-ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-latest}
     networks:
       - AtomicaBRNet
+      # zapp-net adicionada 2026-08-20 (plano-100 etapa 65): o compose inline do
+      # deploy-vps.yml (o que de fato vai para o Portainer) declara AtomicaBRNet
+      # E zapp-net — este arquivo versionado divergia e removeria a rede num redeploy.
+      - zapp-net
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
       interval: 30s
@@ -29,8 +33,10 @@ services:
       start_period: 30s
     security_opt:
       - no-new-privileges:true
-    cap_drop:
-      - ALL
+    # cap_drop: ALL removido 2026-08-20 (plano-100 etapa 65): a imagem nginx roda o
+    # master como root e faz bind na porta 80 — sem CAP_NET_BIND_SERVICE o container
+    # não sobe. O compose inline de produção nunca teve cap_drop; manter aqui tornava
+    # este arquivo inutilizável para um redeploy real.
     deploy:
       mode: replicated
       replicas: 1
@@ -80,3 +86,6 @@ networks:
   AtomicaBRNet:
     external: true
     name: AtomicaBRNet
+  zapp-net:
+    external: true
+    name: zapp-net
