@@ -530,6 +530,38 @@ Se for ligada no futuro, a logica de deteccao deve ser revisada para:
 
 ---
 
+## ChatPanel — Plano de 100 correções (2026-08-21)
+
+Branch: `claude/chatpanel-corrections-xo63vd` | PR: #1358
+
+Plano executado em 10 blocos. Todos os blocos concluídos com TSC em 0 erros ao final.
+
+| Bloco | Etapas | Escopo | Commits |
+|-------|--------|--------|---------|
+| 1 | 1–10 | Inicialização, guards e duplo Mod+E | (histórico anterior) |
+| 2 | 11–18 | Envio: inserts fantasma e handleSend | (histórico anterior) |
+| 3 | 19–30 | Typing / TTS / settings | (histórico anterior) |
+| 4 | 31–38 | Estado residual na troca de conversa | `c1f535a` |
+| 5 | 39–54 | Busca, filtros de falhas, paginação | `a24837c`–`18bd8d5` |
+| 6 | 55–66 | Perf: isolar re-renders de keystroke (React.memo) | `0d0adea` |
+| 7 | 67–76 | useChatPanelHandlers — UUID guard, stale closure, duplo-envio áudio+texto | `be08bcd` |
+| 8 | 77–84 | ChatMessagesArea — filtro realtime UPDATE + timer cleanup | `b64d3ae` |
+| 9 | 85–90 | Tipos e lint — verificação (sem problemas reais) | — |
+| 10 | 91–100 | Testes (ambiente sem node_modules), ESTADO.md, push e PR | este commit |
+
+**Arquivos modificados:**
+- `src/features/inbox/components/chat/ChatMessagesArea.tsx`
+- `src/features/inbox/components/chat/useChatPanelHandlers.ts`
+- `src/features/inbox/components/ChatPanel.tsx`
+- `src/features/inbox/components/chat/ChatInputArea.tsx`
+- `src/features/inbox/components/chat/ChatDialogs.tsx`
+- `src/features/inbox/components/chat/hooks/useInitialHighlight.ts`
+
+**TSC baseline ao final:** 0 erros.
+**Testes:** não executáveis no container (node_modules ausentes — limitação ambiental pré-existente).
+
+---
+
 ## Guard de bundle — LIGADO (2026-08-20)
 
 `bundle-secret-guard.yml` (GitHub Actions). Dispara pós-deploy (`workflow_run` do *Build & Deploy — ZAPP web v3*) + diário (cron `17 8 * * *`) + manual. Fail-closed.
