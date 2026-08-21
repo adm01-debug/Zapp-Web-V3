@@ -581,12 +581,22 @@ Achados ABERTOS (decisão fora do módulo — não corrigidos de propósito):
   até as RPCs de status existirem.
 
 Validação pendente (pós-merge, exige produção):
-- Smokes das etapas 7–10 (typing por JID, dialogs na troca, 2 agentes).
+- Smokes das etapas 7–10 (typing por JID, dialogs na troca, 2 agentes) —
+  exige sessão autenticada real (E2E_USER_EMAIL/PASSWORD ou credenciais de
+  produção), não disponível em sessão local sem essas credenciais.
 - Profiling React antes/depois (etapas 55/65) — o gate estrutural existe como
-  teste de contagem de renders (`useInputValueStore.test.tsx`).
-- Playwright 95–96 (Mod+E único, typing broadcast) — follow-up e2e.
-- `graphify update` no container VPS (etapa 100) — aresta nova
-  `useInputValueStore` e mudanças do god-node ChatPanel.
+  teste de contagem de renders (`useInputValueStore.test.tsx`); os números
+  reais de flamegraph (React DevTools Profiler) exigem browser autenticado
+  com dados de produção — mesma limitação de credenciais acima.
+- ~~Playwright 95–96~~ **CONCLUÍDO (2026-08-21)**: PR #1359 adiciona os 4
+  specs das etapas 94–97 (`e2e/chatpanel-*.spec.ts`) — troca de conversa
+  fecha scheduleDialog, Mod+E dispara archive uma única vez, typing
+  indicator via broadcast simulado, sussurro+anexo preserva texto. Specs
+  validados via `playwright test --list` (carregam sem erro); execução
+  real contra o backend requer as mesmas credenciais E2E acima.
+- ~~`graphify update` no container VPS (etapa 100)~~ **CONCLUÍDO
+  (2026-08-21, commit `a07c785ff`)**: 29.272 nós, 54.808 arestas, 2.019
+  comunidades (era 29.150/54.653/2.013).
 
 ---
 
