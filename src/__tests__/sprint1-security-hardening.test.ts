@@ -107,11 +107,16 @@ describe('Sprint 1 · HIGH-2 · prevent_role_escalation', () => {
 });
 
 describe('Sprint 1 · HIGH-3 · notify_sicoob_on_reply sem service_role_key na GUC', () => {
-  // Merge 2026-08-15: adotada a versão #1095 (função REAL evo.fn_notify_sicoob_on_reply,
-  // corrigida na Fase 2 — regex latestDefinition ampliado para evo.*). A abordagem
-  // anterior (canonicalDefinition da órfã zapp.*) ficou documentada acima.
+  // Sincronizado no PR #1355: o alvo anterior (fn_notify_sicoob_on_reply, merge
+  // #1095) vivia nas migrations de archive/ — diretório que NÃO existe mais no
+  // repo (limpeza #1328) — e def voltava '' quebrando o gate de qualquer branch.
+  // Estado real (pg_proc produção, auditado 2026-08-21): zapp.notify_sicoob_on_reply
+  // E zapp.fn_notify_sicoob_on_reply existem no banco, AMBAS com pg_net +
+  // EXCEPTION handler + SECURITY DEFINER; apenas a primeira está versionada
+  // (squash canônico 20260804000000). O teste valida a definição VERSIONADA,
+  // mantendo todas as asserções de guard ativas.
   const sql = allMigrationsSql();
-  const def = latestDefinition(sql, 'fn_notify_sicoob_on_reply');
+  const def = latestDefinition(sql, 'notify_sicoob_on_reply');
 
   it('existe e é trigger function válida', () => {
     expect(def).not.toBe('');
