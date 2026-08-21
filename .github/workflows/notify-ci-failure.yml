@@ -22,7 +22,8 @@ on:
 jobs:
   notify-failure:
     name: "Email Abner via N8N"
-    runs-on: [Linux, X64, vps-zapp]
+    # ubuntu-latest (auditoria 2026-08-21, PR #1368 piloto validado): curl de saída p/ webhook público, sem DB/VPS.
+    runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}
     steps:
       - name: "POST warroom → Email + Bitrix24"

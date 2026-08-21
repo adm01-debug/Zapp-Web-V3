@@ -23,7 +23,8 @@ concurrency:
 jobs:
   flaky-baseline:
     name: Test suite — sem retry (medição de flakiness)
-    runs-on: [Linux, X64, vps-zapp]
+    # ubuntu-latest (auditoria 2026-08-21, PR #1368 piloto validado): vitest com Supabase fake, sem DB/VPS.
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     continue-on-error: true  # não quebrar main por flakiness medida
 

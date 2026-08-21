@@ -14,7 +14,8 @@ concurrency:
 
 jobs:
   check-ai-authors:
-    runs-on: [Linux, X64, vps-zapp]
+    # ubuntu-latest (auditoria 2026-08-21, PR #1368 piloto validado): só git log local, sem DB/VPS.
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:

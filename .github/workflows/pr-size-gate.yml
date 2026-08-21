@@ -24,7 +24,8 @@ concurrency:
 jobs:
   pr-size:
     name: PR Size Gate
-    runs-on: [Linux, X64, vps-zapp]
+    # ubuntu-latest (auditoria 2026-08-21, PR #1368 piloto validado): só API do GitHub (github-script), sem DB/VPS.
+    runs-on: ubuntu-latest
     steps:
       - name: Check PR size and comment
         uses: actions/github-script@v9

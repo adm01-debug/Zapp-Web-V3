@@ -30,7 +30,8 @@ on:
 jobs:
   infra-regression:
     name: Block infra/evolution recreation
-    runs-on: [Linux, X64, vps-zapp]
+    # ubuntu-latest (auditoria 2026-08-21, PR #1368 piloto validado): só ls/grep local, sem DB/VPS.
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - name: Verify no Evolution infra in zapp-web-v3
@@ -56,7 +57,10 @@ jobs:
 
   coupling-inventory:
     name: Check coupling inventory
-    runs-on: [Linux, X64, vps-zapp]
+    # ubuntu-latest (auditoria 2026-08-21, PR #1368 piloto validado): valida contra
+    # snapshot commitado (sql_report_snapshot.json) — o próprio YAML já documenta
+    # "CI nao tem acesso ao banco", sem DB/VPS.
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

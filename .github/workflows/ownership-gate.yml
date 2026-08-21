@@ -16,7 +16,8 @@ on:
 jobs:
   schema-ownership:
     name: "Schema ownership — Zapp não grava em evo Grupo A"
-    runs-on: [Linux, X64, vps-zapp]
+    # ubuntu-latest (auditoria 2026-08-21, PR #1368 piloto validado): análise estática local, sem DB/VPS.
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
