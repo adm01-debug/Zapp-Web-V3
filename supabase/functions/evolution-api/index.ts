@@ -94,7 +94,11 @@ Deno.serve(async (req) => {
     const body = bodyForAction;
     let instance: string | null = safeGet(body, 'instanceName', isMultipart) || safeGet(body, 'instance', isMultipart) || null;
     const INSTANCE_RE = /^[a-zA-Z0-9_-]{1,128}$/;
-    if (instance && !INSTANCE_RE.test(instance)) return new Response(JSON.stringify({ error: 'Invalid instance name' }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // Bloco 2 (etapa 22, 2026-08-21): shape avulso trocado pelo envelope de
+    // domínio canônico do arquivo (mesmo padrão usado nos outros ~20 422/403/
+    // 429/503 abaixo) — era o único 422 do evolution-api fora do formato
+    // {version,contract,error,status,code,message,details}.
+    if (instance && !INSTANCE_RE.test(instance)) return new Response(JSON.stringify({ version: EVOLUTION_ENVELOPE_VERSION, contract: 'evolution-api@v1', error: true, status: 422, code: 'INVALID_INSTANCE_NAME', message: 'Nome de instância inválido.', details: [{ path: 'instance', message: 'Nome de instância inválido.' }] }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const instanceLooksLikeUuid = (v: unknown): boolean => typeof v === 'string' && UUID_RE.test(v.trim());
     const READE_ONLY_INSTANCE_ACTIONS = new Set(['list-instances', 'instance-info', 'status', 'get-settings', 'get-webhook', 'find-status-messages']);
