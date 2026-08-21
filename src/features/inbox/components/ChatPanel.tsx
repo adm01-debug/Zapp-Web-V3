@@ -62,9 +62,9 @@ const log = getLogger('ChatPanel');
 
 if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
   (window as Window).requestIdleCallback(() => {
-    import('./TransferDialog');
-    import('./AIConversationAssistant');
-    import('./CloseConversationDialog');
+    import('./TransferDialog').catch(() => undefined);
+    import('./AIConversationAssistant').catch(() => undefined);
+    import('./CloseConversationDialog').catch(() => undefined);
   });
 }
 
@@ -123,6 +123,7 @@ export function ChatPanel({
   // ContactDetails: chamada direta + catch(() => undefined) p/ evitar
   // unhandled rejection (sem toast duplicado do wrapper do slash).
   const handleArchiveConversation = useCallback(() => {
+    if (!isValidUUID(conversation.contact.id ?? '')) return;
     void archiveConversation(conversation.contact.id ?? '').catch(() => undefined);
   }, [archiveConversation, conversation.contact.id]);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -133,8 +134,8 @@ export function ChatPanel({
   }, []);
 
   useEffect(() => {
-    const isSearch = (activeTool as string) === 'chatSearch';
-    const isAssistant = (activeTool as string) === 'aiAssistant';
+    const isSearch = activeTool === 'chatSearch';
+    const isAssistant = activeTool === 'aiAssistant';
 
     if (isSearch) openDialog('chatSearch');
     else closeDialog('chatSearch');
@@ -171,6 +172,7 @@ export function ChatPanel({
 
   const fileUploaderRef = useRef<FileUploaderRef>(null);
   const messagesAreaRef = useRef<ChatMessagesAreaRef>(null);
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { isDraggingOver, dragHandlers } = useChatDragAndDrop(fileUploaderRef);
 
   const contactJid = useMemo(() => {
@@ -220,11 +222,17 @@ export function ChatPanel({
     saveSettingsTimerRef.current = setTimeout(() => {
       saveSettingsTimerRef.current = null;
       void saveSettings();
-    }, 100);
+    }, 500);
   }, [saveSettings]);
   useEffect(
     () => () => {
       if (saveSettingsTimerRef.current !== null) clearTimeout(saveSettingsTimerRef.current);
+    },
+    []
+  );
+  useEffect(
+    () => () => {
+      if (focusTimerRef.current !== null) clearTimeout(focusTimerRef.current);
     },
     []
   );
@@ -274,7 +282,7 @@ export function ChatPanel({
 
   useEffect(() => {
     initResolve();
-  }, [conversation.contact.id, initResolve]);
+  }, [conversation.contact.id, initResolve, instanceNameProp]);
 
   // Avalia regras de automação para a conversa ativa
   useAutomations({
@@ -318,6 +326,7 @@ export function ChatPanel({
     setFailuresOnly(false);
     resetAllDialogs();
     setHistoryOpen(false);
+    setCallDirection('outbound');
   }, [conversation.id, resetSearch, setFailuresOnly, resetAllDialogs]);
 
   // Deep-link "Ver no chat": encontra a mensagem alvo, faz scroll e aplica destaque temporário.
@@ -431,6 +440,46 @@ export function ChatPanel({
     onDone: () => closeDialog('scheduleDialog'),
   });
 
+  const stableOnToggleDetails = useCallback(() => {
+    onToggleDetails?.();
+  }, [onToggleDetails]);
+
+  const handlePollSent = useCallback(async (poll: { name: string; options: string[] }) => {
+    if (!isValidUUID(conversation.contact.id)) return;
+    try {
+      const ref = resolveContactRef(conversation.contact.id);
+      if (!isUuidRef(ref)) return;
+      await dbFrom('messages').insert({
+        contact_id: ref.uuid,
+        whatsapp_connection_id: whatsappConnectionId,
+        content: `📊 *Enquete:* ${poll.name}\n${poll.options.map((o, i) => `${i + 1}. ${o}`).join('\n')}`,
+        message_type: 'text',
+        sender: 'agent',
+        status: 'pending',
+      });
+    } catch (err) {
+      log.error('Failed to insert poll message', err);
+    }
+  }, [conversation.contact.id, whatsappConnectionId]);
+
+  const handleContactSent = useCallback(async (contactName: string) => {
+    if (!isValidUUID(conversation.contact.id)) return;
+    try {
+      const ref = resolveContactRef(conversation.contact.id);
+      if (!isUuidRef(ref)) return;
+      await dbFrom('messages').insert({
+        contact_id: ref.uuid,
+        whatsapp_connection_id: whatsappConnectionId,
+        content: `📇 Cartão de contato: ${contactName}`,
+        message_type: 'text',
+        sender: 'agent',
+        status: 'pending',
+      });
+    } catch (err) {
+      log.error('Failed to insert contact card message', err);
+    }
+  }, [conversation.contact.id, whatsappConnectionId]);
+
   return (
     <div
       data-testid="chat-window"
@@ -450,7 +499,7 @@ export function ChatPanel({
             voiceId={voiceId}
             speed={speed}
             onToggleAIAssistant={() => handleSetActiveTool('aiAssistant')}
-            onToggleDetails={onToggleDetails || (() => {})}
+            onToggleDetails={stableOnToggleDetails}
             onStartCall={() => {
               setCallDirection('outbound');
               openDialog('callDialog');
@@ -483,17 +532,19 @@ export function ChatPanel({
             onUseTemplate={(content) => {
               handlers.setInputValue(content);
               setActiveTool(null);
-              setTimeout(() => handlers.inputRef.current?.focus(), 10);
+              if (focusTimerRef.current !== null) clearTimeout(focusTimerRef.current);
+              focusTimerRef.current = setTimeout(() => handlers.inputRef.current?.focus(), 10);
             }}
           />
         )}
 
         <ChatSearchBar
           messages={messages}
-          isOpen={(activeTool as string) === 'chatSearch'}
+          isOpen={activeTool === 'chatSearch'}
           onClose={() => {
-            handleSetActiveTool('chatSearch');
-            setTimeout(() => handlers.inputRef.current?.focus(), 150);
+            setActiveTool(null);
+            if (focusTimerRef.current !== null) clearTimeout(focusTimerRef.current);
+            focusTimerRef.current = setTimeout(() => handlers.inputRef.current?.focus(), 150);
           }}
           onNavigateToMessage={(id) => messagesAreaRef.current?.scrollToMessage(id)}
           onHighlightChange={handleHighlightChange}
@@ -536,7 +587,7 @@ export function ChatPanel({
           ref={messagesAreaRef}
           messages={visibleMessages}
           isContactTyping={isContactTyping}
-          typingUserName={typingUsers[0]?.name || (conversation.contact.name ?? '')}
+          typingUserName={typingUsers[0]?.name || 'Agente'}
           ttsLoading={ttsLoading}
           ttsPlaying={ttsPlaying}
           ttsMessageId={ttsMessageId}
@@ -624,40 +675,8 @@ export function ChatPanel({
           signatureEnabled={signatureEnabled}
           signatureName={agentName}
           onToggleSignature={toggleSignature}
-          onPollSent={async (poll) => {
-            if (!isValidUUID(conversation.contact.id)) return;
-            try {
-              const ref = resolveContactRef(conversation.contact.id);
-              if (!isUuidRef(ref)) return; // external mode — handled by Evolution webhook
-              await dbFrom('messages').insert({
-                contact_id: ref.uuid,
-                whatsapp_connection_id: whatsappConnectionId,
-                content: `📊 *Enquete:* ${poll.name}\n${poll.options.map((o, i) => `${i + 1}. ${o}`).join('\n')}`,
-                message_type: 'text',
-                sender: 'agent',
-                status: 'sent',
-              });
-            } catch (err) {
-              log.error('Failed to insert poll message', err);
-            }
-          }}
-          onContactSent={async (contactName) => {
-            if (!isValidUUID(conversation.contact.id)) return;
-            try {
-              const ref = resolveContactRef(conversation.contact.id);
-              if (!isUuidRef(ref)) return; // external mode — handled by Evolution webhook
-              await dbFrom('messages').insert({
-                contact_id: ref.uuid,
-                whatsapp_connection_id: whatsappConnectionId,
-                content: `📇 Cartão de contato: ${contactName}`,
-                message_type: 'text',
-                sender: 'agent',
-                status: 'sent',
-              });
-            } catch (err) {
-              log.error('Failed to insert contact card message', err);
-            }
-          }}
+          onPollSent={handlePollSent}
+          onContactSent={handleContactSent}
           onOpenCatalog={() => openDialog('catalogDirect')}
           onSelectSuggestion={(text) => handlers.setInputValue(text)}
           onSelectTemplate={(text) => handlers.setInputValue(text)}
