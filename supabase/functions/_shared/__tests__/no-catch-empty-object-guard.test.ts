@@ -23,11 +23,24 @@
  *
  * `KNOWN_DEBT` fica vazio agora — o guard segue rodando pra travar
  * REGRESSÃO (function nova com o antipadrão quebra o teste).
+ *
+ * Auditoria pós-Bloco 6 (2026-08-21, MEDIUM): a regex original era literal
+ * demais — exigia `req.` (não `request.`) e espaçamento byte-a-byte exato,
+ * então `request.json().catch(() => ({}))`, `req.json().catch(()=>({}))`
+ * (sem espaços) ou a variante multi-linha passavam batido, sem alerta.
+ * Confirmado com um fixture real: `req.json().catch(()=>({}))` passava
+ * verde pelo guard antigo. Regex tolerante a espaçamento/quebra de linha
+ * (`\s*`) e a `req`/`request` como nome do parâmetro. Residual conhecido,
+ * não perseguido aqui: só cobre `req`/`request` como identificador — um
+ * parâmetro com outro nome (não usado hoje em nenhuma function do repo,
+ * confirmado por grep) escaparia; cobertura completa exigiria parsing AST,
+ * não regex.
  */
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals, assert } from "jsr:@std/assert";
 import { fromFileUrl } from "https://deno.land/std@0.168.0/path/mod.ts";
 
-const ANTIPATTERN = /req\.json\(\)\.catch\(\(\) => \(\{\}\)\)/;
+const ANTIPATTERN =
+  /\breq(?:uest)?\s*\.\s*json\s*\(\s*\)\s*\.\s*catch\s*\(\s*\(\s*\)\s*=>\s*(?:\(\s*\{\s*\}\s*\)|\{\s*return\s*\{\s*\}\s*;?\s*\})\s*\)/;
 
 // Vazio — as 35 functions que tinham o antipadrão em 2026-08-21 foram
 // corrigidas (ver histórico acima). NÃO adicionar itens aqui sem
@@ -77,5 +90,35 @@ Deno.test("Guard: nenhuma function introduz req.json().catch(() => ({}))", () =>
       `KNOWN_DEBT está desatualizado — ${fixed.length} function(s) já não têm mais o ` +
       `antipadrão mas ainda estão na lista (remova pra refletir o progresso real): ${fixed.join(", ")}`,
     );
+  }
+});
+
+// Auditoria pós-Bloco 6 (2026-08-21): trava a robustez da própria regex
+// contra as variações que escapavam da versão anterior (fixture real
+// confirmou o bypass antes desta correção).
+const SHOULD_MATCH = [
+  "req.json().catch(() => ({}))",
+  "request.json().catch(() => ({}))",
+  "req.json().catch(()=>({}))",
+  "req.json().catch(() => ({ }))",
+  "req\n  .json()\n  .catch(() => ({}))",
+  "req.json().catch(() => { return {}; })",
+  "req.json().catch(() => { return {} })",
+  "req  .json ()  .catch( ()  =>  ({}) )",
+  "req.json().catch(()\t=>\t({}))",
+];
+const SHOULD_NOT_MATCH = [
+  "req.json().catch(() => ({ ok: true }))",
+  "req.json().catch(() => null)",
+  "await readJsonBodyOrEmpty(req)",
+  "req.text().catch(() => '')",
+];
+
+Deno.test("Guard: regex do antipadrão cobre variações de espaçamento/quebra de linha e req/request", () => {
+  for (const s of SHOULD_MATCH) {
+    assert(ANTIPATTERN.test(s), `deveria casar: ${JSON.stringify(s)}`);
+  }
+  for (const s of SHOULD_NOT_MATCH) {
+    assert(!ANTIPATTERN.test(s), `NÃO deveria casar: ${JSON.stringify(s)}`);
   }
 });
