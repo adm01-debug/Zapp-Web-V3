@@ -717,6 +717,13 @@ export function ChatPanel({
             // BUG-24: resultado de mensagem navega direto na conversa;
             // demais tipos (contato, acao, crm) mostram um toast informativo.
             if (result.type === 'message' && result.id) {
+              if (failuresOnly && !failedMessages.some((m) => m.id === result.id)) {
+                toast({
+                  title: 'Mensagem oculta pelo filtro',
+                  description: 'Desative o filtro de falhas para navegar até esta mensagem.',
+                });
+                return;
+              }
               messagesAreaRef.current?.scrollToMessage(result.id);
             } else {
               toast({ title: 'Resultado', description: result.title });
