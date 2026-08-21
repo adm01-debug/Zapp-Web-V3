@@ -68,8 +68,17 @@ export const DetectNewDeviceSchema = z.object({
 // ("Deno retorna bracketless") não bate com o runtime atual e o guard
 // `startsWith('::')` nunca casava contra `[::1]`, deixando o bypass aberto.
 // Remover colchetes torna a checagem robusta independente da versão.
+//
+// Auditoria pós-Bloco 6 (2026-08-21, CRITICAL): "localhost." (ponto final —
+// sintaxe FQDN válida) resolve por DNS exatamente como "localhost", mas
+// `new URL("https://localhost./x").hostname` preserva o ponto — o WHATWG URL
+// parser NÃO normaliza isso — e `host === 'localhost'`/`.endsWith('.localhost')`
+// não casavam contra o sufixo com ponto, deixando um bypass de SSRF explorável
+// contra o fetch() já ativo em transcribe-audio-internal. Corrigido removendo
+// o ponto final ANTES das comparações (os regexes de IP numérico já eram
+// imunes a isso, por serem prefix-match).
 function isPrivateOrLoopbackHost(hostRaw: string): boolean {
-  const host = hostRaw.toLowerCase().replace(/^\[|\]$/g, '');
+  const host = hostRaw.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.+$/, '');
   return (
     host === 'localhost' || host.endsWith('.localhost') || host === '0.0.0.0' ||
     /^127\./.test(host) || /^169\.254\./.test(host) ||
@@ -94,13 +103,29 @@ export function isSafeHttpsUrl(url: string): boolean {
 /**
  * SEC-4 (Bloco 0, 2026-08-21): mesma blocklist de rede privada/loopback de
  * isSafeHttpsUrl, mas para campos que são um HOSTNAME cru (ex.: imap_host/
- * smtp_host), não uma URL — o consumidor conecta via socket TCP direto
- * (Deno.connect), não fetch(), então não há scheme pra parsear com `new URL`.
- * O risco de SSRF é o mesmo (host controlado pelo caller apontando pra rede
- * interna), só muda o transporte.
+ * smtp_host), não uma URL. Defesa em profundidade: nenhum consumidor deste
+ * repo hoje abre socket TCP com esses valores (email-imap-bridge só valida
+ * formato — "Teste de conectividade TCP não disponível em Edge Functions"),
+ * mas o campo é persistido e pode ser lido por um worker externo no futuro.
+ *
+ * Auditoria pós-Bloco 6 (2026-08-21, MEDIUM): a blocklist rodava sobre a
+ * string CRUA, sem a normalização de IPv4 que `new URL()` faz — notação
+ * decimal/octal/hex de 127.0.0.1 (ex.: "2130706433", "0x7f000001",
+ * "0177.0.0.1") e espaços de borda passavam como "seguro". Corrigido
+ * emprestando a normalização de HOSTNAME do parser WHATWG: constrói uma URL
+ * sintética só para extrair `hostname` já canonicalizado (aceita host IPv6
+ * sem colchetes, envolvendo em `[...]` antes de montar a URL), sem se
+ * importar com o resto da URL — não há scheme próprio pra usar aqui.
  */
 export function isSafeHost(host: string): boolean {
-  return !isPrivateOrLoopbackHost(host);
+  const bracketed = host.includes(':') && !host.startsWith('[') ? `[${host}]` : host;
+  let normalized: string;
+  try {
+    normalized = new URL(`https://${bracketed}/`).hostname;
+  } catch {
+    return false; // nem forma um hostname válido — não presumir seguro
+  }
+  return !isPrivateOrLoopbackHost(normalized);
 }
 
 const safeImageUrlSchema = z.string().url().refine(isSafeHttpsUrl, {

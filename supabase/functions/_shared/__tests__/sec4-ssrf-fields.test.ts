@@ -108,3 +108,38 @@ Deno.test("SEC-4: isSafeHost — cobertura direta do helper (IPv6 privado)", () 
   assertEquals(isSafeHost("fe80::1"), false);
   assertEquals(isSafeHost("imap.gmail.com"), true);
 });
+
+// ─── Auditoria pós-Bloco 6 (2026-08-21) — 2 bypasses confirmados por ────────
+// reprodução real e corrigidos: trailing dot (CRITICAL, explorável via o
+// fetch() já ativo em transcribe-audio-internal) e notação numérica de IP
+// em isSafeHost (MEDIUM, sem sink de rede ativo hoje, mas fecha a lacuna
+// antes de existir um).
+
+Deno.test("SEC-4 (CRITICAL): trailing dot não deve contornar o bloqueio de localhost", () => {
+  assertEquals(isSafeHttpsUrl("https://localhost./x"), false);
+  assertEquals(isSafeHttpsUrl("https://LOCALHOST./x"), false);
+  assertEquals(isSafeHost("localhost."), false);
+  assertEquals(isSafeHost("LOCALHOST."), false);
+  assertEquals(isSafeHost("127.0.0.1."), false);
+});
+
+Deno.test("SEC-4: espaços de borda no host não devem contornar o bloqueio", () => {
+  assertEquals(isSafeHost(" localhost"), false);
+  assertEquals(isSafeHost("localhost "), false);
+});
+
+Deno.test("SEC-4 (MEDIUM): isSafeHost bloqueia notação alternativa de 127.0.0.1/0.0.0.0", () => {
+  assertEquals(isSafeHost("2130706433"), false); // decimal
+  assertEquals(isSafeHost("0x7f000001"), false); // hex
+  assertEquals(isSafeHost("0177.0.0.1"), false); // octal
+  assertEquals(isSafeHost("0"), false); // forma curta de 0.0.0.0
+});
+
+Deno.test("SEC-4: isSafeHost aceita IPv6 público bare (host legítimo sem colchetes)", () => {
+  assertEquals(isSafeHost("2606:4700:4700::1111"), true);
+});
+
+Deno.test("SEC-4: host malformado (não forma URL válida) é rejeitado, não presumido seguro", () => {
+  assertEquals(isSafeHost("["), false);
+  assertEquals(isSafeHost(""), false);
+});
