@@ -143,3 +143,41 @@ Deno.test("SEC-4: host malformado (não forma URL válida) é rejeitado, não pr
   assertEquals(isSafeHost("["), false);
   assertEquals(isSafeHost(""), false);
 });
+
+// ─── Auditoria de re-verificação (segunda rodada, 5 especialistas) — gap ────
+// CONFIRMED: mecanismos de transição IPv6<->IPv4 (NAT64, 6to4, Teredo)
+// embutem um IPv4 arbitrário fora dos prefixos já bloqueados (::, fe80::/10,
+// fec0::/10, fc00::/7). Reproduzido com deno run contra o código real: em
+// topologias com gateway NAT64/6to4/Teredo, esses literais alcançam o IPv4
+// embutido — incluindo o endpoint de metadata cloud (169.254.169.254) e
+// loopback (127.0.0.1) — contornando o guard.
+
+Deno.test("SEC-5 (HIGH): NAT64 (64:ff9b::/96) embutindo IPv4 privado/loopback é bloqueado", () => {
+  assertEquals(isSafeHost("64:ff9b::a9fe:a9fe"), false); // embute 169.254.169.254
+  assertEquals(isSafeHost("64:ff9b::7f00:1"), false); // embute 127.0.0.1
+  assertEquals(isSafeHttpsUrl("https://[64:ff9b::a9fe:a9fe]/x"), false);
+  assertEquals(isSafeHttpsUrl("https://[64:ff9b::7f00:1]/x"), false);
+});
+
+Deno.test("SEC-5 (HIGH): 6to4 (2002::/16) embutindo IPv4 privado/loopback é bloqueado", () => {
+  assertEquals(isSafeHost("2002:a9fe:a9fe::"), false); // embute 169.254.169.254
+  assertEquals(isSafeHost("2002:7f00:1::"), false); // embute 127.0.0.1
+  assertEquals(isSafeHttpsUrl("https://[2002:a9fe:a9fe::]/x"), false);
+  assertEquals(isSafeHttpsUrl("https://[2002:7f00:1::]/x"), false);
+});
+
+Deno.test("SEC-5 (HIGH): Teredo (2001:0000::/32) com cliente ofuscado apontando pra loopback é bloqueado", () => {
+  // Cliente 127.0.0.1 ofuscado por XOR com 0xffffffff = 128.255.255.254 = 80ff:fffe
+  assertEquals(isSafeHost("2001:0000:4136:e378:8000:63bf:80ff:fffe"), false);
+  assertEquals(isSafeHttpsUrl("https://[2001:0000:4136:e378:8000:63bf:80ff:fffe]/x"), false);
+});
+
+Deno.test("SEC-5: NAT64/6to4 com IPv4 embutido público não geram falso positivo", () => {
+  assertEquals(isSafeHost("64:ff9b::808:404"), true); // NAT64 embutindo 8.8.4.4 (público)
+  assertEquals(isSafeHttpsUrl("https://[2002:808:404::]/x"), true); // 6to4 embutindo 8.8.4.4
+});
+
+Deno.test("SEC-5: NAT64/6to4/Teredo não afetam host IPv6 público comum", () => {
+  assertEquals(isSafeHost("2001:4860:4860::8888"), true); // Google DNS público (não é 2001:0000::/32)
+  assertEquals(isSafeHttpsUrl("https://[2606:4700:4700::1111]/x"), true); // Cloudflare DNS
+});

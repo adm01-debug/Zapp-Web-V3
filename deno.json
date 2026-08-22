@@ -8,5 +8,11 @@
     "plugins": [
       "./.deno-lint-rules/no-direct-evo-url.ts"
     ]
+  },
+  "test": {
+    "exclude": [
+      "supabase/functions/**/*.spec.ts",
+      "supabase/functions/node_modules/"
+    ]
   }
 }

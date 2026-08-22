@@ -21,6 +21,7 @@ import {
   jsonResponse,
   errorResponse,
 } from "../_shared/cors.ts";
+import { errorEnvelope } from "../_shared/validation.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CsatAutoSendV1Schema } from "../_shared/contract-schemas.ts";
 
@@ -84,7 +85,7 @@ Deno.serve(async (req: Request) => {
   // Require authenticated user (service_role is also accepted via sub=service_role)
   const userId = getAuthUserId(req);
   if (!userId) {
-    return errorResponse(req, "Unauthorized: user session required", 401);
+    return errorEnvelope("unauthorized", "Unauthorized: user session required", 401, req, undefined, getCorsHeaders(req));
   }
 
   if (req.method !== "POST") {
@@ -253,6 +254,6 @@ Deno.serve(async (req: Request) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[csat-auto-send] unhandled error:", msg);
-    return errorResponse(req, "Internal server error", 500);
+    return errorEnvelope("internal_error", "Internal server error", 500, req, undefined, getCorsHeaders(req));
   }
 });

@@ -21,7 +21,7 @@
  * Segurança: bucket privado SEM policy de leitura pública; acesso somente via
  * signed URL gerada aqui (service_role). RLS admin-only na tabela de jobs.
  */
-import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, Logger, getCorsHeaders } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor, requireServiceRoleOrCron, type AuthedUser } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -253,7 +253,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     log.error("Error generating export", { error: errorMessage });
-    return errorResponse("Internal server error", 500, req);
+    return errorEnvelope("internal_error", "Internal server error", 500, req);
   }
 });
 

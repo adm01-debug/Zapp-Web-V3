@@ -97,7 +97,11 @@ export function ElevenLabsDialogue() {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `Erro ${response.status}`);
+        throw new Error(
+          (typeof errData.error === 'string' ? errData.error : null) ||
+            errData.message ||
+            `Erro ${response.status}`
+        );
       }
 
       const blob = await response.blob();
