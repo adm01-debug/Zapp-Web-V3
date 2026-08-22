@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, requireEnv, Logger, getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { requireUser } from "../_shared/auth.ts";
@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
     if (authed instanceof Response) return authed;
 
     const rl = checkRateLimit(`elevenlabs-dialogue:${authed.user.id}`, 10, 60_000);
-    if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
+    if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', 'Rate limit exceeded. Tente novamente em instantes.', 429, req);
 
     // Contrato elevenlabs-dialogue@v1 — validação unificada 422 (parseOrReject).
     const raw = await req.json().catch(() => null);
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
       log.error(`API error ${response.status}`, { detail: errorText.substring(0, 300) });
 
       if (response.status === 401) return errorResponse("Invalid ElevenLabs API key", 401, req);
-      if (response.status === 429) return errorResponse("Rate limit exceeded", 429, req);
+      if (response.status === 429) return errorEnvelope("rate_limit_exceeded", "Rate limit exceeded", 429, req);
       return errorResponse(`ElevenLabs Dialogue API error: ${response.status}`, response.status, req);
     }
 
@@ -71,6 +71,6 @@ Deno.serve(async (req) => {
     });
   } catch (err: unknown) {
     log.error("Unhandled error", { error: err instanceof Error ? err.message : String(err) });
-    return errorResponse('Internal server error', 500, req);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });
