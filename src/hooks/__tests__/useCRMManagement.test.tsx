@@ -24,6 +24,7 @@ interface MockChain {
   select: (fields?: string) => MockChain;
   eq: (column: string, value: unknown) => MockChain;
   order: (column: string, options?: { ascending?: boolean }) => MockChain;
+  abortSignal: (signal: AbortSignal | undefined) => MockChain;
   maybeSingle: () => Promise<QueryResult>;
   upsert: (row: Record<string, unknown>) => Promise<QueryResult>;
 }
@@ -53,6 +54,9 @@ const sb = vi.hoisted(() => {
         return chain;
       },
       order: () => chain,
+      // Espelha o postgrest-js real: .abortSignal() muta e retorna a MESMA
+      // instância (não cria um novo builder) — ver RCA 2026-08-22.
+      abortSignal: () => chain,
       maybeSingle: () => {
         calls.maybeSingle.push([]);
         return (

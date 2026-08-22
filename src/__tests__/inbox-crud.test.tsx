@@ -44,7 +44,13 @@ describe('Inbox CRUD Flows', () => {
       await new Promise((r) => setTimeout(r, 0));
     });
 
-    expect(messageService.getAllMessagesForContact).toHaveBeenCalledWith('contact-1');
+    // RCA 2026-08-22: useMessages agora propaga um AbortController.signal
+    // (2º argumento) para permitir cancelar o fetch anterior numa troca rápida
+    // de contato — o assert precisa aceitar qualquer AbortSignal, não só 1 arg.
+    expect(messageService.getAllMessagesForContact).toHaveBeenCalledWith(
+      'contact-1',
+      expect.any(AbortSignal)
+    );
     expect(result.current.messages).toEqual(mockMessages);
   });
 

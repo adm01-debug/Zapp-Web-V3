@@ -5,6 +5,7 @@ import { log } from '@/lib/logger';
 import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { dbFrom } from '@/integrations/datasource/db';
 import { isValidUUID } from '@/utils/uuid';
+import { isAbortLikeError } from '@/lib/abortError';
 
 /** Enriched Contact Data interface definition. */
 export interface EnrichedContactData {
@@ -103,7 +104,7 @@ export function useContactEnrichedData(contactId: string) {
         .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) {
-        log.error('Error fetching enriched contact data:', error);
+        if (!isAbortLikeError(error)) log.error('Error fetching enriched contact data:', error);
         throw error;
       }
       if (!data) return null;
@@ -136,7 +137,7 @@ export function useContactEnrichedData(contactId: string) {
         .abortSignal(signal);
 
       if (error) {
-        log.error('Error fetching AI tags:', error);
+        if (!isAbortLikeError(error)) log.error('Error fetching AI tags:', error);
         throw error;
       }
       // Normaliza cada tag — nenhum campo pode chegar como `undefined` aos consumidores.
@@ -169,7 +170,7 @@ export function useContactEnrichedData(contactId: string) {
         .maybeSingle();
 
       if (error) {
-        log.error('Error fetching SLA info:', error);
+        if (!isAbortLikeError(error)) log.error('Error fetching SLA info:', error);
         throw error;
       }
       if (!data) return null;

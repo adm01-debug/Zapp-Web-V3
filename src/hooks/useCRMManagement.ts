@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 import { isValidUUID } from '@/utils/uuid';
+import { isAbortLikeError } from '@/lib/abortError';
 
 // Escape hatch de tipos: as tabelas contact_intelligence/contact_notes/
 // contact_assignments/contact_custom_fields vivem no schema `zapp` da instância
@@ -320,7 +321,7 @@ export function useContactAssignmentManagement(contactId?: string) {
         // 429/timeout transitório viraria "contato sem responsável" (idêntico
         // a vazio real). Propagando o erro, a query entra em error state e o
         // `data` mantém o ÚLTIMO valor bem-sucedido (padrão react-query).
-        log.error('Error fetching contact assignment:', err);
+        if (!isAbortLikeError(err)) log.error('Error fetching contact assignment:', err);
         throw err;
       }
     },

@@ -32,6 +32,7 @@ interface MockChain {
   in: (column: string, values: unknown[]) => MockChain;
   order: (column: string, options?: { ascending?: boolean }) => MockChain;
   limit: (count?: number) => MockChain;
+  abortSignal: (signal: AbortSignal | undefined) => MockChain;
   maybeSingle: () => Promise<QueryResult>;
   // O hook faz `await query` no fallback (query = chain após .in/.eq):
   // a cadeia precisa ser thenable para o destructure { data, error } funcionar.
@@ -121,6 +122,9 @@ vi.mock('@/integrations/supabase/client', () => {
       sb.calls.limit.push(count);
       return chain;
     });
+    // Espelha o postgrest-js real: .abortSignal() muta e retorna a MESMA
+    // instância (não cria um novo builder) — ver RCA 2026-08-22.
+    chain.abortSignal = vi.fn<(signal: AbortSignal | undefined) => MockChain>(() => chain);
     chain.maybeSingle = vi.fn<() => Promise<QueryResult>>(() => {
       if (sb.rejections.has(table)) return Promise.reject(sb.rejections.get(table));
       return Promise.resolve(resolveFor(table));

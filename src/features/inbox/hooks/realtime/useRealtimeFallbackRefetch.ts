@@ -81,6 +81,13 @@ export function useRealtimeFallbackRefetch({ enabled = true, intervalMs }: Optio
       'contact-intelligence-view', // hooks/useContactIntelligence.ts (rich view)
       'contact-custom-fields', // features/contacts/hooks/useContactCustomFields.ts
       'contact-assignment', // hooks/useCRMManagement.ts
+      // RCA 2026-08-22 (auditoria pos-fix): mesmo padrao estrutural (prefixo
+      // hifenizado proprio, nao sub-array de ['contact', ...]) encontrado em
+      // mais 3 caches do painel de detalhe do contato que ficaram de fora da
+      // primeira leva.
+      'contact-sla', // useContactEnrichedData.ts (slaQuery) + useConversationSLAData.ts
+      'sla-delivery-config', // features/inbox/components/chat/hooks/useSLADelivery.ts
+      'contact-detail-stats-closes', // features/inbox/hooks/useContactDetailStats.ts
     ].forEach((prefix) => {
       void queryClient.invalidateQueries({ queryKey: [prefix] });
     });

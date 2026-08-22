@@ -18,6 +18,7 @@ function chain(finalValue: { data: unknown; error: unknown }) {
     or: () => Chain;
     order: () => Chain;
     limit: () => Chain;
+    abortSignal: () => Chain;
     maybeSingle: () => Promise<typeof finalValue>;
     then: (resolve: (v: unknown) => void) => Promise<unknown>;
   };
@@ -27,6 +28,9 @@ function chain(finalValue: { data: unknown; error: unknown }) {
     or: () => c,
     order: () => c,
     limit: () => c,
+    // Espelha o postgrest-js real: .abortSignal() muta e retorna a MESMA
+    // instância (não cria um novo builder) — ver RCA 2026-08-22.
+    abortSignal: () => c,
     maybeSingle: () => Promise.resolve(finalValue),
     then: (resolve: (v: unknown) => void) => Promise.resolve(finalValue).then(resolve),
   };

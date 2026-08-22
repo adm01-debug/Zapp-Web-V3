@@ -36,7 +36,10 @@ const DEFAULT_USER_SETTINGS = {
   simulation_mode_enabled: false,
   global_sla_warning_minutes: 30,
   global_sla_critical_minutes: 60,
-  global_sla_notification_message: '',
+  // RCA 2026-08-22: divergia de useUserSettings.ts (DEFAULT_SETTINGS) e do
+  // DEFAULT real da coluna no banco — auditoria pós-fix encontrou os dois
+  // hooks de settings com defaults diferentes para o mesmo campo.
+  global_sla_notification_message: 'Alerta SLA: Tempo limite excedido para resposta.',
 } as const;
 
 interface UserSettings {

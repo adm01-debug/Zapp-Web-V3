@@ -5,6 +5,7 @@ import type { RealtimeMessage } from '../hooks/useRealtimeMessages';
 import { isValidUUID } from '@/utils/uuid';
 
 import { getLogger } from '@/lib/logger';
+import { isAbortLikeError } from '@/lib/abortError';
 
 const log = getLogger('messageService');
 
@@ -77,7 +78,11 @@ export const messageService = {
         const { data: whispers, error: whisperErr } = await whisperQuery;
 
         if (whisperErr) {
-          log.error('Error fetching whispers:', whisperErr);
+          if (isAbortLikeError(whisperErr)) {
+            log.debug('[getAllMessagesForContact] whisper fetch aborted (contact switch)', { contactId });
+          } else {
+            log.error('Error fetching whispers:', whisperErr);
+          }
         } else if (whispers) {
           const mappedWhispers = (whispers as unknown as Record<string, unknown>[]).map((w) =>
             this.mapMessage({
@@ -117,7 +122,14 @@ export const messageService = {
 
       return allData.map((m) => this.mapMessage(m));
     } catch (err) {
-      log.error(`Critical error in getAllMessagesForContact for ${contactId}:`, err);
+      // RCA 2026-08-22 (auditoria pos-fix): abortar por troca rapida de contato
+      // agora passa por este catch com frequencia — nao e falha real do backend,
+      // nao deve virar Sentry.captureException a cada navegacao normal.
+      if (isAbortLikeError(err) || signal?.aborted) {
+        log.debug(`[getAllMessagesForContact] fetch aborted (contact switch) for ${contactId}`);
+      } else {
+        log.error(`Critical error in getAllMessagesForContact for ${contactId}:`, err);
+      }
       throw err;
     }
   },
