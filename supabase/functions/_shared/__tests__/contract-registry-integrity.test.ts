@@ -275,29 +275,50 @@ Deno.test("Registry Integrity: nenhum schema placeholder (z.object vazio) fora d
 //     unsupported_contract_version, mesmo sendo um payload v1 válido.
 //     Hoje nenhum contrato tem essa colisão (nenhum campo de negócio usa esses
 //     nomes) — este teste é o guard-rail estático que pega a regressão se
-//     alguém registrar um schema assim no futuro. Limitação conhecida: só
-//     cobre z.object (schemas discriminatedUnion, como sicoob-bridge, não
-//     expõem `.shape` e são pulados — checados manualmente na criação do
-//     fixture WEBHOOK_FIXTURES em contract-versioning.test.ts).
+//     alguém registrar um schema assim no futuro.
+//
+//     Etapa 59 (Bloco 5, 2026-08-22): a limitação original ("só cobre
+//     z.object; discriminatedUnion como sicoob-bridge não expõe `.shape` e é
+//     pulado") foi fechada — schemas z.discriminatedUnion agora têm cada
+//     branch (`._def.options`, mesmo padrão usado em adversarial-matrix.ts)
+//     verificado individualmente. `resolveRequestedVersion` em si continua
+//     lendo `body.version`/`contract_version` incondicionalmente (é assim que
+//     a negociação de versão funciona — não há como "consertar" isso em
+//     runtime sem quebrar o mecanismo); a mitigação real é este guard estático
+//     garantindo que nenhum schema registrado usa esses nomes para dado de
+//     negócio, agora incluindo uniões discriminadas.
+
+// deno-lint-ignore no-explicit-any
+function collectObjectShapes(schema: any): Record<string, any>[] {
+  if (!schema) return [];
+  if (schema._def?.typeName === "ZodObject") return [schema.shape];
+  if (schema._def?.typeName === "ZodDiscriminatedUnion") {
+    const options = (schema._def.options ?? []) as unknown[];
+    return options.flatMap((opt) => collectObjectShapes(opt));
+  }
+  if (schema._def?.typeName === "ZodEffects") return collectObjectShapes(schema._def.schema);
+  return []; // outros tipos (ZodArray, ZodUnion não-discriminada, etc.) — fora do escopo deste guard
+}
 
 Deno.test("Registry Integrity: nenhum schema de versão SEM metadata de contrato usa `version`/`contract_version` como campo de negócio", () => {
   const violations: string[] = [];
   for (const [name, versions] of Object.entries(CONTRACT_SCHEMAS)) {
     for (const [version, schema] of Object.entries(versions)) {
       if (!schema) continue;
-      const shape = (schema as z.ZodObject<any>).shape;
-      if (!shape) continue; // discriminatedUnion/outros — fora do escopo deste guard estático
-      for (const key of ["version", "contract_version"]) {
-        if (!(key in shape)) continue;
-        const fieldSchema = shape[key];
-        // Metadata de contrato legítima = z.literal("2.0") (ou similar) — não é
-        // dado de negócio arbitrário, é o próprio marcador de versão do envelope.
-        const isVersionLiteral = fieldSchema?._def?.typeName === "ZodLiteral";
-        if (!isVersionLiteral) {
-          violations.push(
-            `${name}@${version}: campo '${key}' não é z.literal(...) — colide com a negociação de ` +
-            `versão em resolveRequestedVersion (contract-kit.ts) e pode sequestrar payloads legítimos.`,
-          );
+      const shapes = collectObjectShapes(schema);
+      for (const shape of shapes) {
+        for (const key of ["version", "contract_version"]) {
+          if (!(key in shape)) continue;
+          const fieldSchema = shape[key];
+          // Metadata de contrato legítima = z.literal("2.0") (ou similar) — não é
+          // dado de negócio arbitrário, é o próprio marcador de versão do envelope.
+          const isVersionLiteral = fieldSchema?._def?.typeName === "ZodLiteral";
+          if (!isVersionLiteral) {
+            violations.push(
+              `${name}@${version}: campo '${key}' não é z.literal(...) — colide com a negociação de ` +
+              `versão em resolveRequestedVersion (contract-kit.ts) e pode sequestrar payloads legítimos.`,
+            );
+          }
         }
       }
     }

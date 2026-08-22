@@ -22,6 +22,11 @@
  *                         declara o mínimo (nunca assume).
  *   - invalid_enum:       campos z.enum(...) testados com um valor fora da
  *                         lista.
+ *   - explicit_null:      TODO campo (obrigatório ou opcional) testado com
+ *                         `null` explícito — aceito só se o schema declara
+ *                         `.nullable()`/`.nullish()` (etapa 65; ver comentário
+ *                         em adversarial-matrix.ts sobre por que não há um
+ *                         eixo separado pra `undefined` explícito).
  *   - extra_field:        campo desconhecido — rejeitado em .strict(),
  *                         aceito em .passthrough()/.strip() (o teste sabe
  *                         qual esperar lendo o unknownKeys real do schema).
