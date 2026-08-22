@@ -39,13 +39,23 @@ export function useInboxShortcuts({
   });
 
   // Navigation: Alt + Up/Down
+  // RCA 2026-08-21 (fan-out de fila / SupabaseQueueSaturatedError): manter a
+  // tecla pressionada gera dezenas de eventos `keydown` de auto-repeat do SO
+  // (e.repeat=true) por segundo. Cada um trocava de contato via
+  // handleSelectConversation, e cada troca remonta ChatPanel/ContactDetails
+  // (key={id}) disparando de novo o bundle inteiro de queries do contato —
+  // ~15 contatos em ~1,5s bastou para saturar a fila de 8 slots. Ignorar
+  // eventos de auto-repeat elimina o gatilho sem afetar navegação normal
+  // (um keydown real por press continua funcionando).
   useHotkeys('alt+up', (e) => {
     e.preventDefault();
+    if (e.repeat) return;
     onPrevConversation();
   }, { enabled });
 
   useHotkeys('alt+down', (e) => {
     e.preventDefault();
+    if (e.repeat) return;
     onNextConversation();
   }, { enabled });
 

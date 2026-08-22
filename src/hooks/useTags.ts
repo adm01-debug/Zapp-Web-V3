@@ -183,12 +183,14 @@ export function useContactTags(contactId: string | undefined) {
 
   const { data: contactTags = [], isLoading } = useQuery({
     queryKey: queryKeys.tags.contact(contactId),
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!contactId) return [];
 
       type ContactTagRow = { tag_id: string; tags: Tag | null };
-      const { data, error } = await safeClient.from<ContactTagRow>('contact_tags', (q) =>
-        q.select('tag_id, tags(*)').eq('contact_id', contactId ?? '')
+      const { data, error } = await safeClient.from<ContactTagRow>(
+        'contact_tags',
+        (q) => q.select('tag_id, tags(*)').eq('contact_id', contactId ?? ''),
+        signal
       );
 
       if (error) throw error;

@@ -65,6 +65,25 @@ export function useRealtimeFallbackRefetch({ enabled = true, intervalMs }: Optio
     // Per-contact caches: invalidate the family (no specific jid).
     void queryClient.invalidateQueries({ queryKey: queryKeys.evolutionConversations.contactAll() });
     void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.singleContactRoot() });
+    // RCA 2026-08-21: singleContactRoot() = ['contact'] só bate (prefix
+    // match) com singleContact(jid) = ['contact', jid]. Os hooks reais do
+    // painel de detalhe do contato usam prefixos hifenizados próprios —
+    // NUNCA eram sub-array de ['contact', ...], então esta invalidação
+    // nunca atingiu de fato intelligence/enriched/aiTags/customFields/
+    // assignment apesar do comentário "invalidate the family". Fix:
+    // invalidação por prefixo de 1 elemento casa com qualquer contactId em
+    // cache (mesmo padrão de matching do TanStack Query).
+    [
+      'contact-ai-tags', // useContactEnrichedData.ts
+      'contact-enriched', // useContactEnrichedData.ts
+      'contact-local-id', // useContactEnrichedData.ts
+      'contact-intelligence', // features/contacts/hooks/useContactIntelligence.ts (RPC)
+      'contact-intelligence-view', // hooks/useContactIntelligence.ts (rich view)
+      'contact-custom-fields', // features/contacts/hooks/useContactCustomFields.ts
+      'contact-assignment', // hooks/useCRMManagement.ts
+    ].forEach((prefix) => {
+      void queryClient.invalidateQueries({ queryKey: [prefix] });
+    });
     // Tag the reason on the window for ad-hoc debugging.
     try {
       (window as unknown as { __lastRealtimeFallback?: string }).__lastRealtimeFallback = // ignore-audit — window debug tag for devtools inspection

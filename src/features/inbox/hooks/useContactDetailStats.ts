@@ -33,9 +33,11 @@ export function useContactDetailStats(contactId: string): UseContactDetailStatsR
     queryKey: ['contact-detail-stats-csat', contactId],
     enabled: !!contactId && isValidUUID(contactId),
     staleTime: 60_000,
-    queryFn: async () => {
-      const { data } = await safeClient.from<{ rating: number }>('csat_surveys', (q) =>
-        q.select('rating').eq('contact_id', contactId)
+    queryFn: async ({ signal }) => {
+      const { data } = await safeClient.from<{ rating: number }>(
+        'csat_surveys',
+        (q) => q.select('rating').eq('contact_id', contactId),
+        signal
       );
       return data ?? [];
     },
@@ -48,9 +50,11 @@ export function useContactDetailStats(contactId: string): UseContactDetailStatsR
     queryKey: ['contact-detail-stats-closes', contactId],
     enabled: !!contactId && isValidUUID(contactId),
     staleTime: 60_000,
-    queryFn: async () => {
-      const { data } = await safeClient.from<{ id: string }>('conversation_events', (q) =>
-        q.select('id').eq('contact_id', contactId).eq('event_type', 'close')
+    queryFn: async ({ signal }) => {
+      const { data } = await safeClient.from<{ id: string }>(
+        'conversation_events',
+        (q) => q.select('id').eq('contact_id', contactId).eq('event_type', 'close'),
+        signal
       );
       return (data ?? []).map((r) => r.id);
     },

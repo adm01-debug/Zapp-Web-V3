@@ -24,13 +24,14 @@ export function useContactCustomFields(contactId: string | undefined) {
 
   const { data: fields = [], isLoading } = useQuery({
     queryKey,
-    queryFn: async (): Promise<CustomField[]> => {
+    queryFn: async ({ signal }): Promise<CustomField[]> => {
       if (!contactId) return [];
       const { data, error } = await supabase
         .from('contact_custom_fields')
         .select('*')
         .eq('contact_id', contactId)
-        .order('field_name');
+        .order('field_name')
+        .abortSignal(signal);
       if (error) {
         log.error('Error fetching custom fields:', error);
         throw error;

@@ -123,16 +123,30 @@ export function safeFrom(table: string): SafeQueryBuilder {
   return _dynamicClient.from(table);
 }
 
+// RCA 2026-08-21 (fan-out de fila / troca rápida de contato): nenhum caller
+// deste módulo conseguia propagar AbortSignal — a assinatura não tinha onde
+// plugar. O builder retornado por `queryBuilder(...)` ainda é "thenable"
+// (não vira Promise de verdade até o await), então ele ainda expõe
+// `.abortSignal()` do postgrest-js nesse ponto. Interceptamos aqui, antes do
+// await, em vez de exigir que cada hook conheça a API interna do builder.
+function withAbortSignal<B>(builder: B, signal: AbortSignal | undefined): B {
+  if (!signal) return builder;
+  const maybe = builder as unknown as { abortSignal?: (s: AbortSignal) => B };
+  return typeof maybe.abortSignal === 'function' ? maybe.abortSignal(signal) : builder;
+}
+
 /** safe Client. */
 export const safeClient = {
   async from<T = unknown>(
     table: string,
-    queryBuilder: (query: SafeQueryBuilder) => PromiseLike<{ data: unknown; error: unknown }>
+    queryBuilder: (query: SafeQueryBuilder) => PromiseLike<{ data: unknown; error: unknown }>,
+    signal?: AbortSignal
   ): Promise<SafeResponse<T[]>> {
     const requestId = crypto.randomUUID();
     telemetry.stats.totalCalls++;
     try {
-      const { data, error } = await queryBuilder(_dynamicClient.from(table));
+      const builder = withAbortSignal(queryBuilder(_dynamicClient.from(table)), signal);
+      const { data, error } = await builder;
       if (error) {
         this.log(requestId, 'error', `Erro na query from ${table}`, error);
         await this.recordFailure(
@@ -166,13 +180,15 @@ export const safeClient = {
     table: string,
     queryBuilder: (query: SafeQueryBuilder) => {
       single(): PromiseLike<{ data: unknown; error: unknown }>;
-    }
+    },
+    signal?: AbortSignal
   ): Promise<SafeResponse<T>> {
     const requestId = crypto.randomUUID();
     telemetry.stats.totalCalls++;
     try {
       validateTableName(table);
-      const { data, error } = await queryBuilder(_dynamicClient.from(table)).single();
+      const builder = withAbortSignal(queryBuilder(_dynamicClient.from(table)).single(), signal);
+      const { data, error } = await builder;
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
         await this.recordFailure(
@@ -198,11 +214,17 @@ export const safeClient = {
     }
   },
 
-  async rpc<T = unknown>(name: string, params?: Record<string, unknown>): Promise<SafeResponse<T>> {
+  async rpc<T = unknown>(
+    name: string,
+    params?: Record<string, unknown>,
+    signal?: AbortSignal
+  ): Promise<SafeResponse<T>> {
     const requestId = crypto.randomUUID();
     telemetry.stats.totalCalls++;
     try {
-      const { data, error } = await _rpcClient.rpc(name, params); // ignore-audit — dynamic RPC name not in generated union
+      // ignore-audit — dynamic RPC name not in generated union
+      const builder = withAbortSignal(_rpcClient.rpc(name, params), signal);
+      const { data, error } = await builder;
       if (error) {
         this.log(requestId, 'error', `Erro ao executar RPC ${name}`, error);
         await this.recordFailure(requestId, 'rpc', name, error.message || 'Erro desconhecido');

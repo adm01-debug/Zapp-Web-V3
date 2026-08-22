@@ -56,20 +56,28 @@ export function useAutomations({
     prevTagsRef.current = null;
   }, [remoteJid, instanceName]);
 
-  // Carrega regras ativas (refresh a cada 60s)
+  // Carrega regras ativas (refresh a cada 60s).
+  // RCA 2026-08-21: este effect roda em TODO mount de ChatPanel (deps=[]) —
+  // como ChatPanel usa key={id}, cada troca de contato remonta e refaz esta
+  // busca do zero. Sem AbortController, trocas rápidas deixavam requests
+  // órfãs competindo pelo semáforo do client Supabase mesmo depois de o
+  // componente já ter desmontado.
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     const load = async () => {
       try {
         const { data, error } = await supabase
           .from('automation_rules')
           .select('id,name,trigger_type,trigger_config,actions,is_active')
           .eq('is_active', true)
-          .order('name', { ascending: true });
+          .order('name', { ascending: true })
+          .abortSignal(controller.signal);
 
         if (error) throw error;
         if (!cancelled && data) rulesRef.current = data as AutomationRule[];
       } catch (err) {
+        if (cancelled) return;
         log.error('Error loading automation rules:', err);
       }
     };
@@ -78,6 +86,7 @@ export function useAutomations({
     const t = setInterval(load, 60_000);
     return () => {
       cancelled = true;
+      controller.abort();
       clearInterval(t);
     };
   }, []);

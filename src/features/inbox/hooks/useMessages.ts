@@ -23,9 +23,14 @@ export function useMessages({ contactId, enabled = true }: UseMessagesOptions) {
   const [error, setError] = useState<string | null>(null);
   const previousContactIdRef = useRef<string | null>(null);
   const mountedRef = useMountedRef();
+  // RCA 2026-08-21: sem AbortController, trocar de contato rapidamente não
+  // cancelava o fetch (potencialmente multi-página) do contato anterior —
+  // ele continuava ocupando slot do semáforo Supabase até resolver/timeout.
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fetch messages for contact
   const fetchMessages = useCallback(async () => {
+    abortControllerRef.current?.abort();
     if (!contactId || !mountedRef.current) {
       if (mountedRef.current) {
         setMessages([]);
@@ -35,21 +40,37 @@ export function useMessages({ contactId, enabled = true }: UseMessagesOptions) {
       return;
     }
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       setLoading(true);
       setError(null);
 
-      const mappedMessages = await messageService.getAllMessagesForContact(contactId);
+      const mappedMessages = await messageService.getAllMessagesForContact(
+        contactId,
+        controller.signal
+      );
 
-      if (mountedRef.current) setMessages(mappedMessages as Message[]);
+      if (mountedRef.current && !controller.signal.aborted) {
+        setMessages(mappedMessages as Message[]);
+      }
     } catch (err) {
+      if (controller.signal.aborted) return;
       log.error('Error fetching messages:', err);
       if (mountedRef.current)
         setError(err instanceof Error ? err.message : 'Failed to fetch messages');
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && !controller.signal.aborted) setLoading(false);
     }
   }, [contactId, mountedRef]);
+
+  // Cancela o fetch em voo ao desmontar (troca de contato via key={id} no
+  // pai, ou saída do inbox) — sem isso o request abandonado seguia
+  // ocupando o semáforo até resolver ou estourar timeout.
+  useEffect(() => {
+    return () => abortControllerRef.current?.abort();
+  }, []);
 
   // Handle new message from realtime
   const handleNewMessage = useCallback(

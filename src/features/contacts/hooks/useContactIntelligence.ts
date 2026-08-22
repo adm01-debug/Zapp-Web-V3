@@ -108,11 +108,13 @@ export function useContactIntelligence(phone: string | undefined) {
 
   return useQuery<ContactIntelligenceData | null>({
     queryKey: queryKeys.contactDetails.intelligence(cleanedPhone),
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!cleanedPhone || cleanedPhone.length < 8) return null;
-      const { data, error } = await dbGet(RPC.getContactIntelligenceByPhone, {
-        p_phone: cleanedPhone,
-      });
+      const { data, error } = await dbGet(
+        RPC.getContactIntelligenceByPhone,
+        { p_phone: cleanedPhone },
+        { signal }
+      );
       if (error) {
         log.error('Intelligence RPC error:', error);
         return null;

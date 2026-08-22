@@ -275,7 +275,7 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
 
   const { data, isLoading } = useQuery<ContactIntelligenceView | null>({
     queryKey: ['contact-intelligence-view', contactIdOrPhone],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!contactIdOrPhone) return null;
 
       const ident = resolveIdentifier(contactIdOrPhone);
@@ -295,6 +295,7 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
           .select('*')
           .or(ident.kind === 'uuid' ? `contact_id.eq.${ident.value}` : `phone.eq.${ident.value}`)
           .limit(1)
+          .abortSignal(signal)
           .maybeSingle();
         if (error) log.warn('contact_intelligence lookup failed:', error.message);
         raw = (intel ?? null) as unknown as RawIntel | null; // ignore-audit — ponte intencional: Row do PostgREST (schema zapp fora do types gerado) → RawIntel verificado
@@ -342,7 +343,8 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
             .from('evolution_messages' as never)
             .select('created_at')
             .order('created_at', { ascending: false })
-            .limit(1);
+            .limit(1)
+            .abortSignal(signal);
           if (ident.kind === 'uuid') {
             query = query.eq('contact_id', ident.value);
           } else {

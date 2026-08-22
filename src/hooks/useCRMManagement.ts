@@ -294,7 +294,7 @@ export function useContactAssignmentManagement(contactId?: string) {
 
   const { data, isLoading, refetch } = useQuery<ContactAssignment | null>({
     queryKey: [CONTACT_ASSIGNMENT_QUERY_KEY, validContactId] as const,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       // Guard defensivo — `enabled` já bloqueia; mantém o queryFn total.
       if (!validContactId) return null;
 
@@ -309,6 +309,7 @@ export function useContactAssignmentManagement(contactId?: string) {
             'id, contact_id, assigned_to_user_id, assigned_at, created_at, updated_at'
           )
           .eq('contact_id', validContactId)
+          .abortSignal(signal)
           .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         if (err && err.code !== 'PGRST116') throw err;
