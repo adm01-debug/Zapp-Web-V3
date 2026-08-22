@@ -39,7 +39,7 @@
 
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import {
-  handleCors, errorResponse, jsonResponse,
+  handleCors, errorResponse, errorEnvelope, jsonResponse,
   sanitizeString, isValidUUID, checkRateLimit, getClientIP, requireEnv, Logger, getCorsHeaders,
 } from "../_shared/validation.ts";
 import { timingSafeStringEqual } from "../_shared/auth.ts";
@@ -1189,7 +1189,7 @@ Deno.serve(async (req) => {
     }
 
     // IMPROVEMENT 7: Add correlationId to error response
-    const errorResp = errorResponse("Internal server error", 500, req);
+    const errorResp = errorEnvelope("internal_error", "Internal server error", 500, req);
     return ctx ? addCorrelationIdHeader(errorResp, ctx.correlationId) : errorResp;
   }
 });

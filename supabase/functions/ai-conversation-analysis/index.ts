@@ -2,7 +2,7 @@
  * STEP 4B Migration: ai-conversation-analysis now forwards to unified ai-router
  */
 
-import { handleCors, errorResponse, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, getCorsHeaders } from "../_shared/validation.ts";
 import { parseRequestOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("authorization");
-    if (!authHeader) return errorResponse("Unauthorized", 401, req);
+    if (!authHeader) return errorEnvelope("unauthorized", "Unauthorized", 401, req);
 
     // Contrato ai-conversation-analysis@v1 (estrito) — payload da ação
     // conversation_analysis validado antes de encaminhar ao ai-router.
@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     const body = parsed.data as Record<string, unknown>;
 
     const aiRouterUrl = Deno.env.get("AI_ROUTER_URL");
-    if (!aiRouterUrl) return errorResponse("AI_ROUTER_URL not configured", 503, req);
+    if (!aiRouterUrl) return errorEnvelope("ai_router_not_configured", "AI_ROUTER_URL not configured", 503, req);
     const res = await fetch(aiRouterUrl, {
       method: "POST",
       headers: {

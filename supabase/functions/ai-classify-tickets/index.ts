@@ -2,7 +2,7 @@
  * STEP 4B Migration: ai-classify-tickets now forwards to unified ai-router
  */
 
-import { handleCors, errorResponse, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, getCorsHeaders } from "../_shared/validation.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 
@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("authorization");
-    if (!authHeader) return errorResponse("Unauthorized", 401, req);
+    if (!authHeader) return errorEnvelope("unauthorized", "Unauthorized", 401, req);
 
     const raw = await req.json().catch(() => null);
     const parsed = parseOrReject("ai-classify-tickets", CONTRACT_SCHEMAS["ai-classify-tickets"], req, raw, {
@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     if (parsed.ok === false) return parsed.response;
     const body = parsed.data as Record<string, any>;
     const aiRouterUrl = Deno.env.get("AI_ROUTER_URL");
-    if (!aiRouterUrl) return errorResponse("AI_ROUTER_URL not configured", 503, req);
+    if (!aiRouterUrl) return errorEnvelope("ai_router_not_configured", "AI_ROUTER_URL not configured", 503, req);
     const res = await fetch(aiRouterUrl, {
       method: "POST",
       headers: {
