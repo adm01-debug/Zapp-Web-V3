@@ -240,13 +240,16 @@ const MATRICES: IntegrationCase[] = [
     ],
   },
   {
+    // Auditoria de re-verificação (Bloco 4/etapa 44): contact_id/agent_id
+    // viraram .uuid() (handler confirma lookup .eq('id', ...) contra
+    // tabelas com PK UUID) — fixtures migradas de "c1"/"a1" pro formato UUID.
     name: "sicoob-bridge-reply",
     valid: [
-      { contact_id: "c1", content: "Oi", message_id: "m1" },
-      { contact_id: "c1", content: "Oi" }, // message_id/created_at/agent_id opcionais
+      { contact_id: UUID, content: "Oi", message_id: "m1" },
+      { contact_id: UUID, content: "Oi" }, // message_id/created_at/agent_id opcionais
     ],
     extraPass: [
-      { contact_id: "c1", content: "x", created_at: "2026-01-01T00:00:00Z", agent_id: "a1", extra_field: true }, // extras passam
+      { contact_id: UUID, content: "x", created_at: "2026-01-01T00:00:00Z", agent_id: UUID, extra_field: true }, // extras passam
     ],
     invalid: [
       { label: "body primitivo (string)", payload: "x" },
@@ -254,6 +257,8 @@ const MATRICES: IntegrationCase[] = [
       // {} era aceito antes do fix do drift (schema tinha os dois optional
       // enquanto o handler sempre exigiu ambos via bloco 400 manual).
       { label: "{} sem contact_id/content", payload: {} },
+      { label: "contact_id fora do formato UUID (Bloco 4/etapa 44)", payload: { contact_id: "c1", content: "Oi" }, expectPath: "contact_id" },
+      { label: "agent_id fora do formato UUID (Bloco 4/etapa 44)", payload: { contact_id: UUID, content: "Oi", agent_id: "a1" }, expectPath: "agent_id" },
     ],
   },
   {
