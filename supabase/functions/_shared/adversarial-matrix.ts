@@ -417,8 +417,13 @@ export const SEED_OVERRIDES: Record<string, Record<string, unknown>> = {
 
 /**
  * Contratos que esperam multipart/form-data (campo File real), não JSON —
- * fora do denominador desta matriz por natureza (etapa 72 do plano trata
- * separado, com um harness de multipart dedicado).
+ * fora do denominador desta matriz por natureza. Cobertos separadamente por
+ * um harness dedicado (etapa 72):
+ * `_shared/__tests__/contract-multipart-matrix.test.ts`, com um `File` real
+ * construído à mão em vez de sintetizado (o sintetizador genérico deste
+ * arquivo não consegue produzir um `File` válido — `z.custom<File>` vira
+ * ZodAny na introspecção, e a síntese de ZodAny é a string `"x"`, que falha
+ * o `instanceof File` do refine).
  */
 export const MULTIPART_CONTRACTS = new Set<string>([
   "file-security-scanner",
@@ -453,10 +458,11 @@ export function buildAdversarialCases(
 
   const asDU = unwrapToDiscriminatedUnion(schema);
   if (asDU) {
-    // deno-lint-ignore no-explicit-any
+    // asDU já é `any` (retorno de unwrapToDiscriminatedUnion) — os casts
+    // abaixo só dão forma a um valor já-any, não introduzem `any` novo
+    // (por isso nenhum precisa de deno-lint-ignore no-explicit-any).
     const options = asDU._def.options as z.ZodObject<z.ZodRawShape>[];
     return options.map((opt) => {
-      // deno-lint-ignore no-explicit-any
       const discriminatorKey = asDU._def.discriminator as string;
       const base = seedOverride
         ? { ...synthesizeObject(opt), ...seedOverride }
