@@ -1,6 +1,6 @@
 # Edge Function Contract Validation — Guia de Referência
 
-> **Atualizado em:** 2026-08-04 (consolidação cobertura 100%)
+> **Atualizado em:** 2026-08-22 (doc-sync — Bloco 10, etapa 99, PLANO-100-CONTRATOS-EDGE)
 > **Arquivos-chave:** `supabase/functions/_shared/contract-kit.ts`, `contract-schemas.ts`, `contract-versions.ts`
 
 ## O que é
@@ -42,9 +42,17 @@ const raw = await req.json().catch(() => null);
 const parsed = parseOrReject('nome-da-funcao', CONTRACT_SCHEMAS['nome-da-funcao'], req, raw, {
   extraHeaders: getCorsHeaders(req),
 });
-if (!parsed.ok) return parsed.response;
+if (parsed.ok === false) return parsed.response; // NUNCA `if (!parsed.ok)` — ver nota abaixo
 const body = parsed.data as Record<string, any>; // NUNCA `unknown` (TS2322)
 ```
+
+**Narrowing (obrigatório):** o exemplo acima usava `if (!parsed.ok)` até 2026-08-22 —
+**errado**. O `tsconfig.json` do repo define `strictNullChecks: false`, herdado pelo
+Deno para `supabase/functions`; sob essa config a negação `!parsed.ok` NÃO estreita a
+union discriminada `ParseOk | ParseFail`, e `parsed.response`/`parsed.body` viram
+`TS2339` (incidente 2026-08-06: 122 ocorrências corrigidas em 117 `index.ts` + 9
+arquivos de teste). Use sempre `=== false` / `=== true`, que funciona sob qualquer
+config.
 
 Regras:
 - Gate **depois** de auth/rate-limit, **antes** de qualquer uso do body.
@@ -54,8 +62,11 @@ Regras:
   um 422 indevido em payload real do provedor causa perda de dados
   (incidente 2026-07-03, evolution-webhook).
 - Endpoints INTERNOS (UI/cron): schema **estrito** `.strict()` — falhar cedo.
-- Exceção: `whatsapp-webhook` responde 200+warning para payload inválido
-  (padrão Meta — 422 faria re-entrega infinita). Gate usado só para telemetria.
+- Exceção: `whatsapp-cloud-webhook` responde 200 mesmo pra payload
+  inválido/vazio da Meta (padrão do provedor — 422 causaria retry-storm de
+  redelivery). Gate usado só pra telemetria/versionamento, nunca pra rejeitar.
+  (Nome corrigido em 2026-08-22 — a doc citava `whatsapp-webhook`, que não
+  existe mais como diretório neste repo.)
 
 ## Registro (obrigatório duplo)
 
@@ -88,21 +99,35 @@ Todo contrato precisa de entrada em **AMBOS**:
 | `unified-error-format.test.ts` | Envelope 422 único em todas as funções |
 | `contract-gate-undefined-schema.test.ts` | Gate NUNCA lança com schema ausente (regressão P0) |
 | `contract-schemas-ai/integrations/infra.test.ts` | Casos válidos/inválidos (≥3-5 por schema) dos 45 schemas novos |
-| `contract-versioning.test.ts` | Retrocompat v1/v2 dos 4 webhooks + sunset + v9 |
+| `contract-versioning.test.ts` | Retrocompat v1/v2 dos 5 webhooks com sunset (ver "Estado" abaixo) + versão não suportada (v9) |
 
 ## Regra anti-placeholder
 
 `z.object({}).passthrough()` é PROIBIDO como schema de função (falsa cobertura —
 aceita qualquer payload) e a Invariante 9 quebra o CI se um surgir. Exceções
 legítimas (GET sem body, status/health) devem usar `EmptyStrictV1Schema`
-(aceita só `{}`). 6 contratos GET legítimos estão na allowlist explícita
-(`PLACEHOLDER_ALLOWLIST` em contract-registry-integrity.test.ts): email-track-link,
-email-track-pixel, webhook-secret-status, whatsapp-cloud-secrets-status,
-whatsapp-cloud-webhook-verify, gmail-health.
+(aceita só `{}`). 7 contratos estão na allowlist explícita
+(`PLACEHOLDER_ALLOWLIST` em contract-registry-integrity.test.ts, conferido em
+2026-08-22 — a lista anterior citava "gmail-health", que **não existe como
+diretório neste repo**): `email-track-link`, `email-track-pixel`,
+`webhook-secret-status`, `whatsapp-cloud-secrets-status`,
+`whatsapp-cloud-webhook-verify`, `auth-email-hook` (hook interno do Supabase Auth,
+sem diretório de função própria), `warroom-monthly-test` (entrada temporária até o
+workstream fechar o schema real).
 
-## Estado (2026-08-04)
+## Estado (2026-08-22, doc-sync — conferido ao vivo)
 
-- 118 edge functions: **116 com gate efetivo** + 2 exceções documentadas (main/mcp — proxies que não podem consumir o stream) = **118/118**
-- 118 contratos em `CONTRACT_SCHEMAS` + `CONTRACTS`
-- 4 webhooks com V2 + sunset: evolution, whatsapp-cloud, gmail, elevenlabs
-- 1800+ testes de contrato verdes (1829 em 2026-08-04)
+- **124 contratos** em `CONTRACT_SCHEMAS` e `CONTRACTS` (contagem idêntica dos dois
+  lados — sem drift, verificado via `Object.keys(...).length` nos dois registros).
+- **2 exceções documentadas de cobertura**: `main`/`mcp` (proxies que não podem
+  consumir o stream do body — ver `contract-coverage.test.ts`).
+- **5 webhooks com V2 + sunset** (corrigido — a versão anterior desta doc citava "4:
+  evolution, whatsapp-cloud, gmail, elevenlabs"; `elevenlabs-*` NUNCA teve
+  versionamento v1/v2, e faltavam os 2 contratos Sicoob): `evolution-webhook` (sunset
+  v1 2027-01-01), `whatsapp-cloud-webhook`, `gmail-webhook`, `sicoob-bridge`,
+  `sicoob-bridge-reply` (sunset v1 2027-06-01 nos últimos 4).
+- Contagem exata de testes de contrato varia conforme os arquivos evoluem — rode
+  `deno test supabase/functions/_shared/__tests__/` para o número corrente em vez de
+  confiar num total hardcoded nesta doc (ela sempre ficará desatualizada; o valor de
+  2026-08-04 aqui — "1800+, 1829" — já estava obsoleto há semanas quando esta seção
+  foi revisada).
