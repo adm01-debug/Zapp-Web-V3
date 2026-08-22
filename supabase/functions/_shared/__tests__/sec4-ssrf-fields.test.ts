@@ -12,7 +12,7 @@
  *     conecta via socket TCP direto, não fetch(), por isso um validador de
  *     HOSTNAME em vez de URL)
  */
-import { assertEquals } from "jsr:@std/assert";
+import { assert, assertEquals } from "jsr:@std/assert";
 import { CONTRACT_SCHEMAS } from "../contract-schemas.ts";
 import { isSafeHttpsUrl, isSafeHost } from "../schemas.ts";
 
@@ -40,6 +40,7 @@ const PRIVATE_URLS = [
 // ---- evolution-credentials-write.api_url ----------------------------------
 
 const EvoWriteSchema = CONTRACT_SCHEMAS["evolution-credentials-write"].v1;
+assert(EvoWriteSchema, "evolution-credentials-write@v1 deve estar registrado em CONTRACT_SCHEMAS");
 
 for (const url of PRIVATE_URLS) {
   Deno.test(`SEC-4: evolution-credentials-write.api_url bloqueia SSRF — ${url}`, () => {
@@ -76,6 +77,7 @@ Deno.test("SEC-4: zapp-n8n-sync baseUrl normalizado HTTPS público legítimo pas
 // ---- email-imap-bridge config.{imap_host,smtp_host} -----------------------
 
 const EmailImapSchema = CONTRACT_SCHEMAS["email-imap-bridge"].v1;
+assert(EmailImapSchema, "email-imap-bridge@v1 deve estar registrado em CONTRACT_SCHEMAS");
 
 for (const host of PRIVATE_HOSTS) {
   Deno.test(`SEC-4: email-imap-bridge config.imap_host bloqueia SSRF — ${host}`, () => {
