@@ -169,15 +169,16 @@ const WEBHOOK_FIXTURES = [
     },
   },
   {
+    // contact_id é .uuid() desde a auditoria de re-verificação (Bloco 4/etapa 44).
     name: "sicoob-bridge-reply",
     v2: {
-      contact_id: "c1",
+      contact_id: "3f0c8a4e-1b2d-4c5e-9f6a-7b8c9d0e1f2a",
       content: "Resposta registrada",
       version: "2.0",
       timestamp: Date.now(),
     },
     v1: {
-      contact_id: "c1",
+      contact_id: "3f0c8a4e-1b2d-4c5e-9f6a-7b8c9d0e1f2a",
       content: "Resposta registrada",
     },
   },

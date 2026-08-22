@@ -664,13 +664,22 @@ export const ElevenLabsTtsV1Schema = z.object({
  * 'string' || ..."). Agora obrigatórios no schema — o 422 canônico já
  * reprova; o bloco 400 manual foi removido. message_id/created_at/
  * agent_id continuam opcionais (agent_id vem do JWT quando ausente).
+ *
+ * Auditoria de re-verificação (Bloco 4/etapa 44): contact_id/agent_id
+ * endurecidos pra .uuid() — confirmado no handler (index.ts) que ambos
+ * são usados em `.eq('id', ...)` contra tabelas com PK UUID (`contacts`,
+ * `profiles`), e agent_id também é atribuído direto de `authed.user.id`
+ * (UUID do Supabase Auth). message_id NÃO virou .uuid(): é só repassado
+ * ao payload Sicoob sem lookup no handler, sem evidência de que seja
+ * sempre um UUID (pode ser um id de mensagem de outro sistema) — min/max
+ * aplicado por precaução, sem apertar o formato sem prova.
  */
 export const SicoobBridgeReplyV1Schema = z.object({
-  contact_id: z.string().min(1, "contact_id é obrigatório"),
+  contact_id: z.string().uuid("contact_id inválido"),
   content: z.string().min(1, "content é obrigatório"),
-  message_id: z.string().optional(),
+  message_id: z.string().min(1).max(200).optional(),
   created_at: z.string().optional(),
-  agent_id: z.string().optional(),
+  agent_id: z.string().uuid("agent_id inválido").optional(),
 }).passthrough();
 
 /**
