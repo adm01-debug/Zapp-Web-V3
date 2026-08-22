@@ -11,8 +11,9 @@
  * Regra de ouro: webhooks/payloads externos são PERMISSIVOS (.passthrough()
  * ou strip default do Zod) — campo desconhecido NUNCA pode derrubar a
  * ingestão. Por isso os casos "payload desconhecido extra" esperam SUCESSO.
- * Únicas exceções (unions discriminadas ESTRITAS, endpoints internos):
- * promogifts-catalog — campo extra no topo FALHA por design.
+ * Únicas exceções (ESTRITAS, endpoints internos — campo extra FALHA por
+ * design): promogifts-catalog (union discriminada) e create-user (Bloco
+ * 4/etapa 50, auditoria de re-verificação — endurecido de .passthrough()).
  *
  * body null → 422 invalid_json (parseOrReject) para todos os 14 contratos.
  *
@@ -109,28 +110,42 @@ const MATRICES: IntegrationCase[] = [
         job_title: "Suporte",
       },
     ],
-    extraPass: [
-      { email: "x@example.com", password: "senha12345", name: "X", extra: true }, // extras passam
-    ],
+    // Auditoria de re-verificação (Bloco 4/etapa 50): create-user é endpoint
+    // INTERNO (admin) — endurecido de .passthrough() pra .strict(). Não é
+    // mais um dos contratos permissivos desta matriz genérica (ver nota no
+    // topo do arquivo); o caso de campo extra migrou de extraPass pra invalid.
+    extraPass: [],
     invalid: [
       { label: "sem email/password/name", payload: {}, expectPath: "email" },
       { label: "password curta (<8)", payload: { email: "a@b.com", password: "123", name: "X" }, expectPath: "password" },
       { label: "email inválido", payload: { email: "bad", password: "senha12345", name: "X" }, expectPath: "email" },
       { label: "role fora do enum", payload: { email: "a@b.com", password: "senha12345", name: "X", role: "owner" }, expectPath: "role" },
+      { label: "campo extra desconhecido FALHA (strict)", payload: { email: "x@example.com", password: "senha12345", name: "X", extra: true } },
     ],
   },
   {
+    // Auditoria de re-verificação (Bloco 3/etapa 31-32): `action` era
+    // z.string().optional() (aceitava até `{}`) — endurecido pra z.enum()
+    // OBRIGATÓRIO com as 41 actions reais do router (kebab-case, ex.
+    // "send-text"/"send-media", não "sendText"/"sendMedia" — os casos abaixo
+    // usavam nomes que nunca existiram no handler real, só passavam porque o
+    // schema antigo não validava contra enum nenhum). A resolução de action-
+    // do-path (fallback quando o body não traz `action`) acontece no HANDLER
+    // (evolution-api/index.ts), antes do gate — aqui, testando o schema
+    // isoladamente via safeParse, `action` sempre precisa estar no payload.
     name: "evolution-api",
     valid: [
-      { action: "sendText", instanceName: "wpp2", number: "5511999999999" },
-      {}, // tudo opcional — proxy roteia por action
+      { action: "send-text", instanceName: "wpp2", number: "5511999999999" },
+      { action: "status", instance: "wpp2" },
     ],
     extraPass: [
-      { action: "sendMedia", instanceName: "wpp2", url: "https://x.com/a.jpg", mediatype: "image" }, // url/mediatype não estão no schema
-      { instance: "wpp2", remoteJid: "5511@s.whatsapp.net", key: { id: "k1" }, message: { text: "oi" }, extra: 1 },
+      { action: "send-media", instanceName: "wpp2", url: "https://x.com/a.jpg", mediatype: "image" }, // url/mediatype não estão no schema
+      { action: "mark-read", instance: "wpp2", remoteJid: "5511@s.whatsapp.net", key: { id: "k1" }, message: { text: "oi" }, extra: 1 },
     ],
     invalid: [
       { label: "body primitivo (string)", payload: "x" },
+      { label: "payload vazio {} FALHA — action agora é obrigatória (Bloco 3/etapa 31)", payload: {}, expectPath: "action" },
+      { label: "action fora do enum (nome antigo camelCase não existe mais)", payload: { action: "sendText" }, expectPath: "action" },
     ],
   },
   {

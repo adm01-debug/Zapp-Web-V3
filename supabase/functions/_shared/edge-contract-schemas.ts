@@ -206,10 +206,13 @@ export const CloudWebhookV1Schema = z.object({
                       phone_number_id: z.string().trim().min(1).optional(),
                     })
                     .optional(),
-                  contacts: z.array(z.any()).optional(),
-                  messages: z.array(z.any()).optional(),
-                  statuses: z.array(z.any()).optional(),
-                  errors: z.array(z.any()).optional(),
+                  // Auditoria de re-verificação (Bloco 4/etapa 48): shape
+                  // mínimo (objeto por elemento) — ver mesmo fix e racional
+                  // em _shared/webhook-schemas.ts (MetaWebhookChangeSchema).
+                  contacts: z.array(z.record(z.unknown())).optional(),
+                  messages: z.array(z.record(z.unknown())).optional(),
+                  statuses: z.array(z.record(z.unknown())).optional(),
+                  errors: z.array(z.record(z.unknown())).optional(),
                 })
                 .passthrough(),
             })
