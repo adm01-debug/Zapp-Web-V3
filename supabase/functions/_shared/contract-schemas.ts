@@ -302,10 +302,6 @@ export const GmailTokenRefreshV1Schema = z.object({
   accountId: z.string().max(200).nullish(),
 }).passthrough();
 
-
-/** email-health@v1 — GET health status (JWT required); no request body. */
-export const EmailHealthV1Schema = z.object({}).strict();
-
 // ─── Business/infra endpoints (v1 — estritos, derivados do consumo real) ────
 
 /**
@@ -1273,7 +1269,6 @@ export const InviteUserV1Schema = z.object({
   "whatsapp-cloud-secrets-status":  { v1: WhatsappCloudSecretsStatusV1Schema },
   "whatsapp-cloud-api":         { v1: WhatsappCloudApiV1Schema },
   "gmail-token-refresh":        { v1: GmailTokenRefreshV1Schema },
-  "email-health":               { v1: EmailHealthV1Schema },
   "email-track-link":           { v1: EmailTrackLinkV1Schema },
   "email-track-pixel":          { v1: EmailTrackPixelV1Schema },
   "zapp-sentry-sync":           { v1: SentrySyncV1Schema },

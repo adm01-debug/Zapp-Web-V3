@@ -77,7 +77,6 @@ export const EDGE_FUNCTION_NAMES = [
   'elevenlabs-tts',
   'elevenlabs-tts-stream',
   'elevenlabs-voice',
-  'email-health',
   'email-imap-bridge',
   'email-track-link',
   'email-track-pixel',

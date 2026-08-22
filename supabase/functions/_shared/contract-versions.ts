@@ -57,7 +57,6 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "whatsapp-cloud-secrets-status":{ current: "v1", supported: ["v1"] },
   "whatsapp-cloud-api":           { current: "v1", supported: ["v1"] },
   "gmail-token-refresh":          { current: "v1", supported: ["v1"] },
-  "email-health":                 { current: "v1", supported: ["v1"] },
   "email-track-link":             { current: "v1", supported: ["v1"] },
   "email-track-pixel":            { current: "v1", supported: ["v1"] },
 

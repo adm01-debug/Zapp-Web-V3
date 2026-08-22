@@ -1,3 +1,25 @@
+/**
+ * ADR (PLANO-100-CONTRATOS-EDGE, Bloco 9, etapas 83/94 — 2026-08-22):
+ * fonte de verdade FRONTEND-ONLY para validação client-side de UX antes do
+ * envio (único importador: useNewConversation.ts). O espelho backend
+ * (`_shared/criticalPayloadSchemas.ts`) foi deletado no #1354 e não é
+ * recriado — decisão consciente, não pendência:
+ *
+ * - Esta validação roda ANTES da requisição sair do browser (feedback
+ *   imediato de UX: telefone/mensagem vazios ou malformados). O CONTRATO
+ *   real de wire é validado separadamente, no backend, via `parseOrReject` +
+ *   `CONTRACT_SCHEMAS` (contract-schemas.ts) — são dois propósitos
+ *   diferentes (UX pré-envio vs. enforcement de contrato), não a mesma fonte
+ *   de verdade duplicada por acidente.
+ * - Por isso não há codegen: gerar este arquivo a partir do schema backend
+ *   acopla um formulário de UI a detalhes de um contrato de API que pode
+ *   mudar por motivos que nada têm a ver com UX (versionamento v1/v2,
+ *   sunset, etc.) — o risco de acoplamento indevido supera o ganho de
+ *   eliminar uma duplicação pequena e estável (2 campos: telefone/mensagem).
+ * - "Etapa 94" (remover `_shared/criticalPayloadSchemas.ts` "se confirmado
+ *   dead code") já estava satisfeita antes deste ADR: o arquivo backend não
+ *   existe desde o #1354 — não havia nada a remover.
+ */
 import { z } from 'zod';
 
 /** Contract Error Code. */
