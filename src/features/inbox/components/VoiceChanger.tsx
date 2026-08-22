@@ -176,7 +176,11 @@ export const VoiceChanger = memo(function VoiceChanger({
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({ error: 'Erro na conversão' }));
-        throw new Error(err.error || `Erro ${response.status}`);
+        throw new Error(
+          (typeof err.error === 'string' ? err.error : null) ||
+            err.message ||
+            `Erro ${response.status}`
+        );
       }
 
       setConversionProgress(100);

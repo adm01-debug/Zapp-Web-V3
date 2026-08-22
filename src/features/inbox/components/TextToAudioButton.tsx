@@ -91,7 +91,11 @@ export function TextToAudioButton({ inputValue, onAudioReady, disabled }: TextTo
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-        throw new Error(err.error || `Erro ${response.status}`);
+        throw new Error(
+          (typeof err.error === 'string' ? err.error : null) ||
+            err.message ||
+            `Erro ${response.status}`
+        );
       }
 
       const blob = await response.blob();

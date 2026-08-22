@@ -157,7 +157,11 @@ export function VoiceChangerPicker({ onSendAudio, disabled }: VoiceChangerPicker
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errData.error || `Error ${response.status}`);
+        throw new Error(
+          (typeof errData.error === 'string' ? errData.error : null) ||
+            errData.message ||
+            `Error ${response.status}`
+        );
       }
 
       const audioBlob = await response.blob();

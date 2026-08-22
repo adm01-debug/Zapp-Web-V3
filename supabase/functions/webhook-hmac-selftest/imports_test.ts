@@ -41,12 +41,19 @@ function extractSpecifiers(source: string): string[] {
   return specs;
 }
 
+// Auditoria de re-verificação (segunda rodada, 5 especialistas) — CONFIRMED:
+// o skip não excluía node_modules/ (causa erro de I/O ao ler pacotes
+// vendored no Windows durante o walk) nem *.spec.ts (arquivos de teste
+// estilo vitest, que importam de "vitest" — um specifier legitimamente
+// inválido para ESTE validador, que só entende o resolvedor do Deno). Sem
+// esses 2 excludes, o teste falhava por razões alheias ao que ele se propõe
+// a checar (imports quebrados nas EDGE FUNCTIONS de verdade).
 async function collectFunctionFiles(): Promise<string[]> {
   const files: string[] = [];
   for await (const entry of walk('./supabase/functions', {
     exts: ['ts'],
     includeDirs: false,
-    skip: [/_test\.ts$/, /\.test\.ts$/],
+    skip: [/_test\.ts$/, /\.test\.ts$/, /\.spec\.ts$/, /[/\\]node_modules[/\\]/],
   })) {
     files.push(entry.path);
   }

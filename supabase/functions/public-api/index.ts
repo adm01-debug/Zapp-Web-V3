@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     const { data: setting } = await supabase.from('global_settings').select('value').eq('key', 'api_token').single();
     if (!setting?.value || !timingSafeStringEqual(setting.value, apiKey)) {
       log.warn('Invalid API token attempt');
-      return errorEnvelope('unauthorized', 'Invalid API token', 403, req);
+      return errorEnvelope('forbidden', 'Invalid API token', 403, req);
     }
 
     if (req.method !== 'POST') return errorResponse('Method not allowed', 405, req);

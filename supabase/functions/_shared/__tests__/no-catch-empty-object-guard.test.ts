@@ -30,17 +30,27 @@
  * (sem espaços) ou a variante multi-linha passavam batido, sem alerta.
  * Confirmado com um fixture real: `req.json().catch(()=>({}))` passava
  * verde pelo guard antigo. Regex tolerante a espaçamento/quebra de linha
- * (`\s*`) e a `req`/`request` como nome do parâmetro. Residual conhecido,
- * não perseguido aqui: só cobre `req`/`request` como identificador — um
- * parâmetro com outro nome (não usado hoje em nenhuma function do repo,
- * confirmado por grep) escaparia; cobertura completa exigiria parsing AST,
- * não regex.
+ * (`\s*`) e a `req`/`request` como nome do parâmetro.
+ *
+ * Auditoria de re-verificação (segunda rodada, 5 especialistas) — CONFIRMED:
+ * a regex acima ainda exigia lista de parâmetros VAZIA (`() =>`) e só
+ * reconhecia arrow function com corpo `({})` ou `{return {};}` — deixando
+ * escapar variações sintaticamente triviais e prováveis: parâmetro nomeado
+ * com ou sem parênteses (`(e) =>`, `e =>`), function expression
+ * (`function () { return {}; }`), optional chaining (`req?.json()`) e
+ * cast/asserção dentro do literal (`({} as any)`, `({} satisfies T)`).
+ * Todas produzem o mesmo comportamento perigoso (JSON malformado vira `{}`
+ * silenciosamente) e nenhuma delas disparava o guard. Regex generalizada
+ * pra cobrir essas 5 variações. Residual conhecido, não perseguido aqui:
+ * arrow function `async`, parâmetro desestruturado (`({message}) =>`) e
+ * acesso computado (`req['json']()`) — cobertura completa exigiria parsing
+ * AST, não regex; nenhuma dessas variações aparece hoje no repo (grep).
  */
 import { assertEquals, assert } from "jsr:@std/assert";
 import { fromFileUrl } from "https://deno.land/std@0.168.0/path/mod.ts";
 
 const ANTIPATTERN =
-  /\breq(?:uest)?\s*\.\s*json\s*\(\s*\)\s*\.\s*catch\s*\(\s*\(\s*\)\s*=>\s*(?:\(\s*\{\s*\}\s*\)|\{\s*return\s*\{\s*\}\s*;?\s*\})\s*\)/;
+  /\breq(?:uest)?\s*\??\.\s*json\s*\(\s*\)\s*\.\s*catch\s*\(\s*(?:function\s*\w*\s*\([^)]*\)\s*|\(?\s*\w*\s*\)?\s*=>\s*)(?:\(\s*\{\s*\}(?:\s*(?:as|satisfies)\s+\w+)?\s*\)|\{\s*return\s+\{\s*\}(?:\s*(?:as|satisfies)\s+\w+)?\s*;?\s*\})\s*\)/;
 
 // Vazio — as 35 functions que tinham o antipadrão em 2026-08-21 foram
 // corrigidas (ver histórico acima). NÃO adicionar itens aqui sem
@@ -106,12 +116,20 @@ const SHOULD_MATCH = [
   "req.json().catch(() => { return {} })",
   "req  .json ()  .catch( ()  =>  ({}) )",
   "req.json().catch(()\t=>\t({}))",
+  // Auditoria de re-verificação — variações confirmadas como bypass da regex anterior.
+  "req.json().catch((e) => ({}))",
+  "req.json().catch(e => ({}))",
+  "req.json().catch(function () { return {}; })",
+  "req?.json().catch(() => ({}))",
+  "req.json().catch(() => ({} as any))",
+  "req.json().catch(() => ({} satisfies MyType))",
 ];
 const SHOULD_NOT_MATCH = [
   "req.json().catch(() => ({ ok: true }))",
   "req.json().catch(() => null)",
   "await readJsonBodyOrEmpty(req)",
   "req.text().catch(() => '')",
+  "req.json().catch((e) => ({ ok: e }))",
 ];
 
 Deno.test("Guard: regex do antipadrão cobre variações de espaçamento/quebra de linha e req/request", () => {
