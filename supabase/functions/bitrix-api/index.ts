@@ -1,5 +1,5 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
-import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders, validateBitrixOrigin, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, Logger, getCorsHeaders, validateBitrixOrigin, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
   })();
   if (!originCheck.ok && !isAppOrigin && !(allowNoOrigin && originCheck.reason === 'missing_origin')) {
     log.warn('rejected: invalid origin', { reason: originCheck.reason, origin: originCheck.origin });
-    return errorResponse('invalid origin', 401, req);
+    return errorEnvelope('invalid_origin', 'invalid origin', 401, req);
   }
 
   // Require authenticated Supabase user to prevent cross-app CRM data exfiltration
@@ -38,12 +38,12 @@ Deno.serve(async (req) => {
   if (authed instanceof Response) return authed;
 
   const rl = checkRateLimit(`bitrix-api:${authed.user.id}`, 30, 60_000);
-  if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
+  if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', 'Rate limit exceeded. Tente novamente em instantes.', 429, req);
 
   try {
     const BITRIX_WEBHOOK_URL = Deno.env.get('BITRIX_WEBHOOK_URL');
     if (!BITRIX_WEBHOOK_URL) {
-      return errorResponse('Bitrix não configurado. Configure BITRIX_WEBHOOK_URL nas configurações', 400, req);
+      return errorEnvelope('bitrix_not_configured', 'Bitrix não configurado. Configure BITRIX_WEBHOOK_URL nas configurações', 400, req);
     }
 
     const raw = await req.json().catch(() => null);
@@ -236,6 +236,6 @@ Deno.serve(async (req) => {
     return errorResponse('Endpoint não definido', 400, req);
   } catch (error: unknown) {
     log.error('Unhandled error', { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse('Internal server error', 500, req);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });

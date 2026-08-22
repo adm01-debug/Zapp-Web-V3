@@ -59,7 +59,7 @@
  * - Rejection reasons recorded (e.g., "Suspicious activity detected")
  * - Timestamps (reviewed_at) provide audit trail for change tracking
  */
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
   try {
     const ip = getClientIP(req);
     const rl = checkRateLimit(`approve-reset:${ip}`, 10, 60_000);
-    if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
+    if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', "Rate limit exceeded", 429, req);
 
     const authed = await requireAdminOrSupervisor(req);
     if (authed instanceof Response) return authed;
@@ -241,6 +241,6 @@ Deno.serve(async (req) => {
     }, 200, req);
   } catch (error: unknown) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse("Internal server error", 500, req);
+    return errorEnvelope('internal_error', "Internal server error", 500, req);
   }
 });

@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, Logger } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, Logger } from "../_shared/validation.ts";
 import { requireUser, requireServiceRoleOnly, getBearer, timingSafeStringEqual } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
@@ -141,6 +141,6 @@ Deno.serve(async (req) => {
       return errorResponse('Gateway timeout forwarding to Sicoob Gifts', 504, req, undefined, contractResponseHeaders);
     }
     log.error("Error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse('Internal server error', 500, req, undefined, contractResponseHeaders);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req, undefined, contractResponseHeaders);
   }
 });

@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, Logger, checkRateLimit, getClientIP, getCorsHeaders } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
 
   const ip = getClientIP(req);
   const rl = checkRateLimit(`invite-user:${ip}`, 5, 60_000);
-  if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
+  if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', "Rate limit exceeded", 429, req);
 
   try {
     const authed = await requireAdminOrSupervisor(req);
@@ -76,6 +76,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true, invite_id: inviteId, go_true_id: gtuInvite?.user?.id ?? null }, 200, req);
   } catch (e) {
     log.error("invite-user erro inesperado", { error: String(e) });
-    return errorResponse("Internal error", 500, req);
+    return errorEnvelope('internal_error', "Internal error", 500, req);
   }
 });

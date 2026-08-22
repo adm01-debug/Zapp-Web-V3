@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, Logger, getClientIP, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, errorEnvelope, jsonResponse, Logger, getClientIP, checkRateLimit } from "../_shared/validation.ts";
 import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -18,11 +18,11 @@ Deno.serve(async (req) => {
     const supabaseUser = createZappClient(req);
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
     if (userError || !user) {
-      return errorResponse("Unauthorized", 401, req);
+      return errorEnvelope('unauthorized', "Unauthorized", 401, req);
     }
 
     const rl = checkRateLimit(`detect-new-device:${user.id}`, 20, 60_000);
-    if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
+    if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', 'Rate limit exceeded. Tente novamente em instantes.', 429, req);
 
     log.info("User authenticated", { userId: user.id });
 
@@ -199,6 +199,6 @@ Deno.serve(async (req) => {
       : (error && typeof error === "object" && "message" in error) ? String((error as { message: unknown }).message)
       : JSON.stringify(error);
     log.error("Error", { error: msg });
-    return errorResponse('Internal server error', 500, req);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });

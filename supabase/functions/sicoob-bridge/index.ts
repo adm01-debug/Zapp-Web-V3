@@ -1,5 +1,5 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, requireEnv, Logger, getCorsHeaders } from "../_shared/validation.ts";
 import { timingSafeStringEqual } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization') ?? '';
 
     if (!timingSafeStringEqual(authHeader, `Bearer ${bridgeSecret}`)) {
-      return errorResponse('Unauthorized', 401, req);
+      return errorEnvelope('unauthorized', 'Unauthorized', 401, req);
     }
 
     const supabase = createZappAdminClient();
@@ -104,6 +104,6 @@ Deno.serve(async (req) => {
     }
   } catch (error) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse('Internal server error', 500, req, undefined, contractResponseHeaders);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req, undefined, contractResponseHeaders);
   }
 });

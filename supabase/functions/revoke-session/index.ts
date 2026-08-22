@@ -18,7 +18,7 @@
  * Ordem auth→gate é o oráculo do repo (micro-auditoria 2026-08-05): anônimo
  * recebe 401, nunca 422 do contrato.
  */
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, Logger, checkRateLimit } from "../_shared/validation.ts";
 import { createZappClient } from "../_shared/db-client.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
 
     const rl = checkRateLimit(`revoke-session:${authed.user.id}`, 30, 60_000);
     if (!rl.allowed) {
-      return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
+      return errorEnvelope('rate_limit_exceeded', 'Rate limit exceeded. Tente novamente em instantes.', 429, req);
     }
 
     log.info("User authenticated", { userId: authed.user.id });
@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
         return errorResponse('Authorization check failed', 500, req);
       }
       if (!isPriv) {
-        return errorResponse('Forbidden: you can only revoke your own sessions', 403, req);
+        return errorEnvelope('forbidden', 'Forbidden: you can only revoke your own sessions', 403, req);
       }
       isAdmin = true;
     }
@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
     if (revokeError) {
       // Defesa em profundidade: RPC nega com 42501 → traduz para 403.
       if ((revokeError as { code?: string }).code === '42501') {
-        return errorResponse('Forbidden: you can only revoke your own sessions', 403, req);
+        return errorEnvelope('forbidden', 'Forbidden: you can only revoke your own sessions', 403, req);
       }
       log.error('sessions_revoke failed', { error: revokeError, sessionId: body.sessionId });
       return errorResponse('Failed to revoke session', 500, req);
@@ -110,6 +110,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true, revoked }, 200, req);
   } catch (error) {
     log.error('Unhandled error', { error: String(error) });
-    return errorResponse('Internal server error', 500, req);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });
