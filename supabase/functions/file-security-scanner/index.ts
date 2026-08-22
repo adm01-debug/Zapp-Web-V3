@@ -1,4 +1,4 @@
-import { handleCors, getCorsHeaders, errorResponse, jsonResponse, requireEnv, Logger, securityErrorResponse, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, getCorsHeaders, errorEnvelope, jsonResponse, requireEnv, Logger, securityErrorResponse, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
 
     const rl = checkRateLimit(`file-security-scanner:${authed.user.id}`, 5, 60_000);
     if (!rl.allowed) {
-      return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
+      return errorEnvelope('rate_limit_exceeded', 'Rate limit exceeded. Tente novamente em instantes.', 429, req);
     }
 
     const VIRUSTOTAL_API_KEY = requireEnv("VIRUSTOTAL_API_KEY");

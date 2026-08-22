@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP, readJsonBodyOrEmpty } from "../_shared/validation.ts";
+import { handleCors, errorEnvelope, jsonResponse, Logger, checkRateLimit, getClientIP, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron, requireUser } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { isSafeMediaCdnUrl } from "../_shared/evolution-media.ts";
@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
   try {
     const ip = getClientIP(req);
     const rl = checkRateLimit(`batch-avatars:${ip}`, 5, 60_000);
-    if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
+    if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', "Rate limit exceeded", 429, req);
     const supabase = createZappAdminClient();
 
     const { data: contacts, error: contactsError } = await supabase
@@ -106,6 +106,6 @@ Deno.serve(async (req) => {
     }, 200, req);
   } catch (err: unknown) {
     log.error("Batch avatar error", { error: err instanceof Error ? err.message : String(err) });
-    return errorResponse('Internal server error', 500, req);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });

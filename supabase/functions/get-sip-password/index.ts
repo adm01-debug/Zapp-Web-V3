@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP, readJsonBodyOrEmpty } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP, readJsonBodyOrEmpty } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
   try {
     const ip = getClientIP(req);
     const rl = checkRateLimit(`sip-pwd:${ip}`, 10, 60_000);
-    if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
+    if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', "Rate limit exceeded", 429, req);
 
     // Server-side JWT verification via Supabase Auth API (replaces getClaims local decode)
     const authed = await requireUser(req);
@@ -38,6 +38,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ password, profileId: profile.id }, 200, req);
   } catch (error) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse('Internal server error', 500, req);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });

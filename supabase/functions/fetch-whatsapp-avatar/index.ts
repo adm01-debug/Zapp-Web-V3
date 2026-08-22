@@ -9,6 +9,7 @@
 import {
   withHandler,
   errorResponse,
+  errorEnvelope,
   jsonResponse,
   checkRateLimit,
   getClientIP,
@@ -61,7 +62,7 @@ Deno.serve(withHandler("fetch-whatsapp-avatar", async (req, log) => {
   if (authed instanceof Response) return authed;
   const ip = getClientIP(req);
   const rl = checkRateLimit(`avatar:${ip}`, 30, 60_000);
-  if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
+  if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', "Rate limit exceeded", 429, req);
 
   const raw = await req.json().catch(() => null);
   const parsed = parseOrReject("fetch-whatsapp-avatar", CONTRACT_SCHEMAS["fetch-whatsapp-avatar"], req, raw, {

@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+import { handleCors, errorEnvelope, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
 import { callAiWithTracking, extractUserIdFromRequest } from "../_shared/ai-usage.ts";
@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
   try {
     const ip = getClientIP(req);
     const { allowed } = checkRateLimit(`chatbot:${ip}`, 30, 60_000);
-    if (!allowed) return errorResponse("Rate limit exceeded. Please try again later.", 429, req);
+    if (!allowed) return errorEnvelope('rate_limit_exceeded', "Rate limit exceeded. Please try again later.", 429, req);
 
     // Contrato chatbot-l1@v1 (estrito) — validação unificada 422 (parseOrReject).
     const raw = await req.json().catch(() => null);

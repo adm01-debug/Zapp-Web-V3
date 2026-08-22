@@ -1,5 +1,5 @@
 import { createZappAdminClient } from '../_shared/db-client.ts';
-import { getCorsHeaders, handleCors, jsonResponse, errorResponse, Logger, readJsonBodyOrEmpty } from '../_shared/validation.ts';
+import { getCorsHeaders, handleCors, jsonResponse, errorResponse, errorEnvelope, Logger, readJsonBodyOrEmpty } from '../_shared/validation.ts';
 import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { AutoCloseConversationsV1Schema } from '../_shared/contract-schemas.ts';
@@ -94,6 +94,6 @@ Deno.serve(async (req) => {
     }, 200, req);
   } catch (error) {
     log.error('Unexpected error', { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse('Internal server error', 500, req);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });

@@ -13,7 +13,7 @@
 //
 // Secrets NUNCA vêm de zapp.crm_sync_config.settings (regra de ouro SIM-CRM):
 // BITRIX_WEBHOOK_URL vive em env da edge (padrão provado do bitrix-api).
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, Logger, checkRateLimit, getCorsHeaders } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../_shared/contract-schemas.ts";
@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
   if (authed instanceof Response) return authed;
 
   const rl = checkRateLimit(`zapp-crm-sync:${authed.user.id}`, 30, 60_000);
-  if (!rl.allowed) return errorResponse("Rate limit exceeded. Tente novamente em instantes.", 429, req);
+  if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', "Rate limit exceeded. Tente novamente em instantes.", 429, req);
 
   try {
     const raw = await req.json().catch(() => null);
@@ -230,6 +230,6 @@ Deno.serve(async (req) => {
     }
   } catch (error: unknown) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse("Internal server error", 500, req);
+    return errorEnvelope('internal_error', "Internal server error", 500, req);
   }
 });
