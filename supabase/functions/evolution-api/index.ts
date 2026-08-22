@@ -49,15 +49,24 @@ Deno.serve(async (req) => {
   const safeJsonParse = (text: string): Record<string, unknown> => {
     try { const p = JSON.parse(text); return (typeof p === 'object' && p !== null && !Array.isArray(p)) ? p : { raw: text }; } catch { return { raw: text }; }
   };
+  // Auditoria de re-verificação (Bloco 3/etapa 32, CONFIRMED): `action` era lida
+  // do body e resolvida via fallback pra `pathAction` DEPOIS do gate — então o
+  // schema nunca via a action de verdade quando o caller confiava no path
+  // (padrão comum, ex. .../evolution-api/status). Resolve-se aqui, ANTES do
+  // parseOrReject, e injeta-se no body pra o enum obrigatório de
+  // EvolutionApiV1Schema.action validar a action REAL, não uma string vazia.
+  const resolveAction = (raw: string | undefined): string => (!raw || raw === 'evolution-api') ? pathAction : raw;
+
   const getParsedBody = async () => {
     const ct = req.headers.get('content-type') || '';
     if (ct.includes('multipart/form-data')) {
       if (_formDataCache) return { isMultipart: true, data: _formDataCache };
       try {
         const fd = await req.formData();
-        const raw = Object.fromEntries(fd.entries()); // preserva File (multipart)
-        // Contrato evolution-api@v1 (permissivo — roteado por action no handler):
-        // gate no ramo multipart, após auth.
+        const raw = Object.fromEntries(fd.entries()) as Record<string, unknown>; // preserva File (multipart)
+        raw.action = resolveAction(typeof raw.action === 'string' ? raw.action : undefined);
+        // Contrato evolution-api@v1 (roteado por action no handler): gate no
+        // ramo multipart, após auth, com a action já resolvida do path.
         const parsed = parseOrReject('evolution-api', CONTRACT_SCHEMAS['evolution-api'], req, raw, { extraHeaders: corsHeaders });
         if (parsed.ok === false) return parsed.response;
         _formDataCache = parsed.data as Record<string, any>;
@@ -67,7 +76,8 @@ Deno.serve(async (req) => {
     if (_bodyCache !== null) return { isMultipart: false, data: _bodyCache };
     try { _bodyCache = await req.json(); } catch { _bodyCache = {}; }
     if (typeof _bodyCache !== 'object' || _bodyCache === null || Array.isArray(_bodyCache)) _bodyCache = {};
-    // Contrato evolution-api@v1 — gate no ramo JSON, após auth.
+    (_bodyCache as Record<string, unknown>).action = resolveAction(typeof (_bodyCache as Record<string, unknown>).action === 'string' ? (_bodyCache as Record<string, unknown>).action as string : undefined);
+    // Contrato evolution-api@v1 — gate no ramo JSON, após auth, com a action já resolvida do path.
     const parsed = parseOrReject('evolution-api', CONTRACT_SCHEMAS['evolution-api'], req, _bodyCache!, { extraHeaders: corsHeaders });
     if (parsed.ok === false) return parsed.response;
     return { isMultipart: false, data: parsed.data as Record<string, any> };
@@ -86,8 +96,9 @@ Deno.serve(async (req) => {
   const bodyResult = await getParsedBody();
   if (bodyResult instanceof Response) return bodyResult;
   const { isMultipart, data: bodyForAction } = bodyResult;
-  let action = safeGet(bodyForAction, 'action', isMultipart) || '';
-  if (!action || action === 'evolution-api') action = pathAction;
+  // action já foi resolvida (path como fallback) e validada contra o enum
+  // pelo gate em getParsedBody() — chega aqui sempre não-vazia e válida.
+  const action = safeGet(bodyForAction, 'action', isMultipart) || pathAction;
   const idemKey = (req.headers.get('idempotency-key') || req.headers.get('x-idempotency-key') || '').trim() || undefined;
   const proxy = (path: string, method = 'POST', proxyBody?: unknown, proxyOpts?: ProxyToEvolutionOptions) => proxyToEvolution(evolutionApiUrl, evolutionApiKey, corsHeaders, path, method, proxyBody, undefined, idemKey, proxyOpts);
   try {

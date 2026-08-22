@@ -984,12 +984,41 @@ export const TranscribeAudioInternalV1Schema = z.object({
 
  /** evolution-api@v1 — valida no index.ts via edge-contract-schemas.ts. Schema de registro. */
  /**
+ * Ações reconhecidas pelo router de evolution-api/index.ts (extraídas por
+ * grep de todo `action === '...'` no handler — auditoria de re-verificação,
+ * Bloco 3/etapa 31-32). Qualquer action fora desta lista já não tem rota:
+ * o handler cai no fallback `unknown_action` (404) de qualquer forma, então
+ * exigir o enum no gate só move essa rejeição pra 422 antes do handshake
+ * com a Evolution API, sem mudar nenhum caminho válido existente.
+ */
+const EVOLUTION_API_ACTIONS = [
+  'archive-chat', 'check-numbers', 'connect', 'create-instance', 'delete-message',
+  'fetch-profile', 'find-chats', 'find-contacts', 'find-labels', 'find-messages',
+  'find-status-messages', 'get-media-base64', 'get-settings', 'get-webhook',
+  'handle-label', 'instance-info', 'list-instances', 'mark-read', 'mark-unread',
+  'pairing-code', 'read-messages', 'send-audio', 'send-buttons', 'send-chat-presence',
+  'send-contact', 'send-list', 'send-location', 'send-media', 'send-poll', 'send-ptv',
+  'send-reaction', 'send-status', 'send-sticker', 'send-template', 'send-text',
+  'set-settings', 'set-webhook', 'status', 'update-block-status',
+  'update-profile-name', 'update-profile-status',
+] as const;
+
+/**
  * evolution-api@v1 — real. Consumo: proxy roteado por action (fallback
- * pathAction); instanceName|instance, number, remoteJid|chat, readMessages,
- * key, message etc. (JSON ou multipart). Permissivo — validação real no endpoint.
+ * pathAction, resolvido e injetado no body ANTES do gate pelo handler —
+ * ver evolution-api/index.ts); instanceName|instance, number, remoteJid|chat,
+ * readMessages, key, message etc. (JSON ou multipart).
+ *
+ * Auditoria de re-verificação (Bloco 3/etapa 31, CONFIRMED): `action` era
+ * `z.string().optional()` e `key`/`message` eram `z.unknown()` — payload `{}`
+ * passava no gate sem reprovar (o "furo grave" da function de maior tráfego
+ * do sistema). `action` agora é enum OBRIGATÓRIO (fecha `{}` → 422); `key`/
+ * `message`, quando presentes, precisam ser objeto (rejeita string/número/
+ * array/boolean óbvios sem exigir um shape fixo — o shape real varia por
+ * action e já é validado dentro do handler onde importa, ex. get-media-base64).
  */
 export const EvolutionApiV1Schema = z.object({
-  action: z.string().optional(),
+  action: z.enum(EVOLUTION_API_ACTIONS),
   instanceName: z.string().optional(),
   instance: z.string().optional(),
   // Bloco 4 (2026-08-21): aceitava qualquer string; number recebe telefone
@@ -999,8 +1028,8 @@ export const EvolutionApiV1Schema = z.object({
   remoteJid: z.string().optional(),
   chat: z.string().optional(),
   readMessages: z.boolean().optional(),
-  key: z.unknown().optional(),
-  message: z.unknown().optional(),
+  key: z.record(z.unknown()).optional(),
+  message: z.record(z.unknown()).optional(),
 }).passthrough();
 
  // ─── Alias local para schema importado de schemas.ts ────────────────────────
