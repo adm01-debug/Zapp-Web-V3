@@ -302,10 +302,6 @@ export const GmailTokenRefreshV1Schema = z.object({
   accountId: z.string().max(200).nullish(),
 }).passthrough();
 
-
-/** email-health@v1 — GET health status (JWT required); no request body. */
-export const EmailHealthV1Schema = z.object({}).strict();
-
 // ─── Business/infra endpoints (v1 — estritos, derivados do consumo real) ────
 
 /**
@@ -415,7 +411,11 @@ export const ZappEmailInboundWebhookV1Schema = z.object({
   text: z.string().max(2_000_000).optional(),
   html: z.string().max(5_000_000).optional(),
   attachments: z.array(EmailAttachmentV1Schema).max(20).optional(),
-  headers: z.unknown().optional(),
+  // Auditoria de re-verificação (Bloco 4/etapa 49): último z.unknown() bruto
+  // do arquivo. headers de e-mail (Resend) são sempre um objeto — tighten
+  // pra z.record(z.unknown()) rejeita string/number/array óbvios sem exigir
+  // shape fixo (o provider pode adicionar headers novos a qualquer momento).
+  headers: z.record(z.unknown()).optional(),
   date: z.string().max(100).optional(),
 }).passthrough().superRefine((val, ctx) => {
   // Bloco 2 (etapa 23, 2026-08-21 — fecha D2): regras portadas de
@@ -861,8 +861,14 @@ export const ElevenLabsDialogueV1Schema = z.object({
  /**
   * create-user@v1 — schema REAL (espelha o antigo bodySchema local, agora
   * validado pelo gate). email/password/name obrigatórios com limites;
-  * role default 'agent'; google_services default []. Endpoint interno
-  * (admin) → permissivo em extras, igual ao schema local.
+  * role default 'agent'; google_services default [].
+  *
+  * Auditoria de re-verificação (Bloco 4/etapa 50): endpoint INTERNO (admin)
+  * — endurecido de .passthrough() pra .strict(). Único caller real
+  * (useAdminData.ts handleCreateUser) auditado campo a campo antes da troca;
+  * achado e removido em conjunto um campo morto (`email_email`, duplicata
+  * acidental de `email` que o backend nunca lia — silenciosamente
+  * descartado sob passthrough, teria virado 422 sob strict).
   */
  export const CreateUserV1Schema = z.object({
    email: z.string().email("Email inválido").max(255),
@@ -876,7 +882,7 @@ export const ElevenLabsDialogueV1Schema = z.object({
    gmail_email: z.string().email("Email Gmail inválido").max(255).optional(),
    google_services: z.array(z.enum(["google_sheets", "google_docs", "google_calendar", "google_drive"])).optional().default([]),
    dropbox_email: z.string().email("Email Dropbox inválido").max(255).optional(),
-   }).passthrough();
+   }).strict();
 
 /**
  * approve-password-reset@v1 — Bloco 2/3 (2026-08-21): schema antigo validava
@@ -911,12 +917,19 @@ export const RequestPasswordResetV1Schema = z
   * interno (frontend autenticado). action obrigatório; userId só para
   * admin/supervisor (alvo de outro usuário); sessionIds obrigatório para
   * action=revoke. UUIDs validados no gate.
+  *
+  * Auditoria de re-verificação (Bloco 4/etapa 50): CONTRATO ÓRFÃO — grep
+  * confirma zero handler (`supabase/functions/zapp-auth-sessions/` não
+  * existe) e zero chamador no frontend. Endurecido de .passthrough() pra
+  * .strict() por consistência com os demais endpoints internos (sem risco,
+  * já que não há tráfego real usando este nome hoje — ver ESTADO.md grupo F
+  * / etapa 96 do plano pra decisão de arquivar vs. implementar de fato).
   */
 export const ZappAuthSessionsV1Schema = z.object({
   action: z.enum(["list", "revoke", "revoke_all"]),
   userId: z.string().uuid("userId inválido").optional(),
   sessionIds: z.array(z.string().uuid("sessionId inválido")).min(1).max(100).optional(),
-}).passthrough();
+}).strict();
 
 /**
  * revoke-session@v1 — revogação de sessão ativa (Etapa 56, PR #1179). Endpoint
@@ -1265,7 +1278,6 @@ export const InviteUserV1Schema = z.object({
   "whatsapp-cloud-secrets-status":  { v1: WhatsappCloudSecretsStatusV1Schema },
   "whatsapp-cloud-api":         { v1: WhatsappCloudApiV1Schema },
   "gmail-token-refresh":        { v1: GmailTokenRefreshV1Schema },
-  "email-health":               { v1: EmailHealthV1Schema },
   "email-track-link":           { v1: EmailTrackLinkV1Schema },
   "email-track-pixel":          { v1: EmailTrackPixelV1Schema },
   "zapp-sentry-sync":           { v1: SentrySyncV1Schema },

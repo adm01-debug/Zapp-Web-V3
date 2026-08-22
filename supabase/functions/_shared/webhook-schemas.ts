@@ -47,9 +47,17 @@ export const MetaWebhookChangeSchema = z.object({
         phone_number_id: z.string().trim().min(1).optional(),
       })
       .optional(),
-    contacts: z.array(z.any()).optional(),
-    messages: z.array(z.any()).optional(),
-    statuses: z.array(z.any()).optional(),
+    // Auditoria de re-verificação (Bloco 4/etapa 48): z.array(z.any()) exigia
+    // literalmente zero estrutura (até `[1,2,3]` ou `["x"]` passava). Shape
+    // MÍNIMO — cada elemento precisa ser um objeto — sem fixar o shape
+    // detalhado por tipo de mensagem (text/image/audio/interactive/...):
+    // normalizeMetaPayload (_shared/whatsapp-cloud-normalizer.ts) já faz sua
+    // própria extração defensiva campo a campo com fallbacks, então travar o
+    // schema no shape completo hoje só arriscaria rejeitar variações válidas
+    // que a Meta envie amanhã, sem ganho real de segurança.
+    contacts: z.array(z.record(z.unknown())).optional(),
+    messages: z.array(z.record(z.unknown())).optional(),
+    statuses: z.array(z.record(z.unknown())).optional(),
   }),
 });
 

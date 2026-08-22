@@ -101,6 +101,11 @@ Proxima medicao planejada: T1 (apos E24 — Phase 1 completa)
 Nenhum chamador em: front, outra edge function, cron ativo, N8N.
 Decisao de arquivar e do responsavel — esta lista e diagnostico, nao sentenca.
 
+> `email-health` arquivada em 2026-08-22 (PLANO-100-CONTRATOS-EDGE, Bloco 9,
+> etapa 96) — evidencia de contorno deliberado (frontend ja documentava "a
+> edge nao existe, dado real vem do RPC"), nao so ausencia de chamador. ADR
+> completo em `docs/_archive/email-health-ADR-2026-08-22.md`.
+
 | Funcao | Mencoes em teste | Mencoes em doc |
 |---|---|---|
 | `ai-auto-tag` | 0 | 0 |
@@ -108,7 +113,6 @@ Decisao de arquivar e do responsavel — esta lista e diagnostico, nao sentenca.
 | `cleanup-rate-limit-logs` | 0 | 0 |
 | `contact-media` | 0 | 0 |
 | `db-health-monitor` | 0 | 0 |
-| `email-health` | 0 | 1 |
 | `evolution-retry-metrics` | 0 | 0 |
 | `fetch-whatsapp-avatar` | 0 | 0 |
 | `file-security-scanner` | 0 | 0 |
