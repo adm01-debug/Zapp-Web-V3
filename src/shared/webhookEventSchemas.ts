@@ -7,7 +7,8 @@ import { z } from 'zod';
 /**
  * Typed error codes used by safeParseEvent and aligned with the backend contract-kit.ts.
  *
- * Backend codes (contract-kit.ts): `invalid_json`, `contract_violation`, `unsupported_contract_version`
+ * Backend codes (contract-kit.ts): `invalid_json`, `contract_violation`, `unsupported_contract_version`,
+ * `contract_version_sunset` (etapa 55, Bloco 5 — versão suportada mas com sunset expirado, HTTP 410)
  * Frontend codes (local validation): `INVALID_PAYLOAD`, `INVALID_EVENT_SHAPE`
  *
  * All codes are valid in both directions — the frontend must handle backend error responses
@@ -18,6 +19,7 @@ export enum ContractErrorCode {
   INVALID_JSON = 'invalid_json',
   CONTRACT_VIOLATION = 'contract_violation',
   UNSUPPORTED_CONTRACT_VERSION = 'unsupported_contract_version',
+  CONTRACT_VERSION_SUNSET = 'contract_version_sunset',
 
   // Frontend-local codes (local schema validation)
   INVALID_PAYLOAD = 'INVALID_PAYLOAD',
@@ -29,6 +31,7 @@ export type ContractErrorCodeValue =
   | 'invalid_json'
   | 'contract_violation'
   | 'unsupported_contract_version'
+  | 'contract_version_sunset'
   | 'INVALID_PAYLOAD'
   | 'INVALID_EVENT_SHAPE';
 

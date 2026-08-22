@@ -8,7 +8,9 @@
  *   - um payload MÍNIMO VÁLIDO (synthesizeObject) — sem precisar de fixture
  *     manual por contrato;
  *   - casos adversariais por campo: obrigatório ausente, tipo trocado,
- *     string vazia (quando o schema já exige min-length), enum inválido;
+ *     string vazia (quando o schema já exige min-length), enum inválido,
+ *     valor `null` explícito (etapa 65 — aceito só quando o campo declara
+ *     `.nullable()`/`.nullish()` ou aceita qualquer tipo);
  *   - caso de campo extra desconhecido (rejeitado em .strict(), aceito em
  *     .passthrough()/.strip()).
  *
@@ -31,12 +33,15 @@ interface Unwrapped {
   typeName: string;
   required: boolean;
   hasDefault: boolean;
+  /** true quando algum wrapper `.nullable()` foi atravessado — `null` é um valor válido. */
+  isNullable: boolean;
 }
 
 function unwrap(schema: z.ZodTypeAny): Unwrapped {
   let current = schema;
   let required = true;
   let hasDefault = false;
+  let isNullable = false;
   // eslint-disable-next-line no-constant-condition
   while (true) {
     // deno-lint-ignore no-explicit-any
@@ -50,6 +55,7 @@ function unwrap(schema: z.ZodTypeAny): Unwrapped {
       // .nullable() SEM .optional() ainda exige a CHAVE presente no payload
       // (aceita null como valor, mas não omissão) — Zod.isOptional() também
       // trata assim. Só desembrulha pro tipo base, não mexe em `required`.
+      isNullable = true;
       current = def.innerType;
       continue;
     }
@@ -69,7 +75,7 @@ function unwrap(schema: z.ZodTypeAny): Unwrapped {
     break;
   }
   // deno-lint-ignore no-explicit-any
-  return { type: current, typeName: (current as any)._def.typeName, required, hasDefault };
+  return { type: current, typeName: (current as any)._def.typeName, required, hasDefault, isNullable };
 }
 
 /** Acha o ZodObject real por trás de wrappers ZodEffects (superRefine no objeto todo). */
@@ -199,7 +205,14 @@ export function synthesizeObject(schema: z.ZodObject<z.ZodRawShape>): Record<str
 // ─── Geração de casos adversariais ─────────────────────────────────────────
 
 export interface AdversarialCase {
-  axis: "missing_required" | "wrong_type" | "empty_string" | "invalid_enum" | "extra_field" | "happy_path";
+  axis:
+    | "missing_required"
+    | "wrong_type"
+    | "empty_string"
+    | "invalid_enum"
+    | "extra_field"
+    | "explicit_null"
+    | "happy_path";
   fieldName?: string;
   payload: unknown;
   /** true = o schema deve REJEITAR este payload; false = deve ACEITAR. */
@@ -371,6 +384,30 @@ export function buildCasesForObject(
         expectReject: true,
       });
     }
+
+    // Etapa 65 (Bloco 6): eixo `explicit_null` — todo campo, obrigatório ou
+    // não, testado com valor `null` explícito. `.nullable()` aceita; sem
+    // `.nullable()`, Zod rejeita `null` mesmo em campo `.optional()` (que só
+    // aceita AUSÊNCIA/`undefined`, não `null`) — é uma confusão real de schema
+    // design (campo pensado como "opcional" quando o front manda `null` em
+    // vez de omitir a chave, ex.: `JSON.stringify({x: undefined})` vs
+    // `{x: null}`). ZodAny/ZodUnknown aceitam qualquer JSON, incluindo null,
+    // então nunca rejeitam aqui independente de `.nullable()`.
+    // Deliberadamente NÃO existe um terceiro eixo "explicit_undefined": ao
+    // nível de payload JSON (o que de fato trafega em produção — body vem de
+    // `req.json()`), uma chave com `undefined` explícito não é serializável
+    // (`JSON.stringify` a remove) e, mesmo só no nível de objeto JS, o Zod lê
+    // `data[fieldName]` da mesma forma em "chave ausente" e "chave presente
+    // com valor `undefined`" — os dois casos são indistinguíveis para
+    // `safeParse`. Um terceiro eixo duplicaria `missing_required` sem testar
+    // nada novo.
+    const acceptsAnyValue = uw.typeName === "ZodAny" || uw.typeName === "ZodUnknown";
+    cases.push({
+      axis: "explicit_null",
+      fieldName,
+      payload: { ...validBase, [fieldName]: null },
+      expectReject: !uw.isNullable && !acceptsAnyValue,
+    });
   }
 
   // deno-lint-ignore no-explicit-any

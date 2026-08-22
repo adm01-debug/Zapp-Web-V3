@@ -22,7 +22,11 @@ import {
 import { parseOrReject } from "../../_shared/contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../../_shared/contract-schemas.ts";
 
-const MIN = { contact_id: "c1", content: "Resposta registrada" };
+// Auditoria de re-verificação (Bloco 4/etapa 44): contact_id/agent_id
+// viraram .uuid() — fixtures migradas de "c1"/"a1" pro formato UUID.
+const CONTACT_UUID = "3f0c8a4e-1b2d-4c5e-9f6a-7b8c9d0e1f2a";
+const AGENT_UUID = "5c1a2b3c-4d5e-6f70-8192-a3b4c5d6e7f8";
+const MIN = { contact_id: CONTACT_UUID, content: "Resposta registrada" };
 
 // ─── Schema V1 ───────────────────────────────────────────────────────────────
 
@@ -31,7 +35,7 @@ Deno.test("Contract: sicoob-bridge-reply v1 — payload completo válido", () =>
     ...MIN,
     message_id: "m1",
     created_at: "2026-08-06T12:00:00Z",
-    agent_id: "a1",
+    agent_id: AGENT_UUID,
   };
   const result = SicoobBridgeReplyV1Schema.safeParse(payload);
   assertEquals(result.success, true);
@@ -52,7 +56,7 @@ Deno.test("Contract: sicoob-bridge-reply v1 — contact_id ausente rejeitado", (
 });
 
 Deno.test("Contract: sicoob-bridge-reply v1 — content ausente rejeitado", () => {
-  assertEquals(SicoobBridgeReplyV1Schema.safeParse({ contact_id: "c1" }).success, false);
+  assertEquals(SicoobBridgeReplyV1Schema.safeParse({ contact_id: CONTACT_UUID }).success, false);
 });
 
 Deno.test("Contract: sicoob-bridge-reply v1 — null rejeitado", () => {
@@ -67,17 +71,27 @@ Deno.test("Contract: sicoob-bridge-reply v1 — tipos errados rejeitados", () =>
 });
 
 Deno.test("Contract: sicoob-bridge-reply v1 — content vazio rejeitado (min 1)", () => {
-  assertEquals(SicoobBridgeReplyV1Schema.safeParse({ contact_id: "c1", content: "" }).success, false);
+  assertEquals(SicoobBridgeReplyV1Schema.safeParse({ contact_id: CONTACT_UUID, content: "" }).success, false);
 });
 
-Deno.test("Contract: sicoob-bridge-reply v1 — contact_id vazio rejeitado (min 1)", () => {
+Deno.test("Contract: sicoob-bridge-reply v1 — contact_id vazio rejeitado (formato UUID)", () => {
   assertEquals(SicoobBridgeReplyV1Schema.safeParse({ contact_id: "", content: "ok" }).success, false);
+});
+
+// Auditoria de re-verificação (Bloco 4/etapa 44): contact_id/agent_id agora
+// exigem formato UUID de verdade — "c1"/"a1" (aceitos antes) devem reprovar.
+Deno.test("Contract: sicoob-bridge-reply v1 — contact_id fora do formato UUID rejeitado", () => {
+  assertEquals(SicoobBridgeReplyV1Schema.safeParse({ contact_id: "c1", content: "ok" }).success, false);
+});
+
+Deno.test("Contract: sicoob-bridge-reply v1 — agent_id fora do formato UUID rejeitado", () => {
+  assertEquals(SicoobBridgeReplyV1Schema.safeParse({ ...MIN, agent_id: "a1" }).success, false);
 });
 
 Deno.test("Contract: sicoob-bridge-reply v1 — content só espaços aceito (min 1 não faz trim)", () => {
   // Zod .min(1) conta caracteres, não faz trim — "   " tem length 3.
   // Trim/normalização de conteúdo em branco é decisão de produto, não de contrato.
-  assertEquals(SicoobBridgeReplyV1Schema.safeParse({ contact_id: "c1", content: "   " }).success, true);
+  assertEquals(SicoobBridgeReplyV1Schema.safeParse({ contact_id: CONTACT_UUID, content: "   " }).success, true);
 });
 
 Deno.test("Contract: sicoob-bridge-reply v1 — campos extras passam (passthrough, dual-mode service-role)", () => {

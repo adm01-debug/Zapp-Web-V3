@@ -11,6 +11,16 @@
  * - `sunset` (opcional, ISO date) marca quando uma versão legacy será
  *   removida. Enquanto `Date.now() < sunset`, requests dessa versão são
  *   aceitos, mas a resposta ganha o header `x-contract-deprecated: true`.
+ *   Quando `Date.now() >= sunset` (política definida na etapa 55, Bloco 5),
+ *   a versão passa a ser rejeitada com 410 Gone (`contract_version_sunset`)
+ *   em `parseOrReject` — MAS só para quem pede a versão explicitamente
+ *   (header `x-contract-version` ou body.version/contract_version). Payloads
+ *   auto-detectados pelo formato antigo (sem versão explícita — o caminho de
+ *   webhooks externos que nunca setam esse header) continuam aceitos para
+ *   sempre; ver o comentário do bloco 4 em `contract-kit.ts` para o porquê.
+ *   A versão permanece listada em `supported` (documentação/introspecção);
+ *   é o runtime que decide, a cada request, com base na data corrente — não
+ *   é necessário um deploy no dia exato do sunset para a transição valer.
  */
 
 export interface ContractSpec {
@@ -47,7 +57,6 @@ export const CONTRACTS: Record<string, ContractSpec> = {
   "whatsapp-cloud-secrets-status":{ current: "v1", supported: ["v1"] },
   "whatsapp-cloud-api":           { current: "v1", supported: ["v1"] },
   "gmail-token-refresh":          { current: "v1", supported: ["v1"] },
-  "email-health":                 { current: "v1", supported: ["v1"] },
   "email-track-link":             { current: "v1", supported: ["v1"] },
   "email-track-pixel":            { current: "v1", supported: ["v1"] },
 
@@ -181,4 +190,23 @@ export function isDeprecatedVersion(name: string, version: string): boolean {
   const sunset = spec.sunset?.[version];
   if (!sunset) return false;
   return Date.parse(sunset) > Date.now();
+}
+
+/**
+ * Etapa 55 (Bloco 5, política de sunset): verifica se a data de sunset de uma
+ * versão já PASSOU. `isDeprecatedVersion` cobre a janela de aviso (sunset no
+ * futuro); esta função cobre o que acontece depois — quando `Date.now()`
+ * ultrapassa a data, a versão vira `contract_version_sunset` (410 Gone) em
+ * `parseOrReject` (contract-kit.ts), em vez de continuar aceita
+ * silenciosamente para sempre (gap original: `isDeprecatedVersion` retorna
+ * `false` tanto para "sem sunset" quanto para "sunset expirado", sem
+ * distinguir os dois casos e sem nenhuma consequência no segundo).
+ * Retorna `false` quando não há sunset configurado (nunca expira).
+ */
+export function isSunsetExpired(name: string, version: string): boolean {
+  const spec = CONTRACTS[name];
+  if (!spec) return false;
+  const sunset = spec.sunset?.[version];
+  if (!sunset) return false;
+  return Date.parse(sunset) <= Date.now();
 }

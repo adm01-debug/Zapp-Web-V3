@@ -113,11 +113,11 @@ export interface InviteUserPayload {
 async function extractInvokeErrorMessage(error: unknown): Promise<string | null> {
   if (typeof error !== 'object' || error === null || !('context' in error)) return null;
   const ctx = (error as { context?: unknown }).context as
-    | { json?: () => Promise<{ error?: string }> }
-    | undefined;
+    { json?: () => Promise<{ error?: string | boolean; message?: string }> } | undefined;
   if (!ctx || typeof ctx.json !== 'function') return null;
   try {
     const body = await ctx.json();
+    if (typeof body?.message === 'string' && body.message.length > 0) return body.message;
     return typeof body?.error === 'string' && body.error.length > 0 ? body.error : null;
   } catch {
     return null;
@@ -288,7 +288,6 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
     email: string;
     password: string;
     role: AppRole;
-    email_email?: string;
     google_services?: string[];
     dropbox_email?: string;
   }
@@ -333,7 +332,6 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
               email: payload.email,
               password: payload.password,
               role: payload.role,
-              email_email: payload.email_email || undefined,
               google_services: payload.google_services,
               dropbox_email: payload.dropbox_email || undefined,
             },

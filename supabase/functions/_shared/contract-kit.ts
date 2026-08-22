@@ -10,6 +10,15 @@
  *     (tenta da versão mais nova para a mais antiga entre as `supported`).
  *  3. RETROCOMPATIBILIDADE — versões em período de sunset continuam aceitas,
  *     mas a resposta ganha `x-contract-deprecated: true` + header `sunset`.
+ *  4. PÓS-SUNSET (etapa 55, Bloco 5) — quando `Date.now()` ultrapassa a data
+ *     de sunset, a versão PEDIDA EXPLICITAMENTE (header `x-contract-version`
+ *     ou body.version/contract_version) passa a ser rejeitada: 410 Gone,
+ *     código `contract_version_sunset`. A auto-detecção (payload sem versão
+ *     explícita, casando por FORMATO) continua aceitando o shape antigo para
+ *     sempre — é o caminho usado por webhooks externos (Meta/Sicoob/
+ *     evolution-stack), que nunca setam `x-contract-version`; bloquear esse
+ *     caminho reproduziria em definitivo o incidente 2026-07-03 abaixo. Ver
+ *     `isSunsetExpired` em `contract-versions.ts`.
  *
  * Regras de segurança operacional (incidente 2026-07-03, evolution-webhook):
  *  - Schemas de webhooks EXTERNOS devem ser permissivos (`.nullish()`,
@@ -17,9 +26,10 @@
  *    perda de dados. Rigor total fica para endpoints internos/da UI.
  *
  * Códigos de erro canônicos:
- *  - `invalid_json`                 → body ausente, não-JSON ou não-objeto/array
- *  - `contract_violation`           → JSON válido, mas fora do schema
- *  - `unsupported_contract_version` → versão pedida não está em `supported`
+ *  - `invalid_json`                 → body ausente, não-JSON ou não-objeto/array (422)
+ *  - `contract_violation`           → JSON válido, mas fora do schema (422)
+ *  - `unsupported_contract_version` → versão pedida não está em `supported` (422)
+ *  - `contract_version_sunset`      → versão suportada, mas sunset já expirou (410)
  *
  * CONVENÇÃO DE NARROWING (obrigatória em call sites e testes):
  *  Use `if (parsed.ok === false)` — NUNCA `if (!parsed.ok)`. O tsconfig.json
@@ -32,7 +42,7 @@
  */
 
 import { z } from "https://esm.sh/zod@3.23.8";
-import { CONTRACTS, contractLabel, isDeprecatedVersion } from "./contract-versions.ts";
+import { CONTRACTS, contractLabel, isDeprecatedVersion, isSunsetExpired } from "./contract-versions.ts";
 
 export { z };
 
@@ -42,7 +52,8 @@ export { z };
 export type ContractErrorCode =
   | "invalid_json"
   | "contract_violation"
-  | "unsupported_contract_version";
+  | "unsupported_contract_version"
+  | "contract_version_sunset";
 
 /** Contract Error Detail interface definition. */
 export interface ContractErrorDetail {
@@ -161,8 +172,20 @@ export function buildContractErrorBody(
 }
 
 function errorResponse422(body: ContractErrorBody, extraHeaders: Record<string, string> = {}): Response {
+  return errorResponseWithStatus(422, body, extraHeaders);
+}
+
+/**
+ * Etapa 55: `contract_version_sunset` responde 410 Gone (não 422) — a versão
+ * não é "payload inválido", é um recurso que deixou de existir.
+ */
+function errorResponseWithStatus(
+  status: number,
+  body: ContractErrorBody,
+  extraHeaders: Record<string, string> = {},
+): Response {
   return new Response(JSON.stringify(body), {
-    status: 422,
+    status,
     headers: { ...extraHeaders, "Content-Type": "application/json" },
   });
 }
@@ -240,6 +263,19 @@ export function parseOrReject<T = unknown>(
     return { ok: false, response: errorResponse422(eb, extra), body: eb };
   }
 
+  // 2b) Versão explícita cujo sunset já passou → 410 Gone (etapa 55).
+  // Continua em `supported` (documentação), mas o runtime não aceita mais.
+  if (requested && isSunsetExpired(contractName, requested)) {
+    const sunsetDate = spec?.sunset?.[requested];
+    const eb = buildContractErrorBody(
+      contractName, requested, "contract_version_sunset",
+      `Versão '${requested}' foi desativada em ${sunsetDate} (sunset). Use a versão atual: ${current}.`,
+      [{ path: "version", message: `sunset expirado em ${sunsetDate}; migre para ${current}` }],
+      opts.requestId,
+    );
+    return { ok: false, response: errorResponseWithStatus(410, eb, extra), body: eb };
+  }
+
   // 3) Ordem de tentativa: explícita, ou da mais NOVA para a mais antiga (retrocompat).
   const candidates = requested
     ? [requested]
@@ -269,6 +305,15 @@ export function parseOrReject<T = unknown>(
       return { ok: false, response: errorResponse422(eb, extra), body: eb };
     }
     if (result.success) {
+      // Etapa 55 — decisão deliberada: o 410 pós-sunset (bloco 2b acima) só
+      // dispara para versão PEDIDA EXPLICITAMENTE (header x-contract-version
+      // ou campo version/contract_version no body). Na auto-detecção (este
+      // branch, `requested` é null) o candidato bateu por FORMATO do payload,
+      // não porque o chamador afirmou usar a versão antiga — é exatamente o
+      // caminho que webhooks externos (Meta/Sicoob/evolution-stack) usam,
+      // porque eles nunca setam x-contract-version. Bloquear aqui reproduziria
+      // o incidente 2026-07-03 documentado no topo do arquivo (422/410 indevido
+      // em payload real do provedor = perda de dados), só que permanente.
       const deprecated = isDeprecatedVersion(contractName, v);
       return {
         ok: true,
