@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, errorResponse, errorEnvelope, jsonResponse, Logger, checkRateLimit, getCorsHeaders } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
     const rl = checkRateLimit(`voice-copilot-action:${authed.user.id}`, 30, 60_000);
-    if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
+    if (!rl.allowed) return errorEnvelope('rate_limit_exceeded', 'Rate limit exceeded', 429, req);
     const raw = await req.json().catch(() => null);
     const parsed = parseOrReject('voice-copilot-action', CONTRACT_SCHEMAS['voice-copilot-action'], req, raw, { extraHeaders: getCorsHeaders(req) });
     if (parsed.ok === false) return parsed.response;
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
           .select('id')
           .eq('id', contactId)
           .maybeSingle();
-        if (contactCheckError) return errorResponse('Database error', 500, req);
+        if (contactCheckError) return errorEnvelope('database_error', 'Database error', 500, req);
         if (!contactCheck) {
           result = { summary: 'Nenhuma análise disponível para este contato.' };
           break;
@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
           .eq('id', contactId)
           .eq('user_id', authed.user.id)
           .maybeSingle();
-        if (ownedContactError) return errorResponse('Database error', 500, req);
+        if (ownedContactError) return errorEnvelope('database_error', 'Database error', 500, req);
         if (!ownedContact) {
           result = { success: false, message: 'Contato não encontrado.' };
           break;
@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
           .eq('id', contactId)
           .eq('user_id', authed.user.id)
           .maybeSingle();
-        if (ownedContactErr) return errorResponse('Database error', 500, req);
+        if (ownedContactErr) return errorEnvelope('database_error', 'Database error', 500, req);
         if (!ownedContact) {
           result = { success: false, message: 'Contato não encontrado.' };
           break;
@@ -225,6 +225,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ result }, 200, req);
   } catch (error) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse('Internal server error', 500, req);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });

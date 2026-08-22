@@ -9,6 +9,7 @@
 import {
   handleCors,
   errorResponse,
+  errorEnvelope,
   jsonResponse,
   checkRateLimit,
   getClientIP,
@@ -41,7 +42,7 @@ Deno.serve(async (req) => {
   try {
     const ip = getClientIP(req);
     const { allowed } = checkRateLimit(`stt:${ip}`, 10, 60_000);
-    if (!allowed) return errorResponse("Limite de transcrições excedido. Tente novamente em 1 minuto.", 429, req);
+    if (!allowed) return errorEnvelope("rate_limit_exceeded", "Limite de transcrições excedido. Tente novamente em 1 minuto.", 429, req);
 
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
@@ -81,7 +82,7 @@ Deno.serve(async (req) => {
     if (!response.ok) {
       const detail = (await response.text().catch(() => "")).substring(0, 300);
       log.error("ElevenLabs STT error", { status: response.status, detail });
-      if (response.status === 429) return errorResponse("Rate limit exceeded.", 429, req);
+      if (response.status === 429) return errorEnvelope("rate_limit_exceeded", "Rate limit exceeded.", 429, req);
       if (response.status === 401) return errorResponse("Invalid ElevenLabs API key.", 401, req);
       // Degradação suave: o frontend trata `text` vazio sem quebrar a UX.
       return jsonResponse({ text: "", fallback: true, error: "TRANSCRIPTION_FAILED" }, 200, req);
@@ -98,6 +99,6 @@ Deno.serve(async (req) => {
       return jsonResponse({ text: "", fallback: true, error: "TRANSCRIPTION_TIMEOUT" }, 200, req);
     }
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse('Internal server error', 500, req);
+    return errorEnvelope('internal_error', 'Internal server error', 500, req);
   }
 });
