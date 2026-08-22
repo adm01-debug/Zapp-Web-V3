@@ -134,15 +134,12 @@ for (const contractName of Object.keys(CONTRACT_SCHEMAS)) {
 // Etapa 73 (Bloco 6): baseline DURÁVEL do total de casos gerados — antes só
 // existia um console.log (número flutuante, nunca comparado com nada,
 // ninguém notaria uma queda real de cobertura). Piso hardcoded ligeiramente
-// abaixo do total real medido nesta branch (1070). Nota: a PR da etapa 65
-// (eixo explicit_null, ainda não mergeada nesta branch) eleva o total real
-// pra ~1581 quando presente — o piso aqui é conservador de propósito (o
-// mínimo garantido só com o que ESTE branch tem) para não quebrar antes do
-// merge da etapa 65; suba o piso depois que ela integrar. Se um contrato for
-// removido do gerador por engano, ou um eixo quebrar, o teste FALHA em vez
-// de só logar um número menor. Nunca abaixe o piso pra "consertar" uma queda
-// real sem investigar a causa.
-const MIN_TOTAL_CASES_BASELINE = 1050;
+// abaixo do total real medido após o merge da etapa 65 (eixo explicit_null)
+// + remoção de email-health (Bloco 9, etapa 96): 1580 casos, 126 contrato@
+// versão. Se um contrato for removido do gerador por engano, ou um eixo
+// quebrar, o teste FALHA em vez de só logar um número menor. Nunca abaixe o
+// piso pra "consertar" uma queda real sem investigar a causa.
+const MIN_TOTAL_CASES_BASELINE = 1550;
 
 Deno.test("Field Matrix: resumo", () => {
   const untestable = allUnsupportedWrongType.filter((u) => EXPECTED_UNTESTABLE_REASON.test(u.reason));
