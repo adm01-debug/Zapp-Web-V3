@@ -29,7 +29,7 @@ interface Filters {
   page: number;
 }
 
-/** Fetches email infrastructure health from the `email-health` edge function, subscribes to realtime changes, and exposes revalidation and action handlers. */
+/** Fetches email infrastructure health via RPC (rpc_get_email_health_summary) + local telemetry (safeClient), subscribes to realtime changes, and exposes revalidation and action handlers. */
 export function useEmailHealthStatus() {
   const { accounts } = useEmail();
   const [health, setHealth] = useState<EmailHealthInfo | null>(null);
@@ -53,8 +53,10 @@ export function useEmailHealthStatus() {
     async (signal?: AbortSignal) => {
       setLoading(true);
       try {
-        // A edge `email-health` não existe (404 silencioso). O dado real vem do
-        // RPC rpc_get_email_health_summary + telemetria local (safeClient).
+        // Fonte: RPC rpc_get_email_health_summary + telemetria local
+        // (safeClient) — a edge `email-health` foi arquivada em 2026-08-22
+        // (ADR em docs/_archive/email-health-ADR-2026-08-22.md); nunca teve
+        // uso real em produção, este caminho RPC sempre foi o definitivo.
         const info = await emailHealthService.getHealthStatus();
         if (signal?.aborted || !mountedRef.current) return;
         setHealth(info);
@@ -128,8 +130,9 @@ export function useEmailHealthStatus() {
   }, [filters, loadHealth]);
 
   const handleRevalidate = async () => {
-    // A edge `email-health` não existe; a revalidação é local (limpa o cache de
-    // telemetria dos recursos críticos). Jobs em email_revalidation_jobs são
+    // Revalidação é local (limpa o cache de telemetria dos recursos
+    // críticos) — não passa por edge function (ver ADR de arquivamento de
+    // email-health citado acima). Jobs em email_revalidation_jobs são
     // disparados pelo backend e refletidos pelo realtime abaixo.
     const revalidatePromise = async () => {
       await emailHealthService.forceRevalidation();
