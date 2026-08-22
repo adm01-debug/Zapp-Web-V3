@@ -42,7 +42,7 @@
  * Rodar: deno test --allow-net --allow-env --allow-read
  *   supabase/functions/_shared/__tests__/contract-field-matrix.test.ts
  */
-import { assertEquals } from "jsr:@std/assert";
+import { assert, assertEquals } from "jsr:@std/assert";
 import { parseOrReject } from "../contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../contract-schemas.ts";
 import {
@@ -131,6 +131,16 @@ for (const contractName of Object.keys(CONTRACT_SCHEMAS)) {
   }
 }
 
+// Etapa 73 (Bloco 6): baseline DURÁVEL do total de casos gerados — antes só
+// existia um console.log (número flutuante, nunca comparado com nada,
+// ninguém notaria uma queda real de cobertura). Piso hardcoded ligeiramente
+// abaixo do total real medido após o merge da etapa 65 (eixo explicit_null)
+// + remoção de email-health (Bloco 9, etapa 96): 1580 casos, 126 contrato@
+// versão. Se um contrato for removido do gerador por engano, ou um eixo
+// quebrar, o teste FALHA em vez de só logar um número menor. Nunca abaixe o
+// piso pra "consertar" uma queda real sem investigar a causa.
+const MIN_TOTAL_CASES_BASELINE = 1550;
+
 Deno.test("Field Matrix: resumo", () => {
   const untestable = allUnsupportedWrongType.filter((u) => EXPECTED_UNTESTABLE_REASON.test(u.reason));
   const unexpected = allUnsupportedWrongType.filter((u) => !EXPECTED_UNTESTABLE_REASON.test(u.reason));
@@ -149,6 +159,13 @@ Deno.test("Field Matrix: resumo", () => {
       `ZodDiscriminatedUnion) — cobertura silenciosamente incompleta. Investigar antes de mergear.`,
     );
   }
+
+  assert(
+    totalCases >= MIN_TOTAL_CASES_BASELINE,
+    `Total de casos adversariais caiu para ${totalCases} (piso: ${MIN_TOTAL_CASES_BASELINE}) — ` +
+    `cobertura regrediu (contrato removido do registro, eixo do gerador quebrado, etc.). ` +
+    `Investigar antes de mergear; NÃO abaixar o piso sem entender a causa.`,
+  );
 
   // Etapa 28-like ("no silent caps", agora aplicado ao eixo wrong_type):
   // qualquer motivo de exclusão que NÃO seja "aceita qualquer tipo" (ZodAny/

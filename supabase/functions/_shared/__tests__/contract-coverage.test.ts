@@ -99,5 +99,19 @@ Deno.test("cobertura: allowlist vazia é consistente (toda exceção tem entrada
   // Teto reduzido de 4 → 2 em 2026-08-21 (Bloco 0 do PLANO-100-CONTRATOS-EDGE):
   // as 2 entradas temporárias (download-wa-status-media, transcribe-audio-internal)
   // ganharam gate real e saíram da allowlist; só main/mcp restam (no-op documentado).
+  //
+  // Etapa 91 (Bloco 8, 2026-08-22): o plano original propunha reduzir de 2
+  // para 0. Investigado e NÃO recomendado sem teste em infra real: main/mcp
+  // (main/index.ts) usam `EdgeRuntime.userWorkers.create()` +
+  // `worker.fetch(req)` — um binding nativo do runtime self-hosted
+  // (`supabase/edge-runtime`), não um fetch HTTP comum. `Request.clone()`
+  // teoricamente permitiria ler o body pro gate sem consumir o original, mas
+  // não há como validar esse comportamento contra o binding real deste
+  // sandbox (sem container do edge-runtime rodando) — e main é o roteador de
+  // TODA edge function pública (evolution-webhook, whatsapp-cloud-webhook,
+  // gmail-webhook, sicoob-bridge, etc.). Um erro aqui quebraria ingestão de
+  // webhook em produção inteira, não uma função isolada. Piso mantido em 2
+  // até haver uma janela de teste em infra real (VPS/staging) para validar
+  // `.clone()` contra o worker.fetch de verdade.
   assert(Object.keys(ALLOWLIST).length <= 2, "allowlist cresceu demais — revisar antes de aceitar");
 });

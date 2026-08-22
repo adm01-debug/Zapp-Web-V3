@@ -17,6 +17,9 @@
 | `_shared/__tests__/contract-coverage.test.ts` | **Gate de cobertura 100%**: toda função que lê body DEVE invocar o gate (allowlist: `main`, `mcp` — proxies que não podem consumir stream). |
 | `_shared/__tests__/contract-versioning.test.ts` | Compatibilidade retroativa v1/v2: auto-detecção, header `x-contract-version`, 422 para versão não suportada, headers de sunset. |
 | `_shared/__tests__/contract-sunset-policy.test.ts` | Política pós-sunset (etapa 55): `isSunsetExpired`, 410 `contract_version_sunset` para versão pedida explicitamente, auto-detecção permanece imune, canário sobre sunsets reais ainda não expirados. |
+| `_shared/adversarial-matrix.ts` | Gerador automático de casos por campo (Bloco 6): introspecciona o schema Zod real de cada contrato e deriva missing_required/wrong_type/empty_string/invalid_enum/explicit_null/extra_field — sem fixture manual por contrato. |
+| `_shared/__tests__/contract-field-matrix.test.ts` | Consome `adversarial-matrix.ts` para os contratos não-multipart: casos gerados e testados, gate "no silent caps" sobre wrong_type/explicit_null omitidos. |
+| `_shared/__tests__/contract-multipart-matrix.test.ts` | Etapa 72: os 3 contratos multipart (file-security-scanner, secure-upload, voice-changer) excluídos do gerador genérico (não sintetiza `File` real) — testados à mão com `File` real via `parseOrReject`. |
 | `_shared/__tests__/unified-error-format.test.ts` | Shape canônico do envelope de erro em todos os códigos. |
 | `_shared/__tests__/contract-cross-endpoint.test.ts` | Consistência do shape entre endpoints (1 shape canônico para todas as falhas). |
 
