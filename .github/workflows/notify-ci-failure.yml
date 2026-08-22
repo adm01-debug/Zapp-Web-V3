@@ -28,7 +28,7 @@ jobs:
     steps:
       - name: "POST warroom → Email + Bitrix24"
         run: |
-          curl -sf -X POST https://webhook.atomicabr.com.br/webhook/warroom-alert \
+          curl -sf -X POST https://n8n.atomicabr.com.br/webhook/warroom-alert \
             -H "Content-Type: application/json" \
             -d "{\"severity\":\"critical\",\"alert_type\":\"ci_failure\",\"title\":\"CI FAILED: ${{ github.event.workflow_run.name }}\",\"message\":\"Repo: ${{ github.repository }}\nBranch: ${{ github.event.workflow_run.head_branch }}\nActor: ${{ github.event.workflow_run.triggering_actor.login }}\nSHA: ${{ github.event.workflow_run.head_sha }}\nURL: ${{ github.event.workflow_run.html_url }}\",\"source\":\"github-actions\",\"run_id\":\"${{ github.event.workflow_run.id }}\"}" \
           && echo "Alerta enviado (Email Abner + Bitrix24)"
