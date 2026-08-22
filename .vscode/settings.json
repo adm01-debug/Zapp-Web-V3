@@ -14,6 +14,16 @@
   "typescript.updateImportsOnFileMove.enabled": "always",
   "typescript.tsdk": "node_modules/typescript/lib",
 
+  // Projeto híbrido: src/ roda em Node (checado pelo TypeScript acima),
+  // supabase/functions/ roda em Deno (import por URL, global `Deno`). Sem
+  // isso, o checador do Node tenta validar os arquivos de Deno e mostra
+  // "Cannot find name 'Deno'" / "Cannot find module 'https://...'" —
+  // não são erros reais, é só o VS Code sem saber qual motor usar.
+  "deno.enable": false,
+  "deno.enablePaths": ["supabase/functions"],
+  "deno.config": "./supabase/functions/deno.json",
+  "deno.lint": true,
+
   "emmet.includeLanguages": {
     "typescriptreact": "html"
   },
